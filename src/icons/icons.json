@@ -1,0 +1,8 @@
+{
+	"bus": {"x":0,"y":0,"width":250,"height":250},
+	"ferry": {"x":250,"y":0,"width":250,"height":164},
+	"question": {"x":500,"y":0,"width":250,"height":250},
+	"subway": {"x":0,"y":250,"width":250,"height":250},
+	"rail": {"x":250,"y":250,"width":254,"height":254},
+	"tram": {"x":504,"y":250,"width":250,"height":250}
+}
