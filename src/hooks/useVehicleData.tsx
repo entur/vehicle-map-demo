@@ -1,7 +1,5 @@
-import React, { useEffect, useReducer } from 'react';
-import './App.css';
-import Map from './Map';
 import { gql, useQuery, useSubscription } from '@apollo/client';
+import { useEffect, useReducer } from "react";
 
 const VEHICLE_FRAGMET = gql`
   fragment VehicleFragment on VehicleUpdate {
@@ -56,7 +54,7 @@ const reducer = (state: State, action: Action) => {
   return state;
 }
 
-function App() {
+export default function useVehicleData() {
   const [vehicles, dispatch] = useReducer(reducer, {});
 
   const {
@@ -64,7 +62,7 @@ function App() {
   } = useQuery(VEHICLES_QUERY);
 
   const {
-    data,
+    data: subscriptionData,
   } = useSubscription(VEHICLE_UPDATES_SUBSCRIPTION);
 
   useEffect(() => {
@@ -74,16 +72,10 @@ function App() {
   }, [hydrationData]);
 
   useEffect(() => {
-    if (data && data.vehicleUpdates) {
-      dispatch({ payload: [data.vehicleUpdates] });
+    if (subscriptionData && subscriptionData.vehicleUpdates) {
+      dispatch({ payload: [subscriptionData.vehicleUpdates] });
     }
-  }, [data]);
+  }, [subscriptionData]);
 
-  return (
-    <div className="App">
-      <Map data={Object.values(vehicles)} />
-    </div>
-  );
+  return vehicles;
 }
-
-export default App;
