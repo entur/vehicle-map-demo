@@ -9,11 +9,11 @@ import { WebSocketLink } from '@apollo/client/link/ws';
 import { getMainDefinition } from '@apollo/client/utilities';
 
 const httpLink = new HttpLink({
-  uri: 'https://api.dev.entur.io/realtime/v1/vehicles/graphql'
+  uri: process.env.REACT_APP_REALTIME_GRAPHQL_ENDPOINT
 });
 
 const wsLink = new WebSocketLink({
-  uri: `wss://api.dev.entur.io/realtime/v1/vehicles/subscriptions`,
+  uri: process.env.REACT_APP_REALTIME_SUBSCRIPTIONS_ENDPOINT || '',
   options: {
     reconnect: true
   }
