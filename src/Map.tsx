@@ -23,7 +23,9 @@ const INITIAL_VIEW_STATE = {
 
 export default function Map({ data }: any) {
 
-  const [tooltipInfo, setTooltipInfo] = useState<any>(null);
+  const [popupInfo, setPopupInfo] = useState<any>(null);
+  const [hoverInfo, setHoverInfo] = useState<any>(null);
+
   const layers = [
     new IconLayer({
       id: 'icon-layer',
@@ -32,21 +34,16 @@ export default function Map({ data }: any) {
       iconAtlas,
       iconMapping,
       getIcon: (d: any) => Object.keys(iconMapping).includes(d.mode.toLowerCase()) ? d.mode.toLowerCase() : 'question',
-      // icon size is based on data point's contributions, between 2 - 25
-      //getSize: (d: any) => Math.max(2, Math.min(d.contributions / 1000 * 25, 25)),
-      //sizeScale: 15,
-      getSize: (d: any) => 50,
+      getSize: () => 50,
       getPosition: (d: any) => {
-        if (tooltipInfo) {
-          if (tooltipInfo.vehicleId === d.vehicleId) {
-            setTooltipInfo(d);
-          }
+        if (popupInfo && popupInfo.vehicleId === d.vehicleId) {
+          setPopupInfo(d);
         }
 
         return [d.location.longitude, d.location.latitude];
       },
-      //onHover: (info: any) => setTooltipInfo(info),
-      onClick: (info: any) => setTooltipInfo(info.object)
+      onClick: (info: any) => setPopupInfo(info.object),
+      onHover: (info: any) => setHoverInfo(info.object)
     })
   ];
 
@@ -57,19 +54,30 @@ export default function Map({ data }: any) {
       controller={true}
       layers={layers}
     >
-      {tooltipInfo && tooltipInfo.location && (
+      {popupInfo && popupInfo.location && (
         <Popup
           key="popup"
-          longitude={tooltipInfo.location.longitude}
-          latitude={tooltipInfo.location.latitude}
+          longitude={popupInfo.location.longitude}
+          latitude={popupInfo.location.latitude}
           closeButton
           closeOnClick
-          onClose={() => setTooltipInfo(null)}
-          anchor="top"
+          onClose={() => setPopupInfo(null)}
+          anchor="bottom"
         >
           <div style={{backgroundColor:'white', padding: '10px', width:'500px', textAlign: 'left'}}>
-            <pre>{JSON.stringify(tooltipInfo, null, 2)}</pre>
+            <pre>{JSON.stringify(popupInfo, null, 2)}</pre>
           </div>
+        </Popup>
+      )}
+      {hoverInfo && hoverInfo.location && (
+        <Popup
+          key="hover"
+          closeButton={false}
+          longitude={hoverInfo.location.longitude}
+          latitude={hoverInfo.location.latitude}
+          anchor="bottom"
+        >
+          { hoverInfo.lineRef }
         </Popup>
       )}
       <StaticMap
