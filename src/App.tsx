@@ -1,6 +1,6 @@
 import React from 'react';
-import Map from '../Map';
-import useVehicleData from '../../hooks/useVehicleData';
+import Map from './Map';
+import useVehicleData from './useVehicleData';
 
 function App() {
   const vehicles = useVehicleData()

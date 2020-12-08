@@ -3,8 +3,8 @@ import DeckGL from '@deck.gl/react';
 import {IconLayer} from '@deck.gl/layers';
 import {StaticMap, Popup, _MapContext as MapContext} from 'react-map-gl';
 
-import iconAtlas from '../../icons/icons.png';
-import iconMapping from '../../icons/icons.json';
+import iconAtlas from './icons/icons.png';
+import iconMapping from './icons/icons.json';
 
 import 'mapbox-gl/dist/mapbox-gl.css';
 
