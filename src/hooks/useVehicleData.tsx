@@ -42,23 +42,81 @@ const VEHICLE_UPDATES_SUBSCRIPTION = gql`
   ${VEHICLE_FRAGMET}
 `;
 
-type State = any;
-type Action = any;
+type Vehicle = any;
+
+type State = {
+  vehicles: Record<string, Vehicle>;
+}
+
+enum ActionType {
+  HYDRATE,
+  UPDATE,
+  EXPIRE,
+};
+
+type Action = {
+  type: ActionType,
+  payload?: any
+};
+
+const initialState: State = {
+  vehicles: {}
+};
+
+const reduceVehicles = ((acc: any, vehicle: Vehicle) => {
+  if (new Date(vehicle.expiration) < new Date()) {
+    console.debug('rejecting expired vehicle during hydration/update', vehicle);
+    return acc;
+  }
+
+  if (acc[vehicle.vehicleId]) {
+    if (new Date(vehicle.lastUpdated) > new Date(acc[vehicle.vehicleId].lastUpdated)) {
+      console.debug('found new update for vehicle during hydration/update', vehicle);
+      acc[vehicle.vehicleId] = vehicle;
+    }
+  } else {
+    acc[vehicle.vehicleId] = vehicle;
+  }
+  return acc;
+});
+
+const expireVehicles = ((acc: any, vehicle: Vehicle) => {
+  if (new Date(vehicle.expiration) < new Date()) {
+    console.debug('expire vehicle', vehicle);
+    return acc;
+  }
+  acc[vehicle.vehicleId] = vehicle;
+  return acc;
+})
+
 
 const reducer = (state: State, action: Action) => {
-  const payload = action.payload;
-  payload.forEach((vehicle: any) => {
-    state[vehicle.vehicleId] = vehicle;
-  })
-
-  return state;
+  switch (action.type) {
+    case ActionType.HYDRATE:
+      return {
+        vehicles: action.payload.reduce(reduceVehicles, {})
+      }
+    case ActionType.UPDATE:
+      return {
+        vehicles: {
+          ...state.vehicles,
+          ...action.payload.reduce(reduceVehicles, {})
+        }
+      }
+    case ActionType.EXPIRE:
+      return {
+        vehicles: {
+          ...Object.values(state.vehicles).reduce(expireVehicles, {})
+        }
+      }
+  }
 }
 
 export default function useVehicleData() {
-  const [vehicles, dispatch] = useReducer(reducer, {});
+  const [{vehicles}, dispatch] = useReducer(reducer, initialState);
 
   const {
-    data: hydrationData
+    data: hydrationData,
   } = useQuery(VEHICLES_QUERY);
 
   const {
@@ -67,15 +125,25 @@ export default function useVehicleData() {
 
   useEffect(() => {
     if (hydrationData && hydrationData.vehicles) {
-      dispatch({ payload: hydrationData.vehicles });
+      dispatch({ type: ActionType.HYDRATE, payload: hydrationData.vehicles });
     }
   }, [hydrationData]);
 
   useEffect(() => {
     if (subscriptionData && subscriptionData.vehicleUpdates) {
-      dispatch({ payload: [subscriptionData.vehicleUpdates] });
+      dispatch({ type: ActionType.UPDATE, payload: [subscriptionData.vehicleUpdates] });
     }
   }, [subscriptionData]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      dispatch({ type: ActionType.EXPIRE });
+    }, 1000);
+
+    return () => {
+      clearInterval(timer);
+    }
+  })
 
   return vehicles;
 }
