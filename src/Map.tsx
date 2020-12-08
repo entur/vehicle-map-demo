@@ -7,6 +7,7 @@ import iconAtlas from './icons/icons.png';
 import iconMapping from './icons/icons.json';
 
 import 'mapbox-gl/dist/mapbox-gl.css';
+import { Vehicle } from './useVehicleData';
 
 // Set your mapbox access token here
 const MAPBOX_ACCESS_TOKEN = process.env.REACT_APP_MAPBOX_ACCESS_TOKEN;
@@ -33,17 +34,20 @@ export default function Map({ data }: any) {
       pickable: true,
       iconAtlas,
       iconMapping,
-      getIcon: (d: any) => Object.keys(iconMapping).includes(d.mode.toLowerCase()) ? d.mode.toLowerCase() : 'question',
+      getIcon: (d: any) => {
+        return d.icon;
+      },
       getSize: () => 50,
-      getPosition: (d: any) => {
-        if (popupInfo && popupInfo.vehicleId === d.vehicleId) {
-          setPopupInfo(d);
+      getPosition: (vehicleMapPoint: any) => {
+        const vehicle: Vehicle = vehicleMapPoint.vehicle;
+        if (popupInfo && popupInfo.vehicleId === vehicle.vehicleId) {
+          setPopupInfo(vehicle);
         }
 
-        return [d.location.longitude, d.location.latitude];
+        return [vehicle.location.longitude, vehicle.location.latitude];
       },
-      onClick: (info: any) => setPopupInfo(info.object),
-      onHover: (info: any) => setHoverInfo(info.object)
+      onClick: (info: any) => setPopupInfo(info?.object?.vehicle),
+      onHover: (info: any) => setHoverInfo(info?.object?.vehicle)
     })
   ];
 
@@ -89,7 +93,3 @@ export default function Map({ data }: any) {
     </DeckGL>
   );
 }
-
-/*
-
-    */

@@ -56,7 +56,7 @@
         <key>jxrCompressionLevel</key>
         <uint>0</uint>
         <key>ditherType</key>
-        <enum type="SettingsBase::DitherType">NearestNeighbour</enum>
+        <enum type="SettingsBase::DitherType">PngQuantLow</enum>
         <key>backgroundColor</key>
         <uint>0</uint>
         <key>libGdx</key>
@@ -108,7 +108,7 @@
             <key>sizeConstraints</key>
             <enum type="AlgorithmSettings::SizeConstraints">AnySize</enum>
             <key>forceSquared</key>
-            <true/>
+            <false/>
             <key>maxRects</key>
             <struct type="AlgorithmMaxRectsSettings">
                 <key>heuristic</key>
@@ -181,9 +181,13 @@
         </struct>
         <key>individualSpriteSettings</key>
         <map type="IndividualSpriteSettingsMap">
+            <key type="filename">../../../../../Downloads/Bus 2 (1).png</key>
             <key type="filename">../../../../../Downloads/Bus 2.png</key>
+            <key type="filename">../../../../../Downloads/Question 3 (1).png</key>
             <key type="filename">../../../../../Downloads/Question 3.png</key>
+            <key type="filename">../../../../../Downloads/Subway 2 (1).png</key>
             <key type="filename">../../../../../Downloads/Subway 2.png</key>
+            <key type="filename">../../../../../Downloads/Tram 1 (1).png</key>
             <key type="filename">../../../../../Downloads/Tram 1.png</key>
             <struct type="IndividualSpriteSettings">
                 <key>pivotPoint</key>
@@ -199,6 +203,7 @@
                 <key>scale9FromFile</key>
                 <false/>
             </struct>
+            <key type="filename">../../../../../Downloads/Ferry 1 (1).png</key>
             <key type="filename">../../../../../Downloads/Ferry 1.png</key>
             <struct type="IndividualSpriteSettings">
                 <key>pivotPoint</key>
@@ -214,6 +219,7 @@
                 <key>scale9FromFile</key>
                 <false/>
             </struct>
+            <key type="filename">../../../../../Downloads/Train 2 (1).png</key>
             <key type="filename">../../../../../Downloads/Train 2.png</key>
             <struct type="IndividualSpriteSettings">
                 <key>pivotPoint</key>
@@ -238,6 +244,12 @@
             <filename>../../../../../Downloads/Ferry 1.png</filename>
             <filename>../../../../../Downloads/Tram 1.png</filename>
             <filename>../../../../../Downloads/Question 3.png</filename>
+            <filename>../../../../../Downloads/Bus 2 (1).png</filename>
+            <filename>../../../../../Downloads/Ferry 1 (1).png</filename>
+            <filename>../../../../../Downloads/Subway 2 (1).png</filename>
+            <filename>../../../../../Downloads/Train 2 (1).png</filename>
+            <filename>../../../../../Downloads/Tram 1 (1).png</filename>
+            <filename>../../../../../Downloads/Question 3 (1).png</filename>
         </array>
         <key>ignoreFileList</key>
         <array/>

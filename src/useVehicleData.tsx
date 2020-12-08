@@ -1,4 +1,5 @@
 import { gql, useQuery, useSubscription } from '@apollo/client';
+import { addMinutes, addSeconds, isBefore, parseISO } from 'date-fns';
 import { useEffect, useReducer } from "react";
 
 const VEHICLE_FRAGMET = gql`
@@ -42,10 +43,34 @@ const VEHICLE_UPDATES_SUBSCRIPTION = gql`
   ${VEHICLE_FRAGMET}
 `;
 
-type Vehicle = any;
+export type Vehicle = {
+  codespaceId: string;
+  vehicleId: string;
+  direction: string | number;
+  lineName: string;
+  lineRef: string;
+  serviceJourneyId: string;
+  operator: string;
+  mode: string;
+  lastUpdated: string;
+  expiration: string;
+  speed: number;
+  heading: number;
+  monitored: boolean;
+  delay: number;
+  location: {
+    latitude: number;
+    longitude: number;
+  }
+};
+
+export type VehicleMapPoint = {
+  icon: string;
+  vehicle: Vehicle;
+};
 
 type State = {
-  vehicles: Record<string, Vehicle>;
+  vehicles: Record<string, VehicleMapPoint>;
 }
 
 enum ActionType {
@@ -56,7 +81,7 @@ enum ActionType {
 
 type Action = {
   type: ActionType,
-  payload?: any
+  payload?: Vehicle[]
 };
 
 const initialState: State = {
@@ -64,28 +89,43 @@ const initialState: State = {
 };
 
 const reduceVehicles = ((acc: any, vehicle: Vehicle) => {
-  if (new Date(vehicle.expiration) < new Date()) {
+  const now = new Date();
+  if (parseISO(vehicle.expiration) < now) {
     console.debug('rejecting expired vehicle during hydration/update', vehicle);
     return acc;
   }
 
+  const vehicleMapPoint: VehicleMapPoint = { icon: vehicle.mode.toLowerCase(), vehicle };
+
+  if (isBefore(addMinutes(parseISO(acc[vehicle.vehicleId]), 1), now)) {
+    vehicleMapPoint.icon = vehicleMapPoint.icon + '_inactive';
+  }
+
   if (acc[vehicle.vehicleId]) {
-    if (new Date(vehicle.lastUpdated) > new Date(acc[vehicle.vehicleId].lastUpdated)) {
+    if (parseISO(vehicle.lastUpdated) > parseISO(acc[vehicle.vehicleId].lastUpdated)) {
       console.debug('found new update for vehicle during hydration/update', vehicle);
-      acc[vehicle.vehicleId] = vehicle;
+      acc[vehicle.vehicleId] = vehicleMapPoint;
     }
   } else {
-    acc[vehicle.vehicleId] = vehicle;
+    acc[vehicle.vehicleId] = vehicleMapPoint;
   }
+
   return acc;
 });
 
-const expireVehicles = ((acc: any, vehicle: Vehicle) => {
-  if (new Date(vehicle.expiration) < new Date()) {
-    console.debug('expire vehicle', vehicle);
+const expireVehicles = ((acc: any, vehicleMapPoint: VehicleMapPoint) => {
+  const now = new Date();
+  if (isBefore(parseISO(vehicleMapPoint.vehicle.expiration), now)) {
+    console.debug('expire vehicle', vehicleMapPoint.vehicle);
     return acc;
   }
-  acc[vehicle.vehicleId] = vehicle;
+
+  if (isBefore(addSeconds(parseISO(vehicleMapPoint.vehicle.lastUpdated), 60), now)) {
+    if (vehicleMapPoint.icon.indexOf('_inactive') === -1)
+    vehicleMapPoint.icon = vehicleMapPoint.icon + '_inactive';
+  }
+
+  acc[vehicleMapPoint.vehicle.vehicleId] = vehicleMapPoint;
   return acc;
 })
 
@@ -94,13 +134,13 @@ const reducer = (state: State, action: Action) => {
   switch (action.type) {
     case ActionType.HYDRATE:
       return {
-        vehicles: action.payload.reduce(reduceVehicles, {})
+        vehicles: action?.payload?.reduce(reduceVehicles, {})
       }
     case ActionType.UPDATE:
       return {
         vehicles: {
           ...state.vehicles,
-          ...action.payload.reduce(reduceVehicles, {})
+          ...action?.payload?.reduce(reduceVehicles, {})
         }
       }
     case ActionType.EXPIRE:
@@ -138,7 +178,7 @@ export default function useVehicleData() {
   useEffect(() => {
     const timer = setInterval(() => {
       dispatch({ type: ActionType.EXPIRE });
-    }, 1000);
+    }, 5000);
 
     return () => {
       clearInterval(timer);
