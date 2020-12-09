@@ -1,0 +1,37 @@
+@import '~@entur/tokens/dist/styles.scss';
+
+.sidebar-wrapper {
+  left: 15px;
+  top: 15px;
+  background-color: $colors-brand-blue;
+  position:relative;
+  width: 350px;
+  z-index: 1;
+  border-radius: 30px;
+}
+
+.logo {
+  width: 72px;
+  height: auto;
+  margin-right: 5px;
+}
+
+.logo-wrapper {
+  display: inline-block;
+  padding-left: 30px;
+  padding-right: 30px;
+  cursor: pointer;
+  margin-top: 30px;
+  margin-bottom: 20px;
+
+  span {
+    margin-left: 0.25rem;
+    color: $colors-brand-coral;
+    font-size: 1.3em;
+    font-weight: 500;
+  }
+}
+
+.sidebar-content {
+  margin: $space-medium;
+}
