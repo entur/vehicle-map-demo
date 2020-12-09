@@ -3,11 +3,11 @@ import DeckGL from '@deck.gl/react';
 import {IconLayer} from '@deck.gl/layers';
 import {StaticMap, Popup, _MapContext as MapContext} from 'react-map-gl';
 
-import iconAtlas from './icons/icons.png';
-import iconMapping from './icons/icons.json';
+import iconAtlas from 'static/icons/icons.png';
+import iconMapping from 'static/icons/icons.json';
 
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { Vehicle } from './useVehicleData';
+import { Vehicle } from 'model/vehicle';
 
 // Set your mapbox access token here
 const MAPBOX_ACCESS_TOKEN = process.env.REACT_APP_MAPBOX_ACCESS_TOKEN;
@@ -22,7 +22,7 @@ const INITIAL_VIEW_STATE = {
   bearing: 0
 };
 
-export default function Map({ data }: any) {
+export const Map = ({ data }: any) => {
 
   const [popupInfo, setPopupInfo] = useState<any>(null);
   const [hoverInfo, setHoverInfo] = useState<any>(null);
@@ -52,7 +52,7 @@ export default function Map({ data }: any) {
   ];
 
   return (
-<DeckGL
+    <DeckGL
       ContextProvider={MapContext.Provider}
       initialViewState={INITIAL_VIEW_STATE}
       controller={true}

@@ -1,85 +1,19 @@
-import { gql, useQuery, useSubscription } from '@apollo/client';
-import { addMinutes, addSeconds, isBefore, parseISO } from 'date-fns';
-import { useEffect, useReducer } from "react";
-
-const VEHICLE_FRAGMET = gql`
-  fragment VehicleFragment on VehicleUpdate {
-    codespaceId
-    vehicleId
-    direction
-    lineName
-    lineRef
-    serviceJourneyId
-    operator
-    mode
-    lastUpdated
-    expiration
-    speed
-    heading
-    monitored
-    delay
-    location {
-      latitude
-      longitude
-    }
-  }
-`;
-
-const VEHICLES_QUERY = gql`
-  query VehiclesQuery {
-    vehicles {
-      ...VehicleFragment
-    }
-  }
-  ${VEHICLE_FRAGMET}
-`;
-
-const VEHICLE_UPDATES_SUBSCRIPTION = gql`
-  subscription VehicleUpdates {
-    vehicleUpdates {
-      ...VehicleFragment
-    }
-  }
-  ${VEHICLE_FRAGMET}
-`;
-
-export type Vehicle = {
-  codespaceId: string;
-  vehicleId: string;
-  direction: string | number;
-  lineName: string;
-  lineRef: string;
-  serviceJourneyId: string;
-  operator: string;
-  mode: string;
-  lastUpdated: string;
-  expiration: string;
-  speed: number;
-  heading: number;
-  monitored: boolean;
-  delay: number;
-  location: {
-    latitude: number;
-    longitude: number;
-  }
-};
-
-export type VehicleMapPoint = {
-  icon: string;
-  vehicle: Vehicle;
-};
+import { addMinutes, addSeconds, isBefore, parseISO } from "date-fns";
+import { Vehicle } from "model/vehicle";
+import { VehicleMapPoint } from "model/vehicleMapPoint";
+import { useReducer } from "react";
 
 type State = {
   vehicles: Record<string, VehicleMapPoint>;
 }
 
-enum ActionType {
+export enum ActionType {
   HYDRATE,
   UPDATE,
   EXPIRE,
 };
 
-type Action = {
+export type Action = {
   type: ActionType,
   payload?: Vehicle[]
 };
@@ -152,38 +86,7 @@ const reducer = (state: State, action: Action) => {
   }
 }
 
-export default function useVehicleData() {
+export default function useVehicleReducer() {
   const [{vehicles}, dispatch] = useReducer(reducer, initialState);
-
-  const {
-    data: hydrationData,
-  } = useQuery(VEHICLES_QUERY);
-
-  const {
-    data: subscriptionData,
-  } = useSubscription(VEHICLE_UPDATES_SUBSCRIPTION);
-
-  useEffect(() => {
-    if (hydrationData && hydrationData.vehicles) {
-      dispatch({ type: ActionType.HYDRATE, payload: hydrationData.vehicles });
-    }
-  }, [hydrationData]);
-
-  useEffect(() => {
-    if (subscriptionData && subscriptionData.vehicleUpdates) {
-      dispatch({ type: ActionType.UPDATE, payload: [subscriptionData.vehicleUpdates] });
-    }
-  }, [subscriptionData]);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      dispatch({ type: ActionType.EXPIRE });
-    }, 5000);
-
-    return () => {
-      clearInterval(timer);
-    }
-  })
-
-  return vehicles;
+  return [vehicles, dispatch];
 }
