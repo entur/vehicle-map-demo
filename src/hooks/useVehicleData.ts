@@ -18,13 +18,13 @@ export default function useVehicleData() {
     if (hydrationData && hydrationData.vehicles) {
       dispatch({ type: ActionType.HYDRATE, payload: hydrationData.vehicles });
     }
-  }, [hydrationData]);
+  }, [hydrationData, dispatch]);
 
   useEffect(() => {
     if (subscriptionData && subscriptionData.vehicleUpdates) {
       dispatch({ type: ActionType.UPDATE, payload: [subscriptionData.vehicleUpdates] });
     }
-  }, [subscriptionData]);
+  }, [subscriptionData, dispatch]);
 
   useEffect(() => {
     const timer = setInterval(() => {

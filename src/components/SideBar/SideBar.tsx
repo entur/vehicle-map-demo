@@ -1,7 +1,7 @@
-import { Button, ButtonGroup, PrimaryButton } from '@entur/button';
+import { PrimaryButton } from '@entur/button';
 import { Checkbox, TextField } from '@entur/form';
 import { Contrast } from '@entur/layout';
-import { Heading2, Heading3, Label } from '@entur/typography';
+import { Label } from '@entur/typography';
 import logo from 'static/img/logo.png';
 
 import './SideBar.scss';
