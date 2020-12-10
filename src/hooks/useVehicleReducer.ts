@@ -30,6 +30,8 @@ const initialState: State = {
   },
 };
 
+const DEFAULT_INACTIVE_VEHICLE_IN_SECONDS = 60;
+
 const hydrate = (now: Date, state: State, payload: Vehicle[]) => {
   let numberOfExpiredVehicles = state.statistics.numberOfExpiredVehicles;
   let numberOfUpdatesInSession = state.statistics.numberOfUpdatesInSession;
@@ -46,7 +48,15 @@ const hydrate = (now: Date, state: State, payload: Vehicle[]) => {
       vehicle,
     };
 
-    if (isBefore(addSeconds(parseISO(vehicle.lastUpdated), 60), now)) {
+    if (
+      isBefore(
+        addSeconds(
+          parseISO(vehicle.lastUpdated),
+          DEFAULT_INACTIVE_VEHICLE_IN_SECONDS
+        ),
+        now
+      )
+    ) {
       vehicleMapPoint.icon = vehicleMapPoint.icon + "_inactive";
     }
 
@@ -87,7 +97,15 @@ const update = (now: Date, state: State, vehicles: Vehicle[]) => {
         vehicle,
       };
 
-      if (isBefore(addSeconds(parseISO(vehicle.lastUpdated), 60), now)) {
+      if (
+        isBefore(
+          addSeconds(
+            parseISO(vehicle.lastUpdated),
+            DEFAULT_INACTIVE_VEHICLE_IN_SECONDS
+          ),
+          now
+        )
+      ) {
         vehicleMapPoint.icon = vehicleMapPoint.icon + "_inactive";
       }
 
@@ -134,7 +152,10 @@ const expire = (now: Date, state: State) => {
 
       if (
         isBefore(
-          addSeconds(parseISO(vehicleMapPoint.vehicle.lastUpdated), 10),
+          addSeconds(
+            parseISO(vehicleMapPoint.vehicle.lastUpdated),
+            DEFAULT_INACTIVE_VEHICLE_IN_SECONDS
+          ),
           now
         )
       ) {
