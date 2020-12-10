@@ -7,7 +7,7 @@
   position:relative;
   width: 400px;
   z-index: 1;
-  border-radius: 30px;
+  border-radius: 15px;
 }
 
 .logo {
@@ -34,4 +34,8 @@
 
 .control-panel-content {
   margin: $space-medium;
+
+  .eds-form-control-wrapper, .eds-switch {
+    margin-bottom: $space-extra-small;
+  }
 }

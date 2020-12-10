@@ -1,7 +1,7 @@
 import { PrimaryButton } from '@entur/button';
-import { Checkbox, TextField } from '@entur/form';
+import { Checkbox, Switch, TextField } from '@entur/form';
 import { Contrast } from '@entur/layout';
-import { Label } from '@entur/typography';
+import { Heading4, ListItem, UnorderedList } from '@entur/typography';
 import { Statistics } from 'model/statistics';
 import { SubscriptionFilter } from 'model/subscriptionFilter';
 import { Options } from 'model/options';
@@ -45,17 +45,17 @@ export const ControlPanel = (props: Props) => {
       </div>
 
       <div className="control-panel-content">
-        <Label>Statistics</Label>
-        <ul>
-          <li>Number of vehicles: {props.statistics.numberOfVehicles}</li>
-          <li>Number of inactive vehicles: {props.statistics.numberOfInactiveVehicles}</li>
-          <li>Number of expired vehicles: {props.statistics.numberOfExpiredVehicles}</li>
-          <li>Number of updates in session: {props.statistics.numberOfUpdatesInSession}</li>
-        </ul>
+        <Heading4>Statistics</Heading4>
+        <UnorderedList>
+          <ListItem>Number of vehicles: {props.statistics.numberOfVehicles}</ListItem>
+          <ListItem>Number of inactive vehicles: {props.statistics.numberOfInactiveVehicles}</ListItem>
+          <ListItem>Number of expired vehicles: {props.statistics.numberOfExpiredVehicles}</ListItem>
+          <ListItem>Number of updates in session: {props.statistics.numberOfUpdatesInSession}</ListItem>
+        </UnorderedList>
       </div>
 
       <div className="control-panel-content">
-        <Label>Subscription filters</Label>
+        <Heading4>Subscription filters</Heading4>
         <TextField label="Codespace" value={subscriptionFilter.codespace} onChange={(event) => setSubscriptionFilter({ ...subscriptionFilter, codespace: event.target.value })} />
         <TextField label="Service journey" value={subscriptionFilter.serviceJourneyId} onChange={(event) => setSubscriptionFilter({ ...subscriptionFilter, serviceJourneyId: event.target.value })}/>
         <TextField label="Operator" value={subscriptionFilter.operator} onChange={(event) => setSubscriptionFilter({ ...subscriptionFilter, operator: event.target.value })} />
@@ -63,7 +63,7 @@ export const ControlPanel = (props: Props) => {
         <TextField label="Line ref" value={subscriptionFilter.lineRef} onChange={(event) => setSubscriptionFilter({ ...subscriptionFilter, lineRef: event.target.value })} />
         <TextField label="Line name" value={subscriptionFilter.lineName} onChange={(event) => setSubscriptionFilter({ ...subscriptionFilter, lineName: event.target.value })} />
         <TextField label="Bounding box" value={subscriptionFilter.boundingBox} onChange={(event) => setSubscriptionFilter({ ...subscriptionFilter, boundingBox: event.target.value })} />
-        <Checkbox checked={subscriptionFilter.monitored} onChange={(event) => setSubscriptionFilter({ ...subscriptionFilter, monitored: event.target.checked })}>Monitored</Checkbox>
+        <Switch checked={subscriptionFilter.monitored} onChange={(event) => setSubscriptionFilter({ ...subscriptionFilter, monitored: event.target.checked })}>Monitored</Switch>
         <PrimaryButton
           onClick={() => props.onSubscriptionFilterUpdate(subscriptionFilter)}
         >
@@ -72,13 +72,13 @@ export const ControlPanel = (props: Props) => {
       </div>
 
       <div className="control-panel-content">
-        <Label>Options</Label>
+        <Heading4>Options</Heading4>
         <TextField type="number" label="Update interval (ms)" value={options.updateIntervalMs} onChange={(event) => setOptions({ ...options, updateIntervalMs: parseInt(event.target.value) })} />
         <TextField type="number" label="Swipe interval (ms)" value={options.swipeIntervalMs} onChange={(event) => setOptions({ ...options, swipeIntervalMs: parseInt(event.target.value) })} />
-        <Checkbox checked={options.removeExpired} onChange={(event) => setOptions({ ...options, removeExpired: event.target.checked })}>Remove expired vehicles from map</Checkbox>
-        <TextField disabled={!options.removeExpired} type="number" label="after N seconds" value={options.removeExpiredAfterSeconds} onChange={(event) => setOptions({ ...options, removeExpiredAfterSeconds: parseInt(event.target.value) })}/>
-        <Checkbox checked={options.markInactive} onChange={(event) => setOptions({ ...options, markInactive: event.target.checked })}>Mark vehicles as inactive</Checkbox>
-        <TextField disabled={!options.markInactive} type="number" label="after N seconds" value={options.markInactiveAfterSeconds} onChange={(event) => setOptions({ ...options, markInactiveAfterSeconds: parseInt(event.target.value) })}/>
+        <Switch checked={options.removeExpired} onChange={(event) => setOptions({ ...options, removeExpired: event.target.checked })}>Remove expired vehicles from map</Switch>
+        <TextField style={{ display: !options.removeExpired ? 'none' : 'block'}} type="number" label="after N seconds" value={options.removeExpiredAfterSeconds} onChange={(event) => setOptions({ ...options, removeExpiredAfterSeconds: parseInt(event.target.value) })}/>
+        <Switch checked={options.markInactive} onChange={(event) => setOptions({ ...options, markInactive: event.target.checked })}>Mark vehicles as inactive</Switch>
+        <TextField style={{ display: !options.markInactive ? 'none' : 'block'}} type="number" label="after N seconds" value={options.markInactiveAfterSeconds} onChange={(event) => setOptions({ ...options, markInactiveAfterSeconds: parseInt(event.target.value) })}/>
         <PrimaryButton
           onClick={() => props.onOptionsUdate(options)}
         >
