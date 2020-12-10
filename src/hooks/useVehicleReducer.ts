@@ -46,7 +46,7 @@ const hydrate = (now: Date, state: State, payload: Vehicle[]) => {
       vehicle,
     };
 
-    if (isBefore(addMinutes(parseISO(vehicle.lastUpdated), 1), now)) {
+    if (isBefore(addSeconds(parseISO(vehicle.lastUpdated), 60), now)) {
       vehicleMapPoint.icon = vehicleMapPoint.icon + "_inactive";
     }
 
@@ -87,7 +87,7 @@ const update = (now: Date, state: State, vehicles: Vehicle[]) => {
         vehicle,
       };
 
-      if (isBefore(addSeconds(parseISO(vehicle.lastUpdated), 10), now)) {
+      if (isBefore(addSeconds(parseISO(vehicle.lastUpdated), 60), now)) {
         vehicleMapPoint.icon = vehicleMapPoint.icon + "_inactive";
       }
 
