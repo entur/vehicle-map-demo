@@ -52,10 +52,12 @@ export default function useVehicleData(subscriptionFilter?: SubscriptionFilter, 
     });
 
     const timer = setInterval(() => {
-      dispatch({
-        type: ActionType.UPDATE,
-        payload: buffer.splice(0, buffer.length)
-      });
+      if (buffer.length > 0) {
+        dispatch({
+          type: ActionType.UPDATE,
+          payload: buffer.splice(0, buffer.length)
+        });
+      }
     }, options?.updateIntervalMs || DEFAULT_UPDATE_INTERVAL_IN_MS);
 
     return () => {
