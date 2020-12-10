@@ -1,4 +1,4 @@
-import { addMinutes, addSeconds, isBefore, parseISO } from "date-fns";
+import { addSeconds, isBefore, parseISO } from "date-fns";
 import { Statistics } from "model/statistics";
 import { Vehicle } from "model/vehicle";
 import { VehicleMapPoint } from "model/vehicleMapPoint";

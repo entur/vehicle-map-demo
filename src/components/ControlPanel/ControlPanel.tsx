@@ -1,5 +1,5 @@
 import { PrimaryButton } from "@entur/button";
-import { Checkbox, Switch, TextField } from "@entur/form";
+import { Switch, TextField } from "@entur/form";
 import { Contrast } from "@entur/layout";
 import { Heading4, ListItem, UnorderedList } from "@entur/typography";
 import { Statistics } from "model/statistics";
