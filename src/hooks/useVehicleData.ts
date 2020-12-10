@@ -1,5 +1,7 @@
 import { FetchResult, useApolloClient } from '@apollo/client';
 import { VEHICLES_QUERY, VEHICLE_UPDATES_SUBSCRIPTION } from 'api/graphql';
+import { Options } from 'model/options';
+import { SubscriptionFilter } from 'model/subscriptionFilter';
 import { Vehicle } from 'model/vehicle';
 import { useEffect } from "react";
 import useVehicleReducer, { ActionType } from './useVehicleReducer';
@@ -11,8 +13,8 @@ const DEFAULT_SWIPE_INTERVAL_IN_MS = 1000;
 /**
  * Hook to query and subscribe to remote vehicle data
  */
-export default function useVehicleData() {
-  const [vehicles, dispatch] = useVehicleReducer();
+export default function useVehicleData(subscriptionFilter?: SubscriptionFilter, options?: Options) {
+  const [state, dispatch] = useVehicleReducer();
   const client = useApolloClient();
 
   /**
@@ -54,12 +56,12 @@ export default function useVehicleData() {
         type: ActionType.UPDATE,
         payload: buffer.splice(0, buffer.length)
       });
-    }, DEFAULT_UPDATE_INTERVAL_IN_MS);
+    }, options?.updateIntervalMs || DEFAULT_UPDATE_INTERVAL_IN_MS);
 
     return () => {
       clearInterval(timer);
     }
-  }, [client, dispatch]);
+  }, [client, dispatch, options?.updateIntervalMs]);
 
   /**
    * Set a timer to swipe through vehicles to update their status
@@ -67,12 +69,12 @@ export default function useVehicleData() {
   useEffect(() => {
     const timer = setInterval(() => {
       dispatch({ type: ActionType.EXPIRE });
-    }, DEFAULT_SWIPE_INTERVAL_IN_MS);
+    }, options?.swipeIntervalMs || DEFAULT_SWIPE_INTERVAL_IN_MS);
 
     return () => {
       clearInterval(timer);
     }
   })
 
-  return vehicles;
+  return state;
 }

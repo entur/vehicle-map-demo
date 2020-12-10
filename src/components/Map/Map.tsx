@@ -73,7 +73,7 @@ export const Map = ({ data }: any) => {
           </div>
         </Popup>
       )}
-      {hoverInfo && hoverInfo.location && (
+      {!popupInfo && hoverInfo && hoverInfo.location && (
         <Popup
           key="hover"
           closeButton={false}
