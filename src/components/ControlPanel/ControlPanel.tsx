@@ -4,10 +4,10 @@ import { Contrast } from '@entur/layout';
 import { Label } from '@entur/typography';
 import logo from 'static/img/logo.png';
 
-import './SideBar.scss';
+import './ControlPanel.scss';
 
-export const SideBar = () =>
-  <Contrast className="sidebar-wrapper">
+export const ControlPanel = () =>
+  <Contrast className="control-panel-wrapper">
     <div className="logo-wrapper">
       <img
         className="logo"
@@ -16,7 +16,7 @@ export const SideBar = () =>
       />
       <span>Vehicle Map Demo</span>
     </div>
-    <div className="sidebar-content">
+    <div className="control-panel-content">
       <Label>Statistics</Label>
       <ul>
         <li>Number of vehicles:</li>
@@ -25,7 +25,7 @@ export const SideBar = () =>
         <li>Number of updates in session:</li>
       </ul>
     </div>
-    <div className="sidebar-content">
+    <div className="control-panel-content">
       <Label>Subscription filters</Label>
       <TextField label="Codespace" />
       <TextField label="Service journey" />
@@ -38,7 +38,7 @@ export const SideBar = () =>
       <PrimaryButton>Update subscription</PrimaryButton>
     </div>
 
-    <div className="sidebar-content">
+    <div className="control-panel-content">
       <Label>Map options</Label><br />
       <Checkbox>Remove expired vehicles from map</Checkbox>
       <TextField label="or after N seconds" />

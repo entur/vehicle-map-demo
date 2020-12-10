@@ -1,6 +1,6 @@
 import React from 'react';
 import {Map} from '../Map';
-import {SideBar} from 'components/SideBar';
+import {ControlPanel} from 'components/ControlPanel';
 import useVehicleData from 'hooks/useVehicleData';
 import './App.scss';
 
@@ -9,7 +9,7 @@ export const App = () => {
 
   return (
     <div className="App">
-      <SideBar />
+      <ControlPanel />
       <div className="map-wrapper">
         <Map data={Object.values(vehicles)} />
       </div>

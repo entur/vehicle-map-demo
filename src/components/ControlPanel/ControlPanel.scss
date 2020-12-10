@@ -1,6 +1,6 @@
 @import '~@entur/tokens/dist/styles.scss';
 
-.sidebar-wrapper {
+.control-panel-wrapper {
   left: 15px;
   top: 15px;
   background-color: $colors-brand-blue;
@@ -32,6 +32,6 @@
   }
 }
 
-.sidebar-content {
+.control-panel-content {
   margin: $space-medium;
 }
