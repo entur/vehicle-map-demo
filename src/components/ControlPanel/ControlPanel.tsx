@@ -68,11 +68,11 @@ export const ControlPanel = (props: Props) => {
         <Heading4>Subscription filters</Heading4>
         <TextField
           label="Codespace"
-          value={subscriptionFilter.codespace}
+          value={subscriptionFilter.codespaceId}
           onChange={(event) =>
             setSubscriptionFilter({
               ...subscriptionFilter,
-              codespace: event.target.value,
+              codespaceId: event.target.value,
             })
           }
         />
@@ -93,6 +93,16 @@ export const ControlPanel = (props: Props) => {
             setSubscriptionFilter({
               ...subscriptionFilter,
               operator: event.target.value,
+            })
+          }
+        />
+        <TextField
+          label="Mode"
+          value={subscriptionFilter.mode}
+          onChange={(event) =>
+            setSubscriptionFilter({
+              ...subscriptionFilter,
+              mode: event.target.value,
             })
           }
         />

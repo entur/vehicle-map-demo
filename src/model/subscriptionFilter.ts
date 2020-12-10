@@ -1,6 +1,7 @@
 export type SubscriptionFilter = {
-  codespace?: string;
+  codespaceId?: string;
   serviceJourneyId?: string;
+  mode?: string;
   operator?: string;
   vehicleId?: string;
   lineRef?: string;
