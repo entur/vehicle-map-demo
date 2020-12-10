@@ -28,13 +28,14 @@ export default function useVehicleData(
       const { data: hydrationData } = await client.query({
         query: VEHICLES_QUERY,
         fetchPolicy: DEFAULT_FETCH_POLICY,
+        variables: subscriptionFilter,
       });
       if (hydrationData && hydrationData.vehicles) {
         dispatch({ type: ActionType.HYDRATE, payload: hydrationData.vehicles });
       }
     }
     hydrate();
-  }, [client, dispatch]);
+  }, [client, dispatch, subscriptionFilter]);
 
   /**
    * Set up subscription to receive updates on vehicles
@@ -50,6 +51,7 @@ export default function useVehicleData(
       .subscribe({
         query: VEHICLE_UPDATES_SUBSCRIPTION,
         fetchPolicy: DEFAULT_FETCH_POLICY,
+        variables: subscriptionFilter,
       })
       .subscribe((fetchResult: FetchResult) => {
         buffer.push(fetchResult?.data?.vehicleUpdates as Vehicle);
@@ -67,7 +69,7 @@ export default function useVehicleData(
     return () => {
       clearInterval(timer);
     };
-  }, [client, dispatch, options?.updateIntervalMs]);
+  }, [client, dispatch, options?.updateIntervalMs, subscriptionFilter]);
 
   /**
    * Set a timer to swipe through vehicles to update their status

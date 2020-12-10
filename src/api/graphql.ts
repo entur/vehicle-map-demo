@@ -24,8 +24,8 @@ const VEHICLE_FRAGMENT = gql`
 `;
 
 export const VEHICLES_QUERY = gql`
-  query VehiclesQuery {
-    vehicles {
+  query VehiclesQuery($codespaceId: String) {
+    vehicles(codespaceId: $codespaceId) {
       ...VehicleFragment
     }
   }
@@ -33,8 +33,8 @@ export const VEHICLES_QUERY = gql`
 `;
 
 export const VEHICLE_UPDATES_SUBSCRIPTION = gql`
-  subscription VehicleUpdates {
-    vehicleUpdates {
+  subscription VehicleUpdates($codespaceId: String) {
+    vehicleUpdates(codespaceId: $codespaceId) {
       ...VehicleFragment
     }
   }
