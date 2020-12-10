@@ -1,15 +1,17 @@
-import React, { useState } from 'react';
-import {Map} from '../Map';
-import {ControlPanel} from 'components/ControlPanel';
-import useVehicleData from 'hooks/useVehicleData';
-import './App.scss';
-import { SubscriptionFilter } from 'model/subscriptionFilter';
-import { Options } from 'model/options';
+import React, { useState } from "react";
+import { Map } from "../Map";
+import { ControlPanel } from "components/ControlPanel";
+import useVehicleData from "hooks/useVehicleData";
+import "./App.scss";
+import { SubscriptionFilter } from "model/subscriptionFilter";
+import { Options } from "model/options";
 
 export const App = () => {
-  const [subscriptionFilter, setSubscriptionFilter] = useState<SubscriptionFilter | undefined>();
+  const [subscriptionFilter, setSubscriptionFilter] = useState<
+    SubscriptionFilter | undefined
+  >();
   const [options, setOptions] = useState<Options | undefined>();
-  const {vehicles, statistics} = useVehicleData(subscriptionFilter, options);
+  const { vehicles, statistics } = useVehicleData(subscriptionFilter, options);
 
   return (
     <div className="App">
@@ -23,4 +25,4 @@ export const App = () => {
       </div>
     </div>
   );
-}
+};

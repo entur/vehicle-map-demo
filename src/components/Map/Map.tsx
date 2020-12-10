@@ -1,13 +1,13 @@
-import { useState } from 'react';
-import DeckGL from '@deck.gl/react';
-import {IconLayer} from '@deck.gl/layers';
-import {StaticMap, Popup, _MapContext as MapContext} from 'react-map-gl';
+import { useState } from "react";
+import DeckGL from "@deck.gl/react";
+import { IconLayer } from "@deck.gl/layers";
+import { StaticMap, Popup, _MapContext as MapContext } from "react-map-gl";
 
-import iconAtlas from 'static/icons/icons.png';
-import iconMapping from 'static/icons/icons.json';
+import iconAtlas from "static/icons/icons.png";
+import iconMapping from "static/icons/icons.json";
 
-import 'mapbox-gl/dist/mapbox-gl.css';
-import { Vehicle } from 'model/vehicle';
+import "mapbox-gl/dist/mapbox-gl.css";
+import { Vehicle } from "model/vehicle";
 
 // Set your mapbox access token here
 const MAPBOX_ACCESS_TOKEN = process.env.REACT_APP_MAPBOX_ACCESS_TOKEN;
@@ -19,17 +19,16 @@ const INITIAL_VIEW_STATE = {
   latitude: 59.911491,
   zoom: 13,
   pitch: 0,
-  bearing: 0
+  bearing: 0,
 };
 
 export const Map = ({ data }: any) => {
-
   const [popupInfo, setPopupInfo] = useState<any>(null);
   const [hoverInfo, setHoverInfo] = useState<any>(null);
 
   const layers = [
     new IconLayer({
-      id: 'icon-layer',
+      id: "icon-layer",
       data,
       pickable: true,
       iconAtlas,
@@ -47,8 +46,8 @@ export const Map = ({ data }: any) => {
         return [vehicle.location.longitude, vehicle.location.latitude];
       },
       onClick: (info: any) => setPopupInfo(info?.object?.vehicle),
-      onHover: (info: any) => setHoverInfo(info?.object?.vehicle)
-    })
+      onHover: (info: any) => setHoverInfo(info?.object?.vehicle),
+    }),
   ];
 
   return (
@@ -68,7 +67,14 @@ export const Map = ({ data }: any) => {
           onClose={() => setPopupInfo(null)}
           anchor="bottom"
         >
-          <div style={{backgroundColor:'white', padding: '10px', width:'500px', textAlign: 'left'}}>
+          <div
+            style={{
+              backgroundColor: "white",
+              padding: "10px",
+              width: "500px",
+              textAlign: "left",
+            }}
+          >
             <pre>{JSON.stringify(popupInfo, null, 2)}</pre>
           </div>
         </Popup>
@@ -81,7 +87,7 @@ export const Map = ({ data }: any) => {
           latitude={hoverInfo.location.latitude}
           anchor="bottom"
         >
-          { hoverInfo.lineRef }
+          {hoverInfo.lineRef}
         </Popup>
       )}
       <StaticMap
@@ -89,7 +95,8 @@ export const Map = ({ data }: any) => {
         width="100%"
         height="100%"
         mapStyle={MAPBOX_MAP_STYLE}
-        mapboxApiAccessToken={MAPBOX_ACCESS_TOKEN} />
+        mapboxApiAccessToken={MAPBOX_ACCESS_TOKEN}
+      />
     </DeckGL>
   );
-}
+};

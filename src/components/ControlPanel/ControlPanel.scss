@@ -1,10 +1,10 @@
-@import '~@entur/tokens/dist/styles.scss';
+@import "~@entur/tokens/dist/styles.scss";
 
 .control-panel-wrapper {
   left: 15px;
   top: 15px;
   background-color: $colors-brand-blue;
-  position:relative;
+  position: relative;
   width: 400px;
   z-index: 1;
   border-radius: 15px;
@@ -35,7 +35,8 @@
 .control-panel-content {
   margin: $space-medium;
 
-  .eds-form-control-wrapper, .eds-switch {
+  .eds-form-control-wrapper,
+  .eds-switch {
     margin-bottom: $space-extra-small;
   }
 }

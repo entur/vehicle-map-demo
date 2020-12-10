@@ -16,5 +16,5 @@ export type Vehicle = {
   location: {
     latitude: number;
     longitude: number;
-  }
+  };
 };

@@ -3,4 +3,4 @@ export type Statistics = {
   numberOfInactiveVehicles: number;
   numberOfExpiredVehicles: number;
   numberOfUpdatesInSession: number;
-}
+};

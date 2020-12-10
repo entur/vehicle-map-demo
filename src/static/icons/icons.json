@@ -1,14 +1,14 @@
 {
-	"bus_inactive": {"x":0,"y":0,"width":250,"height":250},
-	"bus": {"x":250,"y":0,"width":250,"height":250},
-	"ferry_inactive": {"x":0,"y":250,"width":250,"height":164},
-	"ferry": {"x":250,"y":250,"width":250,"height":164},
-	"question_inactive": {"x":0,"y":414,"width":250,"height":250},
-	"question": {"x":250,"y":414,"width":250,"height":250},
-	"subway_inactive": {"x":0,"y":664,"width":250,"height":250},
-	"subway": {"x":250,"y":664,"width":250,"height":250},
-	"rail_inactive": {"x":0,"y":914,"width":254,"height":254},
-	"rail": {"x":254,"y":914,"width":254,"height":254},
-	"tram_inactive": {"x":0,"y":1168,"width":250,"height":250},
-	"tram": {"x":250,"y":1168,"width":250,"height":250}
+  "bus_inactive": { "x": 0, "y": 0, "width": 250, "height": 250 },
+  "bus": { "x": 250, "y": 0, "width": 250, "height": 250 },
+  "ferry_inactive": { "x": 0, "y": 250, "width": 250, "height": 164 },
+  "ferry": { "x": 250, "y": 250, "width": 250, "height": 164 },
+  "question_inactive": { "x": 0, "y": 414, "width": 250, "height": 250 },
+  "question": { "x": 250, "y": 414, "width": 250, "height": 250 },
+  "subway_inactive": { "x": 0, "y": 664, "width": 250, "height": 250 },
+  "subway": { "x": 250, "y": 664, "width": 250, "height": 250 },
+  "rail_inactive": { "x": 0, "y": 914, "width": 254, "height": 254 },
+  "rail": { "x": 254, "y": 914, "width": 254, "height": 254 },
+  "tram_inactive": { "x": 0, "y": 1168, "width": 250, "height": 250 },
+  "tram": { "x": 250, "y": 1168, "width": 250, "height": 250 }
 }
