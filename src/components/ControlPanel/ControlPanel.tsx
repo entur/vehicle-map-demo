@@ -94,7 +94,7 @@ export const ControlPanel = (props: Props) => {
           label="Codespace"
           onChange={(item) => {
             if (item?.value === DROPDOWN_DEFAULT_VALUE) {
-              const { codespaceId, ...rest } = subscriptionFilter;
+              const { codespaceId, lineRef, ...rest } = subscriptionFilter;
               setSubscriptionFilter({
                 ...rest,
               });
@@ -109,7 +109,7 @@ export const ControlPanel = (props: Props) => {
         <Dropdown
           items={() =>
             [DROPDOWN_DEFAULT_VALUE].concat(
-              linesData?.lines?.map((l: any) => l.lineRef) || []
+              linesData?.lines.map((l: any) => l.lineRef).sort() || []
             )
           }
           value={subscriptionFilter.lineRef || DROPDOWN_DEFAULT_VALUE}
