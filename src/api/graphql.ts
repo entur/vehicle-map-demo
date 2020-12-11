@@ -40,3 +40,11 @@ export const VEHICLE_UPDATES_SUBSCRIPTION = gql`
   }
   ${VEHICLE_FRAGMENT}
 `;
+
+export const CODESPACES_QUERY = gql`
+  query CodespacesQuery {
+    codespaces {
+      id
+    }
+  }
+`;

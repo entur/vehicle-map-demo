@@ -9,6 +9,9 @@ import { useState } from "react";
 import logo from "static/img/logo.png";
 
 import "./ControlPanel.scss";
+import { useQuery } from "@apollo/client";
+import { CODESPACES_QUERY } from "api/graphql";
+import { Dropdown } from "@entur/dropdown";
 
 type Props = {
   statistics: Statistics;
@@ -35,6 +38,8 @@ export const ControlPanel = (props: Props) => {
     setSubscriptionFilter,
   ] = useState<SubscriptionFilter>(defaultSubscriptionFilter);
   const [options, setOptions] = useState<Options>(defaultOptions);
+
+  const { data } = useQuery(CODESPACES_QUERY);
 
   return (
     <Contrast className="control-panel-wrapper">
@@ -66,13 +71,14 @@ export const ControlPanel = (props: Props) => {
 
       <div className="control-panel-content">
         <Heading4>Subscription filters</Heading4>
-        <TextField
+        <Dropdown
+          items={data?.codespaces?.map((codespace: any) => codespace.id) || []}
+          value={subscriptionFilter.codespaceId || null}
           label="Codespace"
-          value={subscriptionFilter.codespaceId}
-          onChange={(event) =>
+          onChange={(item) =>
             setSubscriptionFilter({
               ...subscriptionFilter,
-              codespaceId: event.target.value,
+              codespaceId: item?.value,
             })
           }
         />
