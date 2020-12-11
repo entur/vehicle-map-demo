@@ -42,7 +42,7 @@ export const ControlPanel = (props: Props) => {
   const { data } = useQuery(CODESPACES_QUERY);
 
   return (
-    <Contrast className="control-panel-wrapper">
+    <Contrast>
       <div className="logo-wrapper">
         <img className="logo" src={logo} alt="Entur logo" />
         <span>Vehicle Map Demo</span>

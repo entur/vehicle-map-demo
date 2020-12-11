@@ -15,11 +15,13 @@ export const App = () => {
 
   return (
     <div className="App">
-      <ControlPanel
-        statistics={statistics}
-        onSubscriptionFilterUpdate={setSubscriptionFilter}
-        onOptionsUdate={setOptions}
-      />
+      <div className="control-panel-wrapper">
+        <ControlPanel
+          statistics={statistics}
+          onSubscriptionFilterUpdate={setSubscriptionFilter}
+          onOptionsUdate={setOptions}
+        />
+      </div>
       <div className="map-wrapper">
         <Map data={Object.values(vehicles)} />
       </div>

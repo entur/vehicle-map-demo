@@ -1,15 +1,5 @@
 @import "~@entur/tokens/dist/styles.scss";
 
-.control-panel-wrapper {
-  left: 15px;
-  top: 15px;
-  background-color: $colors-brand-blue;
-  position: relative;
-  width: 400px;
-  z-index: 1;
-  border-radius: 15px;
-}
-
 .logo {
   width: 72px;
   height: auto;
