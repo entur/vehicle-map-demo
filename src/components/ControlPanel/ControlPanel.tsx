@@ -5,12 +5,12 @@ import { Heading4, ListItem, UnorderedList } from "@entur/typography";
 import { Statistics } from "model/statistics";
 import { SubscriptionFilter } from "model/subscriptionFilter";
 import { Options } from "model/options";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import logo from "static/img/logo.png";
 
 import "./ControlPanel.scss";
 import { useQuery } from "@apollo/client";
-import { CODESPACES_QUERY } from "api/graphql";
+import { CODESPACES_QUERY, LINES_QUERY } from "api/graphql";
 import { Dropdown } from "@entur/dropdown";
 
 type Props = {
@@ -32,13 +32,34 @@ const defaultOptions: Options = {
   markInactiveAfterSeconds: 60,
 };
 
+const DROPDOWN_DEFAULT_VALUE = "-- Not selected --";
+
 export const ControlPanel = (props: Props) => {
   const [
     subscriptionFilter,
     setSubscriptionFilter,
   ] = useState<SubscriptionFilter>(defaultSubscriptionFilter);
   const [options, setOptions] = useState<Options>(defaultOptions);
+  const [lines, setLines] = useState<any[]>([]);
   const { data: codespaceData } = useQuery(CODESPACES_QUERY);
+  const { fetchMore } = useQuery(LINES_QUERY, { skip: true });
+
+  useEffect(() => {
+    async function fetchLines() {
+      const result = await fetchMore({
+        variables: { codespaceId: subscriptionFilter.codespaceId },
+      });
+      setLines(
+        result?.data?.lines
+          .map((l: any) => l.lineRef)
+          .filter((v: any, i: any, a: any) => a.indexOf(v) === i)
+          .sort() || []
+      );
+    }
+    if (subscriptionFilter.codespaceId && fetchMore) {
+      fetchLines();
+    }
+  }, [subscriptionFilter.codespaceId, fetchMore]);
 
   return (
     <Contrast>
@@ -71,15 +92,42 @@ export const ControlPanel = (props: Props) => {
       <div className="control-panel-content">
         <Heading4>Subscription filters</Heading4>
         <Dropdown
-          items={() => codespaceData?.codespaces?.map((c: any) => c.id) || []}
-          value={subscriptionFilter.codespaceId || null}
-          label="Codespace"
-          onChange={(item) =>
-            setSubscriptionFilter({
-              ...subscriptionFilter,
-              codespaceId: item?.value,
-            })
+          items={() =>
+            [DROPDOWN_DEFAULT_VALUE].concat(
+              codespaceData?.codespaces?.map((c: any) => c.id) || []
+            )
           }
+          value={subscriptionFilter.codespaceId || DROPDOWN_DEFAULT_VALUE}
+          label="Codespace"
+          onChange={(item) => {
+            if (item?.value === DROPDOWN_DEFAULT_VALUE) {
+              const { codespaceId, ...rest } = subscriptionFilter;
+              setSubscriptionFilter({
+                ...rest,
+              });
+            } else {
+              setSubscriptionFilter({
+                ...subscriptionFilter,
+                codespaceId: item?.value,
+              });
+            }
+          }}
+        />
+        <Dropdown
+          items={() => [DROPDOWN_DEFAULT_VALUE].concat(lines || [])}
+          value={subscriptionFilter.lineRef || DROPDOWN_DEFAULT_VALUE}
+          label="Line ref"
+          onChange={(item) => {
+            if (item?.value === DROPDOWN_DEFAULT_VALUE) {
+              const { lineRef, ...rest } = subscriptionFilter;
+              setSubscriptionFilter({ ...rest });
+            } else {
+              setSubscriptionFilter({
+                ...subscriptionFilter,
+                lineRef: item?.value,
+              });
+            }
+          }}
         />
         <TextField
           label="Service journey"
@@ -118,26 +166,6 @@ export const ControlPanel = (props: Props) => {
             setSubscriptionFilter({
               ...subscriptionFilter,
               vehicleId: event.target.value,
-            })
-          }
-        />
-        <TextField
-          label="Line ref"
-          value={subscriptionFilter.lineRef}
-          onChange={(event) =>
-            setSubscriptionFilter({
-              ...subscriptionFilter,
-              lineRef: event.target.value,
-            })
-          }
-        />
-        <TextField
-          label="Line name"
-          value={subscriptionFilter.lineName}
-          onChange={(event) =>
-            setSubscriptionFilter({
-              ...subscriptionFilter,
-              lineName: event.target.value,
             })
           }
         />

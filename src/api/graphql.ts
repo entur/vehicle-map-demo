@@ -24,8 +24,8 @@ const VEHICLE_FRAGMENT = gql`
 `;
 
 export const VEHICLES_QUERY = gql`
-  query VehiclesQuery($codespaceId: String) {
-    vehicles(codespaceId: $codespaceId) {
+  query VehiclesQuery($codespaceId: String, $lineRef: String) {
+    vehicles(codespaceId: $codespaceId, lineRef: $lineRef) {
       ...VehicleFragment
     }
   }
@@ -33,8 +33,8 @@ export const VEHICLES_QUERY = gql`
 `;
 
 export const VEHICLE_UPDATES_SUBSCRIPTION = gql`
-  subscription VehicleUpdates($codespaceId: String) {
-    vehicleUpdates(codespaceId: $codespaceId) {
+  subscription VehicleUpdates($codespaceId: String, $lineRef: String) {
+    vehicleUpdates(codespaceId: $codespaceId, lineRef: $lineRef) {
       ...VehicleFragment
     }
   }
@@ -45,6 +45,15 @@ export const CODESPACES_QUERY = gql`
   query CodespacesQuery {
     codespaces {
       id
+    }
+  }
+`;
+
+export const LINES_QUERY = gql`
+  query LinesQuery($codespaceId: String) {
+    lines(codespaceId: $codespaceId) {
+      lineRef
+      lineName
     }
   }
 `;
