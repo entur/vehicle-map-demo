@@ -56,6 +56,7 @@ export const Map = ({ data }: any) => {
       initialViewState={INITIAL_VIEW_STATE}
       controller={true}
       layers={layers}
+      style={{ left: "400px" }}
     >
       {popupInfo && popupInfo.location && (
         <Popup
