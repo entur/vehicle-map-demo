@@ -38,8 +38,7 @@ export const ControlPanel = (props: Props) => {
     setSubscriptionFilter,
   ] = useState<SubscriptionFilter>(defaultSubscriptionFilter);
   const [options, setOptions] = useState<Options>(defaultOptions);
-
-  const { data } = useQuery(CODESPACES_QUERY);
+  const { data: codespaceData } = useQuery(CODESPACES_QUERY);
 
   return (
     <Contrast>
@@ -72,7 +71,7 @@ export const ControlPanel = (props: Props) => {
       <div className="control-panel-content">
         <Heading4>Subscription filters</Heading4>
         <Dropdown
-          items={data?.codespaces?.map((codespace: any) => codespace.id) || []}
+          items={() => codespaceData?.codespaces?.map((c: any) => c.id) || []}
           value={subscriptionFilter.codespaceId || null}
           label="Codespace"
           onChange={(item) =>
