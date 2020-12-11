@@ -108,9 +108,11 @@ export const ControlPanel = (props: Props) => {
         />
         <Dropdown
           items={() =>
-            [DROPDOWN_DEFAULT_VALUE].concat(
-              linesData?.lines.map((l: any) => l.lineRef).sort() || []
-            )
+            subscriptionFilter.codespaceId
+              ? [DROPDOWN_DEFAULT_VALUE].concat(
+                  linesData?.lines.map((l: any) => l.lineRef).sort() || []
+                )
+              : [DROPDOWN_DEFAULT_VALUE]
           }
           value={subscriptionFilter.lineRef || DROPDOWN_DEFAULT_VALUE}
           label="Line ref"
