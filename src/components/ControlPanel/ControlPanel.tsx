@@ -5,13 +5,13 @@ import { Heading4, ListItem, UnorderedList } from "@entur/typography";
 import { Statistics } from "model/statistics";
 import { SubscriptionFilter } from "model/subscriptionFilter";
 import { Options } from "model/options";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import logo from "static/img/logo.png";
 
 import "./ControlPanel.scss";
-import { useLazyQuery, useQuery } from "@apollo/client";
-import { CODESPACES_QUERY, LINES_QUERY } from "api/graphql";
 import { Dropdown } from "@entur/dropdown";
+import useCodespaceData from "hooks/useCodespaceData";
+import useLinesData from "hooks/useLinesData";
 
 type Props = {
   statistics: Statistics;
@@ -40,16 +40,9 @@ export const ControlPanel = (props: Props) => {
     setSubscriptionFilter,
   ] = useState<SubscriptionFilter>(defaultSubscriptionFilter);
   const [options, setOptions] = useState<Options>(defaultOptions);
-  const { data: codespaceData } = useQuery(CODESPACES_QUERY);
-  const [fetchLines, { data: linesData }] = useLazyQuery(LINES_QUERY);
 
-  useEffect(() => {
-    if (subscriptionFilter.codespaceId) {
-      fetchLines({
-        variables: { codespaceId: subscriptionFilter.codespaceId },
-      });
-    }
-  }, [subscriptionFilter.codespaceId, fetchLines]);
+  const codespaces = useCodespaceData();
+  const lines = useLinesData(subscriptionFilter?.codespaceId);
 
   return (
     <Contrast>
@@ -82,38 +75,25 @@ export const ControlPanel = (props: Props) => {
       <div className="control-panel-content">
         <Heading4>Subscription filters</Heading4>
         <Dropdown
-          items={() =>
-            [DROPDOWN_DEFAULT_VALUE].concat(
-              codespaceData?.codespaces
-                .map((c: any) => c.id)
-                .filter((v: any, i: any, a: any) => a.indexOf(v) === i)
-                .sort() || []
-            )
-          }
+          items={() => [DROPDOWN_DEFAULT_VALUE].concat(codespaces)}
           value={subscriptionFilter.codespaceId || DROPDOWN_DEFAULT_VALUE}
           label="Codespace"
           onChange={(item) => {
+            const { codespaceId, lineRef, ...rest } = subscriptionFilter;
             if (item?.value === DROPDOWN_DEFAULT_VALUE) {
-              const { codespaceId, lineRef, ...rest } = subscriptionFilter;
               setSubscriptionFilter({
                 ...rest,
               });
             } else {
               setSubscriptionFilter({
-                ...subscriptionFilter,
+                ...rest,
                 codespaceId: item?.value,
               });
             }
           }}
         />
         <Dropdown
-          items={() =>
-            subscriptionFilter.codespaceId
-              ? [DROPDOWN_DEFAULT_VALUE].concat(
-                  linesData?.lines.map((l: any) => l.lineRef).sort() || []
-                )
-              : [DROPDOWN_DEFAULT_VALUE]
-          }
+          items={() => [DROPDOWN_DEFAULT_VALUE].concat(lines)}
           value={subscriptionFilter.lineRef || DROPDOWN_DEFAULT_VALUE}
           label="Line ref"
           onChange={(item) => {
