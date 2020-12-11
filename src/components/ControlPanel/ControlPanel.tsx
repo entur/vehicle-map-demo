@@ -160,14 +160,19 @@ export const ControlPanel = (props: Props) => {
         />
         <Switch
           checked={subscriptionFilter.monitored}
-          onChange={(event) =>
-            setSubscriptionFilter({
-              ...subscriptionFilter,
-              monitored: event.target.checked,
-            })
-          }
+          onChange={(event) => {
+            if (event.target.checked) {
+              setSubscriptionFilter({
+                ...subscriptionFilter,
+                monitored: event.target.checked,
+              });
+            } else {
+              const { monitored, ...rest } = subscriptionFilter;
+              setSubscriptionFilter({ ...rest });
+            }
+          }}
         >
-          Monitored
+          Monitored only
         </Switch>
         <PrimaryButton
           onClick={() => props.onSubscriptionFilterUpdate(subscriptionFilter)}
