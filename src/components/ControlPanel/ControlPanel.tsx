@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 import logo from "static/img/logo.png";
 
 import "./ControlPanel.scss";
-import { useQuery } from "@apollo/client";
+import { useLazyQuery, useQuery } from "@apollo/client";
 import { CODESPACES_QUERY, LINES_QUERY } from "api/graphql";
 import { Dropdown } from "@entur/dropdown";
 
@@ -40,26 +40,16 @@ export const ControlPanel = (props: Props) => {
     setSubscriptionFilter,
   ] = useState<SubscriptionFilter>(defaultSubscriptionFilter);
   const [options, setOptions] = useState<Options>(defaultOptions);
-  const [lines, setLines] = useState<any[]>([]);
   const { data: codespaceData } = useQuery(CODESPACES_QUERY);
-  const { fetchMore } = useQuery(LINES_QUERY, { skip: true });
+  const [fetchLines, { data: linesData }] = useLazyQuery(LINES_QUERY);
 
   useEffect(() => {
-    async function fetchLines() {
-      const result = await fetchMore({
+    if (subscriptionFilter.codespaceId) {
+      fetchLines({
         variables: { codespaceId: subscriptionFilter.codespaceId },
       });
-      setLines(
-        result?.data?.lines
-          .map((l: any) => l.lineRef)
-          .filter((v: any, i: any, a: any) => a.indexOf(v) === i)
-          .sort() || []
-      );
     }
-    if (subscriptionFilter.codespaceId && fetchMore) {
-      fetchLines();
-    }
-  }, [subscriptionFilter.codespaceId, fetchMore]);
+  }, [subscriptionFilter.codespaceId, fetchLines]);
 
   return (
     <Contrast>
@@ -94,7 +84,10 @@ export const ControlPanel = (props: Props) => {
         <Dropdown
           items={() =>
             [DROPDOWN_DEFAULT_VALUE].concat(
-              codespaceData?.codespaces?.map((c: any) => c.id) || []
+              codespaceData?.codespaces
+                .map((c: any) => c.id)
+                .filter((v: any, i: any, a: any) => a.indexOf(v) === i)
+                .sort() || []
             )
           }
           value={subscriptionFilter.codespaceId || DROPDOWN_DEFAULT_VALUE}
@@ -114,7 +107,11 @@ export const ControlPanel = (props: Props) => {
           }}
         />
         <Dropdown
-          items={() => [DROPDOWN_DEFAULT_VALUE].concat(lines || [])}
+          items={() =>
+            [DROPDOWN_DEFAULT_VALUE].concat(
+              linesData?.lines?.map((l: any) => l.lineRef) || []
+            )
+          }
           value={subscriptionFilter.lineRef || DROPDOWN_DEFAULT_VALUE}
           label="Line ref"
           onChange={(item) => {
