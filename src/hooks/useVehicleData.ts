@@ -47,7 +47,7 @@ export default function useVehicleData(
      */
     const buffer: Vehicle[] = [];
 
-    client
+    const subscription = client
       .subscribe({
         query: VEHICLE_UPDATES_SUBSCRIPTION,
         fetchPolicy: DEFAULT_FETCH_POLICY,
@@ -67,6 +67,7 @@ export default function useVehicleData(
     }, options?.updateIntervalMs || DEFAULT_UPDATE_INTERVAL_IN_MS);
 
     return () => {
+      subscription.unsubscribe();
       clearInterval(timer);
     };
   }, [client, dispatch, options?.updateIntervalMs, subscriptionFilter]);
