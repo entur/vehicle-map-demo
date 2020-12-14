@@ -28,6 +28,7 @@ export const VEHICLES_QUERY = gql`
     $codespaceId: String
     $lineRef: String
     $serviceJourneyId: String
+    $operatorId: String
     $mode: VehicleModeEnumeration
     $monitored: Boolean
   ) {
@@ -35,6 +36,7 @@ export const VEHICLES_QUERY = gql`
       codespaceId: $codespaceId
       lineRef: $lineRef
       serviceJourneyId: $serviceJourneyId
+      operator: $operatorId
       mode: $mode
       monitored: $monitored
     ) {
@@ -49,6 +51,7 @@ export const VEHICLE_UPDATES_SUBSCRIPTION = gql`
     $codespaceId: String
     $lineRef: String
     $serviceJourneyId: String
+    $operatorId: String
     $mode: VehicleModeEnumeration
     $monitored: Boolean
   ) {
@@ -56,6 +59,7 @@ export const VEHICLE_UPDATES_SUBSCRIPTION = gql`
       codespaceId: $codespaceId
       lineRef: $lineRef
       serviceJourneyId: $serviceJourneyId
+      operator: $operatorId
       mode: $mode
       monitored: $monitored
     ) {
@@ -73,6 +77,14 @@ export const CODESPACES_QUERY = gql`
   }
 `;
 
+export const OPERATORS_QUERY = gql`
+  query OperatorsQuery($codespaceId: String!) {
+    operators(codespaceId: $codespaceId) {
+      id
+    }
+  }
+`;
+
 export const LINES_QUERY = gql`
   query LinesQuery($codespaceId: String) {
     lines(codespaceId: $codespaceId) {
@@ -83,7 +95,7 @@ export const LINES_QUERY = gql`
 `;
 
 export const SERVICE_JOURNEYS_QUERY = gql`
-  query ServiceJourneysQuery($lineRef: String) {
+  query ServiceJourneysQuery($lineRef: String!) {
     serviceJourneys(lineRef: $lineRef) {
       id
     }

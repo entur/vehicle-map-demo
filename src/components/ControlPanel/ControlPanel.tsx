@@ -13,6 +13,7 @@ import useLinesData from "hooks/useLinesData";
 import useServiceJourneysData from "hooks/useServiceJourneysData";
 import logo from "static/img/logo.png";
 import "./ControlPanel.scss";
+import useOperatorsData from "hooks/useOperatorsData";
 
 type Props = {
   statistics: Statistics;
@@ -45,6 +46,7 @@ export const ControlPanel = (props: Props) => {
   const codespaces = useCodespaceData();
   const lines = useLinesData(subscriptionFilter?.codespaceId);
   const serviceJourneys = useServiceJourneysData(subscriptionFilter?.lineRef);
+  const operators = useOperatorsData(subscriptionFilter?.codespaceId);
 
   return (
     <Contrast>
@@ -81,7 +83,13 @@ export const ControlPanel = (props: Props) => {
           value={subscriptionFilter.codespaceId || DROPDOWN_DEFAULT_VALUE}
           label="Codespace"
           onChange={(item) => {
-            const { codespaceId, lineRef, ...rest } = subscriptionFilter;
+            const {
+              codespaceId,
+              lineRef,
+              serviceJourneyId,
+              operatorId,
+              ...rest
+            } = subscriptionFilter;
             if (item?.value === DROPDOWN_DEFAULT_VALUE) {
               setSubscriptionFilter({
                 ...rest,
@@ -101,7 +109,7 @@ export const ControlPanel = (props: Props) => {
           label="Line"
           onChange={(item) => {
             if (item?.value === DROPDOWN_DEFAULT_VALUE) {
-              const { lineRef, ...rest } = subscriptionFilter;
+              const { lineRef, serviceJourneyId, ...rest } = subscriptionFilter;
               setSubscriptionFilter({ ...rest });
             } else {
               setSubscriptionFilter({
@@ -130,6 +138,23 @@ export const ControlPanel = (props: Props) => {
         />
 
         <Dropdown
+          items={() => [DROPDOWN_DEFAULT_VALUE].concat(operators)}
+          value={subscriptionFilter.operatorId || DROPDOWN_DEFAULT_VALUE}
+          label="Operator"
+          onChange={(item) => {
+            if (item?.value === DROPDOWN_DEFAULT_VALUE) {
+              const { operatorId, ...rest } = subscriptionFilter;
+              setSubscriptionFilter({ ...rest });
+            } else {
+              setSubscriptionFilter({
+                ...subscriptionFilter,
+                operatorId: item?.value,
+              });
+            }
+          }}
+        />
+
+        <Dropdown
           items={[DROPDOWN_DEFAULT_VALUE].concat(Object.values(VEHICLE_MODE))}
           value={
             subscriptionFilter.mode?.toLowerCase() || DROPDOWN_DEFAULT_VALUE
@@ -146,17 +171,6 @@ export const ControlPanel = (props: Props) => {
               });
             }
           }}
-        />
-
-        <TextField
-          label="Operator"
-          value={subscriptionFilter.operator}
-          onChange={(event) =>
-            setSubscriptionFilter({
-              ...subscriptionFilter,
-              operator: event.target.value,
-            })
-          }
         />
 
         <TextField
