@@ -1,11 +1,15 @@
+import { Codespace } from "./codespace";
+import { Line } from "./line";
+import { Operator } from "./operator";
+import { ServiceJourney } from "./serviceJourney";
+
 export type Vehicle = {
-  codespaceId: string;
-  vehicleId: string;
+  vehicleRef: string;
+  codespace: Codespace;
+  operator: Operator;
+  line: Line;
+  serviceJourney: ServiceJourney;
   direction: string | number;
-  lineName: string;
-  lineRef: string;
-  serviceJourneyId: string;
-  operator: string;
   mode: string;
   lastUpdated: string;
   expiration: string;

@@ -60,7 +60,7 @@ const hydrate = (now: Date, state: State, payload: Vehicle[]) => {
       vehicleMapPoint.icon = vehicleMapPoint.icon + "_inactive";
     }
 
-    acc[vehicle.vehicleId] = vehicleMapPoint;
+    acc[vehicle.vehicleRef] = vehicleMapPoint;
 
     return acc;
   }, {});
@@ -109,19 +109,19 @@ const update = (now: Date, state: State, vehicles: Vehicle[]) => {
         vehicleMapPoint.icon = vehicleMapPoint.icon + "_inactive";
       }
 
-      if (updatedVehicles[vehicle.vehicleId]) {
+      if (updatedVehicles[vehicle.vehicleRef]) {
         if (
           parseISO(vehicle.lastUpdated) >
-          parseISO(updatedVehicles[vehicle.vehicleId].vehicle.lastUpdated)
+          parseISO(updatedVehicles[vehicle.vehicleRef].vehicle.lastUpdated)
         ) {
           console.debug(
             "found new update for vehicle during hydration/update",
             vehicle
           );
-          updatedVehicles[vehicle.vehicleId] = vehicleMapPoint;
+          updatedVehicles[vehicle.vehicleRef] = vehicleMapPoint;
         }
       } else {
-        updatedVehicles[vehicle.vehicleId] = vehicleMapPoint;
+        updatedVehicles[vehicle.vehicleRef] = vehicleMapPoint;
       }
     }
   });
@@ -163,7 +163,7 @@ const expire = (now: Date, state: State) => {
           vehicleMapPoint.icon = vehicleMapPoint.icon + "_inactive";
         }
       }
-      acc[vehicleMapPoint.vehicle.vehicleId] = vehicleMapPoint;
+      acc[vehicleMapPoint.vehicle.vehicleRef] = vehicleMapPoint;
       return acc;
     },
     {}

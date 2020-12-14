@@ -39,7 +39,7 @@ export const Map = ({ data }: any) => {
       getSize: () => 50,
       getPosition: (vehicleMapPoint: any) => {
         const vehicle: Vehicle = vehicleMapPoint.vehicle;
-        if (popupInfo && popupInfo.vehicleId === vehicle.vehicleId) {
+        if (popupInfo && popupInfo.vehicleRef === vehicle.vehicleRef) {
           setPopupInfo(vehicle);
         }
 

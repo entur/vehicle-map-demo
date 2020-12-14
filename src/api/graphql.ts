@@ -2,13 +2,21 @@ import { gql } from "@apollo/client";
 
 const VEHICLE_FRAGMENT = gql`
   fragment VehicleFragment on VehicleUpdate {
-    codespaceId
-    vehicleId
+    vehicleRef
+    codespace {
+      codespaceId
+    }
+    operator {
+      operatorRef
+    }
+    line {
+      lineName
+      lineRef
+    }
+    serviceJourney {
+      serviceJourneyId
+    }
     direction
-    lineName
-    lineRef
-    serviceJourneyId
-    operator
     mode
     lastUpdated
     expiration
@@ -28,7 +36,7 @@ export const VEHICLES_QUERY = gql`
     $codespaceId: String
     $lineRef: String
     $serviceJourneyId: String
-    $operatorId: String
+    $operatorRef: String
     $mode: VehicleModeEnumeration
     $monitored: Boolean
   ) {
@@ -36,7 +44,7 @@ export const VEHICLES_QUERY = gql`
       codespaceId: $codespaceId
       lineRef: $lineRef
       serviceJourneyId: $serviceJourneyId
-      operator: $operatorId
+      operatorRef: $operatorRef
       mode: $mode
       monitored: $monitored
     ) {
@@ -51,7 +59,7 @@ export const VEHICLE_UPDATES_SUBSCRIPTION = gql`
     $codespaceId: String
     $lineRef: String
     $serviceJourneyId: String
-    $operatorId: String
+    $operatorRef: String
     $mode: VehicleModeEnumeration
     $monitored: Boolean
   ) {
@@ -59,7 +67,7 @@ export const VEHICLE_UPDATES_SUBSCRIPTION = gql`
       codespaceId: $codespaceId
       lineRef: $lineRef
       serviceJourneyId: $serviceJourneyId
-      operator: $operatorId
+      operatorRef: $operatorRef
       mode: $mode
       monitored: $monitored
     ) {
@@ -72,7 +80,7 @@ export const VEHICLE_UPDATES_SUBSCRIPTION = gql`
 export const CODESPACES_QUERY = gql`
   query CodespacesQuery {
     codespaces {
-      id
+      codespaceId
     }
   }
 `;
@@ -80,7 +88,7 @@ export const CODESPACES_QUERY = gql`
 export const OPERATORS_QUERY = gql`
   query OperatorsQuery($codespaceId: String!) {
     operators(codespaceId: $codespaceId) {
-      id
+      operatorRef
     }
   }
 `;
@@ -97,7 +105,7 @@ export const LINES_QUERY = gql`
 export const SERVICE_JOURNEYS_QUERY = gql`
   query ServiceJourneysQuery($lineRef: String!) {
     serviceJourneys(lineRef: $lineRef) {
-      id
+      serviceJourneyId
     }
   }
 `;

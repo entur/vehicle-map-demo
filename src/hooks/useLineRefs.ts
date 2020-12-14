@@ -1,13 +1,9 @@
 import { useLazyQuery } from "@apollo/client";
 import { LINES_QUERY } from "api/graphql";
+import { Line } from "model/line";
 import { useEffect, useMemo } from "react";
 
-type Line = {
-  lineRef: string;
-  lineName: string;
-};
-
-export default function useLinesData(codespaceId?: string) {
+export default function useLineRefs(codespaceId?: string) {
   const [fetchLines, { data: linesData }] = useLazyQuery(LINES_QUERY);
 
   useEffect(() => {

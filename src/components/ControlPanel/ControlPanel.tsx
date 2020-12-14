@@ -8,12 +8,12 @@ import { Statistics } from "model/statistics";
 import { SubscriptionFilter } from "model/subscriptionFilter";
 import { Options } from "model/options";
 import { VEHICLE_MODE } from "model/vehicleMode";
-import useCodespaceData from "hooks/useCodespaceData";
-import useLinesData from "hooks/useLinesData";
-import useServiceJourneysData from "hooks/useServiceJourneysData";
+import useCodespaceIds from "hooks/useCodespaceIds";
+import useLineRefs from "hooks/useLineRefs";
+import useServiceJourneyIds from "hooks/useServiceJourneyIds";
 import logo from "static/img/logo.png";
 import "./ControlPanel.scss";
-import useOperatorsData from "hooks/useOperatorsData";
+import useOperatorRefs from "hooks/useOperatorRefs";
 
 type Props = {
   statistics: Statistics;
@@ -43,10 +43,10 @@ export const ControlPanel = (props: Props) => {
   ] = useState<SubscriptionFilter>(defaultSubscriptionFilter);
   const [options, setOptions] = useState<Options>(defaultOptions);
 
-  const codespaces = useCodespaceData();
-  const lines = useLinesData(subscriptionFilter?.codespaceId);
-  const serviceJourneys = useServiceJourneysData(subscriptionFilter?.lineRef);
-  const operators = useOperatorsData(subscriptionFilter?.codespaceId);
+  const codespaceIds = useCodespaceIds();
+  const lineRefs = useLineRefs(subscriptionFilter?.codespaceId);
+  const serviceJourneyIds = useServiceJourneyIds(subscriptionFilter?.lineRef);
+  const operatorRefs = useOperatorRefs(subscriptionFilter?.codespaceId);
 
   return (
     <Contrast>
@@ -79,15 +79,15 @@ export const ControlPanel = (props: Props) => {
       <div className="control-panel-content">
         <Heading4>Subscription filters</Heading4>
         <Dropdown
-          items={() => [DROPDOWN_DEFAULT_VALUE].concat(codespaces)}
+          items={() => [DROPDOWN_DEFAULT_VALUE].concat(codespaceIds)}
           value={subscriptionFilter.codespaceId || DROPDOWN_DEFAULT_VALUE}
-          label="Codespace"
+          label="Codespace ID"
           onChange={(item) => {
             const {
               codespaceId,
               lineRef,
               serviceJourneyId,
-              operatorId,
+              operatorRef,
               ...rest
             } = subscriptionFilter;
             if (item?.value === DROPDOWN_DEFAULT_VALUE) {
@@ -104,9 +104,9 @@ export const ControlPanel = (props: Props) => {
         />
 
         <Dropdown
-          items={() => [DROPDOWN_DEFAULT_VALUE].concat(lines)}
+          items={() => [DROPDOWN_DEFAULT_VALUE].concat(lineRefs)}
           value={subscriptionFilter.lineRef || DROPDOWN_DEFAULT_VALUE}
-          label="Line"
+          label="Line ref"
           onChange={(item) => {
             if (item?.value === DROPDOWN_DEFAULT_VALUE) {
               const { lineRef, serviceJourneyId, ...rest } = subscriptionFilter;
@@ -121,9 +121,9 @@ export const ControlPanel = (props: Props) => {
         />
 
         <Dropdown
-          items={() => [DROPDOWN_DEFAULT_VALUE].concat(serviceJourneys)}
+          items={() => [DROPDOWN_DEFAULT_VALUE].concat(serviceJourneyIds)}
           value={subscriptionFilter.serviceJourneyId || DROPDOWN_DEFAULT_VALUE}
-          label="Service journey"
+          label="Service journey ID"
           onChange={(item) => {
             if (item?.value === DROPDOWN_DEFAULT_VALUE) {
               const { serviceJourneyId, ...rest } = subscriptionFilter;
@@ -138,17 +138,17 @@ export const ControlPanel = (props: Props) => {
         />
 
         <Dropdown
-          items={() => [DROPDOWN_DEFAULT_VALUE].concat(operators)}
-          value={subscriptionFilter.operatorId || DROPDOWN_DEFAULT_VALUE}
-          label="Operator"
+          items={() => [DROPDOWN_DEFAULT_VALUE].concat(operatorRefs)}
+          value={subscriptionFilter.operatorRef || DROPDOWN_DEFAULT_VALUE}
+          label="Operator ref"
           onChange={(item) => {
             if (item?.value === DROPDOWN_DEFAULT_VALUE) {
-              const { operatorId, ...rest } = subscriptionFilter;
+              const { operatorRef, ...rest } = subscriptionFilter;
               setSubscriptionFilter({ ...rest });
             } else {
               setSubscriptionFilter({
                 ...subscriptionFilter,
-                operatorId: item?.value,
+                operatorRef: item?.value,
               });
             }
           }}
@@ -159,7 +159,7 @@ export const ControlPanel = (props: Props) => {
           value={
             subscriptionFilter.mode?.toLowerCase() || DROPDOWN_DEFAULT_VALUE
           }
-          label="Mode"
+          label="Vehicle mode"
           onChange={(item) => {
             if (item?.value === DROPDOWN_DEFAULT_VALUE) {
               const { mode, ...rest } = subscriptionFilter;
@@ -173,26 +173,6 @@ export const ControlPanel = (props: Props) => {
           }}
         />
 
-        <TextField
-          label="Vehicle ID"
-          value={subscriptionFilter.vehicleId}
-          onChange={(event) =>
-            setSubscriptionFilter({
-              ...subscriptionFilter,
-              vehicleId: event.target.value,
-            })
-          }
-        />
-        <TextField
-          label="Bounding box"
-          value={subscriptionFilter.boundingBox}
-          onChange={(event) =>
-            setSubscriptionFilter({
-              ...subscriptionFilter,
-              boundingBox: event.target.value,
-            })
-          }
-        />
         <Switch
           checked={subscriptionFilter.monitored}
           onChange={(event) => {
