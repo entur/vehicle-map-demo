@@ -27,11 +27,13 @@ export const VEHICLES_QUERY = gql`
   query VehiclesQuery(
     $codespaceId: String
     $lineRef: String
+    $mode: VehicleModeEnumeration
     $monitored: Boolean
   ) {
     vehicles(
       codespaceId: $codespaceId
       lineRef: $lineRef
+      mode: $mode
       monitored: $monitored
     ) {
       ...VehicleFragment
@@ -44,11 +46,13 @@ export const VEHICLE_UPDATES_SUBSCRIPTION = gql`
   subscription VehicleUpdates(
     $codespaceId: String
     $lineRef: String
+    $mode: VehicleModeEnumeration
     $monitored: Boolean
   ) {
     vehicleUpdates(
       codespaceId: $codespaceId
       lineRef: $lineRef
+      mode: $mode
       monitored: $monitored
     ) {
       ...VehicleFragment

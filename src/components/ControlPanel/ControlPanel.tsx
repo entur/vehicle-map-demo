@@ -1,18 +1,17 @@
+import { useState } from "react";
 import { PrimaryButton } from "@entur/button";
 import { Switch, TextField } from "@entur/form";
 import { Contrast } from "@entur/layout";
 import { Heading4, ListItem, UnorderedList } from "@entur/typography";
+import { Dropdown } from "@entur/dropdown";
 import { Statistics } from "model/statistics";
 import { SubscriptionFilter } from "model/subscriptionFilter";
 import { Options } from "model/options";
-import { useState } from "react";
 import logo from "static/img/logo.png";
-
-import "./ControlPanel.scss";
-import { Dropdown } from "@entur/dropdown";
 import useCodespaceData from "hooks/useCodespaceData";
 import useLinesData from "hooks/useLinesData";
-
+import { VEHICLE_MODE } from "model/vehicleMode";
+import "./ControlPanel.scss";
 type Props = {
   statistics: Statistics;
   onSubscriptionFilterUpdate: (subscriptionFilter: SubscriptionFilter) => void;
@@ -108,6 +107,24 @@ export const ControlPanel = (props: Props) => {
             }
           }}
         />
+        <Dropdown
+          items={[DROPDOWN_DEFAULT_VALUE].concat(Object.values(VEHICLE_MODE))}
+          value={
+            subscriptionFilter.mode?.toLowerCase() || DROPDOWN_DEFAULT_VALUE
+          }
+          label="Mode"
+          onChange={(item) => {
+            if (item?.value === DROPDOWN_DEFAULT_VALUE) {
+              const { mode, ...rest } = subscriptionFilter;
+              setSubscriptionFilter({ ...rest });
+            } else {
+              setSubscriptionFilter({
+                ...subscriptionFilter,
+                mode: item?.value?.toUpperCase(),
+              });
+            }
+          }}
+        />
         <TextField
           label="Service journey"
           value={subscriptionFilter.serviceJourneyId}
@@ -128,16 +145,7 @@ export const ControlPanel = (props: Props) => {
             })
           }
         />
-        <TextField
-          label="Mode"
-          value={subscriptionFilter.mode}
-          onChange={(event) =>
-            setSubscriptionFilter({
-              ...subscriptionFilter,
-              mode: event.target.value,
-            })
-          }
-        />
+
         <TextField
           label="Vehicle ID"
           value={subscriptionFilter.vehicleId}
