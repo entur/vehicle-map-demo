@@ -7,11 +7,13 @@ import { Dropdown } from "@entur/dropdown";
 import { Statistics } from "model/statistics";
 import { SubscriptionFilter } from "model/subscriptionFilter";
 import { Options } from "model/options";
-import logo from "static/img/logo.png";
+import { VEHICLE_MODE } from "model/vehicleMode";
 import useCodespaceData from "hooks/useCodespaceData";
 import useLinesData from "hooks/useLinesData";
-import { VEHICLE_MODE } from "model/vehicleMode";
+import useServiceJourneysData from "hooks/useServiceJourneysData";
+import logo from "static/img/logo.png";
 import "./ControlPanel.scss";
+
 type Props = {
   statistics: Statistics;
   onSubscriptionFilterUpdate: (subscriptionFilter: SubscriptionFilter) => void;
@@ -42,6 +44,7 @@ export const ControlPanel = (props: Props) => {
 
   const codespaces = useCodespaceData();
   const lines = useLinesData(subscriptionFilter?.codespaceId);
+  const serviceJourneys = useServiceJourneysData(subscriptionFilter?.lineRef);
 
   return (
     <Contrast>
@@ -91,10 +94,11 @@ export const ControlPanel = (props: Props) => {
             }
           }}
         />
+
         <Dropdown
           items={() => [DROPDOWN_DEFAULT_VALUE].concat(lines)}
           value={subscriptionFilter.lineRef || DROPDOWN_DEFAULT_VALUE}
-          label="Line ref"
+          label="Line"
           onChange={(item) => {
             if (item?.value === DROPDOWN_DEFAULT_VALUE) {
               const { lineRef, ...rest } = subscriptionFilter;
@@ -107,6 +111,24 @@ export const ControlPanel = (props: Props) => {
             }
           }}
         />
+
+        <Dropdown
+          items={() => [DROPDOWN_DEFAULT_VALUE].concat(serviceJourneys)}
+          value={subscriptionFilter.serviceJourneyId || DROPDOWN_DEFAULT_VALUE}
+          label="Service journey"
+          onChange={(item) => {
+            if (item?.value === DROPDOWN_DEFAULT_VALUE) {
+              const { serviceJourneyId, ...rest } = subscriptionFilter;
+              setSubscriptionFilter({ ...rest });
+            } else {
+              setSubscriptionFilter({
+                ...subscriptionFilter,
+                serviceJourneyId: item?.value,
+              });
+            }
+          }}
+        />
+
         <Dropdown
           items={[DROPDOWN_DEFAULT_VALUE].concat(Object.values(VEHICLE_MODE))}
           value={
@@ -125,16 +147,7 @@ export const ControlPanel = (props: Props) => {
             }
           }}
         />
-        <TextField
-          label="Service journey"
-          value={subscriptionFilter.serviceJourneyId}
-          onChange={(event) =>
-            setSubscriptionFilter({
-              ...subscriptionFilter,
-              serviceJourneyId: event.target.value,
-            })
-          }
-        />
+
         <TextField
           label="Operator"
           value={subscriptionFilter.operator}
