@@ -88,7 +88,7 @@ export const Map = ({ vehicles }: any) => {
           latitude={hoverInfo.location.latitude}
           anchor="bottom"
         >
-          {hoverInfo.lineRef}
+          {hoverInfo.line.lineRef}
         </Popup>
       )}
       <StaticMap
