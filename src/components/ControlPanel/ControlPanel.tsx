@@ -177,6 +177,14 @@ export const ControlPanel = (props: Props) => {
 
       <div className="control-panel-content">
         <Heading4>Options</Heading4>
+        <Switch
+          checked={options.enableLiveUpdates}
+          onChange={(event) =>
+            setOptions({ ...options, enableLiveUpdates: event.target.checked })
+          }
+        >
+          Enable live updates
+        </Switch>
         <TextField
           type="number"
           label="Update interval (ms)"

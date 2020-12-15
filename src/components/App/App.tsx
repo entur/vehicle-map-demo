@@ -11,6 +11,7 @@ const defaultSubscriptionFilter: SubscriptionFilter = {
 };
 
 const defaultOptions: Options = {
+  enableLiveUpdates: true,
   updateIntervalMs: 250,
   swipeIntervalMs: 1000,
   removeExpired: true,

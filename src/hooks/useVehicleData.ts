@@ -46,31 +46,38 @@ export default function useVehicleData(
      * and set a timer to dispatch the update on a given interval.
      */
     const buffer: Vehicle[] = [];
-
-    const subscription = client
-      .subscribe({
-        query: VEHICLE_UPDATES_SUBSCRIPTION,
-        fetchPolicy: DEFAULT_FETCH_POLICY,
-        variables: subscriptionFilter,
-      })
-      .subscribe((fetchResult: FetchResult) => {
-        buffer.push(fetchResult?.data?.vehicleUpdates as Vehicle);
-      });
-
-    const timer = setInterval(() => {
-      if (buffer.length > 0) {
-        dispatch({
-          type: ActionType.UPDATE,
-          payload: buffer.splice(0, buffer.length),
+    if (options?.enableLiveUpdates) {
+      const subscription = client
+        .subscribe({
+          query: VEHICLE_UPDATES_SUBSCRIPTION,
+          fetchPolicy: DEFAULT_FETCH_POLICY,
+          variables: subscriptionFilter,
+        })
+        .subscribe((fetchResult: FetchResult) => {
+          buffer.push(fetchResult?.data?.vehicleUpdates as Vehicle);
         });
-      }
-    }, options?.updateIntervalMs || DEFAULT_UPDATE_INTERVAL_IN_MS);
 
-    return () => {
-      subscription.unsubscribe();
-      clearInterval(timer);
-    };
-  }, [client, dispatch, options?.updateIntervalMs, subscriptionFilter]);
+      const timer = setInterval(() => {
+        if (buffer.length > 0) {
+          dispatch({
+            type: ActionType.UPDATE,
+            payload: buffer.splice(0, buffer.length),
+          });
+        }
+      }, options?.updateIntervalMs || DEFAULT_UPDATE_INTERVAL_IN_MS);
+
+      return () => {
+        subscription.unsubscribe();
+        clearInterval(timer);
+      };
+    }
+  }, [
+    client,
+    dispatch,
+    options?.updateIntervalMs,
+    options?.enableLiveUpdates,
+    subscriptionFilter,
+  ]);
 
   /**
    * Set a timer to swipe through vehicles to update their status
