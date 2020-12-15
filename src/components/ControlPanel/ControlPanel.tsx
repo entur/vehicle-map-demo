@@ -1,5 +1,3 @@
-import { useState } from "react";
-import { PrimaryButton } from "@entur/button";
 import { Switch, TextField } from "@entur/form";
 import { Contrast } from "@entur/layout";
 import { Heading4, ListItem, UnorderedList } from "@entur/typography";
@@ -17,31 +15,22 @@ import useOperatorRefs from "hooks/useOperatorRefs";
 
 type Props = {
   statistics: Statistics;
-  onSubscriptionFilterUpdate: (subscriptionFilter: SubscriptionFilter) => void;
-  onOptionsUdate: (options: Options) => void;
-};
-
-const defaultSubscriptionFilter: SubscriptionFilter = {
-  monitored: true,
-};
-
-const defaultOptions: Options = {
-  updateIntervalMs: 250,
-  swipeIntervalMs: 1000,
-  removeExpired: true,
-  removeExpiredAfterSeconds: 3600,
-  markInactive: true,
-  markInactiveAfterSeconds: 60,
+  subscriptionFilter: SubscriptionFilter;
+  setSubscriptionFilter: (subscriptionFilter: SubscriptionFilter) => void;
+  options: Options;
+  setOptions: (options: Options) => void;
 };
 
 const DROPDOWN_DEFAULT_VALUE = "-- Not selected --";
 
 export const ControlPanel = (props: Props) => {
-  const [
+  const {
+    statistics,
     subscriptionFilter,
     setSubscriptionFilter,
-  ] = useState<SubscriptionFilter>(defaultSubscriptionFilter);
-  const [options, setOptions] = useState<Options>(defaultOptions);
+    options,
+    setOptions,
+  } = props;
 
   const codespaceIds = useCodespaceIds();
   const lineRefs = useLineRefs(subscriptionFilter?.codespaceId);
@@ -58,20 +47,15 @@ export const ControlPanel = (props: Props) => {
       <div className="control-panel-content">
         <Heading4>Statistics</Heading4>
         <UnorderedList>
+          <ListItem>Number of vehicles: {statistics.numberOfVehicles}</ListItem>
           <ListItem>
-            Number of vehicles: {props.statistics.numberOfVehicles}
+            Number of inactive vehicles: {statistics.numberOfInactiveVehicles}
           </ListItem>
           <ListItem>
-            Number of inactive vehicles:{" "}
-            {props.statistics.numberOfInactiveVehicles}
+            Number of expired vehicles: {statistics.numberOfExpiredVehicles}
           </ListItem>
           <ListItem>
-            Number of expired vehicles:{" "}
-            {props.statistics.numberOfExpiredVehicles}
-          </ListItem>
-          <ListItem>
-            Number of updates in session:{" "}
-            {props.statistics.numberOfUpdatesInSession}
+            Number of updates in session: {statistics.numberOfUpdatesInSession}
           </ListItem>
         </UnorderedList>
       </div>
@@ -189,11 +173,6 @@ export const ControlPanel = (props: Props) => {
         >
           Monitored only
         </Switch>
-        <PrimaryButton
-          onClick={() => props.onSubscriptionFilterUpdate(subscriptionFilter)}
-        >
-          Update subscription filters
-        </PrimaryButton>
       </div>
 
       <div className="control-panel-content">
@@ -260,9 +239,6 @@ export const ControlPanel = (props: Props) => {
             })
           }
         />
-        <PrimaryButton onClick={() => props.onOptionsUdate(options)}>
-          Update options
-        </PrimaryButton>
       </div>
     </Contrast>
   );

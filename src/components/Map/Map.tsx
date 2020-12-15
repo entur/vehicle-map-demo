@@ -22,14 +22,14 @@ const INITIAL_VIEW_STATE = {
   bearing: 0,
 };
 
-export const Map = ({ data }: any) => {
+export const Map = ({ vehicles }: any) => {
   const [popupInfo, setPopupInfo] = useState<any>(null);
   const [hoverInfo, setHoverInfo] = useState<any>(null);
 
   const layers = [
     new IconLayer({
       id: "icon-layer",
-      data,
+      data: Object.values(vehicles),
       pickable: true,
       iconAtlas,
       iconMapping,

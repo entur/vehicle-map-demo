@@ -6,11 +6,25 @@ import "./App.scss";
 import { SubscriptionFilter } from "model/subscriptionFilter";
 import { Options } from "model/options";
 
+const defaultSubscriptionFilter: SubscriptionFilter = {
+  monitored: true,
+};
+
+const defaultOptions: Options = {
+  updateIntervalMs: 250,
+  swipeIntervalMs: 1000,
+  removeExpired: true,
+  removeExpiredAfterSeconds: 3600,
+  markInactive: true,
+  markInactiveAfterSeconds: 60,
+};
+
 export const App = () => {
-  const [subscriptionFilter, setSubscriptionFilter] = useState<
-    SubscriptionFilter | undefined
-  >();
-  const [options, setOptions] = useState<Options | undefined>();
+  const [
+    subscriptionFilter,
+    setSubscriptionFilter,
+  ] = useState<SubscriptionFilter>(defaultSubscriptionFilter);
+  const [options, setOptions] = useState<Options>(defaultOptions);
   const { vehicles, statistics } = useVehicleData(subscriptionFilter, options);
 
   return (
@@ -18,12 +32,14 @@ export const App = () => {
       <div className="control-panel-wrapper">
         <ControlPanel
           statistics={statistics}
-          onSubscriptionFilterUpdate={setSubscriptionFilter}
-          onOptionsUdate={setOptions}
+          subscriptionFilter={subscriptionFilter}
+          setSubscriptionFilter={setSubscriptionFilter}
+          options={options}
+          setOptions={setOptions}
         />
       </div>
       <div className="map-wrapper">
-        <Map data={Object.values(vehicles)} />
+        <Map vehicles={vehicles} />
       </div>
     </div>
   );
