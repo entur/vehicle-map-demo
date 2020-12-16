@@ -1,12 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import DeckGL from "@deck.gl/react";
 import { IconLayer } from "@deck.gl/layers";
 import { StaticMap, Popup, _MapContext as MapContext } from "react-map-gl";
-import { Vehicle } from "model/vehicle";
 import { TooltipContent } from "./TooltipContent";
 import iconAtlas from "static/icons/icons.png";
 import iconMapping from "static/icons/icons.json";
 import "mapbox-gl/dist/mapbox-gl.css";
+import { VehicleMapPoint } from "model/vehicleMapPoint";
 
 // Set your mapbox access token here
 const MAPBOX_ACCESS_TOKEN = process.env.REACT_APP_MAPBOX_ACCESS_TOKEN;
@@ -25,6 +25,22 @@ export const Map = ({ vehicles }: any) => {
   const [popupInfo, setPopupInfo] = useState<any>(null);
   const [hoverInfo, setHoverInfo] = useState<any>(null);
 
+  useEffect(() => {
+    if (popupInfo && popupInfo.location) {
+      const vehicleMapPoint: VehicleMapPoint = vehicles[popupInfo.vehicleRef];
+      if (vehicleMapPoint) {
+        if (
+          vehicleMapPoint.vehicle.location.longitude !==
+            popupInfo.location.longitude ||
+          vehicleMapPoint.vehicle.location.latitude !==
+            popupInfo.location.latitude
+        ) {
+          setPopupInfo(vehicleMapPoint.vehicle);
+        }
+      }
+    }
+  }, [vehicles]);
+
   const layers = [
     new IconLayer({
       id: "icon-layer",
@@ -32,18 +48,12 @@ export const Map = ({ vehicles }: any) => {
       pickable: true,
       iconAtlas,
       iconMapping,
-      getIcon: (d: any) => {
-        return d.icon;
-      },
+      getIcon: (d: any) => d.icon,
       getSize: () => 50,
-      getPosition: (vehicleMapPoint: any) => {
-        const vehicle: Vehicle = vehicleMapPoint.vehicle;
-        if (popupInfo && popupInfo.vehicleRef === vehicle.vehicleRef) {
-          setPopupInfo(vehicle);
-        }
-
-        return [vehicle.location.longitude, vehicle.location.latitude];
-      },
+      getPosition: (vehicleMapPoint: any) => [
+        vehicleMapPoint.vehicle.location.longitude,
+        vehicleMapPoint.vehicle.location.latitude,
+      ],
       onClick: (info: any) => setPopupInfo(info?.object?.vehicle),
       onHover: (info: any) => setHoverInfo(info?.object?.vehicle),
     }),
