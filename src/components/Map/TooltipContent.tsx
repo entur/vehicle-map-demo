@@ -30,7 +30,7 @@ export const TooltipContent = ({
     return () => {
       clearInterval(interval);
     };
-  });
+  }, [vehicle.lastUpdated]);
 
   const scheduleInfo =
     vehicle.delay === 0
