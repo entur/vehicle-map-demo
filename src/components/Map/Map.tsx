@@ -2,18 +2,20 @@ import { useEffect, useState } from "react";
 import DeckGL from "@deck.gl/react";
 import { IconLayer } from "@deck.gl/layers";
 import { StaticMap, Popup, _MapContext as MapContext } from "react-map-gl";
+import { InitialViewStateProps, PickInfo } from "@deck.gl/core/lib/deck";
 import { TooltipContent } from "./TooltipContent";
+import { VehicleMapPoint } from "model/vehicleMapPoint";
+import { Vehicle } from "model/vehicle";
 import iconAtlas from "static/icons/icons.png";
 import iconMapping from "static/icons/icons.json";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { VehicleMapPoint } from "model/vehicleMapPoint";
 
 // Set your mapbox access token here
 const MAPBOX_ACCESS_TOKEN = process.env.REACT_APP_MAPBOX_ACCESS_TOKEN;
 const MAPBOX_MAP_STYLE = process.env.REACT_APP_MAPBOX_MAP_STYLE;
 
 // Viewport settings
-const INITIAL_VIEW_STATE = {
+const INITIAL_VIEW_STATE: InitialViewStateProps = {
   longitude: 10.757933,
   latitude: 59.911491,
   zoom: 13,
@@ -22,12 +24,14 @@ const INITIAL_VIEW_STATE = {
 };
 
 export const Map = ({ vehicles }: any) => {
-  const [popupInfo, setPopupInfo] = useState<any>(null);
-  const [hoverInfo, setHoverInfo] = useState<any>(null);
-  const [viewState, setViewState] = useState<any>(INITIAL_VIEW_STATE);
+  const [popupInfo, setPopupInfo] = useState<Vehicle | null>(null);
+  const [hoverInfo, setHoverInfo] = useState<Vehicle | null>(null);
+  const [viewState, setViewState] = useState<InitialViewStateProps>(
+    INITIAL_VIEW_STATE
+  );
 
   useEffect(() => {
-    if (popupInfo && popupInfo.location) {
+    if (popupInfo) {
       const vehicleMapPoint: VehicleMapPoint = vehicles[popupInfo.vehicleRef];
       if (vehicleMapPoint) {
         if (
@@ -37,7 +41,7 @@ export const Map = ({ vehicles }: any) => {
             popupInfo.location.latitude
         ) {
           setPopupInfo(vehicleMapPoint.vehicle);
-          setViewState((v: any) => ({
+          setViewState((v: InitialViewStateProps) => ({
             ...v,
             longitude: vehicleMapPoint.vehicle.location.longitude,
             latitude: vehicleMapPoint.vehicle.location.latitude,
@@ -49,20 +53,22 @@ export const Map = ({ vehicles }: any) => {
   }, [vehicles]);
 
   const layers = [
-    new IconLayer({
+    new IconLayer<VehicleMapPoint>({
       id: "icon-layer",
       data: Object.values(vehicles),
       pickable: true,
       iconAtlas,
       iconMapping,
-      getIcon: (d: any) => d.icon,
+      getIcon: (d: VehicleMapPoint) => d.icon,
       getSize: () => 50,
-      getPosition: (vehicleMapPoint: any) => [
+      getPosition: (vehicleMapPoint: VehicleMapPoint) => [
         vehicleMapPoint.vehicle.location.longitude,
         vehicleMapPoint.vehicle.location.latitude,
       ],
-      onClick: (info: any) => setPopupInfo(info?.object?.vehicle),
-      onHover: (info: any) => setHoverInfo(info?.object?.vehicle),
+      onClick: (info: PickInfo<VehicleMapPoint>) =>
+        setPopupInfo(info?.object?.vehicle),
+      onHover: (info: PickInfo<VehicleMapPoint>) =>
+        setHoverInfo(info?.object?.vehicle),
     }),
   ];
 
