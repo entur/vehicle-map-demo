@@ -24,6 +24,7 @@ const INITIAL_VIEW_STATE = {
 export const Map = ({ vehicles }: any) => {
   const [popupInfo, setPopupInfo] = useState<any>(null);
   const [hoverInfo, setHoverInfo] = useState<any>(null);
+  const [viewState, setViewState] = useState<any>(INITIAL_VIEW_STATE);
 
   useEffect(() => {
     if (popupInfo && popupInfo.location) {
@@ -36,9 +37,15 @@ export const Map = ({ vehicles }: any) => {
             popupInfo.location.latitude
         ) {
           setPopupInfo(vehicleMapPoint.vehicle);
+          setViewState((v: any) => ({
+            ...v,
+            longitude: vehicleMapPoint.vehicle.location.longitude,
+            latitude: vehicleMapPoint.vehicle.location.latitude,
+          }));
         }
       }
     }
+    // eslint-disable-next-line
   }, [vehicles]);
 
   const layers = [
@@ -62,12 +69,12 @@ export const Map = ({ vehicles }: any) => {
   return (
     <DeckGL
       ContextProvider={MapContext.Provider}
-      initialViewState={INITIAL_VIEW_STATE}
+      initialViewState={viewState}
       controller={true}
       layers={layers}
       style={{ left: "400px", width: "calc(100% - 400px)" }}
     >
-      {popupInfo && popupInfo.location && (
+      {popupInfo && (
         <Popup
           key="popup"
           longitude={popupInfo.location.longitude}
@@ -79,7 +86,7 @@ export const Map = ({ vehicles }: any) => {
           <TooltipContent vehicle={popupInfo} full />
         </Popup>
       )}
-      {!popupInfo && hoverInfo && hoverInfo.location && (
+      {!popupInfo && hoverInfo && (
         <Popup
           key="hover"
           closeButton={false}
