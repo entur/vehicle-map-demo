@@ -54,7 +54,7 @@ export default function useVehicleData(
           variables: subscriptionFilter,
         })
         .subscribe((fetchResult: FetchResult) => {
-          buffer.push(fetchResult?.data?.vehicleUpdates as Vehicle);
+          buffer.push(...(fetchResult?.data?.vehicleUpdates as Vehicle[]));
         });
 
       const timer = setInterval(() => {
