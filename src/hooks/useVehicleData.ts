@@ -1,20 +1,21 @@
 import { FetchResult, useApolloClient } from "@apollo/client";
 import { VEHICLES_QUERY, VEHICLE_UPDATES_SUBSCRIPTION } from "api/graphql";
 import { Options } from "model/options";
-import { SubscriptionFilter } from "model/subscriptionFilter";
+import { Filter } from "model/filter";
 import { Vehicle } from "model/vehicle";
 import { useEffect } from "react";
 import useVehicleReducer, { ActionType } from "./useVehicleReducer";
+import { SubscriptionOptions } from "model/subscriptionOptions";
 
 const DEFAULT_FETCH_POLICY = "no-cache";
-const DEFAULT_UPDATE_INTERVAL_IN_MS = 250;
 const DEFAULT_SWIPE_INTERVAL_IN_MS = 1000;
 
 /**
  * Hook to query and subscribe to remote vehicle data
  */
 export default function useVehicleData(
-  subscriptionFilter?: SubscriptionFilter,
+  filter?: Filter,
+  subscriptionOptions?: SubscriptionOptions,
   options?: Options
 ) {
   const [state, dispatch] = useVehicleReducer();
@@ -28,14 +29,14 @@ export default function useVehicleData(
       const { data: hydrationData } = await client.query({
         query: VEHICLES_QUERY,
         fetchPolicy: DEFAULT_FETCH_POLICY,
-        variables: subscriptionFilter,
+        variables: filter,
       });
       if (hydrationData && hydrationData.vehicles) {
         dispatch({ type: ActionType.HYDRATE, payload: hydrationData.vehicles });
       }
     }
     hydrate();
-  }, [client, dispatch, subscriptionFilter]);
+  }, [client, dispatch, filter]);
 
   /**
    * Set up subscription to receive updates on vehicles
@@ -45,39 +46,28 @@ export default function useVehicleData(
      * To avoid triggering re-renders too frequently, buffer subscription updates
      * and set a timer to dispatch the update on a given interval.
      */
-    const buffer: Vehicle[] = [];
-    if (options?.enableLiveUpdates) {
+    if (subscriptionOptions?.enableLiveUpdates) {
       const subscription = client
         .subscribe({
           query: VEHICLE_UPDATES_SUBSCRIPTION,
           fetchPolicy: DEFAULT_FETCH_POLICY,
-          variables: subscriptionFilter,
+          variables: {
+            ...filter,
+            ...subscriptionOptions,
+          },
         })
         .subscribe((fetchResult: FetchResult) => {
-          buffer.push(...(fetchResult?.data?.vehicleUpdates as Vehicle[]));
-        });
-
-      const timer = setInterval(() => {
-        if (buffer.length > 0) {
           dispatch({
             type: ActionType.UPDATE,
-            payload: buffer.splice(0, buffer.length),
+            payload: fetchResult?.data?.vehicleUpdates as Vehicle[],
           });
-        }
-      }, options?.updateIntervalMs || DEFAULT_UPDATE_INTERVAL_IN_MS);
+        });
 
       return () => {
         subscription.unsubscribe();
-        clearInterval(timer);
       };
     }
-  }, [
-    client,
-    dispatch,
-    options?.updateIntervalMs,
-    options?.enableLiveUpdates,
-    subscriptionFilter,
-  ]);
+  }, [client, dispatch, filter, subscriptionOptions]);
 
   /**
    * Set a timer to swipe through vehicles to update their status

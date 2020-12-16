@@ -1,4 +1,4 @@
-export type SubscriptionFilter = {
+export type Filter = {
   codespaceId?: string;
   serviceJourneyId?: string;
   mode?: string;

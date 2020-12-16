@@ -3,16 +3,21 @@ import { Map } from "../Map";
 import { ControlPanel } from "components/ControlPanel";
 import useVehicleData from "hooks/useVehicleData";
 import "./App.scss";
-import { SubscriptionFilter } from "model/subscriptionFilter";
+import { Filter } from "model/filter";
 import { Options } from "model/options";
+import { SubscriptionOptions } from "model/subscriptionOptions";
 
-const defaultSubscriptionFilter: SubscriptionFilter = {
+const defaultFilter: Filter = {
   monitored: true,
 };
 
-const defaultOptions: Options = {
+const defaultSubscriptionOptions: SubscriptionOptions = {
   enableLiveUpdates: true,
-  updateIntervalMs: 250,
+  bufferSize: 20,
+  bufferTime: 250,
+};
+
+const defaultOptions: Options = {
   swipeIntervalMs: 1000,
   removeExpired: true,
   removeExpiredAfterSeconds: 3600,
@@ -21,20 +26,27 @@ const defaultOptions: Options = {
 };
 
 export const App = () => {
+  const [filter, setFilter] = useState<Filter>(defaultFilter);
   const [
-    subscriptionFilter,
-    setSubscriptionFilter,
-  ] = useState<SubscriptionFilter>(defaultSubscriptionFilter);
+    subscriptionOptions,
+    setSubscriptionOptions,
+  ] = useState<SubscriptionOptions>(defaultSubscriptionOptions);
   const [options, setOptions] = useState<Options>(defaultOptions);
-  const { vehicles, statistics } = useVehicleData(subscriptionFilter, options);
+  const { vehicles, statistics } = useVehicleData(
+    filter,
+    subscriptionOptions,
+    options
+  );
 
   return (
     <div className="App">
       <div className="control-panel-wrapper">
         <ControlPanel
           statistics={statistics}
-          subscriptionFilter={subscriptionFilter}
-          setSubscriptionFilter={setSubscriptionFilter}
+          filter={filter}
+          setFilter={setFilter}
+          subscriptionOptions={subscriptionOptions}
+          setSubscriptionOptions={setSubscriptionOptions}
           options={options}
           setOptions={setOptions}
         />

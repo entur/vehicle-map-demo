@@ -3,7 +3,7 @@ import { Contrast } from "@entur/layout";
 import { Heading4, ListItem, UnorderedList } from "@entur/typography";
 import { Dropdown } from "@entur/dropdown";
 import { Statistics } from "model/statistics";
-import { SubscriptionFilter } from "model/subscriptionFilter";
+import { Filter } from "model/filter";
 import { Options } from "model/options";
 import { VEHICLE_MODE } from "model/vehicleMode";
 import useCodespaceIds from "hooks/useCodespaceIds";
@@ -12,11 +12,14 @@ import useServiceJourneyIds from "hooks/useServiceJourneyIds";
 import logo from "static/img/logo.png";
 import "./ControlPanel.scss";
 import useOperatorRefs from "hooks/useOperatorRefs";
+import { SubscriptionOptions } from "model/subscriptionOptions";
 
 type Props = {
   statistics: Statistics;
-  subscriptionFilter: SubscriptionFilter;
-  setSubscriptionFilter: (subscriptionFilter: SubscriptionFilter) => void;
+  filter: Filter;
+  setFilter: (filter: Filter) => void;
+  subscriptionOptions: SubscriptionOptions;
+  setSubscriptionOptions: (subscriptionOptions: SubscriptionOptions) => void;
   options: Options;
   setOptions: (options: Options) => void;
 };
@@ -26,16 +29,18 @@ const DROPDOWN_DEFAULT_VALUE = "-- Not selected --";
 export const ControlPanel = (props: Props) => {
   const {
     statistics,
-    subscriptionFilter,
-    setSubscriptionFilter,
+    filter,
+    setFilter,
+    subscriptionOptions,
+    setSubscriptionOptions,
     options,
     setOptions,
   } = props;
 
   const codespaceIds = useCodespaceIds();
-  const lineRefs = useLineRefs(subscriptionFilter?.codespaceId);
-  const serviceJourneyIds = useServiceJourneyIds(subscriptionFilter?.lineRef);
-  const operatorRefs = useOperatorRefs(subscriptionFilter?.codespaceId);
+  const lineRefs = useLineRefs(filter?.codespaceId);
+  const serviceJourneyIds = useServiceJourneyIds(filter?.lineRef);
+  const operatorRefs = useOperatorRefs(filter?.codespaceId);
 
   return (
     <Contrast>
@@ -61,10 +66,10 @@ export const ControlPanel = (props: Props) => {
       </div>
 
       <div className="control-panel-content">
-        <Heading4>Subscription filters</Heading4>
+        <Heading4>Filters</Heading4>
         <Dropdown
           items={() => [DROPDOWN_DEFAULT_VALUE].concat(codespaceIds)}
-          value={subscriptionFilter.codespaceId || DROPDOWN_DEFAULT_VALUE}
+          value={filter.codespaceId || DROPDOWN_DEFAULT_VALUE}
           label="Codespace ID"
           onChange={(item) => {
             const {
@@ -73,13 +78,13 @@ export const ControlPanel = (props: Props) => {
               serviceJourneyId,
               operatorRef,
               ...rest
-            } = subscriptionFilter;
+            } = filter;
             if (item?.value === DROPDOWN_DEFAULT_VALUE) {
-              setSubscriptionFilter({
+              setFilter({
                 ...rest,
               });
             } else {
-              setSubscriptionFilter({
+              setFilter({
                 ...rest,
                 codespaceId: item?.value,
               });
@@ -89,15 +94,15 @@ export const ControlPanel = (props: Props) => {
 
         <Dropdown
           items={() => [DROPDOWN_DEFAULT_VALUE].concat(lineRefs)}
-          value={subscriptionFilter.lineRef || DROPDOWN_DEFAULT_VALUE}
+          value={filter.lineRef || DROPDOWN_DEFAULT_VALUE}
           label="Line ref"
           onChange={(item) => {
             if (item?.value === DROPDOWN_DEFAULT_VALUE) {
-              const { lineRef, serviceJourneyId, ...rest } = subscriptionFilter;
-              setSubscriptionFilter({ ...rest });
+              const { lineRef, serviceJourneyId, ...rest } = filter;
+              setFilter({ ...rest });
             } else {
-              setSubscriptionFilter({
-                ...subscriptionFilter,
+              setFilter({
+                ...filter,
                 lineRef: item?.value,
               });
             }
@@ -106,15 +111,15 @@ export const ControlPanel = (props: Props) => {
 
         <Dropdown
           items={() => [DROPDOWN_DEFAULT_VALUE].concat(serviceJourneyIds)}
-          value={subscriptionFilter.serviceJourneyId || DROPDOWN_DEFAULT_VALUE}
+          value={filter.serviceJourneyId || DROPDOWN_DEFAULT_VALUE}
           label="Service journey ID"
           onChange={(item) => {
             if (item?.value === DROPDOWN_DEFAULT_VALUE) {
-              const { serviceJourneyId, ...rest } = subscriptionFilter;
-              setSubscriptionFilter({ ...rest });
+              const { serviceJourneyId, ...rest } = filter;
+              setFilter({ ...rest });
             } else {
-              setSubscriptionFilter({
-                ...subscriptionFilter,
+              setFilter({
+                ...filter,
                 serviceJourneyId: item?.value,
               });
             }
@@ -123,15 +128,15 @@ export const ControlPanel = (props: Props) => {
 
         <Dropdown
           items={() => [DROPDOWN_DEFAULT_VALUE].concat(operatorRefs)}
-          value={subscriptionFilter.operatorRef || DROPDOWN_DEFAULT_VALUE}
+          value={filter.operatorRef || DROPDOWN_DEFAULT_VALUE}
           label="Operator ref"
           onChange={(item) => {
             if (item?.value === DROPDOWN_DEFAULT_VALUE) {
-              const { operatorRef, ...rest } = subscriptionFilter;
-              setSubscriptionFilter({ ...rest });
+              const { operatorRef, ...rest } = filter;
+              setFilter({ ...rest });
             } else {
-              setSubscriptionFilter({
-                ...subscriptionFilter,
+              setFilter({
+                ...filter,
                 operatorRef: item?.value,
               });
             }
@@ -140,17 +145,15 @@ export const ControlPanel = (props: Props) => {
 
         <Dropdown
           items={[DROPDOWN_DEFAULT_VALUE].concat(Object.values(VEHICLE_MODE))}
-          value={
-            subscriptionFilter.mode?.toLowerCase() || DROPDOWN_DEFAULT_VALUE
-          }
+          value={filter.mode?.toLowerCase() || DROPDOWN_DEFAULT_VALUE}
           label="Vehicle mode"
           onChange={(item) => {
             if (item?.value === DROPDOWN_DEFAULT_VALUE) {
-              const { mode, ...rest } = subscriptionFilter;
-              setSubscriptionFilter({ ...rest });
+              const { mode, ...rest } = filter;
+              setFilter({ ...rest });
             } else {
-              setSubscriptionFilter({
-                ...subscriptionFilter,
+              setFilter({
+                ...filter,
                 mode: item?.value?.toUpperCase(),
               });
             }
@@ -158,16 +161,16 @@ export const ControlPanel = (props: Props) => {
         />
 
         <Switch
-          checked={subscriptionFilter.monitored}
+          checked={filter.monitored}
           onChange={(event) => {
             if (event.target.checked) {
-              setSubscriptionFilter({
-                ...subscriptionFilter,
+              setFilter({
+                ...filter,
                 monitored: event.target.checked,
               });
             } else {
-              const { monitored, ...rest } = subscriptionFilter;
-              setSubscriptionFilter({ ...rest });
+              const { monitored, ...rest } = filter;
+              setFilter({ ...rest });
             }
           }}
         >
@@ -176,26 +179,49 @@ export const ControlPanel = (props: Props) => {
       </div>
 
       <div className="control-panel-content">
-        <Heading4>Options</Heading4>
+        <Heading4>Live updates</Heading4>
         <Switch
-          checked={options.enableLiveUpdates}
+          checked={subscriptionOptions.enableLiveUpdates}
           onChange={(event) =>
-            setOptions({ ...options, enableLiveUpdates: event.target.checked })
+            setSubscriptionOptions({
+              ...subscriptionOptions,
+              enableLiveUpdates: event.target.checked,
+            })
           }
         >
           Enable live updates
         </Switch>
-        <TextField
-          type="number"
-          label="Update interval (ms)"
-          value={options.updateIntervalMs}
-          onChange={(event) =>
-            setOptions({
-              ...options,
-              updateIntervalMs: parseInt(event.target.value),
-            })
-          }
-        />
+
+        {subscriptionOptions.enableLiveUpdates && (
+          <>
+            <TextField
+              type="number"
+              label="Buffer size"
+              value={subscriptionOptions.bufferSize}
+              onChange={(event) =>
+                setSubscriptionOptions({
+                  ...subscriptionOptions,
+                  bufferSize: parseInt(event.target.value),
+                })
+              }
+            />
+
+            <TextField
+              type="number"
+              label="Buffer time (ms)"
+              value={subscriptionOptions.bufferTime}
+              onChange={(event) =>
+                setSubscriptionOptions({
+                  ...subscriptionOptions,
+                  bufferTime: parseInt(event.target.value),
+                })
+              }
+            />
+          </>
+        )}
+      </div>
+      <div className="control-panel-content">
+        <Heading4>Other settings</Heading4>
         <TextField
           type="number"
           label="Swipe interval (ms)"
