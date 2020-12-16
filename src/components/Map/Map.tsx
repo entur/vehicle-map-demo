@@ -75,7 +75,9 @@ export const Map = ({ vehicles }: any) => {
   return (
     <DeckGL
       ContextProvider={MapContext.Provider}
-      initialViewState={viewState}
+      initialViewState={INITIAL_VIEW_STATE}
+      viewState={viewState}
+      onViewStateChange={({ viewState }) => setViewState(viewState)}
       controller={true}
       layers={layers}
       style={{ left: "400px", width: "calc(100% - 400px)" }}
