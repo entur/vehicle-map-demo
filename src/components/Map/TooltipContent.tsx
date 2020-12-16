@@ -2,11 +2,17 @@ import { useEffect, useState } from "react";
 import { TertiaryButton } from "@entur/button";
 import { EmphasizedText } from "@entur/typography";
 import { differenceInSeconds, parseISO } from "date-fns";
+import { Vehicle } from "model/vehicle";
 
 const getLastUpdated = (lastUpdated: string): number =>
   differenceInSeconds(new Date(), parseISO(lastUpdated));
 
-export const TooltipContent = ({ vehicle, full = false }: any) => {
+type Props = {
+  vehicle: Vehicle;
+  full?: boolean;
+};
+
+export const TooltipContent = ({ vehicle, full = false }: Props) => {
   const [lastUpdated, setLastUpdated] = useState<number>(
     getLastUpdated(vehicle.lastUpdated)
   );
