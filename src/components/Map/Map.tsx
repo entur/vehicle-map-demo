@@ -2,12 +2,11 @@ import { useState } from "react";
 import DeckGL from "@deck.gl/react";
 import { IconLayer } from "@deck.gl/layers";
 import { StaticMap, Popup, _MapContext as MapContext } from "react-map-gl";
-
+import { Vehicle } from "model/vehicle";
+import { TooltipContent } from "./TooltipContent";
 import iconAtlas from "static/icons/icons.png";
 import iconMapping from "static/icons/icons.json";
-
 import "mapbox-gl/dist/mapbox-gl.css";
-import { Vehicle } from "model/vehicle";
 
 // Set your mapbox access token here
 const MAPBOX_ACCESS_TOKEN = process.env.REACT_APP_MAPBOX_ACCESS_TOKEN;
@@ -66,18 +65,8 @@ export const Map = ({ vehicles }: any) => {
           closeButton
           closeOnClick
           onClose={() => setPopupInfo(null)}
-          anchor="bottom"
         >
-          <div
-            style={{
-              backgroundColor: "white",
-              padding: "10px",
-              width: "500px",
-              textAlign: "left",
-            }}
-          >
-            <pre>{JSON.stringify(popupInfo, null, 2)}</pre>
-          </div>
+          <TooltipContent vehicle={popupInfo} full />
         </Popup>
       )}
       {!popupInfo && hoverInfo && hoverInfo.location && (
@@ -88,7 +77,7 @@ export const Map = ({ vehicles }: any) => {
           latitude={hoverInfo.location.latitude}
           anchor="bottom"
         >
-          {hoverInfo.line.lineRef}
+          <TooltipContent vehicle={hoverInfo} />
         </Popup>
       )}
       <StaticMap
