@@ -9,10 +9,15 @@ const getLastUpdated = (lastUpdated: string): number =>
 
 type Props = {
   vehicle: Vehicle;
+  onShowModalClick?: Function;
   full?: boolean;
 };
 
-export const TooltipContent = ({ vehicle, full = false }: Props) => {
+export const TooltipContent = ({
+  vehicle,
+  onShowModalClick,
+  full = false,
+}: Props) => {
   const [lastUpdated, setLastUpdated] = useState<number>(
     getLastUpdated(vehicle.lastUpdated)
   );
@@ -35,33 +40,33 @@ export const TooltipContent = ({ vehicle, full = false }: Props) => {
         } schedule`;
 
   return (
-    <section style={{ textAlign: "left", minWidth: "100px", zIndex: 1000 }}>
-      <EmphasizedText>{vehicle.line.lineRef}</EmphasizedText> (
-      {vehicle.line.lineName})<br />
-      <hr />
-      {scheduleInfo}
-      <br />
-      {lastUpdated && <>Last updated {lastUpdated} seconds ago</>}
-      {full && (
-        <>
-          <br />
-          <hr />
-          Vehicle ID: {vehicle.vehicleRef}
-          <br />
-          Service journey ID: {vehicle.serviceJourney.serviceJourneyId}
-          <br />
-          Operator ref: {vehicle.operator.operatorRef}
-          <br />
-          <hr />
-          <TertiaryButton
-            onClick={() =>
-              navigator.clipboard.writeText(JSON.stringify(vehicle, null, 2))
-            }
-          >
-            Copy vehicle JSON
-          </TertiaryButton>
-        </>
-      )}
-    </section>
+    <>
+      <section style={{ textAlign: "left", minWidth: "100px", zIndex: 1000 }}>
+        <EmphasizedText>{vehicle.line.lineRef}</EmphasizedText> (
+        {vehicle.line.lineName})<br />
+        <hr />
+        {scheduleInfo}
+        <br />
+        {lastUpdated && <>Last updated {lastUpdated} seconds ago</>}
+        {full && (
+          <>
+            <br />
+            <hr />
+            Vehicle ID: {vehicle.vehicleRef}
+            <br />
+            Service journey ID: {vehicle.serviceJourney.serviceJourneyId}
+            <br />
+            Operator ref: {vehicle.operator.operatorRef}
+            <br />
+            <hr />
+            <TertiaryButton
+              onClick={() => onShowModalClick && onShowModalClick(vehicle)}
+            >
+              Show vehicle JSON
+            </TertiaryButton>
+          </>
+        )}
+      </section>
+    </>
   );
 };

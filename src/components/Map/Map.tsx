@@ -3,6 +3,8 @@ import DeckGL from "@deck.gl/react";
 import { IconLayer } from "@deck.gl/layers";
 import { StaticMap, Popup, _MapContext as MapContext } from "react-map-gl";
 import { InitialViewStateProps, PickInfo } from "@deck.gl/core/lib/deck";
+import { Modal } from "@entur/modal";
+import { TertiaryButton } from "@entur/button";
 import { TooltipContent } from "./TooltipContent";
 import { VehicleMapPoint } from "model/vehicleMapPoint";
 import { Vehicle } from "model/vehicle";
@@ -24,6 +26,7 @@ const INITIAL_VIEW_STATE: InitialViewStateProps = {
 };
 
 export const Map = ({ vehicles }: any) => {
+  const [modalInfo, setModalInfo] = useState<Vehicle | null>(null);
   const [popupInfo, setPopupInfo] = useState<Vehicle | null>(null);
   const [hoverInfo, setHoverInfo] = useState<Vehicle | null>(null);
   const [viewState, setViewState] = useState<InitialViewStateProps>(
@@ -73,45 +76,66 @@ export const Map = ({ vehicles }: any) => {
   ];
 
   return (
-    <DeckGL
-      ContextProvider={MapContext.Provider}
-      initialViewState={INITIAL_VIEW_STATE}
-      viewState={viewState}
-      onViewStateChange={({ viewState }) => setViewState(viewState)}
-      controller={true}
-      layers={layers}
-      style={{ left: "400px", width: "calc(100% - 400px)" }}
-    >
-      {popupInfo && (
-        <Popup
-          key="popup"
-          longitude={popupInfo.location.longitude}
-          latitude={popupInfo.location.latitude}
-          closeButton
-          closeOnClick
-          onClose={() => setPopupInfo(null)}
+    <>
+      <DeckGL
+        ContextProvider={MapContext.Provider}
+        initialViewState={INITIAL_VIEW_STATE}
+        viewState={viewState}
+        onViewStateChange={({ viewState }) => setViewState(viewState)}
+        controller={true}
+        layers={layers}
+        style={{ left: "400px", width: "calc(100% - 400px)" }}
+      >
+        {popupInfo && (
+          <Popup
+            key="popup"
+            longitude={popupInfo.location.longitude}
+            latitude={popupInfo.location.latitude}
+            closeButton
+            closeOnClick
+            onClose={() => setPopupInfo(null)}
+          >
+            <TooltipContent
+              vehicle={popupInfo}
+              onShowModalClick={setModalInfo}
+              full
+            />
+          </Popup>
+        )}
+        {!popupInfo && hoverInfo && (
+          <Popup
+            key="hover"
+            closeButton={false}
+            longitude={hoverInfo.location.longitude}
+            latitude={hoverInfo.location.latitude}
+            anchor="bottom"
+          >
+            <TooltipContent vehicle={hoverInfo} />
+          </Popup>
+        )}
+        <StaticMap
+          key="map"
+          width="100%"
+          height="100%"
+          mapStyle={MAPBOX_MAP_STYLE}
+          mapboxApiAccessToken={MAPBOX_ACCESS_TOKEN}
+        />
+      </DeckGL>
+      <Modal
+        open={!!modalInfo}
+        onDismiss={() => setModalInfo(null)}
+        title="Vehicle JSON"
+        size="medium"
+      >
+        <pre>{JSON.stringify(modalInfo, null, 2)}</pre>
+        <TertiaryButton
+          onClick={() =>
+            navigator.clipboard.writeText(JSON.stringify(modalInfo, null, 2))
+          }
         >
-          <TooltipContent vehicle={popupInfo} full />
-        </Popup>
-      )}
-      {!popupInfo && hoverInfo && (
-        <Popup
-          key="hover"
-          closeButton={false}
-          longitude={hoverInfo.location.longitude}
-          latitude={hoverInfo.location.latitude}
-          anchor="bottom"
-        >
-          <TooltipContent vehicle={hoverInfo} />
-        </Popup>
-      )}
-      <StaticMap
-        key="map"
-        width="100%"
-        height="100%"
-        mapStyle={MAPBOX_MAP_STYLE}
-        mapboxApiAccessToken={MAPBOX_ACCESS_TOKEN}
-      />
-    </DeckGL>
+          Copy to clipboard
+        </TertiaryButton>
+      </Modal>
+    </>
   );
 };
