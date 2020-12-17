@@ -4,7 +4,6 @@ import { Options } from "model/options";
 import { Filter } from "model/filter";
 import { Vehicle } from "model/vehicle";
 import { useEffect } from "react";
-import useVehicleReducer, { ActionType } from "./useVehicleReducer";
 import { SubscriptionOptions } from "model/subscriptionOptions";
 
 const DEFAULT_FETCH_POLICY = "no-cache";
@@ -14,11 +13,13 @@ const DEFAULT_SWIPE_INTERVAL_IN_MS = 1000;
  * Hook to query and subscribe to remote vehicle data
  */
 export default function useVehicleData(
-  filter?: Filter,
-  subscriptionOptions?: SubscriptionOptions,
-  options?: Options
+  filter: Filter,
+  subscriptionOptions: SubscriptionOptions,
+  options: Options,
+  dispatchHydrate: (vehicles: Vehicle[]) => void,
+  dispatchUpdate: (vehicles: Vehicle[]) => void,
+  dispatchSweep: () => void
 ) {
-  const [state, dispatch] = useVehicleReducer();
   const client = useApolloClient();
 
   /**
@@ -32,11 +33,11 @@ export default function useVehicleData(
         variables: filter,
       });
       if (hydrationData && hydrationData.vehicles) {
-        dispatch({ type: ActionType.HYDRATE, payload: hydrationData.vehicles });
+        dispatchHydrate(hydrationData.vehicles);
       }
     }
     hydrate();
-  }, [client, dispatch, filter]);
+  }, [client, filter, dispatchHydrate]);
 
   /**
    * Set up subscription to receive updates on vehicles
@@ -57,30 +58,25 @@ export default function useVehicleData(
           },
         })
         .subscribe((fetchResult: FetchResult) => {
-          dispatch({
-            type: ActionType.UPDATE,
-            payload: fetchResult?.data?.vehicleUpdates as Vehicle[],
-          });
+          dispatchUpdate(fetchResult?.data?.vehicleUpdates as Vehicle[]);
         });
 
       return () => {
         subscription.unsubscribe();
       };
     }
-  }, [client, dispatch, filter, subscriptionOptions]);
+  }, [client, filter, subscriptionOptions, dispatchUpdate]);
 
   /**
    * Set a timer to swipe through vehicles to update their status
    */
   useEffect(() => {
     const timer = setInterval(() => {
-      dispatch({ type: ActionType.EXPIRE });
+      dispatchSweep();
     }, options?.swipeIntervalMs || DEFAULT_SWIPE_INTERVAL_IN_MS);
 
     return () => {
       clearInterval(timer);
     };
-  });
-
-  return state;
+  }, [options?.swipeIntervalMs, dispatchSweep]);
 }

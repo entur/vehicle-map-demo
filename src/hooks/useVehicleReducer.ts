@@ -2,22 +2,28 @@ import { addSeconds, isBefore, parseISO } from "date-fns";
 import { Statistics } from "model/statistics";
 import { Vehicle } from "model/vehicle";
 import { VehicleMapPoint } from "model/vehicleMapPoint";
-import { useReducer } from "react";
+import { useCallback, useReducer } from "react";
 
 type State = {
   vehicles: Record<string, VehicleMapPoint>;
   statistics: Statistics;
 };
 
+type Dispatchers = {
+  hydrate: (vehicles: Vehicle[]) => void;
+  update: (vehicles: Vehicle[]) => void;
+  sweep: () => void;
+};
+
 export enum ActionType {
   HYDRATE,
   UPDATE,
-  EXPIRE,
+  SWEEP,
 }
 
 export type Action = {
   type: ActionType;
-  payload?: Vehicle[] | Vehicle;
+  payload?: Vehicle[];
 };
 
 const initialState: State = {
@@ -139,7 +145,7 @@ const update = (now: Date, state: State, vehicles: Vehicle[]) => {
   };
 };
 
-const expire = (now: Date, state: State) => {
+const sweep = (now: Date, state: State) => {
   let numberOfExpiredVehicles = state.statistics.numberOfExpiredVehicles;
 
   let vehicles = Object.values(state.vehicles).reduce(
@@ -189,11 +195,38 @@ const reducer = (state: State, action: Action) => {
       return hydrate(now, state, action?.payload! as Vehicle[]);
     case ActionType.UPDATE:
       return update(now, state, action?.payload! as Vehicle[]);
-    case ActionType.EXPIRE:
-      return expire(now, state);
+    case ActionType.SWEEP:
+      return sweep(now, state);
   }
 };
 
-export default function useVehicleReducer() {
-  return useReducer(reducer, initialState);
+export default function useVehicleReducer(): [State, Dispatchers] {
+  const [state, dispatch] = useReducer(reducer, initialState);
+
+  const hydrate = useCallback(
+    (vehicles: Vehicle[]) => {
+      dispatch({ type: ActionType.HYDRATE, payload: vehicles });
+    },
+    [dispatch]
+  );
+
+  const update = useCallback(
+    (vehicles: Vehicle[]) => {
+      dispatch({ type: ActionType.UPDATE, payload: vehicles });
+    },
+    [dispatch]
+  );
+
+  const sweep = useCallback(() => {
+    dispatch({ type: ActionType.SWEEP });
+  }, [dispatch]);
+
+  return [
+    state,
+    {
+      hydrate,
+      update,
+      sweep,
+    },
+  ];
 }

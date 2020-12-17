@@ -6,6 +6,7 @@ import "./App.scss";
 import { Filter } from "model/filter";
 import { Options } from "model/options";
 import { SubscriptionOptions } from "model/subscriptionOptions";
+import useVehicleReducer from "hooks/useVehicleReducer";
 
 const defaultFilter: Filter = {
   monitored: true,
@@ -32,11 +33,13 @@ export const App = () => {
     setSubscriptionOptions,
   ] = useState<SubscriptionOptions>(defaultSubscriptionOptions);
   const [options, setOptions] = useState<Options>(defaultOptions);
-  const { vehicles, statistics } = useVehicleData(
-    filter,
-    subscriptionOptions,
-    options
-  );
+
+  const [
+    { vehicles, statistics },
+    { hydrate, update, sweep },
+  ] = useVehicleReducer();
+
+  useVehicleData(filter, subscriptionOptions, options, hydrate, update, sweep);
 
   return (
     <div className="App">
