@@ -62,6 +62,8 @@ export const VEHICLE_UPDATES_SUBSCRIPTION = gql`
     $operatorRef: String
     $mode: VehicleModeEnumeration
     $monitored: Boolean
+    $bufferSize: Float
+    $bufferTime: Float
   ) {
     vehicleUpdates(
       codespaceId: $codespaceId
@@ -70,6 +72,8 @@ export const VEHICLE_UPDATES_SUBSCRIPTION = gql`
       operatorRef: $operatorRef
       mode: $mode
       monitored: $monitored
+      bufferSize: $bufferSize
+      bufferTime: $bufferTime
     ) {
       ...VehicleFragment
     }
