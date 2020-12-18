@@ -1,0 +1,102 @@
+# For help and tutorials, visit https://circleci.com/docs/
+# For internal documentation visit https://enturas.atlassian.net/wiki/spaces/ESP/pages/580026490/CircleCI
+version: 2.1
+
+orbs:
+#  slack: circleci/slack@1.0.0
+  node: circleci/node@1.1.6
+  firebase-deploy: noyo/firebase-deploy@0.1.1
+
+references:
+  workspace_root: &workspace_root
+    ~/project
+  attach_workspace: &attach_workspace
+    attach_workspace:
+      at: *workspace_root
+
+jobs:
+  build:
+    executor:
+      name: node/default
+      tag: '10.13'
+    steps:
+      - *attach_workspace
+      - checkout
+      - node/with-cache:
+          cache-key: package-lock.json
+          cache-version: v1
+          steps:
+            - run:
+               name: Install dependencies
+               command: npm install
+      - run:
+          name: "Run tests"
+          command: npm run test
+      - run:
+          name: "Create production build"
+          command: npm run build
+      - persist_to_workspace:
+          root: *workspace_root
+          paths:
+            - .
+  # deploy-dev:
+  #   executor:
+  #     name: node/default
+  #     tag: '10.13'
+  #   steps:
+  #     - *attach_workspace
+  #     - firebase-deploy/deploy:
+  #         token: $FIREBASE_TOKEN_DEV
+  #         project: dev
+  # deploy-staging:
+  #   executor:
+  #     name: node/default
+  #     tag: '10.13'
+  #   steps:
+  #     - *attach_workspace
+  #     - firebase-deploy/deploy:
+  #         token: $FIREBASE_TOKEN_STAGING
+  #         project: staging
+  # deploy-prod:
+  #   executor:
+  #     name: node/default
+  #     tag: '10.13'
+  #   steps:
+  #     - *attach_workspace
+  #     - firebase-deploy/deploy:
+  #         token: $FIREBASE_TOKEN_PROD
+  #         project: prod
+
+workflows:
+  "Build Pipeline":
+    jobs:
+      - build
+      # - deploy-dev:
+      #     context: global
+      #     filters:
+      #       branches:
+      #         only: master
+      #     requires:
+      #       - build
+      # - approve-deploy-staging:
+      #     type: approval
+      #     requires:
+      #       - deploy-dev
+      # - deploy-staging:
+      #     context: global
+      #     filters:
+      #       branches:
+      #         only: master
+      #     requires:
+      #       - approve-deploy-staging
+      # - approve-deploy-prod:
+      #     type: approval
+      #     requires:
+      #       - deploy-staging
+      # - deploy-prod:
+      #     context: global
+      #     filters:
+      #       branches:
+      #         only: master
+      #     requires:
+      #       - approve-deploy-prod
