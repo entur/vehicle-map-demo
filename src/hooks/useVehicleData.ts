@@ -8,15 +8,14 @@ import useVehicleReducer, { ActionType } from "./useVehicleReducer";
 import { SubscriptionOptions } from "model/subscriptionOptions";
 
 const DEFAULT_FETCH_POLICY = "no-cache";
-const DEFAULT_SWIPE_INTERVAL_IN_MS = 1000;
 
 /**
  * Hook to query and subscribe to remote vehicle data
  */
 export default function useVehicleData(
-  filter?: Filter,
-  subscriptionOptions?: SubscriptionOptions,
-  options?: Options
+  filter: Filter,
+  subscriptionOptions: SubscriptionOptions,
+  options: Options
 ) {
   const [state, dispatch] = useVehicleReducer();
   const client = useApolloClient();
@@ -75,12 +74,12 @@ export default function useVehicleData(
   useEffect(() => {
     const timer = setInterval(() => {
       dispatch({ type: ActionType.EXPIRE });
-    }, options?.swipeIntervalMs || DEFAULT_SWIPE_INTERVAL_IN_MS);
+    }, options.swipeIntervalMs);
 
     return () => {
       clearInterval(timer);
     };
-  });
+  }, [dispatch, options.swipeIntervalMs]);
 
   return state;
 }
