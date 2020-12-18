@@ -1,8 +1,7 @@
-import { addSeconds, isBefore, parseISO } from "date-fns";
+import { useReducer } from "react";
 import { Statistics } from "model/statistics";
 import { Vehicle } from "model/vehicle";
 import { VehicleMapPoint } from "model/vehicleMapPoint";
-import { useReducer } from "react";
 
 type State = {
   vehicles: Record<string, VehicleMapPoint>;
@@ -32,13 +31,16 @@ const initialState: State = {
 
 const DEFAULT_INACTIVE_VEHICLE_IN_SECONDS = 60;
 
-const hydrate = (now: Date, state: State, payload: Vehicle[]) => {
+const getCurrentEpochSeconds = () => Math.floor(Date.now() / 1000);
+
+const hydrate = (state: State, payload: Vehicle[]) => {
+  const now = getCurrentEpochSeconds();
   let numberOfExpiredVehicles = state.statistics.numberOfExpiredVehicles;
   let numberOfUpdatesInSession = state.statistics.numberOfUpdatesInSession;
 
   let vehicles = payload.reduce((acc: any, vehicle: Vehicle) => {
     numberOfUpdatesInSession++;
-    if (parseISO(vehicle.expiration) < now) {
+    if (vehicle.expirationEpochSecond < now) {
       console.debug("rejecting expired vehicle during hydration", vehicle);
       numberOfExpiredVehicles++;
       return acc;
@@ -49,13 +51,8 @@ const hydrate = (now: Date, state: State, payload: Vehicle[]) => {
     };
 
     if (
-      isBefore(
-        addSeconds(
-          parseISO(vehicle.lastUpdated),
-          DEFAULT_INACTIVE_VEHICLE_IN_SECONDS
-        ),
-        now
-      )
+      vehicle.lastUpdatedEpochSecond + DEFAULT_INACTIVE_VEHICLE_IN_SECONDS <
+      now
     ) {
       vehicleMapPoint.icon = vehicleMapPoint.icon + "_inactive";
     }
@@ -78,7 +75,8 @@ const hydrate = (now: Date, state: State, payload: Vehicle[]) => {
   };
 };
 
-const update = (now: Date, state: State, vehicles: Vehicle[]) => {
+const update = (state: State, vehicles: Vehicle[]) => {
+  const now = getCurrentEpochSeconds();
   let numberOfExpiredVehicles = state.statistics.numberOfExpiredVehicles;
   let numberOfUpdatesInSession = state.statistics.numberOfUpdatesInSession;
 
@@ -88,7 +86,7 @@ const update = (now: Date, state: State, vehicles: Vehicle[]) => {
 
   vehicles.forEach((vehicle) => {
     numberOfUpdatesInSession++;
-    if (parseISO(vehicle.expiration) < now) {
+    if (vehicle.expirationEpochSecond < now) {
       console.debug("rejecting expired vehicle during update", vehicle);
       numberOfExpiredVehicles++;
     } else {
@@ -98,21 +96,16 @@ const update = (now: Date, state: State, vehicles: Vehicle[]) => {
       };
 
       if (
-        isBefore(
-          addSeconds(
-            parseISO(vehicle.lastUpdated),
-            DEFAULT_INACTIVE_VEHICLE_IN_SECONDS
-          ),
-          now
-        )
+        vehicle.lastUpdatedEpochSecond + DEFAULT_INACTIVE_VEHICLE_IN_SECONDS <
+        now
       ) {
         vehicleMapPoint.icon = vehicleMapPoint.icon + "_inactive";
       }
 
       if (updatedVehicles[vehicle.vehicleRef]) {
         if (
-          parseISO(vehicle.lastUpdated) >
-          parseISO(updatedVehicles[vehicle.vehicleRef].vehicle.lastUpdated)
+          vehicle.lastUpdatedEpochSecond >
+          updatedVehicles[vehicle.vehicleRef].vehicle.lastUpdatedEpochSecond
         ) {
           console.debug(
             "found new update for vehicle during hydration/update",
@@ -139,25 +132,22 @@ const update = (now: Date, state: State, vehicles: Vehicle[]) => {
   };
 };
 
-const expire = (now: Date, state: State) => {
+const expire = (state: State) => {
+  const now = getCurrentEpochSeconds();
   let numberOfExpiredVehicles = state.statistics.numberOfExpiredVehicles;
 
   let vehicles = Object.values(state.vehicles).reduce(
     (acc: any, vehicleMapPoint: VehicleMapPoint) => {
-      if (isBefore(parseISO(vehicleMapPoint.vehicle.expiration), now)) {
+      if (vehicleMapPoint.vehicle.expirationEpochSecond < now) {
         console.debug("expire vehicle", vehicleMapPoint.vehicle);
         numberOfExpiredVehicles++;
         return acc;
       }
 
       if (
-        isBefore(
-          addSeconds(
-            parseISO(vehicleMapPoint.vehicle.lastUpdated),
-            DEFAULT_INACTIVE_VEHICLE_IN_SECONDS
-          ),
-          now
-        )
+        vehicleMapPoint.vehicle.lastUpdatedEpochSecond +
+          DEFAULT_INACTIVE_VEHICLE_IN_SECONDS <
+        now
       ) {
         if (vehicleMapPoint.icon.indexOf("_inactive") === -1) {
           vehicleMapPoint.icon = vehicleMapPoint.icon + "_inactive";
@@ -183,14 +173,13 @@ const expire = (now: Date, state: State) => {
 };
 
 const reducer = (state: State, action: Action) => {
-  const now = new Date();
   switch (action.type) {
     case ActionType.HYDRATE:
-      return hydrate(now, state, action?.payload! as Vehicle[]);
+      return hydrate(state, action?.payload! as Vehicle[]);
     case ActionType.UPDATE:
-      return update(now, state, action?.payload! as Vehicle[]);
+      return update(state, action?.payload! as Vehicle[]);
     case ActionType.EXPIRE:
-      return expire(now, state);
+      return expire(state);
   }
 };
 

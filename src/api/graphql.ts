@@ -19,7 +19,9 @@ const VEHICLE_FRAGMENT = gql`
     direction
     mode
     lastUpdated
+    lastUpdatedEpochSecond
     expiration
+    expirationEpochSecond
     speed
     heading
     monitored

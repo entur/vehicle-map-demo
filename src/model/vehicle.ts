@@ -12,7 +12,9 @@ export type Vehicle = {
   direction: string | number;
   mode: string;
   lastUpdated: string;
+  lastUpdatedEpochSecond: number;
   expiration: string;
+  expirationEpochSecond: number;
   speed: number;
   heading: number;
   monitored: boolean;
