@@ -12,7 +12,8 @@ import iconAtlas from "static/icons/icons.png";
 import iconMapping from "static/icons/icons.json";
 import "mapbox-gl/dist/mapbox-gl.css";
 
-// Set your mapbox access token here
+const DEFAULT_STYLE =
+  "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json";
 const MAPBOX_ACCESS_TOKEN = process.env.REACT_APP_MAPBOX_ACCESS_TOKEN;
 const MAPBOX_MAP_STYLE = process.env.REACT_APP_MAPBOX_MAP_STYLE;
 
@@ -116,8 +117,14 @@ export const Map = ({ vehicles }: any) => {
           key="map"
           width="100%"
           height="100%"
-          mapStyle={MAPBOX_MAP_STYLE}
-          mapboxApiAccessToken={MAPBOX_ACCESS_TOKEN}
+          reuseMaps
+          preventStyleDiffing
+          {...(!!MAPBOX_MAP_STYLE && !!MAPBOX_ACCESS_TOKEN
+            ? {
+                mapStyle: MAPBOX_MAP_STYLE,
+                mapboxApiAccessToken: MAPBOX_ACCESS_TOKEN,
+              }
+            : { mapStyle: DEFAULT_STYLE })}
         />
       </DeckGL>
       <Modal
