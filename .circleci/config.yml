@@ -13,14 +13,9 @@ references:
       at: *workspace_root
 
 aliases:
-- &authenticate_dev
-  name: GCP Dev auth
-  command: |
-    echo 'export GCLOUD_SERVICE_KEY="$SERVICE_ACCOUNT_DEV"' >> $BASH_ENV
-    /tools/gcp_authenticate.sh
 - &firebase_deploy_dev
   name: Firebase deploy
-  command: firebase deploy -P dev
+  command: GOOGLE_APPLICATION_CREDENTIALS="$SERVICE_ACCOUNT_DEV" firebase deploy -P dev
 
 jobs:
   build:
@@ -55,7 +50,6 @@ jobs:
         password: $DOCKER_PASSWORD
     steps:
     - *attach_workspace
-    - run: *authenticate_dev
     - run: *firebase_deploy_dev
 
 workflows:
