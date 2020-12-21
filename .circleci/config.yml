@@ -15,7 +15,9 @@ references:
 aliases:
 - &firebase_deploy_dev
   name: Firebase deploy
-  command: GOOGLE_APPLICATION_CREDENTIALS="$SERVICE_ACCOUNT_DEV" npx firebase deploy -P dev
+  command: |
+    echo 'export GOOGLE_APPLICATION_CREDENTIALS="$SERVICE_ACCOUNT_DEV"' >> $BASH_ENV
+    npx firebase deploy -P dev
 
 jobs:
   build:
