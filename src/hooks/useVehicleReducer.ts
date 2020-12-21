@@ -2,6 +2,7 @@ import { useReducer } from "react";
 import { Statistics } from "model/statistics";
 import { Vehicle } from "model/vehicle";
 import { VehicleMapPoint } from "model/vehicleMapPoint";
+import { Options } from "model/options";
 
 type State = {
   vehicles: Record<string, VehicleMapPoint>;
@@ -30,17 +31,38 @@ const initialState: State = {
 };
 
 const DEFAULT_INACTIVE_VEHICLE_IN_SECONDS = 60;
+const DEFAULT_EXPIRE_VEHICLE_IN_SECONDS = 3600;
 
 const getCurrentEpochSeconds = () => Math.floor(Date.now() / 1000);
 
-const hydrate = (state: State, payload: Vehicle[]) => {
+const isVehicleInactive = (vehicle: Vehicle, options: Options, now: number) => {
+  return (
+    vehicle.lastUpdatedEpochSecond +
+      (options?.markInactiveAfterSeconds ||
+        DEFAULT_INACTIVE_VEHICLE_IN_SECONDS) <
+    now
+  );
+};
+
+const isVehicleExpired = (vehicle: Vehicle, options: Options, now: number) => {
+  return (
+    vehicle.expirationEpochSecond < now ||
+    vehicle.lastUpdatedEpochSecond +
+      (options?.removeExpiredAfterSeconds ||
+        DEFAULT_EXPIRE_VEHICLE_IN_SECONDS) <
+      now
+  );
+};
+
+const hydrate = (state: State, payload: Vehicle[], options: Options) => {
   const now = getCurrentEpochSeconds();
   let numberOfExpiredVehicles = state.statistics.numberOfExpiredVehicles;
   let numberOfUpdatesInSession = state.statistics.numberOfUpdatesInSession;
 
   let vehicles = payload.reduce((acc: any, vehicle: Vehicle) => {
     numberOfUpdatesInSession++;
-    if (vehicle.expirationEpochSecond < now) {
+
+    if (options.removeExpired && isVehicleExpired(vehicle, options, now)) {
       console.debug("rejecting expired vehicle during hydration", vehicle);
       numberOfExpiredVehicles++;
       return acc;
@@ -50,10 +72,7 @@ const hydrate = (state: State, payload: Vehicle[]) => {
       vehicle,
     };
 
-    if (
-      vehicle.lastUpdatedEpochSecond + DEFAULT_INACTIVE_VEHICLE_IN_SECONDS <
-      now
-    ) {
+    if (options.markInactive && isVehicleInactive(vehicle, options, now)) {
       vehicleMapPoint.icon = vehicleMapPoint.icon + "_inactive";
     }
 
@@ -75,7 +94,7 @@ const hydrate = (state: State, payload: Vehicle[]) => {
   };
 };
 
-const update = (state: State, vehicles: Vehicle[]) => {
+const update = (state: State, vehicles: Vehicle[], options: Options) => {
   const now = getCurrentEpochSeconds();
   let numberOfExpiredVehicles = state.statistics.numberOfExpiredVehicles;
   let numberOfUpdatesInSession = state.statistics.numberOfUpdatesInSession;
@@ -86,7 +105,7 @@ const update = (state: State, vehicles: Vehicle[]) => {
 
   vehicles.forEach((vehicle) => {
     numberOfUpdatesInSession++;
-    if (vehicle.expirationEpochSecond < now) {
+    if (options.removeExpired && isVehicleExpired(vehicle, options, now)) {
       console.debug("rejecting expired vehicle during update", vehicle);
       numberOfExpiredVehicles++;
     } else {
@@ -95,10 +114,7 @@ const update = (state: State, vehicles: Vehicle[]) => {
         vehicle,
       };
 
-      if (
-        vehicle.lastUpdatedEpochSecond + DEFAULT_INACTIVE_VEHICLE_IN_SECONDS <
-        now
-      ) {
+      if (options.markInactive && isVehicleInactive(vehicle, options, now)) {
         vehicleMapPoint.icon = vehicleMapPoint.icon + "_inactive";
       }
 
@@ -132,27 +148,30 @@ const update = (state: State, vehicles: Vehicle[]) => {
   };
 };
 
-const expire = (state: State) => {
+const expire = (state: State, options: Options) => {
   const now = getCurrentEpochSeconds();
   let numberOfExpiredVehicles = state.statistics.numberOfExpiredVehicles;
 
   let vehicles = Object.values(state.vehicles).reduce(
     (acc: any, vehicleMapPoint: VehicleMapPoint) => {
-      if (vehicleMapPoint.vehicle.expirationEpochSecond < now) {
+      if (
+        options.removeExpired &&
+        isVehicleExpired(vehicleMapPoint.vehicle, options, now)
+      ) {
         console.debug("expire vehicle", vehicleMapPoint.vehicle);
         numberOfExpiredVehicles++;
         return acc;
       }
 
       if (
-        vehicleMapPoint.vehicle.lastUpdatedEpochSecond +
-          DEFAULT_INACTIVE_VEHICLE_IN_SECONDS <
-        now
+        options.markInactive &&
+        isVehicleInactive(vehicleMapPoint.vehicle, options, now)
       ) {
         if (vehicleMapPoint.icon.indexOf("_inactive") === -1) {
           vehicleMapPoint.icon = vehicleMapPoint.icon + "_inactive";
         }
       }
+
       acc[vehicleMapPoint.vehicle.vehicleRef] = vehicleMapPoint;
       return acc;
     },
@@ -172,17 +191,17 @@ const expire = (state: State) => {
   };
 };
 
-const reducer = (state: State, action: Action) => {
+const reducerFactory = (options: Options) => (state: State, action: Action) => {
   switch (action.type) {
     case ActionType.HYDRATE:
-      return hydrate(state, action?.payload! as Vehicle[]);
+      return hydrate(state, action?.payload! as Vehicle[], options);
     case ActionType.UPDATE:
-      return update(state, action?.payload! as Vehicle[]);
+      return update(state, action?.payload! as Vehicle[], options);
     case ActionType.EXPIRE:
-      return expire(state);
+      return expire(state, options);
   }
 };
 
-export default function useVehicleReducer() {
-  return useReducer(reducer, initialState);
+export default function useVehicleReducer(options: Options) {
+  return useReducer(reducerFactory(options), initialState);
 }

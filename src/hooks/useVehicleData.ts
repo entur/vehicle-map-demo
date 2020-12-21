@@ -17,7 +17,7 @@ export default function useVehicleData(
   subscriptionOptions: SubscriptionOptions,
   options: Options
 ) {
-  const [state, dispatch] = useVehicleReducer();
+  const [state, dispatch] = useVehicleReducer(options);
   const client = useApolloClient();
 
   /**
