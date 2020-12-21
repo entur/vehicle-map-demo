@@ -56,10 +56,12 @@ export default function useVehicleData(
           },
         })
         .subscribe((fetchResult: FetchResult) => {
-          dispatch({
-            type: ActionType.UPDATE,
-            payload: fetchResult?.data?.vehicleUpdates as Vehicle[],
-          });
+          if (fetchResult?.data?.vehicleUpdates.length > 0) {
+            dispatch({
+              type: ActionType.UPDATE,
+              payload: fetchResult?.data?.vehicleUpdates as Vehicle[],
+            });
+          }
         });
 
       return () => {
