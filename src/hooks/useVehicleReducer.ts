@@ -46,11 +46,10 @@ const isVehicleInactive = (vehicle: Vehicle, options: Options, now: number) => {
 
 const isVehicleExpired = (vehicle: Vehicle, options: Options, now: number) => {
   return (
-    vehicle.expirationEpochSecond < now ||
     vehicle.lastUpdatedEpochSecond +
       (options?.removeExpiredAfterSeconds ||
         DEFAULT_EXPIRE_VEHICLE_IN_SECONDS) <
-      now
+      now || vehicle.expirationEpochSecond < now
   );
 };
 
