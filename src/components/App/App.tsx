@@ -18,7 +18,7 @@ const defaultSubscriptionOptions: SubscriptionOptions = {
 };
 
 const defaultOptions: Options = {
-  swipeIntervalMs: 1000,
+  sweepIntervalMs: 1000,
   removeExpired: true,
   removeExpiredAfterSeconds: 3600,
   markInactive: true,

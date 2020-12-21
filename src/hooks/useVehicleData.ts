@@ -76,12 +76,12 @@ export default function useVehicleData(
   useEffect(() => {
     const timer = setInterval(() => {
       dispatch({ type: ActionType.EXPIRE });
-    }, options.swipeIntervalMs);
+    }, options.sweepIntervalMs);
 
     return () => {
       clearInterval(timer);
     };
-  }, [dispatch, options.swipeIntervalMs]);
+  }, [dispatch, options.sweepIntervalMs]);
 
   return state;
 }

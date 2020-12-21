@@ -14,12 +14,12 @@ export const OptionsForm = memo(({ options, setOptions }: Props) => {
       <Heading4>Other settings</Heading4>
       <TextField
         type="number"
-        label="Swipe interval (ms)"
-        value={options.swipeIntervalMs}
+        label="Sweep interval (ms)"
+        value={options.sweepIntervalMs}
         onChange={(event) =>
           setOptions({
             ...options,
-            swipeIntervalMs: parseInt(event.target.value),
+            sweepIntervalMs: parseInt(event.target.value),
           })
         }
       />

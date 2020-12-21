@@ -1,5 +1,5 @@
 export type Options = {
-  swipeIntervalMs?: number;
+  sweepIntervalMs?: number;
   removeExpired?: boolean;
   removeExpiredAfterSeconds?: number;
   markInactive?: boolean;
