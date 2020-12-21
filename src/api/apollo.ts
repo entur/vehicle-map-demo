@@ -1,13 +1,14 @@
 import { split, HttpLink, ApolloClient, InMemoryCache } from "@apollo/client";
 import { WebSocketLink } from "@apollo/client/link/ws";
 import { getMainDefinition } from "@apollo/client/utilities";
+import { getGraphqlEndpoint, getSubscriptionsEndpoint } from "./config";
 
 const httpLink = new HttpLink({
-  uri: process.env.REACT_APP_REALTIME_GRAPHQL_ENDPOINT,
+  uri: getGraphqlEndpoint(),
 });
 
 const wsLink = new WebSocketLink({
-  uri: process.env.REACT_APP_REALTIME_SUBSCRIPTIONS_ENDPOINT || "",
+  uri: getSubscriptionsEndpoint(),
   options: {
     reconnect: true,
   },
