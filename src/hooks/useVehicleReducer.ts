@@ -62,7 +62,6 @@ const hydrate = (state: State, payload: Vehicle[], options: Options) => {
     numberOfUpdatesInSession++;
 
     if (options.removeExpired && isVehicleExpired(vehicle, options, now)) {
-      console.debug("rejecting expired vehicle during hydration", vehicle);
       numberOfExpiredVehicles++;
       return acc;
     }
@@ -105,7 +104,6 @@ const update = (state: State, vehicles: Vehicle[], options: Options) => {
   vehicles.forEach((vehicle) => {
     numberOfUpdatesInSession++;
     if (options.removeExpired && isVehicleExpired(vehicle, options, now)) {
-      console.debug("rejecting expired vehicle during update", vehicle);
       numberOfExpiredVehicles++;
     } else {
       const vehicleMapPoint: VehicleMapPoint = {
@@ -122,10 +120,6 @@ const update = (state: State, vehicles: Vehicle[], options: Options) => {
           vehicle.lastUpdatedEpochSecond >
           updatedVehicles[vehicle.vehicleRef].vehicle.lastUpdatedEpochSecond
         ) {
-          console.debug(
-            "found new update for vehicle during hydration/update",
-            vehicle
-          );
           updatedVehicles[vehicle.vehicleRef] = vehicleMapPoint;
         }
       } else {
@@ -157,7 +151,6 @@ const expire = (state: State, options: Options) => {
         options.removeExpired &&
         isVehicleExpired(vehicleMapPoint.vehicle, options, now)
       ) {
-        console.debug("expire vehicle", vehicleMapPoint.vehicle);
         numberOfExpiredVehicles++;
         return acc;
       }
