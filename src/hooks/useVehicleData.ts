@@ -75,7 +75,7 @@ export default function useVehicleData(
    */
   useEffect(() => {
     const timer = setInterval(() => {
-      dispatch({ type: ActionType.EXPIRE });
+      dispatch({ type: ActionType.SWEEP });
     }, options.sweepIntervalMs);
 
     return () => {

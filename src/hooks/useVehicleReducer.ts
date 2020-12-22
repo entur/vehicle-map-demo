@@ -12,7 +12,7 @@ type State = {
 export enum ActionType {
   HYDRATE,
   UPDATE,
-  EXPIRE,
+  SWEEP,
 }
 
 export type Action = {
@@ -141,7 +141,7 @@ const update = (state: State, vehicles: Vehicle[], options: Options) => {
   };
 };
 
-const expire = (state: State, options: Options) => {
+const sweep = (state: State, options: Options) => {
   const now = getCurrentEpochSeconds();
   let numberOfExpiredVehicles = state.statistics.numberOfExpiredVehicles;
 
@@ -189,8 +189,8 @@ const reducerFactory = (options: Options) => (state: State, action: Action) => {
       return hydrate(state, action?.payload! as Vehicle[], options);
     case ActionType.UPDATE:
       return update(state, action?.payload! as Vehicle[], options);
-    case ActionType.EXPIRE:
-      return expire(state, options);
+    case ActionType.SWEEP:
+      return sweep(state, options);
   }
 };
 
