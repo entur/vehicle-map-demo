@@ -64,8 +64,8 @@ export const VEHICLE_UPDATES_SUBSCRIPTION = gql`
     $operatorRef: String
     $mode: VehicleModeEnumeration
     $monitored: Boolean
-    $bufferSize: Float
-    $bufferTime: Float
+    $bufferSize: Int
+    $bufferTime: Int
   ) {
     vehicleUpdates(
       codespaceId: $codespaceId
