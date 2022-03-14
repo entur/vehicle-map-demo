@@ -5,7 +5,7 @@
   "author": "entur/nrp",
   "license": "EUPL-1.0",
   "dependencies": {
-    "@apollo/client": "^3.3.4",
+    "@apollo/client": "3.3.4",
     "@danmarshall/deckgl-typings": "4.4.0",
     "@deck.gl/core": "8.3.10",
     "@deck.gl/layers": "8.3.10",
