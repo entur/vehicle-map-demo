@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Map } from "../Map";
 import { ControlPanel } from "components/ControlPanel";
 import useVehicleData from "hooks/useVehicleData";
@@ -6,6 +6,7 @@ import "./App.scss";
 import { Filter } from "model/filter";
 import { Options } from "model/options";
 import { SubscriptionOptions } from "model/subscriptionOptions";
+import { VehicleMapPoint } from "model/vehicleMapPoint";
 
 const defaultFilter: Filter = {
   monitored: true,
@@ -38,6 +39,29 @@ export const App = () => {
     options
   );
 
+  const [
+    followVehicleMapPoint,
+    setFollowVehicleMapPoint,
+  ] = useState<VehicleMapPoint | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("vehicleRef");
+
+    if (id) {
+      const vehicleMapPoint = vehicles[id];
+      if (vehicleMapPoint && vehicleMapPoint !== followVehicleMapPoint) {
+        setFollowVehicleMapPoint(vehicleMapPoint);
+      }
+    }
+  }, [vehicles, followVehicleMapPoint]);
+
+  const updateFollowVehicle = useCallback((newVehicleRef: string) => {
+    const params = new URLSearchParams(window.location.search);
+    params.set("vehicleRef", newVehicleRef);
+    window.location.search = params.toString();
+  }, []);
+
   return (
     <div className="App">
       <div className="control-panel-wrapper">
@@ -52,7 +76,11 @@ export const App = () => {
         />
       </div>
       <div className="map-wrapper">
-        <Map vehicles={vehicles} />
+        <Map
+          vehicles={vehicles}
+          followVehicleMapPoint={followVehicleMapPoint}
+          setFollowVehicleRef={updateFollowVehicle}
+        />
       </div>
     </div>
   );

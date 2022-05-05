@@ -26,13 +26,32 @@ const INITIAL_VIEW_STATE: InitialViewStateProps = {
   bearing: 0,
 };
 
-export const Map = ({ vehicles }: any) => {
+export const Map = ({
+  vehicles,
+  followVehicleMapPoint = null,
+  setFollowVehicleRef,
+}: any) => {
   const [modalInfo, setModalInfo] = useState<Vehicle | null>(null);
   const [popupInfo, setPopupInfo] = useState<Vehicle | null>(null);
   const [hoverInfo, setHoverInfo] = useState<Vehicle | null>(null);
   const [viewState, setViewState] = useState<InitialViewStateProps>(
     INITIAL_VIEW_STATE
   );
+
+  useEffect(() => {
+    if (followVehicleMapPoint != null) {
+      console.log({ followVehicleMapPoint });
+      const vehicleMapPoint = followVehicleMapPoint;
+      if (vehicleMapPoint) {
+        setHoverInfo(vehicleMapPoint.vehicle);
+        setViewState((v: InitialViewStateProps) => ({
+          ...v,
+          longitude: vehicleMapPoint.vehicle.location.longitude,
+          latitude: vehicleMapPoint.vehicle.location.latitude,
+        }));
+      }
+    }
+  }, [followVehicleMapPoint]);
 
   useEffect(() => {
     if (popupInfo) {
@@ -98,6 +117,9 @@ export const Map = ({ vehicles }: any) => {
             <TooltipContent
               vehicle={popupInfo}
               onShowModalClick={setModalInfo}
+              onFollowVehicle={(vehicleRef: string) =>
+                setFollowVehicleRef(vehicleRef)
+              }
               full
             />
           </Popup>
@@ -110,7 +132,12 @@ export const Map = ({ vehicles }: any) => {
             latitude={hoverInfo.location.latitude}
             anchor="bottom"
           >
-            <TooltipContent vehicle={hoverInfo} />
+            <TooltipContent
+              vehicle={hoverInfo}
+              onFollowVehicle={(vehicleRef: string) =>
+                setFollowVehicleRef(vehicleRef)
+              }
+            />
           </Popup>
         )}
         <StaticMap

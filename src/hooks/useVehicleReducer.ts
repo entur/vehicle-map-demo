@@ -97,9 +97,7 @@ const update = (state: State, vehicles: Vehicle[], options: Options) => {
   let numberOfExpiredVehicles = state.statistics.numberOfExpiredVehicles;
   let numberOfUpdatesInSession = state.statistics.numberOfUpdatesInSession;
 
-  let updatedVehicles = {
-    ...state.vehicles,
-  };
+  let updatedVehicles = state.vehicles;
 
   vehicles.forEach((vehicle) => {
     numberOfUpdatesInSession++;

@@ -10,12 +10,14 @@ const getLastUpdated = (lastUpdated: string): number =>
 type Props = {
   vehicle: Vehicle;
   onShowModalClick?: Function;
+  onFollowVehicle?: Function;
   full?: boolean;
 };
 
 export const TooltipContent = ({
   vehicle,
   onShowModalClick,
+  onFollowVehicle,
   full = false,
 }: Props) => {
   const [lastUpdated, setLastUpdated] = useState<number>(
@@ -63,6 +65,13 @@ export const TooltipContent = ({
               onClick={() => onShowModalClick && onShowModalClick(vehicle)}
             >
               Show vehicle JSON
+            </TertiaryButton>
+            <TertiaryButton
+              onClick={() =>
+                onFollowVehicle && onFollowVehicle(vehicle.vehicleRef)
+              }
+            >
+              Follow vehicle
             </TertiaryButton>
           </>
         )}
