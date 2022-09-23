@@ -8,4 +8,5 @@ export type Filter = {
   lineName?: string;
   boundingBox?: string;
   monitored?: boolean;
+  includePointsOnLink: boolean;
 };

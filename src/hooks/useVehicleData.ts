@@ -29,7 +29,6 @@ export default function useVehicleData(
         query: VEHICLES_QUERY,
         fetchPolicy: DEFAULT_FETCH_POLICY,
         variables: {
-          includePointsOnLink: true,
           ...filter,
         },
       });
@@ -54,9 +53,9 @@ export default function useVehicleData(
           query: VEHICLE_UPDATES_SUBSCRIPTION,
           fetchPolicy: DEFAULT_FETCH_POLICY,
           variables: {
-            includePointsOnLink: false,
             ...filter,
             ...subscriptionOptions,
+            includePointsOnLink: false,
           },
         })
         .subscribe((fetchResult: FetchResult) => {

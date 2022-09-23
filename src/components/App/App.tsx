@@ -10,6 +10,7 @@ import { VehicleMapPoint } from "model/vehicleMapPoint";
 
 const defaultFilter: Filter = {
   monitored: true,
+  includePointsOnLink: false,
 };
 
 const defaultSubscriptionOptions: SubscriptionOptions = {

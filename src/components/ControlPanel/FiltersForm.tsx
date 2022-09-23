@@ -133,6 +133,17 @@ export const FiltersForm = memo(({ filter, setFilter }: Props) => {
       >
         Monitored only
       </Switch>
+      <Switch
+        checked={filter.includePointsOnLink}
+        onChange={(event) => {
+          setFilter({
+            ...filter,
+            includePointsOnLink: event.target.checked,
+          });
+        }}
+      >
+        Include points on link
+      </Switch>
     </>
   );
 });
