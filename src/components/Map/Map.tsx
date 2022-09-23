@@ -44,6 +44,7 @@ export const Map = ({
   vehicles,
   followVehicleMapPoint = null,
   setFollowVehicleRef,
+  lineLayerOptions,
 }: any) => {
   const [modalInfo, setModalInfo] = useState<Vehicle | null>(null);
   const [popupInfo, setPopupInfo] = useState<Vehicle | null>(null);
@@ -53,7 +54,6 @@ export const Map = ({
 
   useEffect(() => {
     if (followVehicleMapPoint != null) {
-      console.log({ followVehicleMapPoint });
       const vehicleMapPoint = followVehicleMapPoint;
       if (vehicleMapPoint) {
         setHoverInfo(vehicleMapPoint.vehicle);
@@ -88,36 +88,47 @@ export const Map = ({
     // eslint-disable-next-line
   }, [vehicles]);
 
-  const layers = [
-    new PathLayer<[string, VehicleMapPoint]>({
-      id: "points-on-link-layer",
-      data: vehicles,
-      getPath: (d) =>
-        d[1].vehicle?.serviceJourney?.pointsOnLink?.points
-          ? decode(d[1].vehicle?.serviceJourney?.pointsOnLink?.points).map(
-              (coordinates) => [coordinates[1], coordinates[0]]
-            )
-          : [],
-      getColor: (d) => random_rgba(d[1].vehicle.line.lineRef, 25),
-      widthMinPixels: 2,
-      capRounded: true,
-      jointRounded: true,
-    }),
+  const layers = [];
 
-    new PathLayer<[string, VehicleMapPoint]>({
-      id: "historical-path-layer",
-      data: vehicles,
-      getPath: (d) => d[1].historicalPath,
-      getColor: (d) => random_rgba(d[1].vehicle.vehicleRef, 100),
-      updateTriggers: {
-        getPath: (entry: [string, VehicleMapPoint]) => {
-          return entry[1]?.lastUpdated;
+  if (lineLayerOptions.includePointsOnLink) {
+    layers.push(
+      new PathLayer<[string, VehicleMapPoint]>({
+        id: "points-on-link-layer",
+        data: vehicles,
+        getPath: (d) =>
+          d[1].vehicle?.serviceJourney?.pointsOnLink?.points
+            ? decode(d[1].vehicle?.serviceJourney?.pointsOnLink?.points).map(
+                (coordinates) => [coordinates[1], coordinates[0]]
+              )
+            : [],
+        getColor: (d) => random_rgba(d[1].vehicle.line.lineRef, 25),
+        widthMinPixels: 2,
+        capRounded: true,
+        jointRounded: true,
+      })
+    );
+  }
+
+  if (lineLayerOptions.showHistoricalPath) {
+    layers.push(
+      new PathLayer<[string, VehicleMapPoint]>({
+        id: "historical-path-layer",
+        data: vehicles,
+        getPath: (d) => d[1].historicalPath,
+        getColor: (d) => random_rgba(d[1].vehicle.vehicleRef, 100),
+        updateTriggers: {
+          getPath: (entry: [string, VehicleMapPoint]) => {
+            return entry[1]?.lastUpdated;
+          },
         },
-      },
-      widthMinPixels: 2,
-      capRounded: true,
-      jointRounded: true,
-    }),
+        widthMinPixels: 2,
+        capRounded: true,
+        jointRounded: true,
+      })
+    );
+  }
+
+  layers.push(
     new IconLayer<[string, VehicleMapPoint]>({
       id: "icon-layer",
       data: vehicles,
@@ -144,8 +155,8 @@ export const Map = ({
           (Array.from(vehicles.values())[info.index] as VehicleMapPoint)
             ?.vehicle
         ),
-    }),
-  ];
+    })
+  );
 
   return (
     <>

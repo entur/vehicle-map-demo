@@ -6,6 +6,7 @@ import { Vehicle } from "model/vehicle";
 import { useEffect } from "react";
 import useVehicleReducer, { ActionType } from "./useVehicleReducer";
 import { SubscriptionOptions } from "model/subscriptionOptions";
+import { LineLayerOptions } from "model/lineLayerOptions";
 
 const DEFAULT_FETCH_POLICY = "no-cache";
 
@@ -15,9 +16,10 @@ const DEFAULT_FETCH_POLICY = "no-cache";
 export default function useVehicleData(
   filter: Filter,
   subscriptionOptions: SubscriptionOptions,
-  options: Options
+  options: Options,
+  lineLayerOptions: LineLayerOptions
 ) {
-  const [state, dispatch] = useVehicleReducer(options);
+  const [state, dispatch] = useVehicleReducer(options, lineLayerOptions);
   const client = useApolloClient();
 
   /**
@@ -30,6 +32,7 @@ export default function useVehicleData(
         fetchPolicy: DEFAULT_FETCH_POLICY,
         variables: {
           ...filter,
+          includePointsOnLink: lineLayerOptions.includePointsOnLink,
         },
       });
       if (hydrationData && hydrationData.vehicles) {
@@ -37,7 +40,7 @@ export default function useVehicleData(
       }
     }
     hydrate();
-  }, [client, dispatch, filter]);
+  }, [client, dispatch, filter, lineLayerOptions.includePointsOnLink]);
 
   /**
    * Set up subscription to receive updates on vehicles

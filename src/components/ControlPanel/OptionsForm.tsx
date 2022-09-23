@@ -12,6 +12,7 @@ export const OptionsForm = memo(({ options, setOptions }: Props) => {
   return (
     <>
       <Heading4>Other settings</Heading4>
+
       <TextField
         type="number"
         label="Sweep interval (ms)"

@@ -3,6 +3,7 @@ import { Statistics } from "model/statistics";
 import { Vehicle } from "model/vehicle";
 import { VehicleMapPoint } from "model/vehicleMapPoint";
 import { Options } from "model/options";
+import { LineLayerOptions } from "model/lineLayerOptions";
 
 type State = {
   vehicles: Map<string, VehicleMapPoint>;
@@ -53,7 +54,12 @@ const isVehicleExpired = (vehicle: Vehicle, options: Options, now: number) => {
   );
 };
 
-const hydrate = (state: State, payload: Vehicle[], options: Options) => {
+const hydrate = (
+  state: State,
+  payload: Vehicle[],
+  options: Options,
+  lineLayerOptions: LineLayerOptions
+) => {
   const now = getCurrentEpochSeconds();
   let numberOfExpiredVehicles = state.statistics.numberOfExpiredVehicles;
   let numberOfUpdatesInSession = state.statistics.numberOfUpdatesInSession;
@@ -70,9 +76,11 @@ const hydrate = (state: State, payload: Vehicle[], options: Options) => {
       const vehicleMapPoint: VehicleMapPoint = {
         icon: vehicle.mode.toLowerCase(),
         vehicle,
-        historicalPath: [
-          [vehicle.location.longitude, vehicle.location.latitude, 0],
-        ],
+        historicalPath:
+          (lineLayerOptions.showHistoricalPath && [
+            [vehicle.location.longitude, vehicle.location.latitude, 0],
+          ]) ||
+          [],
         lastUpdated: vehicle.lastUpdatedEpochSecond,
       };
 
@@ -102,7 +110,12 @@ const hydrate = (state: State, payload: Vehicle[], options: Options) => {
   };
 };
 
-const update = (state: State, vehicles: Vehicle[], options: Options) => {
+const update = (
+  state: State,
+  vehicles: Vehicle[],
+  options: Options,
+  lineLayerOptions: LineLayerOptions
+) => {
   const now = getCurrentEpochSeconds();
   let numberOfExpiredVehicles = state.statistics.numberOfExpiredVehicles;
   let numberOfUpdatesInSession = state.statistics.numberOfUpdatesInSession;
@@ -128,16 +141,20 @@ const update = (state: State, vehicles: Vehicle[], options: Options) => {
     }
 
     if (updatedVehicles.get(vehicle.vehicleRef)) {
-      const historicalPath = updatedVehicles.get(
-        vehicle.vehicleRef
-      )?.historicalPath;
-      historicalPath?.push([
-        vehicle.location.longitude,
-        vehicle.location.latitude,
-        0,
-      ]);
-      vehicleMapPoint.historicalPath =
-        historicalPath || vehicleMapPoint.historicalPath;
+      if (lineLayerOptions.showHistoricalPath) {
+        const historicalPath = updatedVehicles.get(
+          vehicle.vehicleRef
+        )?.historicalPath;
+        historicalPath?.push([
+          vehicle.location.longitude,
+          vehicle.location.latitude,
+          0,
+        ]);
+        vehicleMapPoint.historicalPath =
+          historicalPath || vehicleMapPoint.historicalPath;
+      } else {
+        vehicleMapPoint.historicalPath = [];
+      }
 
       vehicleMapPoint.lastUpdated = vehicle.lastUpdatedEpochSecond;
 
@@ -212,17 +229,32 @@ const update = (state: State, vehicles: Vehicle[], options: Options) => {
 //   };
 // };
 
-const reducerFactory = (options: Options) => (state: State, action: Action) => {
-  switch (action.type) {
-    case ActionType.HYDRATE:
-      return hydrate(state, action?.payload! as Vehicle[], options);
-    case ActionType.UPDATE:
-      return update(state, action?.payload! as Vehicle[], options);
-    // case ActionType.SWEEP:
-    //   return sweep(state, options);
-  }
-};
+const reducerFactory =
+  (options: Options, lineLayerOptions: LineLayerOptions) =>
+  (state: State, action: Action) => {
+    switch (action.type) {
+      case ActionType.HYDRATE:
+        return hydrate(
+          state,
+          action?.payload! as Vehicle[],
+          options,
+          lineLayerOptions
+        );
+      case ActionType.UPDATE:
+        return update(
+          state,
+          action?.payload! as Vehicle[],
+          options,
+          lineLayerOptions
+        );
+      // case ActionType.SWEEP:
+      //   return sweep(state, options);
+    }
+  };
 
-export default function useVehicleReducer(options: Options) {
-  return useReducer(reducerFactory(options), initialState);
+export default function useVehicleReducer(
+  options: Options,
+  lineLayerOptions: LineLayerOptions
+) {
+  return useReducer(reducerFactory(options, lineLayerOptions), initialState);
 }

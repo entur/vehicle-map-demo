@@ -7,10 +7,10 @@ import { Filter } from "model/filter";
 import { Options } from "model/options";
 import { SubscriptionOptions } from "model/subscriptionOptions";
 import { VehicleMapPoint } from "model/vehicleMapPoint";
+import { LineLayerOptions } from "model/lineLayerOptions";
 
 const defaultFilter: Filter = {
   monitored: true,
-  includePointsOnLink: false,
 };
 
 const defaultSubscriptionOptions: SubscriptionOptions = {
@@ -27,15 +27,24 @@ const defaultOptions: Options = {
   markInactiveAfterSeconds: 60,
 };
 
+const defaultLineLayerOptions: LineLayerOptions = {
+  includePointsOnLink: false,
+  showHistoricalPath: false,
+};
+
 export const App = () => {
   const [filter, setFilter] = useState<Filter>(defaultFilter);
   const [subscriptionOptions, setSubscriptionOptions] =
     useState<SubscriptionOptions>(defaultSubscriptionOptions);
   const [options, setOptions] = useState<Options>(defaultOptions);
+  const [lineLayerOptions, setLineLayerOptions] = useState<LineLayerOptions>(
+    defaultLineLayerOptions
+  );
   const { vehicles, statistics } = useVehicleData(
     filter,
     subscriptionOptions,
-    options
+    options,
+    lineLayerOptions
   );
 
   const [followVehicleMapPoint, setFollowVehicleMapPoint] =
@@ -70,6 +79,8 @@ export const App = () => {
           setSubscriptionOptions={setSubscriptionOptions}
           options={options}
           setOptions={setOptions}
+          lineLayerOptions={lineLayerOptions}
+          setLineLayerOptions={setLineLayerOptions}
         />
       </div>
       <div className="map-wrapper">
@@ -77,6 +88,7 @@ export const App = () => {
           vehicles={vehicles}
           followVehicleMapPoint={followVehicleMapPoint}
           setFollowVehicleRef={updateFollowVehicle}
+          lineLayerOptions={lineLayerOptions}
         />
       </div>
     </div>
