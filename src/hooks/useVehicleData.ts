@@ -28,7 +28,10 @@ export default function useVehicleData(
       const { data: hydrationData } = await client.query({
         query: VEHICLES_QUERY,
         fetchPolicy: DEFAULT_FETCH_POLICY,
-        variables: filter,
+        variables: {
+          includePointsOnLink: true,
+          ...filter,
+        },
       });
       if (hydrationData && hydrationData.vehicles) {
         dispatch({ type: ActionType.HYDRATE, payload: hydrationData.vehicles });
@@ -51,6 +54,7 @@ export default function useVehicleData(
           query: VEHICLE_UPDATES_SUBSCRIPTION,
           fetchPolicy: DEFAULT_FETCH_POLICY,
           variables: {
+            includePointsOnLink: false,
             ...filter,
             ...subscriptionOptions,
           },
@@ -73,15 +77,15 @@ export default function useVehicleData(
   /**
    * Set a timer to swipe through vehicles to update their status
    */
-  useEffect(() => {
-    const timer = setInterval(() => {
-      dispatch({ type: ActionType.SWEEP });
-    }, options.sweepIntervalMs);
+  // useEffect(() => {
+  //   const timer = setInterval(() => {
+  //     dispatch({ type: ActionType.SWEEP });
+  //   }, options.sweepIntervalMs);
 
-    return () => {
-      clearInterval(timer);
-    };
-  }, [dispatch, options.sweepIntervalMs]);
+  //   return () => {
+  //     clearInterval(timer);
+  //   };
+  // }, [dispatch, options.sweepIntervalMs]);
 
   return state;
 }

@@ -5,14 +5,14 @@ import { VehicleMapPoint } from "model/vehicleMapPoint";
 import { Options } from "model/options";
 
 type State = {
-  vehicles: Record<string, VehicleMapPoint>;
+  vehicles: Map<string, VehicleMapPoint>;
   statistics: Statistics;
 };
 
 export enum ActionType {
   HYDRATE,
   UPDATE,
-  SWEEP,
+  // SWEEP,
 }
 
 export type Action = {
@@ -21,7 +21,7 @@ export type Action = {
 };
 
 const initialState: State = {
-  vehicles: {},
+  vehicles: new Map(),
   statistics: {
     numberOfVehicles: 0,
     numberOfInactiveVehicles: 0,
@@ -58,31 +58,41 @@ const hydrate = (state: State, payload: Vehicle[], options: Options) => {
   let numberOfExpiredVehicles = state.statistics.numberOfExpiredVehicles;
   let numberOfUpdatesInSession = state.statistics.numberOfUpdatesInSession;
 
-  let vehicles = payload.reduce((acc: any, vehicle: Vehicle) => {
-    numberOfUpdatesInSession++;
+  let vehicles: Map<string, VehicleMapPoint> = payload.reduce(
+    (acc: any, vehicle: Vehicle) => {
+      numberOfUpdatesInSession++;
 
-    if (options.removeExpired && isVehicleExpired(vehicle, options, now)) {
-      numberOfExpiredVehicles++;
+      if (options.removeExpired && isVehicleExpired(vehicle, options, now)) {
+        numberOfExpiredVehicles++;
+        return acc;
+      }
+
+      const vehicleMapPoint: VehicleMapPoint = {
+        icon: vehicle.mode.toLowerCase(),
+        vehicle,
+        historicalPath: [
+          [vehicle.location.longitude, vehicle.location.latitude, 0],
+        ],
+        lastUpdated: vehicle.lastUpdatedEpochSecond,
+      };
+
+      if (options.markInactive && isVehicleInactive(vehicle, options, now)) {
+        vehicleMapPoint.icon = vehicleMapPoint.icon + "_inactive";
+      }
+
+      acc.set(vehicle.vehicleRef, vehicleMapPoint);
+
       return acc;
-    }
-    const vehicleMapPoint: VehicleMapPoint = {
-      icon: vehicle.mode.toLowerCase(),
-      vehicle,
-    };
+    },
+    new Map()
+  );
 
-    if (options.markInactive && isVehicleInactive(vehicle, options, now)) {
-      vehicleMapPoint.icon = vehicleMapPoint.icon + "_inactive";
-    }
-
-    acc[vehicle.vehicleRef] = vehicleMapPoint;
-
-    return acc;
-  }, {});
+  const asArray = Array.from(vehicles.values());
 
   return {
     statistics: {
-      numberOfVehicles: Object.values(vehicles).length,
-      numberOfInactiveVehicles: Object.values(vehicles).filter(
+      numberOfVehicles: asArray.length,
+      numberOfInactiveVehicles: asArray.filter(
         (v: any) => v.icon.indexOf("_inactive") > -1
       ).length,
       numberOfExpiredVehicles,
@@ -97,39 +107,59 @@ const update = (state: State, vehicles: Vehicle[], options: Options) => {
   let numberOfExpiredVehicles = state.statistics.numberOfExpiredVehicles;
   let numberOfUpdatesInSession = state.statistics.numberOfUpdatesInSession;
 
-  let updatedVehicles = state.vehicles;
+  let updatedVehicles = state.vehicles || new Map();
 
   vehicles.forEach((vehicle) => {
     numberOfUpdatesInSession++;
-    if (options.removeExpired && isVehicleExpired(vehicle, options, now)) {
-      numberOfExpiredVehicles++;
-    } else {
-      const vehicleMapPoint: VehicleMapPoint = {
-        icon: vehicle.mode.toLowerCase(),
-        vehicle,
-      };
+    // if (options.removeExpired && isVehicleExpired(vehicle, options, now)) {
+    //   numberOfExpiredVehicles++;
+    // } else {
+    const vehicleMapPoint = updatedVehicles.get(vehicle.vehicleRef) || {
+      icon: vehicle.mode.toLowerCase(),
+      vehicle,
+      historicalPath: [],
+      lastUpdated: vehicle.lastUpdatedEpochSecond,
+    };
 
-      if (options.markInactive && isVehicleInactive(vehicle, options, now)) {
-        vehicleMapPoint.icon = vehicleMapPoint.icon + "_inactive";
-      }
+    vehicleMapPoint.vehicle = vehicle;
 
-      if (updatedVehicles[vehicle.vehicleRef]) {
-        if (
-          vehicle.lastUpdatedEpochSecond >
-          updatedVehicles[vehicle.vehicleRef].vehicle.lastUpdatedEpochSecond
-        ) {
-          updatedVehicles[vehicle.vehicleRef] = vehicleMapPoint;
-        }
-      } else {
-        updatedVehicles[vehicle.vehicleRef] = vehicleMapPoint;
-      }
+    if (options.markInactive && isVehicleInactive(vehicle, options, now)) {
+      vehicleMapPoint.icon = vehicleMapPoint.icon + "_inactive";
+    }
+
+    if (updatedVehicles.get(vehicle.vehicleRef)) {
+      const historicalPath = updatedVehicles.get(
+        vehicle.vehicleRef
+      )?.historicalPath;
+      historicalPath?.push([
+        vehicle.location.longitude,
+        vehicle.location.latitude,
+        0,
+      ]);
+      vehicleMapPoint.historicalPath =
+        historicalPath || vehicleMapPoint.historicalPath;
+
+      vehicleMapPoint.lastUpdated = vehicle.lastUpdatedEpochSecond;
+
+      updatedVehicles.set(vehicle.vehicleRef, vehicleMapPoint);
+      // if (
+      //   vehicle.lastUpdatedEpochSecond >
+      //   updatedVehicles.get(vehicle.vehicleRef)?.vehicle?.lastUpdatedEpochSecond
+      // ) {
+      //   updatedVehicles.get(vehicle.vehicleRef) = vehicleMapPoint;
+      // }
+      // } else {
+      //   updatedVehicles[vehicle.vehicleRef] = vehicleMapPoint;
+      // }
     }
   });
 
+  const asArray = Array.from(updatedVehicles.values());
+
   return {
     statistics: {
-      numberOfVehicles: Object.values(updatedVehicles).length,
-      numberOfInactiveVehicles: Object.values(updatedVehicles).filter(
+      numberOfVehicles: asArray.length,
+      numberOfInactiveVehicles: asArray.filter(
         (v: any) => v.icon.indexOf("_inactive") > -1
       ).length,
       numberOfExpiredVehicles,
@@ -139,47 +169,48 @@ const update = (state: State, vehicles: Vehicle[], options: Options) => {
   };
 };
 
-const sweep = (state: State, options: Options) => {
-  const now = getCurrentEpochSeconds();
-  let numberOfExpiredVehicles = state.statistics.numberOfExpiredVehicles;
+// const sweep = (state: State, options: Options) => {
+//   const now = getCurrentEpochSeconds();
+//   let numberOfExpiredVehicles = state.statistics.numberOfExpiredVehicles;
 
-  let vehicles = Object.values(state.vehicles).reduce(
-    (acc: any, vehicleMapPoint: VehicleMapPoint) => {
-      if (
-        options.removeExpired &&
-        isVehicleExpired(vehicleMapPoint.vehicle, options, now)
-      ) {
-        numberOfExpiredVehicles++;
-        return acc;
-      }
+//   let vehicles = Object.values(state.vehicles).reduce(
+//     (acc: any, vehicleMapPoint: VehicleMapPoint) => {
+//       if (
+//         options.removeExpired &&
+//         isVehicleExpired(vehicleMapPoint.vehicle, options, now)
+//       ) {
+//         numberOfExpiredVehicles++;
+//         return acc;
+//       }
 
-      if (
-        options.markInactive &&
-        isVehicleInactive(vehicleMapPoint.vehicle, options, now)
-      ) {
-        if (vehicleMapPoint.icon.indexOf("_inactive") === -1) {
-          vehicleMapPoint.icon = vehicleMapPoint.icon + "_inactive";
-        }
-      }
+//       if (
+//         options.markInactive &&
+//         isVehicleInactive(vehicleMapPoint.vehicle, options, now)
+//       ) {
+//         if (vehicleMapPoint.icon.indexOf("_inactive") === -1) {
+//           vehicleMapPoint.icon = vehicleMapPoint.icon + "_inactive";
+//         }
+//       }
 
-      acc[vehicleMapPoint.vehicle.vehicleRef] = vehicleMapPoint;
-      return acc;
-    },
-    {}
-  );
+//       acc.set(vehicleMapPoint.vehicle.vehicleRef, vehicleMapPoint);
 
-  return {
-    vehicles,
-    statistics: {
-      ...state.statistics,
-      numberOfVehicles: Object.values(vehicles).length,
-      numberOfInactiveVehicles: Object.values(vehicles).filter(
-        (v: any) => v.icon.indexOf("_inactive") > -1
-      ).length,
-      numberOfExpiredVehicles,
-    },
-  };
-};
+//       return acc;
+//     },
+//     new Map()
+//   );
+
+//   return {
+//     vehicles,
+//     statistics: {
+//       ...state.statistics,
+//       numberOfVehicles: Object.values(vehicles).length,
+//       numberOfInactiveVehicles: Object.values(vehicles).filter(
+//         (v: any) => v.icon.indexOf("_inactive") > -1
+//       ).length,
+//       numberOfExpiredVehicles,
+//     },
+//   };
+// };
 
 const reducerFactory = (options: Options) => (state: State, action: Action) => {
   switch (action.type) {
@@ -187,8 +218,8 @@ const reducerFactory = (options: Options) => (state: State, action: Action) => {
       return hydrate(state, action?.payload! as Vehicle[], options);
     case ActionType.UPDATE:
       return update(state, action?.payload! as Vehicle[], options);
-    case ActionType.SWEEP:
-      return sweep(state, options);
+    // case ActionType.SWEEP:
+    //   return sweep(state, options);
   }
 };
 

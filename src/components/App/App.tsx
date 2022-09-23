@@ -28,10 +28,8 @@ const defaultOptions: Options = {
 
 export const App = () => {
   const [filter, setFilter] = useState<Filter>(defaultFilter);
-  const [
-    subscriptionOptions,
-    setSubscriptionOptions,
-  ] = useState<SubscriptionOptions>(defaultSubscriptionOptions);
+  const [subscriptionOptions, setSubscriptionOptions] =
+    useState<SubscriptionOptions>(defaultSubscriptionOptions);
   const [options, setOptions] = useState<Options>(defaultOptions);
   const { vehicles, statistics } = useVehicleData(
     filter,
@@ -39,17 +37,15 @@ export const App = () => {
     options
   );
 
-  const [
-    followVehicleMapPoint,
-    setFollowVehicleMapPoint,
-  ] = useState<VehicleMapPoint | null>(null);
+  const [followVehicleMapPoint, setFollowVehicleMapPoint] =
+    useState<VehicleMapPoint | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const id = params.get("vehicleRef");
 
     if (id) {
-      const vehicleMapPoint = vehicles[id];
+      const vehicleMapPoint = vehicles.get(id);
       if (vehicleMapPoint && vehicleMapPoint !== followVehicleMapPoint) {
         setFollowVehicleMapPoint(vehicleMapPoint);
       }

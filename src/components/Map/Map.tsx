@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import DeckGL from "@deck.gl/react";
-import { IconLayer } from "@deck.gl/layers";
+import { IconLayer, PathLayer } from "@deck.gl/layers";
 import { StaticMap, Popup, _MapContext as MapContext } from "react-map-gl";
 import { InitialViewStateProps, PickInfo } from "@deck.gl/core/lib/deck";
 import { Modal } from "@entur/modal";
@@ -11,6 +11,8 @@ import { Vehicle } from "model/vehicle";
 import iconAtlas from "static/icons/icons.png";
 import iconMapping from "static/icons/icons.json";
 import "mapbox-gl/dist/mapbox-gl.css";
+import { RGBAColor } from "deck.gl";
+import { decode } from "@googlemaps/polyline-codec";
 
 const DEFAULT_STYLE =
   "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json";
@@ -26,6 +28,18 @@ const INITIAL_VIEW_STATE: InitialViewStateProps = {
   bearing: 0,
 };
 
+const colors: Record<string, number[]> = {};
+
+function random_rgba(ref: string, alpha: number): RGBAColor {
+  if (!colors[ref]) {
+    var o = Math.round,
+      r = Math.random,
+      s = 255;
+    colors[ref] = [o(r() * s), o(r() * s), o(r() * s), alpha];
+  }
+  return colors[ref] as RGBAColor;
+}
+
 export const Map = ({
   vehicles,
   followVehicleMapPoint = null,
@@ -34,9 +48,8 @@ export const Map = ({
   const [modalInfo, setModalInfo] = useState<Vehicle | null>(null);
   const [popupInfo, setPopupInfo] = useState<Vehicle | null>(null);
   const [hoverInfo, setHoverInfo] = useState<Vehicle | null>(null);
-  const [viewState, setViewState] = useState<InitialViewStateProps>(
-    INITIAL_VIEW_STATE
-  );
+  const [viewState, setViewState] =
+    useState<InitialViewStateProps>(INITIAL_VIEW_STATE);
 
   useEffect(() => {
     if (followVehicleMapPoint != null) {
@@ -76,22 +89,61 @@ export const Map = ({
   }, [vehicles]);
 
   const layers = [
-    new IconLayer<VehicleMapPoint>({
+    new PathLayer<[string, VehicleMapPoint]>({
+      id: "points-on-link-layer",
+      data: vehicles,
+      getPath: (d) =>
+        d[1].vehicle?.serviceJourney?.pointsOnLink?.points
+          ? decode(d[1].vehicle?.serviceJourney?.pointsOnLink?.points).map(
+              (coordinates) => [coordinates[1], coordinates[0]]
+            )
+          : [],
+      getColor: (d) => random_rgba(d[1].vehicle.line.lineRef, 25),
+      widthMinPixels: 2,
+      capRounded: true,
+      jointRounded: true,
+    }),
+
+    new PathLayer<[string, VehicleMapPoint]>({
+      id: "historical-path-layer",
+      data: vehicles,
+      getPath: (d) => d[1].historicalPath,
+      getColor: (d) => random_rgba(d[1].vehicle.vehicleRef, 100),
+      updateTriggers: {
+        getPath: (entry: [string, VehicleMapPoint]) => {
+          return entry[1]?.lastUpdated;
+        },
+      },
+      widthMinPixels: 2,
+      capRounded: true,
+      jointRounded: true,
+    }),
+    new IconLayer<[string, VehicleMapPoint]>({
       id: "icon-layer",
-      data: Object.values(vehicles),
+      data: vehicles,
       pickable: true,
       iconAtlas,
       iconMapping,
-      getIcon: (d: VehicleMapPoint) => d.icon,
+      getIcon: (d) => d[1].icon,
       getSize: () => 50,
-      getPosition: (vehicleMapPoint: VehicleMapPoint) => [
-        vehicleMapPoint.vehicle.location.longitude,
-        vehicleMapPoint.vehicle.location.latitude,
+      getPosition: (entry) => [
+        entry[1]?.vehicle?.location?.longitude,
+        entry[1]?.vehicle?.location?.latitude,
       ],
-      onClick: (info: PickInfo<VehicleMapPoint>) =>
-        setPopupInfo(info?.object?.vehicle),
-      onHover: (info: PickInfo<VehicleMapPoint>) =>
-        setHoverInfo(info?.object?.vehicle),
+      updateTriggers: {
+        getPosition: (entry: [string, VehicleMapPoint]) => {
+          return entry[1]?.lastUpdated;
+        },
+      },
+      onClick: (info: PickInfo<[string, VehicleMapPoint]>) =>
+        setPopupInfo(
+          (Array.from(vehicles.values())[info.index] as any).vehicle
+        ),
+      onHover: (info: PickInfo<[string, VehicleMapPoint]>) =>
+        setHoverInfo(
+          (Array.from(vehicles.values())[info.index] as VehicleMapPoint)
+            ?.vehicle
+        ),
     }),
   ];
 

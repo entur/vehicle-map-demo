@@ -15,6 +15,10 @@ const VEHICLE_FRAGMENT = gql`
     }
     serviceJourney {
       serviceJourneyId
+      pointsOnLink @include(if: $includePointsOnLink) {
+        length
+        points
+      }
     }
     direction
     mode
@@ -41,6 +45,7 @@ export const VEHICLES_QUERY = gql`
     $operatorRef: String
     $mode: VehicleModeEnumeration
     $monitored: Boolean
+    $includePointsOnLink: Boolean!
   ) {
     vehicles(
       codespaceId: $codespaceId
@@ -66,6 +71,7 @@ export const VEHICLE_UPDATES_SUBSCRIPTION = gql`
     $monitored: Boolean
     $bufferSize: Int
     $bufferTime: Int
+    $includePointsOnLink: Boolean!
   ) {
     vehicleUpdates(
       codespaceId: $codespaceId
