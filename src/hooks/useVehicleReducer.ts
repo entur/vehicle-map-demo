@@ -13,7 +13,6 @@ type State = {
 export enum ActionType {
   HYDRATE,
   UPDATE,
-  // SWEEP,
 }
 
 export type Action = {
@@ -159,15 +158,6 @@ const update = (
       vehicleMapPoint.lastUpdated = vehicle.lastUpdatedEpochSecond;
 
       updatedVehicles.set(vehicle.vehicleRef, vehicleMapPoint);
-      // if (
-      //   vehicle.lastUpdatedEpochSecond >
-      //   updatedVehicles.get(vehicle.vehicleRef)?.vehicle?.lastUpdatedEpochSecond
-      // ) {
-      //   updatedVehicles.get(vehicle.vehicleRef) = vehicleMapPoint;
-      // }
-      // } else {
-      //   updatedVehicles[vehicle.vehicleRef] = vehicleMapPoint;
-      // }
     }
   });
 
@@ -185,49 +175,6 @@ const update = (
     vehicles: updatedVehicles,
   };
 };
-
-// const sweep = (state: State, options: Options) => {
-//   const now = getCurrentEpochSeconds();
-//   let numberOfExpiredVehicles = state.statistics.numberOfExpiredVehicles;
-
-//   let vehicles = Object.values(state.vehicles).reduce(
-//     (acc: any, vehicleMapPoint: VehicleMapPoint) => {
-//       if (
-//         options.removeExpired &&
-//         isVehicleExpired(vehicleMapPoint.vehicle, options, now)
-//       ) {
-//         numberOfExpiredVehicles++;
-//         return acc;
-//       }
-
-//       if (
-//         options.markInactive &&
-//         isVehicleInactive(vehicleMapPoint.vehicle, options, now)
-//       ) {
-//         if (vehicleMapPoint.icon.indexOf("_inactive") === -1) {
-//           vehicleMapPoint.icon = vehicleMapPoint.icon + "_inactive";
-//         }
-//       }
-
-//       acc.set(vehicleMapPoint.vehicle.vehicleRef, vehicleMapPoint);
-
-//       return acc;
-//     },
-//     new Map()
-//   );
-
-//   return {
-//     vehicles,
-//     statistics: {
-//       ...state.statistics,
-//       numberOfVehicles: Object.values(vehicles).length,
-//       numberOfInactiveVehicles: Object.values(vehicles).filter(
-//         (v: any) => v.icon.indexOf("_inactive") > -1
-//       ).length,
-//       numberOfExpiredVehicles,
-//     },
-//   };
-// };
 
 const reducerFactory =
   (options: Options, lineLayerOptions: LineLayerOptions) =>
@@ -247,8 +194,6 @@ const reducerFactory =
           options,
           lineLayerOptions
         );
-      // case ActionType.SWEEP:
-      //   return sweep(state, options);
     }
   };
 

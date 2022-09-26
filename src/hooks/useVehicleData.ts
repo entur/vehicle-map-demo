@@ -76,18 +76,5 @@ export default function useVehicleData(
     }
   }, [client, dispatch, filter, subscriptionOptions]);
 
-  /**
-   * Set a timer to swipe through vehicles to update their status
-   */
-  // useEffect(() => {
-  //   const timer = setInterval(() => {
-  //     dispatch({ type: ActionType.SWEEP });
-  //   }, options.sweepIntervalMs);
-
-  //   return () => {
-  //     clearInterval(timer);
-  //   };
-  // }, [dispatch, options.sweepIntervalMs]);
-
   return state;
 }

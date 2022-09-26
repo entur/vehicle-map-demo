@@ -20,7 +20,6 @@ const defaultSubscriptionOptions: SubscriptionOptions = {
 };
 
 const defaultOptions: Options = {
-  sweepIntervalMs: 1000,
   removeExpired: true,
   removeExpiredAfterSeconds: 3600,
   markInactive: true,

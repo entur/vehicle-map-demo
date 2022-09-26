@@ -13,17 +13,6 @@ export const OptionsForm = memo(({ options, setOptions }: Props) => {
     <>
       <Heading4>Other settings</Heading4>
 
-      <TextField
-        type="number"
-        label="Sweep interval (ms)"
-        value={options.sweepIntervalMs}
-        onChange={(event) =>
-          setOptions({
-            ...options,
-            sweepIntervalMs: parseInt(event.target.value),
-          })
-        }
-      />
       <Switch
         checked={options.removeExpired}
         onChange={(event) =>
