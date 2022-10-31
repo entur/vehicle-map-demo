@@ -126,6 +126,10 @@ const update = (
     if (options.removeExpired && isVehicleExpired(vehicle, options, now)) {
       numberOfExpiredVehicles++;
       updatedVehicles.delete(vehicle.vehicleRef);
+
+      // If we are removing an expired vehicle,
+      // we need to update the reference to the map
+      updatedVehicles = new Map(updatedVehicles);
     } else {
       const vehicleMapPoint = updatedVehicles.get(vehicle.vehicleRef) || {
         icon: vehicle.mode.toLowerCase(),
@@ -159,6 +163,10 @@ const update = (
         vehicleMapPoint.lastUpdated = vehicle.lastUpdatedEpochSecond;
       } else {
         updatedVehicles.set(vehicle.vehicleRef, vehicleMapPoint);
+
+        // If we are adding a new vehicle,
+        // we need to update the reference to the map
+        updatedVehicles = new Map(updatedVehicles);
       }
     }
   });
