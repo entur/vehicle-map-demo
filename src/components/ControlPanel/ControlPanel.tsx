@@ -10,6 +10,8 @@ import { SubscriptionOptionsForm } from "./SubscriptionOptionsForm";
 import { OptionsForm } from "./OptionsForm";
 import logo from "static/img/logo.png";
 import "./ControlPanel.scss";
+import { LineLayerOptionsForm } from "./LineLayerOptionsForm";
+import { LineLayerOptions } from "model/lineLayerOptions";
 
 type Props = {
   statistics: Statistics;
@@ -19,6 +21,8 @@ type Props = {
   setSubscriptionOptions: (subscriptionOptions: SubscriptionOptions) => void;
   options: Options;
   setOptions: (options: Options) => void;
+  lineLayerOptions: LineLayerOptions;
+  setLineLayerOptions: (lineLayerOptions: LineLayerOptions) => void;
 };
 
 export const ControlPanel = memo((props: Props) => {
@@ -46,6 +50,13 @@ export const ControlPanel = memo((props: Props) => {
 
       <div className="control-panel-content">
         <OptionsForm options={props.options} setOptions={props.setOptions} />
+      </div>
+
+      <div className="control-panel-content control-panel-content_last">
+        <LineLayerOptionsForm
+          options={props.lineLayerOptions}
+          setOptions={props.setLineLayerOptions}
+        />
       </div>
     </Contrast>
   );

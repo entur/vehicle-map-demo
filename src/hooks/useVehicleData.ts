@@ -6,6 +6,7 @@ import { Vehicle } from "model/vehicle";
 import { useEffect } from "react";
 import useVehicleReducer, { ActionType } from "./useVehicleReducer";
 import { SubscriptionOptions } from "model/subscriptionOptions";
+import { LineLayerOptions } from "model/lineLayerOptions";
 
 const DEFAULT_FETCH_POLICY = "no-cache";
 
@@ -15,9 +16,10 @@ const DEFAULT_FETCH_POLICY = "no-cache";
 export default function useVehicleData(
   filter: Filter,
   subscriptionOptions: SubscriptionOptions,
-  options: Options
+  options: Options,
+  lineLayerOptions: LineLayerOptions
 ) {
-  const [state, dispatch] = useVehicleReducer(options);
+  const [state, dispatch] = useVehicleReducer(options, lineLayerOptions);
   const client = useApolloClient();
 
   /**
@@ -28,14 +30,17 @@ export default function useVehicleData(
       const { data: hydrationData } = await client.query({
         query: VEHICLES_QUERY,
         fetchPolicy: DEFAULT_FETCH_POLICY,
-        variables: filter,
+        variables: {
+          ...filter,
+          includePointsOnLink: lineLayerOptions.includePointsOnLink,
+        },
       });
       if (hydrationData && hydrationData.vehicles) {
         dispatch({ type: ActionType.HYDRATE, payload: hydrationData.vehicles });
       }
     }
     hydrate();
-  }, [client, dispatch, filter]);
+  }, [client, dispatch, filter, lineLayerOptions.includePointsOnLink]);
 
   /**
    * Set up subscription to receive updates on vehicles
@@ -53,6 +58,7 @@ export default function useVehicleData(
           variables: {
             ...filter,
             ...subscriptionOptions,
+            includePointsOnLink: false,
           },
         })
         .subscribe((fetchResult: FetchResult) => {
@@ -69,19 +75,6 @@ export default function useVehicleData(
       };
     }
   }, [client, dispatch, filter, subscriptionOptions]);
-
-  /**
-   * Set a timer to swipe through vehicles to update their status
-   */
-  useEffect(() => {
-    const timer = setInterval(() => {
-      dispatch({ type: ActionType.SWEEP });
-    }, options.sweepIntervalMs);
-
-    return () => {
-      clearInterval(timer);
-    };
-  }, [dispatch, options.sweepIntervalMs]);
 
   return state;
 }
