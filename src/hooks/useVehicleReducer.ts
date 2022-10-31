@@ -123,41 +123,43 @@ const update = (
 
   vehicles.forEach((vehicle) => {
     numberOfUpdatesInSession++;
-    // if (options.removeExpired && isVehicleExpired(vehicle, options, now)) {
-    //   numberOfExpiredVehicles++;
-    // } else {
-    const vehicleMapPoint = updatedVehicles.get(vehicle.vehicleRef) || {
-      icon: vehicle.mode.toLowerCase(),
-      vehicle,
-      historicalPath: [],
-      lastUpdated: vehicle.lastUpdatedEpochSecond,
-    };
+    if (options.removeExpired && isVehicleExpired(vehicle, options, now)) {
+      numberOfExpiredVehicles++;
+      updatedVehicles.delete(vehicle.vehicleRef);
+    } else {
+      const vehicleMapPoint = updatedVehicles.get(vehicle.vehicleRef) || {
+        icon: vehicle.mode.toLowerCase(),
+        vehicle,
+        historicalPath: [],
+        lastUpdated: vehicle.lastUpdatedEpochSecond,
+      };
 
-    vehicleMapPoint.vehicle = vehicle;
+      vehicleMapPoint.vehicle = vehicle;
 
-    if (options.markInactive && isVehicleInactive(vehicle, options, now)) {
-      vehicleMapPoint.icon = vehicleMapPoint.icon + "_inactive";
-    }
-
-    if (updatedVehicles.get(vehicle.vehicleRef)) {
-      if (lineLayerOptions.showHistoricalPath) {
-        const historicalPath = updatedVehicles.get(
-          vehicle.vehicleRef
-        )?.historicalPath;
-        historicalPath?.push([
-          vehicle.location.longitude,
-          vehicle.location.latitude,
-          0,
-        ]);
-        vehicleMapPoint.historicalPath =
-          historicalPath || vehicleMapPoint.historicalPath;
-      } else {
-        vehicleMapPoint.historicalPath = [];
+      if (options.markInactive && isVehicleInactive(vehicle, options, now)) {
+        vehicleMapPoint.icon = vehicleMapPoint.icon + "_inactive";
       }
 
-      vehicleMapPoint.lastUpdated = vehicle.lastUpdatedEpochSecond;
+      if (updatedVehicles.get(vehicle.vehicleRef)) {
+        if (lineLayerOptions.showHistoricalPath) {
+          const historicalPath = updatedVehicles.get(
+            vehicle.vehicleRef
+          )?.historicalPath;
+          historicalPath?.push([
+            vehicle.location.longitude,
+            vehicle.location.latitude,
+            0,
+          ]);
+          vehicleMapPoint.historicalPath =
+            historicalPath || vehicleMapPoint.historicalPath;
+        } else {
+          vehicleMapPoint.historicalPath = [];
+        }
 
-      updatedVehicles.set(vehicle.vehicleRef, vehicleMapPoint);
+        vehicleMapPoint.lastUpdated = vehicle.lastUpdatedEpochSecond;
+      } else {
+        updatedVehicles.set(vehicle.vehicleRef, vehicleMapPoint);
+      }
     }
   });
 
