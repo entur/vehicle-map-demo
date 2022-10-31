@@ -19,7 +19,7 @@ export const LineLayerOptionsForm = memo(({ options, setOptions }: Props) => {
           });
         }}
       >
-        Include points-on-link
+        Show points-on-link
       </Switch>
 
       <Switch
@@ -28,7 +28,7 @@ export const LineLayerOptionsForm = memo(({ options, setOptions }: Props) => {
           setOptions({ ...options, showHistoricalPath: event.target.checked })
         }
       >
-        Show historical path
+        Show vehicle path
       </Switch>
     </>
   );
