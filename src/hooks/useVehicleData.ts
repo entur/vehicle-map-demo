@@ -40,7 +40,13 @@ export default function useVehicleData(
       }
     }
     hydrate();
-  }, [client, dispatch, filter, lineLayerOptions.includePointsOnLink]);
+  }, [
+    client,
+    dispatch,
+    filter,
+    lineLayerOptions.includePointsOnLink,
+    options.hideServiceJourneysWithInvalidIds,
+  ]);
 
   /**
    * Set up subscription to receive updates on vehicles
@@ -74,7 +80,13 @@ export default function useVehicleData(
         subscription.unsubscribe();
       };
     }
-  }, [client, dispatch, filter, subscriptionOptions]);
+  }, [
+    client,
+    dispatch,
+    filter,
+    subscriptionOptions,
+    options.hideServiceJourneysWithInvalidIds,
+  ]);
 
   return state;
 }

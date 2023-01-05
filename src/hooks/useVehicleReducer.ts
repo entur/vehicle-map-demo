@@ -69,8 +69,6 @@ const hydrate = (
   let numberOfExpiredVehicles = state.statistics.numberOfExpiredVehicles;
   let numberOfUpdatesInSession = state.statistics.numberOfUpdatesInSession;
 
-  console.log({ options });
-
   let vehicles: Map<string, VehicleMapPoint> = payload.reduce(
     (acc: any, vehicle: Vehicle) => {
       numberOfUpdatesInSession++;
@@ -135,8 +133,6 @@ const update = (
   let numberOfUpdatesInSession = state.statistics.numberOfUpdatesInSession;
 
   let updatedVehicles = state.vehicles || new Map();
-
-  console.log({ options });
 
   vehicles.forEach((vehicle) => {
     numberOfUpdatesInSession++;
