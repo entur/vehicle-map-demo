@@ -53,6 +53,12 @@ const isVehicleExpired = (vehicle: Vehicle, options: Options, now: number) => {
   );
 };
 
+const hasValidServiceJourneyId = (vehicle: Vehicle) => {
+  return /[A-Z][A-Z][A-Z]:ServiceJourney:.+/.test(
+    vehicle.serviceJourney.serviceJourneyId
+  );
+};
+
 const hydrate = (
   state: State,
   payload: Vehicle[],
@@ -63,9 +69,18 @@ const hydrate = (
   let numberOfExpiredVehicles = state.statistics.numberOfExpiredVehicles;
   let numberOfUpdatesInSession = state.statistics.numberOfUpdatesInSession;
 
+  console.log({ options });
+
   let vehicles: Map<string, VehicleMapPoint> = payload.reduce(
     (acc: any, vehicle: Vehicle) => {
       numberOfUpdatesInSession++;
+
+      if (
+        options.hideServiceJourneysWithInvalidIds &&
+        !hasValidServiceJourneyId(vehicle)
+      ) {
+        return acc;
+      }
 
       if (options.removeExpired && isVehicleExpired(vehicle, options, now)) {
         numberOfExpiredVehicles++;
@@ -121,13 +136,28 @@ const update = (
 
   let updatedVehicles = state.vehicles || new Map();
 
+  console.log({ options });
+
   vehicles.forEach((vehicle) => {
     numberOfUpdatesInSession++;
-    if (options.removeExpired && isVehicleExpired(vehicle, options, now)) {
+
+    if (
+      options.hideServiceJourneysWithInvalidIds &&
+      !hasValidServiceJourneyId(vehicle)
+    ) {
+      updatedVehicles.delete(vehicle.vehicleRef);
+
+      // If we are removing a vehicle,
+      // we need to update the reference to the map
+      updatedVehicles = new Map(updatedVehicles);
+    } else if (
+      options.removeExpired &&
+      isVehicleExpired(vehicle, options, now)
+    ) {
       numberOfExpiredVehicles++;
       updatedVehicles.delete(vehicle.vehicleRef);
 
-      // If we are removing an expired vehicle,
+      // If we are removing a vehicle,
       // we need to update the reference to the map
       updatedVehicles = new Map(updatedVehicles);
     } else {

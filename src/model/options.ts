@@ -3,4 +3,5 @@ export type Options = {
   removeExpiredAfterSeconds?: number;
   markInactive?: boolean;
   markInactiveAfterSeconds?: number;
+  hideServiceJourneysWithInvalidIds?: boolean;
 };

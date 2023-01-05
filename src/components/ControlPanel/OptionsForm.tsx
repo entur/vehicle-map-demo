@@ -53,6 +53,23 @@ export const OptionsForm = memo(({ options, setOptions }: Props) => {
           })
         }
       />
+
+      <Switch
+        checked={options.hideServiceJourneysWithInvalidIds}
+        onChange={(event) => {
+          if (event.target.checked) {
+            setOptions({
+              ...options,
+              hideServiceJourneysWithInvalidIds: event.target.checked,
+            });
+          } else {
+            const { hideServiceJourneysWithInvalidIds, ...rest } = options;
+            setOptions({ ...rest });
+          }
+        }}
+      >
+        Hide service journeys with invalid IDs
+      </Switch>
     </>
   );
 });

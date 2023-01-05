@@ -4,9 +4,8 @@ import { Operator } from "model/operator";
 import { useEffect, useMemo } from "react";
 
 export default function useOperatorRefs(codespaceId?: string) {
-  const [fetchOperators, { data: operatorsData }] = useLazyQuery(
-    OPERATORS_QUERY
-  );
+  const [fetchOperators, { data: operatorsData }] =
+    useLazyQuery(OPERATORS_QUERY);
 
   useEffect(() => {
     if (codespaceId) {

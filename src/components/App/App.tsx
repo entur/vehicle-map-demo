@@ -24,6 +24,7 @@ const defaultOptions: Options = {
   removeExpiredAfterSeconds: 3600,
   markInactive: true,
   markInactiveAfterSeconds: 60,
+  hideServiceJourneysWithInvalidIds: false,
 };
 
 const defaultLineLayerOptions: LineLayerOptions = {
