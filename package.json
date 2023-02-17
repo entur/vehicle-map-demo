@@ -16,7 +16,7 @@
     "@entur/layout": "1.10.4",
     "@entur/modal": "1.6.24",
     "@entur/tokens": "2.0.1",
-    "@entur/typography": "1.6.11",
+    "@entur/typography": "1.7.10",
     "@googlemaps/polyline-codec": "^1.0.28",
     "@luma.gl/test-utils": "8.3.2",
     "@testing-library/jest-dom": "5.16.5",
