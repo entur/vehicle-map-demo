@@ -9,7 +9,7 @@
     "@danmarshall/deckgl-typings": "4.9.27",
     "@deck.gl/core": "8.3.10",
     "@deck.gl/layers": "8.3.10",
-    "@deck.gl/react": "8.7.3",
+    "@deck.gl/react": "8.8.24",
     "@entur/button": "2.8.0",
     "@entur/dropdown": "1.4.7",
     "@entur/form": "4.4.7",
