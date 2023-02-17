@@ -6,7 +6,7 @@
   "license": "EUPL-1.0",
   "dependencies": {
     "@apollo/client": "3.5.10",
-    "@danmarshall/deckgl-typings": "4.9.19",
+    "@danmarshall/deckgl-typings": "4.9.27",
     "@deck.gl/core": "8.3.10",
     "@deck.gl/layers": "8.3.10",
     "@deck.gl/react": "8.7.3",
