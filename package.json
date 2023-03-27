@@ -11,7 +11,7 @@
     "@deck.gl/layers": "8.3.10",
     "@deck.gl/react": "8.8.27",
     "@entur/button": "2.10.15",
-    "@entur/dropdown": "1.4.7",
+    "@entur/dropdown": "3.0.37",
     "@entur/form": "4.4.7",
     "@entur/layout": "1.10.4",
     "@entur/modal": "1.6.26",
