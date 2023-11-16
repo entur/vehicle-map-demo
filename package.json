@@ -18,7 +18,7 @@
     "@entur/tokens": "2.0.1",
     "@entur/typography": "1.7.13",
     "@googlemaps/polyline-codec": "^1.0.28",
-    "@luma.gl/test-utils": "8.3.2",
+    "@luma.gl/test-utils": "8.5.21",
     "@testing-library/jest-dom": "5.16.5",
     "@testing-library/react": "11.2.7",
     "@testing-library/user-event": "12.8.3",
