@@ -8,7 +8,7 @@
     "@apollo/client": "3.7.10",
     "@danmarshall/deckgl-typings": "4.9.28",
     "@deck.gl/core": "8.3.10",
-    "@deck.gl/layers": "8.3.10",
+    "@deck.gl/layers": "8.9.35",
     "@deck.gl/react": "8.9.32",
     "@entur/button": "2.10.15",
     "@entur/dropdown": "1.4.7",
