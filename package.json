@@ -20,7 +20,7 @@
     "@googlemaps/polyline-codec": "^1.0.28",
     "@luma.gl/test-utils": "8.3.2",
     "@testing-library/jest-dom": "5.16.5",
-    "@testing-library/react": "11.2.7",
+    "@testing-library/react": "14.3.0",
     "@testing-library/user-event": "12.8.3",
     "@types/jest": "26.0.24",
     "@types/node": "12.20.55",
