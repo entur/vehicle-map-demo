@@ -28,7 +28,7 @@
     "@types/react-dom": "16.9.18",
     "@types/react-map-gl": "5.2.11",
     "date-fns": "2.29.3",
-    "firebase-tools": "9.23.3",
+    "firebase-tools": "13.6.0",
     "gl": "4.9.0",
     "graphql": "15.8.0",
     "husky": "4.3.8",
