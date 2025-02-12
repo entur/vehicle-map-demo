@@ -2,7 +2,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import {Map, Marker, useMap} from 'react-map-gl/maplibre';
 import {StyleSpecification} from "@maplibre/maplibre-gl-style-spec";
 
-import { createClient } from 'graphql-ws';
+import {createClient, FormattedExecutionResult} from 'graphql-ws';
 import {useEffect, useRef, useState} from "react";
 
 const client = createClient({
@@ -30,45 +30,64 @@ const mapStyle: StyleSpecification = {
 };
 
 type Filter = {
-    boundingBox : number[][],
+    boundingBox: (number | undefined)[][],
+}
+
+type Data = {
+  vehicles: VehicleUpdate
+}
+
+type VehicleUpdate = {
+  vehicleId: string
+  location: {
+    latitude: number,
+    longitude: number
+  }
 }
 
 const useVehiclePositionsData = (filter : Filter | null) => {
-    const [data, setData] = useState<any[]>([]);
-    const map = useRef({});
-    const subscription = useRef(null);
+    const [data, setData] = useState<VehicleUpdate[]>([]);
+    const map = useRef<Record<string, VehicleUpdate>>({});
+    const subscription = useRef<AsyncIterableIterator<FormattedExecutionResult<Data, unknown>>>(null);
     useEffect(() => {
-        if (filter) {
-            if (subscription.current) {
-                subscription.current.return();
-            }
-                subscription.current = client.iterate({
-                    query: `subscription {
-                  vehicles (boundingBox: {minLat: ${filter.boundingBox[0][1]}, minLon: ${filter.boundingBox[0][0]}, maxLat: ${filter.boundingBox[1][1]}, maxLon: ${filter.boundingBox[1][0]}}) {
-                    vehicleId
-                    line {lineRef}
-                    lastUpdated
-                    location {
-                      latitude
-                      longitude
-                    }
-                  }
-                }`
-                });
+        if (subscription.current !== null) {
+            // @ts-ignore
+            subscription.current?.return();
+        }
+
+        subscription.current = client.iterate<Data>({
+            query: `subscription($minLat: Float!, $minLon: Float!, $maxLat: Float!, $maxLon: Float!) {
+                      vehicles (boundingBox: {minLat: $minLat, minLon: $minLon, maxLat: $maxLat, maxLon: $maxLon}) {
+                        vehicleId
+                        line {lineRef}
+                        lastUpdated
+                        location {
+                          latitude
+                          longitude
+                        }
+                      }
+                    }`,
+          variables: {
+              minLon: filter?.boundingBox[0][0],
+              minLat: filter?.boundingBox[0][1],
+              maxLon: filter?.boundingBox[1][0],
+              maxLat: filter?.boundingBox[1][1],
+          }
+        });
         const subscribe = async () => {
-            for await (const event of subscription.current) {
+            for await (const event of subscription.current!) {
                 // @ts-ignore
-                for (const v of event?.data?.vehicles) {
-                    if (v.location && v.location.latitude && v.location.longitude) {
-                        map.current[v.vehicleId] = v;
-                    }
+                for (const v of event.data.vehicles) {
+                  if (v.location && v.location.latitude && v.location.longitude) {
+                    map.current[v.vehicleId] = v;
+                  }
                 }
                 setData(Object.values(map.current));
             }
         }
-            subscribe();
-        }
-
+      if (filter) {
+        subscribe();
+      }
     }, [filter]);
     return data;
 }
@@ -77,8 +96,8 @@ function CaptureBoundingBox({setCurrentFilter} : {setCurrentFilter: (filter: Fil
     const {current: map} = useMap();
 
     const currentBoundingBox = [
-        [map.getMap().getBounds().getSouthWest().lng, map.getMap().getBounds().getSouthWest().lat],
-        [map.getMap().getBounds().getNorthEast().lng, map.getMap().getBounds().getNorthEast().lat]
+        [map?.getMap().getBounds().getSouthWest().lng, map?.getMap().getBounds().getSouthWest().lat],
+        [map?.getMap().getBounds().getNorthEast().lng, map?.getMap().getBounds().getNorthEast().lat]
     ];
 
     useEffect (() => {
