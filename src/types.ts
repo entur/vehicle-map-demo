@@ -1,15 +1,15 @@
 export type Filter = {
-  boundingBox: (number | undefined)[][],
-}
+  boundingBox: (number | undefined)[][];
+};
 
 export type Data = {
-  vehicles: VehicleUpdate
-}
+  vehicles: VehicleUpdate;
+};
 
 export type VehicleUpdate = {
-  vehicleId: string
+  vehicleId: string;
   location: {
-    latitude: number,
-    longitude: number
-  }
-}
+    latitude: number;
+    longitude: number;
+  };
+};

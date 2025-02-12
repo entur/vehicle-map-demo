@@ -2,7 +2,7 @@
 # https://github.com/firebase/firebase-tools
 
 name: Build
-'on':
+"on":
   push:
     branches:
       - master
@@ -14,10 +14,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 18.12
-      - run: npm ci && npm run build
+      - run: npm ci
+      - run: npm run check
+      - run: npm run build
       - name: Archive production artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: build
+          name: dist
           path: |
-            build
+            dist
