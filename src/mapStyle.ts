@@ -10,12 +10,27 @@ export const mapStyle: StyleSpecification = {
       attribution: "&copy; OpenStreetMap Contributors",
       maxzoom: 19,
     },
+    vehicles: {
+      type: "geojson",
+      data: { type: "FeatureCollection", features: [] },
+    },
   },
+
   layers: [
     {
       id: "osm",
       type: "raster",
       source: "osm", // This must match the source key above
+    },
+    {
+      id: "vehicle-layer",
+      type: "symbol",
+      source: "vehicles",
+      layout: {
+        "icon-image": "bus-icon",
+        "icon-size": 1, // Adjust size as needed
+        "icon-allow-overlap": true,
+      },
     },
   ],
 };

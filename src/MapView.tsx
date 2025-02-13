@@ -1,8 +1,11 @@
-import { Map, Marker } from "react-map-gl/maplibre";
+import { Map, Popup } from "react-map-gl/maplibre";
 import { mapStyle } from "./mapStyle.ts";
 import { CaptureBoundingBox } from "./CaptureBoundingBox.tsx";
 import { Filter, VehicleUpdate } from "./types.ts";
 import "maplibre-gl/dist/maplibre-gl.css";
+import { VehicleMarkers } from "./VehicleMarkers.tsx";
+import { useState } from "react";
+import { RegisterIcons } from "./RegisterIcons.tsx";
 
 type MapViewProps = {
   data: VehicleUpdate[];
@@ -10,6 +13,11 @@ type MapViewProps = {
 };
 
 export function MapView({ data, setCurrentFilter }: MapViewProps) {
+  const [selectedVehicle, setSelectedVehicle] = useState<{
+    coordinates: number[];
+    properties: any;
+  } | null>(null);
+
   return (
     <Map
       initialViewState={{
@@ -19,15 +27,22 @@ export function MapView({ data, setCurrentFilter }: MapViewProps) {
       }}
       mapStyle={mapStyle}
     >
+      <RegisterIcons></RegisterIcons>
       <CaptureBoundingBox setCurrentFilter={setCurrentFilter} />
-      {data?.map((v) => (
-        <Marker
-          key={v.vehicleId}
-          longitude={v.location.longitude}
-          latitude={v.location.latitude}
-          anchor="bottom"
-        />
-      ))}
+      <VehicleMarkers data={data} setSelectedVehicle={setSelectedVehicle} />
+      {selectedVehicle && (
+        <Popup
+          longitude={selectedVehicle.coordinates[0]}
+          latitude={selectedVehicle.coordinates[1]}
+          anchor="top"
+          onClose={() => setSelectedVehicle(null)}
+        >
+          <div>
+            <h4>Vehicle Info</h4>
+            <p>ID: {selectedVehicle.properties.id}</p>
+          </div>
+        </Popup>
+      )}
     </Map>
   );
 }
