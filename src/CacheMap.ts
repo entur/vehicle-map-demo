@@ -23,6 +23,7 @@ export class CacheMap<K, T> extends Map {
     if (this.expirationInMs !== undefined) {
       this.timeouts.set(
         key,
+        // @ts-ignore
         setTimeout(() => {
           this.delete(key);
           this.timeouts.delete(key);
