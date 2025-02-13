@@ -1,6 +1,7 @@
 import { createClient, FormattedExecutionResult } from "graphql-ws";
 import { Data, Filter, VehicleUpdate } from "./types.ts";
 import { useEffect, useRef, useState } from "react";
+import { CacheMap } from "./CacheMap.ts";
 
 const client = createClient({
   url: "wss://api.entur.io/realtime/v2/vehicles/subscriptions",
@@ -21,8 +22,12 @@ const subscriptionQuery = `
 `;
 
 export const useVehiclePositionsData = (filter: Filter | null) => {
-  const [data, setData] = useState<VehicleUpdate[]>([]);
-  const map = useRef<Record<string, VehicleUpdate>>({});
+  const map = useRef<CacheMap<string, VehicleUpdate>>(
+    new CacheMap({ expirationInMs: 60_000 }),
+  );
+  const [data, setData] = useState<VehicleUpdate[]>(
+    Array.from(map.current.values()),
+  );
   const subscription =
     useRef<AsyncIterableIterator<FormattedExecutionResult<Data, unknown>>>(
       null,
@@ -47,10 +52,10 @@ export const useVehiclePositionsData = (filter: Filter | null) => {
         // @ts-ignore
         for (const v of event.data.vehicles) {
           if (v.location && v.location.latitude && v.location.longitude) {
-            map.current[v.vehicleId] = v;
+            map.current.set(v.vehicleId, v);
           }
         }
-        setData(Object.values(map.current));
+        setData(Array.from(map.current.values()));
       }
     };
     if (filter) {
