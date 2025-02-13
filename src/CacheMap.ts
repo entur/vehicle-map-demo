@@ -1,5 +1,5 @@
 type CacheMapOptions = {
-  expirationInMs: number;
+  expirationInMs?: number;
 };
 
 export class CacheMap<K, T> extends Map {
@@ -8,7 +8,7 @@ export class CacheMap<K, T> extends Map {
     this.expirationInMs = expirationInMs;
   }
 
-  private expirationInMs: number | null = null;
+  private expirationInMs: number | undefined;
 
   private timeouts = new Map<K, number>();
 
@@ -20,7 +20,7 @@ export class CacheMap<K, T> extends Map {
   }
 
   private setTimeout(key: K) {
-    if (this.expirationInMs != null) {
+    if (this.expirationInMs !== undefined) {
       this.timeouts.set(
         key,
         setTimeout(() => {
