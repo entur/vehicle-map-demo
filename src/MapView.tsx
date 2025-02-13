@@ -27,7 +27,7 @@ export function MapView({ data, setCurrentFilter }: MapViewProps) {
       }}
       mapStyle={mapStyle}
     >
-      <RegisterIcons></RegisterIcons>
+      <RegisterIcons />
       <CaptureBoundingBox setCurrentFilter={setCurrentFilter} />
       <VehicleMarkers data={data} setSelectedVehicle={setSelectedVehicle} />
       {selectedVehicle && (
