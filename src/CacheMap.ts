@@ -14,7 +14,7 @@ export class CacheMap<K, T> extends Map {
 
   private clearTimeout(key: K) {
     if (this.timeouts.has(key)) {
-      clearTimeout(this.timeouts.get(key));
+      window.clearTimeout(this.timeouts.get(key));
       this.timeouts.delete(key);
     }
   }
@@ -23,8 +23,7 @@ export class CacheMap<K, T> extends Map {
     if (this.expirationInMs !== undefined) {
       this.timeouts.set(
         key,
-        // @ts-ignore
-        setTimeout(() => {
+        window.setTimeout(() => {
           this.delete(key);
           this.timeouts.delete(key);
         }, this.expirationInMs),

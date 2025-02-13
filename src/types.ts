@@ -3,7 +3,7 @@ export type Filter = {
 };
 
 export type Data = {
-  vehicles: VehicleUpdate;
+  vehicles: VehicleUpdate[];
 };
 
 export type VehicleUpdate = {

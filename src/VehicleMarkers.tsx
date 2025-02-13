@@ -1,61 +1,86 @@
 import { useEffect } from "react";
 import { useMap } from "react-map-gl/maplibre";
 import { VehicleUpdate } from "./types.ts";
-import { MapGeoJSONFeature } from "maplibre-gl";
+import { GeoJSONSource } from "maplibre-gl";
+
+type SelectedVehicleProperties = {
+  id: string;
+};
+
+export type SelectedVehicle = {
+  coordinates: number[];
+  properties: SelectedVehicleProperties;
+};
+
+const createFeature = (
+  vehicle: VehicleUpdate,
+): GeoJSON.Feature<GeoJSON.Point, SelectedVehicleProperties> => {
+  return {
+    type: "Feature",
+    geometry: {
+      type: "Point",
+      coordinates: [vehicle.location.longitude, vehicle.location.latitude],
+    },
+    properties: {
+      id: vehicle.vehicleId,
+    },
+  };
+};
 
 export function VehicleMarkers({
   data,
   setSelectedVehicle,
 }: {
   data: VehicleUpdate[];
-  setSelectedVehicle: (
-    selectedVehicle: { coordinates: number[]; properties: any } | null,
-  ) => void;
+  setSelectedVehicle: (selectedVehicle: SelectedVehicle | null) => void;
 }) {
   const { current: mapRef } = useMap();
 
   useEffect(() => {
-    if (!mapRef) return;
-    const map = mapRef.getMap();
+    if (!mapRef) {
+      return;
+    }
 
-    const features = data.map((v) => ({
-      type: "Feature",
-      geometry: {
-        type: "Point",
-        coordinates: [v.location.longitude, v.location.latitude],
-      },
-      properties: {
-        id: v.vehicleId,
-      },
-    }));
-    // @ts-ignore
-    map?.getSource("vehicles").setData({
+    const map = mapRef.getMap();
+    const features = data.map(createFeature);
+    const source = map?.getSource("vehicles") as GeoJSONSource;
+    source.setData({
       type: "FeatureCollection",
       features: features,
     });
 
     // Change cursor on hover over the bus icons
-    map.on("mouseenter", "vehicle-layer", (e) => {
-      map.getCanvas().style.cursor = "pointer";
+    const mouseenterSubscription = map.on(
+      "mouseenter",
+      "vehicle-layer",
+      (e) => {
+        map.getCanvas().style.cursor = "pointer";
 
-      const features = map.queryRenderedFeatures(e.point, {
-        layers: ["vehicle-layer"],
-      });
-      if (features.length) {
-        const feature: MapGeoJSONFeature = features[0];
-        // @ts-ignore
-        const coordinates = feature.geometry.coordinates.slice();
-        setSelectedVehicle({
-          coordinates,
-          properties: feature.properties,
+        const features = map.queryRenderedFeatures(e.point, {
+          layers: ["vehicle-layer"],
         });
-      }
-    });
-    map.on("mouseleave", "vehicle-layer", () => {
+        if (features.length) {
+          const feature = features[0];
+          const point = features[0].geometry as GeoJSON.Point;
+          const coordinates = point.coordinates.slice();
+          setSelectedVehicle({
+            coordinates,
+            properties: feature.properties as SelectedVehicleProperties,
+          });
+        }
+      },
+    );
+
+    const mouseleaveSubscription = map.on("mouseleave", "vehicle-layer", () => {
       map.getCanvas().style.cursor = "";
       setSelectedVehicle(null);
     });
-  }, [data]);
+
+    return () => {
+      mouseenterSubscription.unsubscribe();
+      mouseleaveSubscription.unsubscribe();
+    };
+  }, [data, mapRef, setSelectedVehicle]);
 
   return null;
 }

@@ -48,9 +48,8 @@ export const useVehiclePositionsData = (filter: Filter | null) => {
       null,
     );
   useEffect(() => {
-    if (subscription.current !== null) {
-      // @ts-ignore
-      subscription.current?.return();
+    if (subscription.current?.return) {
+      subscription.current.return();
     }
 
     subscription.current = client.iterate<Data>({
@@ -64,12 +63,15 @@ export const useVehiclePositionsData = (filter: Filter | null) => {
     });
     const subscribe = async () => {
       for await (const event of subscription.current!) {
-        // @ts-ignore
-        for (const v of event.data.vehicles) {
-          if (v.location && v.location.latitude && v.location.longitude) {
-            map.current.set(v.vehicleId, v);
+        event?.data?.vehicles.forEach((vehicle) => {
+          if (
+            vehicle.location &&
+            vehicle.location.latitude &&
+            vehicle.location.longitude
+          ) {
+            map.current.set(vehicle.vehicleId, vehicle);
           }
-        }
+        });
         setData(filterVehicles(filter, Array.from(map.current.values())));
       }
     };

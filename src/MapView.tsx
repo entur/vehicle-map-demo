@@ -3,7 +3,7 @@ import { mapStyle } from "./mapStyle.ts";
 import { CaptureBoundingBox } from "./CaptureBoundingBox.tsx";
 import { Filter, VehicleUpdate } from "./types.ts";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { VehicleMarkers } from "./VehicleMarkers.tsx";
+import { SelectedVehicle, VehicleMarkers } from "./VehicleMarkers.tsx";
 import { useState } from "react";
 import { RegisterIcons } from "./RegisterIcons.tsx";
 
@@ -13,10 +13,8 @@ type MapViewProps = {
 };
 
 export function MapView({ data, setCurrentFilter }: MapViewProps) {
-  const [selectedVehicle, setSelectedVehicle] = useState<{
-    coordinates: number[];
-    properties: any;
-  } | null>(null);
+  const [selectedVehicle, setSelectedVehicle] =
+    useState<SelectedVehicle | null>(null);
 
   return (
     <Map
@@ -39,7 +37,7 @@ export function MapView({ data, setCurrentFilter }: MapViewProps) {
         >
           <div>
             <h4>Vehicle Info</h4>
-            <p>ID: {selectedVehicle.properties.id}</p>
+            <p>ID: {selectedVehicle.properties.id as string}</p>
           </div>
         </Popup>
       )}
