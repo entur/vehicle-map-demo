@@ -21,6 +21,21 @@ const subscriptionQuery = `
   }
 `;
 
+const filterVehicles = (filter: Filter | null, vehicles: VehicleUpdate[]) => {
+  if (filter !== null) {
+    return vehicles.filter((vehicle) => {
+      return (
+        vehicle.location.latitude > filter.boundingBox[0][1] &&
+        vehicle.location.latitude < filter.boundingBox[1][1] &&
+        vehicle.location.longitude > filter.boundingBox[0][0] &&
+        vehicle.location.longitude < filter.boundingBox[1][0]
+      );
+    });
+  } else {
+    return vehicles;
+  }
+};
+
 export const useVehiclePositionsData = (filter: Filter | null) => {
   const map = useRef<CacheMap<string, VehicleUpdate>>(
     new CacheMap({ expirationInMs: 60_000 }),
@@ -55,7 +70,7 @@ export const useVehiclePositionsData = (filter: Filter | null) => {
             map.current.set(v.vehicleId, v);
           }
         }
-        setData(Array.from(map.current.values()));
+        setData(filterVehicles(filter, Array.from(map.current.values())));
       }
     };
     if (filter) {

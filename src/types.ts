@@ -1,5 +1,5 @@
 export type Filter = {
-  boundingBox: (number | undefined)[][];
+  boundingBox: number[][];
 };
 
 export type Data = {
