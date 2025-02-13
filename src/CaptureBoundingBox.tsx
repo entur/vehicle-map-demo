@@ -1,6 +1,6 @@
-import { Filter } from "./types.ts";
-import { useMap } from "react-map-gl/maplibre";
 import { useEffect } from "react";
+import { useMap } from "react-map-gl/maplibre";
+import { Filter } from "./types.ts";
 
 export function CaptureBoundingBox({
   setCurrentFilter,
@@ -9,24 +9,25 @@ export function CaptureBoundingBox({
 }) {
   const { current: map } = useMap();
 
-  const currentBoundingBox = [
-    [
-      map?.getMap().getBounds().getSouthWest().lng,
-      map?.getMap().getBounds().getSouthWest().lat,
-    ],
-    [
-      map?.getMap().getBounds().getNorthEast().lng,
-      map?.getMap().getBounds().getNorthEast().lat,
-    ],
-  ];
-
   useEffect(() => {
-    setCurrentFilter({ boundingBox: currentBoundingBox });
-  }, [
-    currentBoundingBox[0][0],
-    currentBoundingBox[0][1],
-    currentBoundingBox[1][0],
-    currentBoundingBox[1][1],
-  ]);
+    if (!map) return;
+    const handleMoveEnd = () => {
+      const bounds = map.getMap().getBounds();
+      const boundingBox = [
+        [bounds.getSouthWest().lng, bounds.getSouthWest().lat],
+        [bounds.getNorthEast().lng, bounds.getNorthEast().lat],
+      ];
+      setCurrentFilter({ boundingBox });
+    };
+    const mapInstance = map.getMap();
+    mapInstance.on("moveend", handleMoveEnd);
+
+    handleMoveEnd();
+
+    return () => {
+      mapInstance.off("moveend", handleMoveEnd);
+    };
+  }, [map, setCurrentFilter]);
+
   return null;
 }
