@@ -12,9 +12,17 @@ export type Filter = {
   boundingBox: number[][];
 };
 
+export type Line = {
+  lineRef: string;
+  lineName: string;
+  publicCode: string;
+};
+
 export type VehicleUpdate = {
   vehicleId: string;
   mode: VehicleModeEnumeration;
+  line: Line;
+  delay: number;
   location: {
     latitude: number;
     longitude: number;
