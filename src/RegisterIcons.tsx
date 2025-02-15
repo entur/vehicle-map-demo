@@ -2,10 +2,28 @@ import { useEffect } from "react";
 import { useMap } from "react-map-gl/maplibre";
 
 // Suppose you have these imports:
-import busIcon from "./bus-1052.png";
+import busIcon from "./static/images/bus-icon.png";
+import busRed from "./static/images/bus-red.png";
+import busGreen from "./static/images/bus-green.png";
+import ferryIcon from "./static/images/ferry-icon.png";
+import ferryRed from "./static/images/ferry-red.png";
+import ferryGreen from "./static/images/ferry-green.png";
+import trainIcon from "./static/images/train-icon.png";
+import trainRed from "./static/images/train-red.png";
+import trainGreen from "./static/images/train-green.png";
 
 // Prepare a small list of icons we want to register
-const images = [{ name: "bus-icon", url: busIcon }];
+const images = [
+  { name: "bus-icon", url: busIcon },
+  { name: "bus-red", url: busRed },
+  { name: "bus-green", url: busGreen },
+  { name: "ferry-icon", url: ferryIcon },
+  { name: "ferry-red", url: ferryRed },
+  { name: "ferry-green", url: ferryGreen },
+  { name: "train-icon", url: trainIcon },
+  { name: "train-red", url: trainRed },
+  { name: "train-green", url: trainGreen },
+];
 
 export function RegisterIcons() {
   const { current: mapRef } = useMap();

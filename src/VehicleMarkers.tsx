@@ -1,10 +1,13 @@
 import { useEffect } from "react";
 import { useMap } from "react-map-gl/maplibre";
-import { VehicleUpdate } from "./types.ts";
+import { VehicleModeEnumeration, VehicleUpdate } from "./types.ts";
 import { GeoJSONSource } from "maplibre-gl";
 
 type SelectedVehicleProperties = {
   id: string;
+  mode: VehicleModeEnumeration;
+  lineCode: string;
+  delay: number;
 };
 
 export type SelectedVehicle = {
@@ -23,6 +26,9 @@ const createFeature = (
     },
     properties: {
       id: vehicle.vehicleId,
+      mode: vehicle.mode,
+      lineCode: vehicle.line.publicCode,
+      delay: vehicle.delay,
     },
   };
 };

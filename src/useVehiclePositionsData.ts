@@ -13,6 +13,13 @@ const subscriptionQuery = `
       vehicleId
       line {lineRef}
       lastUpdated
+      mode
+      delay
+      line {
+        lineRef
+        lineName
+        publicCode
+      }
       location {
         latitude
         longitude

@@ -40,6 +40,9 @@ export function MapView({ data, setCurrentFilter }: MapViewProps) {
           <div>
             <h4>Vehicle Info</h4>
             <p>ID: {selectedVehicle.properties.id as string}</p>
+            <p>Mode: {selectedVehicle.properties.mode as string}</p>
+            <p>Line number: {selectedVehicle.properties.lineCode as string}</p>
+            <p>Delay: {selectedVehicle.properties.delay as number}</p>
           </div>
         </Popup>
       )}
