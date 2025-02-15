@@ -6,6 +6,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { SelectedVehicle, VehicleMarkers } from "./VehicleMarkers.tsx";
 import { useState } from "react";
 import { RegisterIcons } from "./RegisterIcons.tsx";
+import { UserPositionDetector } from "./UserPositionDetector.tsx";
 
 type MapViewProps = {
   data: VehicleUpdate[];
@@ -26,6 +27,7 @@ export function MapView({ data, setCurrentFilter }: MapViewProps) {
       mapStyle={mapStyle}
     >
       <RegisterIcons />
+      <UserPositionDetector />
       <CaptureBoundingBox setCurrentFilter={setCurrentFilter} />
       <VehicleMarkers data={data} setSelectedVehicle={setSelectedVehicle} />
       {selectedVehicle && (
