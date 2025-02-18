@@ -14,6 +14,9 @@ export const mapStyle: StyleSpecification = {
     vehicles: {
       type: "geojson",
       data: { type: "FeatureCollection", features: [] },
+      cluster: true,
+      clusterMaxZoom: 14, // Max zoom to cluster points on
+      clusterRadius: 5,
     },
   },
 
@@ -48,6 +51,7 @@ export const mapStyle: StyleSpecification = {
         "text-font": ["Open Sans Regular", "Arial Unicode MS Regular"],
         "text-anchor": "top-left", // put text above the point
         "text-offset": [0, -2.2], // shift it a bit so it doesn’t overlap the icon
+        "text-allow-overlap": true,
       },
       paint: {
         "text-color": "#000",
