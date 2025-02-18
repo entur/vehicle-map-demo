@@ -44,19 +44,65 @@ export const mapStyle: StyleSpecification = {
           "tram-icon",
           /* default: */ "bus-red",
         ],
-        "icon-size": 0.15, // Adjust size as needed
+        "icon-size": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          8,
+          0.1, // smaller at zoom 8
+          12,
+          0.15, // medium at zoom 12
+          14,
+          0.25,
+          18,
+          0.35, // bigger at zoom 16
+        ], // Adjust size as needed
         "icon-allow-overlap": true,
         "text-field": ["get", "lineCode"], // read from feature.properties.lineCode
         "text-size": 12,
         "text-font": ["Open Sans Regular", "Arial Unicode MS Regular"],
         "text-anchor": "top-left", // put text above the point
-        "text-offset": [0, -2.2], // shift it a bit so it doesn’t overlap the icon
+        "text-offset": [0, -2.9],
+        // shift it a bit so it doesn’t overlap the icon
         "text-allow-overlap": true,
       },
       paint: {
         "text-color": "#000",
         "text-halo-color": "#FFF",
-        "text-halo-width": 2,
+        "text-halo-width": 5,
+        "text-opacity": ["interpolate", ["linear"], ["zoom"], 13, 0, 13.01, 1],
+      },
+    },
+    {
+      id: "delay",
+      type: "circle",
+      source: "vehicles",
+      minzoom: 15,
+      paint: {
+        "circle-radius": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          // At zoom level 12, radius will be 6
+          14,
+          6,
+          // At zoom level 16, radius will be 10
+          16,
+          10,
+        ],
+        "circle-translate": [-30, -30],
+        "circle-color": [
+          "step",
+          ["get", "delay"],
+          "#00FF00", // green
+          180,
+          "#FFFF00", // yellow
+          300,
+          "#FF0000", // red
+        ],
+      },
+      layout: {
+        // "visibility": "none" // Uncomment if you want hidden by default
       },
     },
   ],
