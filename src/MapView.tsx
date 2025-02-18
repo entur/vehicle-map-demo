@@ -1,4 +1,4 @@
-import { Map, Popup } from "react-map-gl/maplibre";
+import { Map, Popup, NavigationControl } from "react-map-gl/maplibre";
 import { mapStyle } from "./mapStyle.ts";
 import { CaptureBoundingBox } from "./CaptureBoundingBox.tsx";
 import { Filter, VehicleUpdate } from "./types.ts";
@@ -7,6 +7,7 @@ import { SelectedVehicle, VehicleMarkers } from "./VehicleMarkers.tsx";
 import { useState } from "react";
 import { RegisterIcons } from "./RegisterIcons.tsx";
 import { UserPositionDetector } from "./UserPositionDetector.tsx";
+import RightMenu from "./RightMenu.tsx";
 
 type MapViewProps = {
   data: VehicleUpdate[];
@@ -26,6 +27,8 @@ export function MapView({ data, setCurrentFilter }: MapViewProps) {
       }}
       mapStyle={mapStyle}
     >
+      <NavigationControl position="top-left" />
+      <RightMenu position={"top-left"}></RightMenu>
       <RegisterIcons />
       <UserPositionDetector />
       <CaptureBoundingBox setCurrentFilter={setCurrentFilter} />

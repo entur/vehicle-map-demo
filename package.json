@@ -13,6 +13,12 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@fontsource/roboto": "^5.1.1",
+    "@mui/material": "^6.4.4",
+    "graphql": "^16.10.0",
+    "graphql-request": "^7.1.2",
     "graphql-ws": "^6.0.3",
     "maplibre-gl": "^5.1.0",
     "react": "^19.0.0",

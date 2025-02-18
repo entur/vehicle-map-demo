@@ -1,11 +1,8 @@
-import { createClient, FormattedExecutionResult } from "graphql-ws";
+import { FormattedExecutionResult } from "graphql-ws";
 import { Data, Filter, VehicleUpdate } from "./types.ts";
 import { useEffect, useRef, useState } from "react";
 import { CacheMap } from "./CacheMap.ts";
-
-const client = createClient({
-  url: "wss://api.entur.io/realtime/v2/vehicles/subscriptions",
-});
+import { subscriptionClient } from "./client.ts";
 
 const subscriptionQuery = `
   subscription($minLat: Float!, $minLon: Float!, $maxLat: Float!, $maxLon: Float!) {
@@ -59,7 +56,7 @@ export const useVehiclePositionsData = (filter: Filter | null) => {
       subscription.current.return();
     }
 
-    subscription.current = client.iterate<Data>({
+    subscription.current = subscriptionClient.iterate<Data>({
       query: subscriptionQuery,
       variables: {
         minLon: filter?.boundingBox[0][0],

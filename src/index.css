@@ -1,3 +1,58 @@
 body {
   margin: 0;
 }
+
+.right-menu-container {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 100%;
+  background-color: #f4f4f4;
+  overflow-x: hidden;
+  transition: 0.3s;
+  padding-top: 60px;
+  box-shadow: none;
+}
+
+.right-menu-container.open {
+  width: 250px;
+  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
+}
+
+.sidebar-button.right {
+  position: absolute;
+  right: 10px;
+  width: 48px; /* set a fixed width  */
+  height: 48px; /* set a fixed height */
+  background: #fff;
+  color: #000; /* changed text color to black for contrast */
+  border: none;
+  border-radius: 50%; /* makes it round */
+  cursor: pointer;
+  transition:
+    right 0.3s,
+    background-color 0.2s;
+
+  /* Center the text/icon inside (optional) */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px; /* adjust if needed */
+}
+
+.sidebar-button.right.open {
+  right: 275px; /* Shifted position when sidebar is open */
+}
+
+.sidebar-button.active {
+  background: #fff;
+}
+
+.sidebar-button:hover {
+  background: #4078bc; /* Slightly darker when hovered */
+}
+
+.sidebar-button.active:hover {
+  background: #fff;
+}
