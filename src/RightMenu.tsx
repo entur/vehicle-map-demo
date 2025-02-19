@@ -1,10 +1,13 @@
 import { Component } from "react";
 import { ControlPosition } from "react-map-gl/maplibre";
 import filterIcon from "./static/images/filter.png";
-import { OperatorFilter } from "./OperatorFilter.tsx";
+import { Filter } from "./types.ts";
+import { CodespaceFilter } from "./CodespaceFilter.tsx";
 
 interface RightMenuProps {
   position: ControlPosition;
+  setCurrentFilter: (filter: Filter) => void;
+  currentFilter: Filter | null | undefined;
 }
 
 interface RightMenuState {
@@ -69,7 +72,14 @@ class RightMenu extends Component<RightMenuProps, RightMenuState> {
             boxShadow: isSidebarOpen ? "-2px 0 5px rgba(0, 0, 0, 0.2)" : "none",
           }}
         >
-          {isSidebarOpen && activeContent === "filtering" && <OperatorFilter />}
+          {isSidebarOpen &&
+            activeContent === "filtering" &&
+            this.props.currentFilter && (
+              <CodespaceFilter
+                setCurrentFilter={this.props.setCurrentFilter}
+                currentFilter={this.props.currentFilter}
+              />
+            )}
         </div>
       </div>
     );

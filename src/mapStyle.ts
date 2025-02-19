@@ -49,13 +49,13 @@ export const mapStyle: StyleSpecification = {
           ["linear"],
           ["zoom"],
           8,
-          0.1, // smaller at zoom 8
+          0.12, // smaller at zoom 8
           12,
-          0.15, // medium at zoom 12
+          0.2, // medium at zoom 12
           14,
           0.25,
           18,
-          0.35, // bigger at zoom 16
+          0.35, // bigger at zoom 18
         ], // Adjust size as needed
         "icon-allow-overlap": true,
         "text-field": ["get", "lineCode"], // read from feature.properties.lineCode

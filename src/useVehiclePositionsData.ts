@@ -5,10 +5,12 @@ import { CacheMap } from "./CacheMap.ts";
 import { subscriptionClient } from "./client.ts";
 
 const subscriptionQuery = `
-  subscription($minLat: Float!, $minLon: Float!, $maxLat: Float!, $maxLon: Float!) {
-    vehicles (boundingBox: {minLat: $minLat, minLon: $minLon, maxLat: $maxLat, maxLon: $maxLon}) {
+  subscription($minLat: Float!, $minLon: Float!, $maxLat: Float!, $maxLon: Float!, $codespaceId: String) {
+    vehicles (boundingBox: {minLat: $minLat, minLon: $minLon, maxLat: $maxLat, maxLon: $maxLon}, codespaceId: $codespaceId) {
       vehicleId
-      line {lineRef}
+      codespace {
+        codespaceId
+      }
       lastUpdated
       mode
       delay
@@ -26,18 +28,26 @@ const subscriptionQuery = `
 `;
 
 const filterVehicles = (filter: Filter | null, vehicles: VehicleUpdate[]) => {
-  if (filter !== null) {
-    return vehicles.filter((vehicle) => {
-      return (
-        vehicle.location.latitude > filter.boundingBox[0][1] &&
-        vehicle.location.latitude < filter.boundingBox[1][1] &&
-        vehicle.location.longitude > filter.boundingBox[0][0] &&
-        vehicle.location.longitude < filter.boundingBox[1][0]
-      );
-    });
-  } else {
+  // If no filter, return all vehicles
+  if (!filter) {
     return vehicles;
   }
+
+  return vehicles.filter((vehicle) => {
+    const inBoundingBox =
+      vehicle.location.latitude > filter.boundingBox[0][1] &&
+      vehicle.location.latitude < filter.boundingBox[1][1] &&
+      vehicle.location.longitude > filter.boundingBox[0][0] &&
+      vehicle.location.longitude < filter.boundingBox[1][0];
+
+    debugger;
+    const inCodespace =
+      // If filter.codespaceId is falsy (e.g. undefined/null), skip codespace filtering
+      !filter.codespaceId ||
+      vehicle.codespace.codespaceId === filter.codespaceId;
+
+    return inBoundingBox && inCodespace;
+  });
 };
 
 export const useVehiclePositionsData = (filter: Filter | null) => {
@@ -55,7 +65,6 @@ export const useVehiclePositionsData = (filter: Filter | null) => {
     if (subscription.current?.return) {
       subscription.current.return();
     }
-
     subscription.current = subscriptionClient.iterate<Data>({
       query: subscriptionQuery,
       variables: {
@@ -63,6 +72,7 @@ export const useVehiclePositionsData = (filter: Filter | null) => {
         minLat: filter?.boundingBox[0][1],
         maxLon: filter?.boundingBox[1][0],
         maxLat: filter?.boundingBox[1][1],
+        ...(filter?.codespaceId && { codespaceId: filter.codespaceId }),
       },
     });
     const subscribe = async () => {

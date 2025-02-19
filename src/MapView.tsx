@@ -12,9 +12,14 @@ import RightMenu from "./RightMenu.tsx";
 type MapViewProps = {
   data: VehicleUpdate[];
   setCurrentFilter: (filter: Filter) => void;
+  currentFilter: Filter;
 };
 
-export function MapView({ data, setCurrentFilter }: MapViewProps) {
+export function MapView({
+  data,
+  setCurrentFilter,
+  currentFilter,
+}: MapViewProps) {
   const [selectedVehicle, setSelectedVehicle] =
     useState<SelectedVehicle | null>(null);
 
@@ -28,10 +33,17 @@ export function MapView({ data, setCurrentFilter }: MapViewProps) {
       mapStyle={mapStyle}
     >
       <NavigationControl position="top-left" />
-      <RightMenu position={"top-left"}></RightMenu>
+      <RightMenu
+        position={"top-left"}
+        setCurrentFilter={setCurrentFilter}
+        currentFilter={currentFilter}
+      ></RightMenu>
       <RegisterIcons />
       <UserPositionDetector />
-      <CaptureBoundingBox setCurrentFilter={setCurrentFilter} />
+      <CaptureBoundingBox
+        currentFilter={currentFilter}
+        setCurrentFilter={setCurrentFilter}
+      />
       <VehicleMarkers data={data} setSelectedVehicle={setSelectedVehicle} />
       {selectedVehicle && (
         <Popup
@@ -46,6 +58,7 @@ export function MapView({ data, setCurrentFilter }: MapViewProps) {
             <p>Mode: {selectedVehicle.properties.mode as string}</p>
             <p>Line number: {selectedVehicle.properties.lineCode as string}</p>
             <p>Delay: {selectedVehicle.properties.delay as number}</p>
+            <p>Codespace: {selectedVehicle.properties.codespaceId}</p>
           </div>
         </Popup>
       )}

@@ -23,8 +23,10 @@ const throttle = <T extends unknown[]>(
 };
 
 export function CaptureBoundingBox({
+  currentFilter,
   setCurrentFilter,
 }: {
+  currentFilter: Filter;
   setCurrentFilter: (filter: Filter) => void;
 }) {
   const { current: map } = useMap();
@@ -37,7 +39,7 @@ export function CaptureBoundingBox({
         [bounds.getSouthWest().lng, bounds.getSouthWest().lat],
         [bounds.getNorthEast().lng, bounds.getNorthEast().lat],
       ];
-      setCurrentFilter({ boundingBox });
+      setCurrentFilter({ ...currentFilter, boundingBox: boundingBox });
     }, 500);
     const mapInstance = map.getMap();
     mapInstance.on("moveend", handleMoveEnd);

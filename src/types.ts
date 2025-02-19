@@ -10,6 +10,7 @@ export type VehicleModeEnumeration =
 
 export type Filter = {
   boundingBox: number[][];
+  codespaceId?: string;
 };
 
 export type Line = {
@@ -18,8 +19,13 @@ export type Line = {
   publicCode: string;
 };
 
+export type Codespace = {
+  codespaceId: string;
+};
+
 export type VehicleUpdate = {
   vehicleId: string;
+  codespace: Codespace;
   mode: VehicleModeEnumeration;
   line: Line;
   delay: number;

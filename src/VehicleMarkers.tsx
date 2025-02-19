@@ -7,6 +7,7 @@ type SelectedVehicleProperties = {
   id: string;
   mode: VehicleModeEnumeration;
   lineCode: string;
+  codespaceId: string;
   delay: number;
 };
 
@@ -28,6 +29,7 @@ const createFeature = (
       id: vehicle.vehicleId,
       mode: vehicle.mode,
       lineCode: vehicle.line.publicCode,
+      codespaceId: vehicle.codespace.codespaceId,
       delay: vehicle.delay,
     },
   };

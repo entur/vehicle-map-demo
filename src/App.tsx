@@ -29,7 +29,11 @@ function App() {
   return (
     <div style={{ width: "100vw", height: "100vh" }}>
       <ThemeProvider theme={theme}>
-        <MapView data={data} setCurrentFilter={setCurrentFilter} />
+        <MapView
+          data={data}
+          setCurrentFilter={setCurrentFilter}
+          currentFilter={currentFilter}
+        />
       </ThemeProvider>
     </div>
   );
