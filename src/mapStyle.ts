@@ -14,7 +14,7 @@ export const mapStyle: StyleSpecification = {
     vehicles: {
       type: "geojson",
       data: { type: "FeatureCollection", features: [] },
-      cluster: true,
+      cluster: false,
       clusterMaxZoom: 14, // Max zoom to cluster points on
       clusterRadius: 5,
     },
@@ -48,6 +48,8 @@ export const mapStyle: StyleSpecification = {
           "interpolate",
           ["linear"],
           ["zoom"],
+          4,
+          0.08,
           8,
           0.12, // smaller at zoom 8
           12,
@@ -105,6 +107,57 @@ export const mapStyle: StyleSpecification = {
       },
       layout: {
         // "visibility": "none" // Uncomment if you want hidden by default
+      },
+    },
+    {
+      id: "vehicle-delay-heatmap",
+      type: "heatmap",
+      source: "vehicles", // Same source name as in your style
+      maxzoom: 19, // For instance
+      paint: {
+        // Weight each point by its "delay" property:
+        "heatmap-weight": [
+          "interpolate",
+          ["linear"],
+          ["get", "delay"],
+          0,
+          0, // If delay=0, weight=0
+          180,
+          0.5, // If delay=180, weight=0.5
+          300,
+          1, // If delay=300 or above, weight=1
+        ],
+
+        // Increase the heatmap intensity at higher zoom levels:
+        "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 0, 1, 14, 3],
+
+        // Define a color ramp for the heatmap:
+        "heatmap-color": [
+          "interpolate",
+          ["linear"],
+          ["heatmap-density"], // The computed "density" of points
+          0,
+          "rgba(33,102,172,0)",
+          0.2,
+          "rgb(103,169,207)",
+          0.4,
+          "rgb(209,229,240)",
+          0.6,
+          "rgb(253,219,199)",
+          0.8,
+          "rgb(239,138,98)",
+          1,
+          "rgb(178,24,43)",
+        ],
+
+        // Increase radius as zoom increases
+        "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 0, 2, 14, 20],
+
+        // Decrease heatmap opacity at high zoom levels
+        "heatmap-opacity": ["interpolate", ["linear"], ["zoom"], 8, 1, 14, 0.3],
+      },
+      layout: {
+        visibility: "none",
       },
     },
   ],

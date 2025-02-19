@@ -1,9 +1,11 @@
 import { Component } from "react";
 import filterIcon from "./static/images/filter.png";
 import metadataIcon from "./static/images/metadata.png";
+import layersIcon from "./static/images/layers.png";
 import { Filter, VehicleUpdate } from "./types.ts";
 import { CodespaceFilter } from "./CodespaceFilter.tsx";
 import { MetadataBox } from "./MetadataBox.tsx";
+import { MapLayerToggles } from "./MapLayerToggles.tsx";
 
 interface RightMenuProps {
   setCurrentFilter: (filter: Filter) => void;
@@ -13,7 +15,7 @@ interface RightMenuProps {
 
 interface RightMenuState {
   isSidebarOpen: boolean;
-  activeContent: "filtering" | "metadata" | null; // Track the active content
+  activeContent: "filtering" | "metadata" | "layers" | null; // Track the active content
 }
 
 class RightMenu extends Component<RightMenuProps, RightMenuState> {
@@ -74,6 +76,22 @@ class RightMenu extends Component<RightMenuProps, RightMenuState> {
           />
         </button>
 
+        <button
+          onClick={() => this.toggleSidebar("layers")}
+          className={`sidebar-button right ${activeContent === "layers" ? "active" : ""} ${
+            isSidebarOpen ? "open" : ""
+          }`}
+          style={{
+            top: "130px",
+          }}
+        >
+          <img
+            src={layersIcon}
+            alt="Layers"
+            title="Layers"
+            style={{ width: "40px", height: "40px" }}
+          />
+        </button>
         {/* Sidebar */}
         <div className={`right-menu-container ${isSidebarOpen ? "open" : ""}`}>
           {isSidebarOpen &&
@@ -89,6 +107,9 @@ class RightMenu extends Component<RightMenuProps, RightMenuState> {
             this.props.currentFilter && (
               <MetadataBox title={"Metadata"} data={this.props.data} />
             )}
+          {isSidebarOpen &&
+            activeContent === "layers" &&
+            this.props.currentFilter && <MapLayerToggles />}
         </div>
       </div>
     );
