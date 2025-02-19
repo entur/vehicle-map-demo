@@ -6,6 +6,7 @@ import { Filter, VehicleUpdate } from "./types.ts";
 import { CodespaceFilter } from "./CodespaceFilter.tsx";
 import { MetadataBox } from "./MetadataBox.tsx";
 import { MapLayerToggles } from "./MapLayerToggles.tsx";
+import { OperatorFilter } from "./OperatorFilter.tsx";
 
 interface RightMenuProps {
   setCurrentFilter: (filter: Filter) => void;
@@ -98,6 +99,14 @@ class RightMenu extends Component<RightMenuProps, RightMenuState> {
             activeContent === "filtering" &&
             this.props.currentFilter && (
               <CodespaceFilter
+                setCurrentFilter={this.props.setCurrentFilter}
+                currentFilter={this.props.currentFilter}
+              />
+            )}
+          {isSidebarOpen &&
+            activeContent === "filtering" &&
+            this.props.currentFilter && (
+              <OperatorFilter
                 setCurrentFilter={this.props.setCurrentFilter}
                 currentFilter={this.props.currentFilter}
               />

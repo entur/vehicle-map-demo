@@ -11,6 +11,7 @@ export type VehicleModeEnumeration =
 export type Filter = {
   boundingBox: number[][];
   codespaceId?: string;
+  operatorRef?: string;
 };
 
 export type Line = {
@@ -23,9 +24,14 @@ export type Codespace = {
   codespaceId: string;
 };
 
+export type Operator = {
+  operatorRef: string;
+};
+
 export type VehicleUpdate = {
   vehicleId: string;
   codespace: Codespace;
+  operator: Operator;
   mode: VehicleModeEnumeration;
   line: Line;
   delay: number;

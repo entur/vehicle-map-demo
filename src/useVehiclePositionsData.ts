@@ -5,11 +5,14 @@ import { CacheMap } from "./CacheMap.ts";
 import { subscriptionClient } from "./client.ts";
 
 const subscriptionQuery = `
-  subscription($minLat: Float!, $minLon: Float!, $maxLat: Float!, $maxLon: Float!, $codespaceId: String) {
-    vehicles (boundingBox: {minLat: $minLat, minLon: $minLon, maxLat: $maxLat, maxLon: $maxLon}, codespaceId: $codespaceId) {
+  subscription($minLat: Float!, $minLon: Float!, $maxLat: Float!, $maxLon: Float!, $codespaceId: String, $operatorRef: String) {
+    vehicles (boundingBox: {minLat: $minLat, minLon: $minLon, maxLat: $maxLat, maxLon: $maxLon}, codespaceId: $codespaceId, operatorRef: $operatorRef) {
       vehicleId
       codespace {
         codespaceId
+      }
+      operator {
+        operatorRef
       }
       lastUpdated
       mode
@@ -45,7 +48,12 @@ const filterVehicles = (filter: Filter | null, vehicles: VehicleUpdate[]) => {
       !filter.codespaceId ||
       vehicle.codespace.codespaceId === filter.codespaceId;
 
-    return inBoundingBox && inCodespace;
+    const inOperatorRef =
+      // If filter.operatorRef is falsy (e.g. undefined/null), skip operatorRef filtering
+      !filter.operatorRef ||
+      vehicle.operator.operatorRef === filter.operatorRef;
+
+    return inOperatorRef && inBoundingBox && inCodespace;
   });
 };
 
@@ -72,6 +80,7 @@ export const useVehiclePositionsData = (filter: Filter | null) => {
         maxLon: filter?.boundingBox[1][0],
         maxLat: filter?.boundingBox[1][1],
         ...(filter?.codespaceId && { codespaceId: filter.codespaceId }),
+        ...(filter?.operatorRef && { operatorRef: filter.operatorRef }),
       },
     });
     const subscribe = async () => {
