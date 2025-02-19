@@ -1,18 +1,30 @@
+import {
+  Card,
+  CardContent,
+  Typography,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  SelectChangeEvent,
+} from "@mui/material";
 import { Filter } from "./types.ts";
 import { useCodespaces } from "./useCodespaces.ts";
+
+type CodespaceFilterProps = {
+  currentFilter: Filter;
+  setCurrentFilter: (filter: Filter) => void;
+};
 
 export function CodespaceFilter({
   currentFilter,
   setCurrentFilter,
-}: {
-  setCurrentFilter: (filter: Filter) => void;
-  currentFilter: Filter;
-}) {
+}: CodespaceFilterProps) {
   const codespaces = useCodespaces();
 
-  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value;
-    // Update the filter by merging the new codespaceId with any existing filter properties
+  const handleChange = (e: SelectChangeEvent) => {
+    const value = e.target.value as string;
+    // Merge the new codespaceId into the existing filter object
     setCurrentFilter({
       ...currentFilter,
       codespaceId: value,
@@ -20,20 +32,31 @@ export function CodespaceFilter({
   };
 
   return (
-    <div style={{ padding: "10px" }}>
-      <label htmlFor="codespace-select">Select Codespace:</label>
-      <select
-        id="codespace-select"
-        value={currentFilter.codespaceId}
-        onChange={handleChange}
-      >
-        <option value="">All</option>
-        {codespaces.map((cs) => (
-          <option key={cs} value={cs}>
-            {cs}
-          </option>
-        ))}
-      </select>
-    </div>
+    <Card>
+      <CardContent>
+        <Typography variant="h6" gutterBottom>
+          Codespace Filter
+        </Typography>
+        <FormControl fullWidth>
+          <InputLabel id="codespace-select-label">Select Codespace</InputLabel>
+          <Select
+            labelId="codespace-select-label"
+            id="codespace-select"
+            value={currentFilter.codespaceId}
+            onChange={handleChange}
+            label="Select Codespace"
+          >
+            <MenuItem value="">
+              <em>All</em>
+            </MenuItem>
+            {codespaces.map((cs) => (
+              <MenuItem key={cs} value={cs}>
+                {cs}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </CardContent>
+    </Card>
   );
 }

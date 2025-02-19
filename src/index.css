@@ -7,11 +7,10 @@ body {
   top: 0;
   right: 0;
   width: 0;
-  height: 100%;
   background-color: #f4f4f4;
   overflow-x: hidden;
   transition: 0.3s;
-  padding-top: 60px;
+  margin-top: 20px;
   box-shadow: none;
 }
 
