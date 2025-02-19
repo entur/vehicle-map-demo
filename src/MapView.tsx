@@ -12,7 +12,7 @@ import RightMenu from "./RightMenu.tsx";
 type MapViewProps = {
   data: VehicleUpdate[];
   setCurrentFilter: (filter: Filter) => void;
-  currentFilter: Filter;
+  currentFilter: Filter | null;
 };
 
 export function MapView({

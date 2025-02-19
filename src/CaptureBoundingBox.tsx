@@ -26,7 +26,7 @@ export function CaptureBoundingBox({
   currentFilter,
   setCurrentFilter,
 }: {
-  currentFilter: Filter;
+  currentFilter: Filter | null;
   setCurrentFilter: (filter: Filter) => void;
 }) {
   const { current: map } = useMap();
