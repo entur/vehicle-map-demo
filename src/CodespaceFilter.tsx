@@ -42,7 +42,7 @@ export function CodespaceFilter({
           <Select
             labelId="codespace-select-label"
             id="codespace-select"
-            value={currentFilter.codespaceId}
+            value={currentFilter.codespaceId ?? ""}
             onChange={handleChange}
             label="Select Codespace"
           >
