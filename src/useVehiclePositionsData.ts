@@ -40,7 +40,6 @@ const filterVehicles = (filter: Filter | null, vehicles: VehicleUpdate[]) => {
       vehicle.location.longitude > filter.boundingBox[0][0] &&
       vehicle.location.longitude < filter.boundingBox[1][0];
 
-    debugger;
     const inCodespace =
       // If filter.codespaceId is falsy (e.g. undefined/null), skip codespace filtering
       !filter.codespaceId ||
