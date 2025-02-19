@@ -1,11 +1,9 @@
 import { Component } from "react";
-import { ControlPosition } from "react-map-gl/maplibre";
 import filterIcon from "./static/images/filter.png";
 import { Filter } from "./types.ts";
 import { CodespaceFilter } from "./CodespaceFilter.tsx";
 
 interface RightMenuProps {
-  position: ControlPosition;
   setCurrentFilter: (filter: Filter) => void;
   currentFilter: Filter | null | undefined;
 }
