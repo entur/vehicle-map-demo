@@ -21,12 +21,11 @@ body {
 
 .sidebar-button.right {
   position: absolute;
-  right: 10px;
+  right: 5px;
   width: 48px; /* set a fixed width  */
   height: 48px; /* set a fixed height */
   background: #fff;
-  color: #000; /* changed text color to black for contrast */
-  border: none;
+  border: 1px solid;
   border-radius: 50%; /* makes it round */
   cursor: pointer;
   transition:
@@ -41,17 +40,13 @@ body {
 }
 
 .sidebar-button.right.open {
-  right: 275px; /* Shifted position when sidebar is open */
+  right: 255px; /* Shifted position when sidebar is open */
 }
 
 .sidebar-button.active {
-  background: #fff;
+  background: #1fcac2;
 }
 
 .sidebar-button:hover {
-  background: #4078bc; /* Slightly darker when hovered */
-}
-
-.sidebar-button.active:hover {
-  background: #fff;
+  background: #5d9c9b; /* Slightly darker when hovered */
 }

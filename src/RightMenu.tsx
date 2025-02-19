@@ -75,13 +75,7 @@ class RightMenu extends Component<RightMenuProps, RightMenuState> {
         </button>
 
         {/* Sidebar */}
-        <div
-          className="right-menu-container"
-          style={{
-            width: isSidebarOpen ? "270px" : "0",
-            boxShadow: isSidebarOpen ? "-2px 0 5px rgba(0, 0, 0, 0.2)" : "none",
-          }}
-        >
+        <div className={`right-menu-container ${isSidebarOpen ? "open" : ""}`}>
           {isSidebarOpen &&
             activeContent === "filtering" &&
             this.props.currentFilter && (
