@@ -62,7 +62,7 @@ export const mapStyle: StyleSpecification = {
         "text-size": 12,
         "text-font": ["Open Sans Regular", "Arial Unicode MS Regular"],
         "text-anchor": "top-left", // put text above the point
-        "text-offset": [0, -2.9],
+        "text-offset": [0, -3.1],
         // shift it a bit so it doesn’t overlap the icon
         "text-allow-overlap": true,
       },
@@ -77,20 +77,22 @@ export const mapStyle: StyleSpecification = {
       id: "delay",
       type: "circle",
       source: "vehicles",
-      minzoom: 15,
+      minzoom: 13,
       paint: {
         "circle-radius": [
           "interpolate",
           ["linear"],
           ["zoom"],
           // At zoom level 12, radius will be 6
-          14,
-          6,
-          // At zoom level 16, radius will be 10
-          16,
+          13,
           10,
+          // At zoom level 16, radius will be 10
+          15,
+          9,
+          17,
+          8,
         ],
-        "circle-translate": [-30, -30],
+        "circle-translate": [-20, -30],
         "circle-color": [
           "step",
           ["get", "delay"],

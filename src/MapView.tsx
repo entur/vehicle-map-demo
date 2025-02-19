@@ -11,7 +11,7 @@ import RightMenu from "./RightMenu.tsx";
 
 type MapViewProps = {
   data: VehicleUpdate[];
-  setCurrentFilter: (filter: Filter) => void;
+  setCurrentFilter: React.Dispatch<React.SetStateAction<Filter | null>>;
   currentFilter: Filter | null;
 };
 
