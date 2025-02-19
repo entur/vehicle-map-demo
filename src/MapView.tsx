@@ -8,7 +8,6 @@ import { useState } from "react";
 import { RegisterIcons } from "./RegisterIcons.tsx";
 import { UserPositionDetector } from "./UserPositionDetector.tsx";
 import RightMenu from "./RightMenu.tsx";
-import { MetadataBox } from "./MetadataBox.tsx";
 
 type MapViewProps = {
   data: VehicleUpdate[];
@@ -35,6 +34,7 @@ export function MapView({
     >
       <NavigationControl position="top-left" />
       <RightMenu
+        data={data}
         setCurrentFilter={setCurrentFilter}
         currentFilter={currentFilter}
       ></RightMenu>
@@ -45,7 +45,6 @@ export function MapView({
         setCurrentFilter={setCurrentFilter}
       />
       <VehicleMarkers data={data} setSelectedVehicle={setSelectedVehicle} />
-      <MetadataBox title="Map Metadata" data={data} />
       {selectedVehicle && (
         <Popup
           longitude={selectedVehicle.coordinates[0]}

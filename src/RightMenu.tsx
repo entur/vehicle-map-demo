@@ -1,16 +1,19 @@
 import { Component } from "react";
 import filterIcon from "./static/images/filter.png";
-import { Filter } from "./types.ts";
+import metadataIcon from "./static/images/metadata.png";
+import { Filter, VehicleUpdate } from "./types.ts";
 import { CodespaceFilter } from "./CodespaceFilter.tsx";
+import { MetadataBox } from "./MetadataBox.tsx";
 
 interface RightMenuProps {
   setCurrentFilter: (filter: Filter) => void;
   currentFilter: Filter | null | undefined;
+  data: VehicleUpdate[];
 }
 
 interface RightMenuState {
   isSidebarOpen: boolean;
-  activeContent: "filtering" | "tripFilters" | null; // Track the active content
+  activeContent: "filtering" | "metadata" | null; // Track the active content
 }
 
 class RightMenu extends Component<RightMenuProps, RightMenuState> {
@@ -48,8 +51,25 @@ class RightMenu extends Component<RightMenuProps, RightMenuState> {
         >
           <img
             src={filterIcon}
-            alt="Debug layer"
-            title="Debug layer"
+            alt="Filter"
+            title="Filter"
+            style={{ width: "40px", height: "40px" }}
+          />
+        </button>
+
+        <button
+          onClick={() => this.toggleSidebar("metadata")}
+          className={`sidebar-button right ${activeContent === "metadata" ? "active" : ""} ${
+            isSidebarOpen ? "open" : ""
+          }`}
+          style={{
+            top: "75px",
+          }}
+        >
+          <img
+            src={metadataIcon}
+            alt="Metadata"
+            title="Metadata"
             style={{ width: "40px", height: "40px" }}
           />
         </button>
@@ -58,15 +78,7 @@ class RightMenu extends Component<RightMenuProps, RightMenuState> {
         <div
           className="right-menu-container"
           style={{
-            position: "absolute",
-            top: 0,
-            right: 0,
             width: isSidebarOpen ? "270px" : "0",
-            height: "100%",
-            backgroundColor: "#f4f4f4",
-            overflowX: "hidden",
-            transition: "0.3s",
-            paddingTop: "20px",
             boxShadow: isSidebarOpen ? "-2px 0 5px rgba(0, 0, 0, 0.2)" : "none",
           }}
         >
@@ -77,6 +89,11 @@ class RightMenu extends Component<RightMenuProps, RightMenuState> {
                 setCurrentFilter={this.props.setCurrentFilter}
                 currentFilter={this.props.currentFilter}
               />
+            )}
+          {isSidebarOpen &&
+            activeContent === "metadata" &&
+            this.props.currentFilter && (
+              <MetadataBox title={"Metadata"} data={this.props.data} />
             )}
         </div>
       </div>
