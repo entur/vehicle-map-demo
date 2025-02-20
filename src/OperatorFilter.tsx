@@ -42,6 +42,7 @@ export function OperatorFilter({
         <FormControl fullWidth>
           <InputLabel id="operator-select-label">Select Operator</InputLabel>
           <Select
+            disabled={!currentFilter.codespaceId}
             labelId="operator-select-label"
             id="operator-select"
             value={currentFilter.operatorRef ?? ""}
