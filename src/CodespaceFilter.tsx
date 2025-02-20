@@ -28,6 +28,7 @@ export function CodespaceFilter({
     setCurrentFilter({
       ...currentFilter,
       codespaceId: value,
+      operatorRef: undefined,
     });
   };
 
