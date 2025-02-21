@@ -2,7 +2,7 @@ name: Dependabot automerge PR
 "on": pull_request
 jobs:
   build:
-    if: ${{ github.event.pull_request.user.login == 'dependabot[bot]' && github.event_name == 'pull_request' && contains(github.event.pull_request.head.ref,'auto-merge-')}}
+    if: ${{ github.event.pull_request.user.login == 'dependabot[bot]' && github.event_name == 'pull_request'}}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
