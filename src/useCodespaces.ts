@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { gql, request } from "graphql-request";
+import { useConfig } from "./config/ConfigContext.ts";
 
 const query = gql`
   {
@@ -11,20 +12,21 @@ const query = gql`
 
 export function useCodespaces() {
   const [codespaces, setCodespaces] = useState<string[]>([]);
+  const config = useConfig();
   useEffect(() => {
     const fetchCodespaces = async () => {
       const response: any = await request(
-        "https://api.entur.io/realtime/v2/vehicles/graphql",
+        config["vehicle-positions-graphql-endpoint"],
         query,
       );
       setCodespaces(
         response.codespaces.map(
-          (codespace: { codespaceId: String }) => codespace.codespaceId,
+          (codespace: { codespaceId: string }) => codespace.codespaceId,
         ),
       );
     };
     fetchCodespaces();
-  }, []);
+  }, [config]);
 
   return codespaces;
 }

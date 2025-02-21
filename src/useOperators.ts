@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { gql, request } from "graphql-request";
+import { useConfig } from "./config/ConfigContext.ts";
 
 const query = gql`
   query ($codespaceId: String!) {
@@ -11,11 +12,12 @@ const query = gql`
 
 export function useOperators(codespaceId: string) {
   const [operators, setOperators] = useState<string[]>([]);
+  const config = useConfig();
 
   useEffect(() => {
     const fetchOperators = async () => {
       const response: any = await request(
-        "https://api.entur.io/realtime/v2/vehicles/graphql",
+        config["vehicle-positions-graphql-endpoint"],
         query,
         { codespaceId },
       );
@@ -26,7 +28,7 @@ export function useOperators(codespaceId: string) {
       );
     };
     fetchOperators();
-  }, [codespaceId]);
+  }, [codespaceId, config]);
 
   return operators;
 }

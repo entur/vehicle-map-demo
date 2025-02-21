@@ -21,6 +21,8 @@ jobs:
           name: dist
           path: dist
           github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Copy config
+        run: cp .github/environments/config-dev.json dist/bootstrap.json
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: "${{ secrets.GITHUB_TOKEN }}"
@@ -38,6 +40,8 @@ jobs:
           name: dist
           path: dist
           github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Copy config
+        run: cp .github/environments/config-staging.json dist/bootstrap.json
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: "${{ secrets.GITHUB_TOKEN }}"
@@ -55,6 +59,8 @@ jobs:
           name: dist
           path: dist
           github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Copy config
+        run: cp .github/environments/config-prod.json dist/bootstrap.json
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: "${{ secrets.GITHUB_TOKEN }}"

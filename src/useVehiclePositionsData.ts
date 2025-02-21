@@ -2,7 +2,7 @@ import { FormattedExecutionResult } from "graphql-ws";
 import { Data, Filter, VehicleUpdate } from "./types.ts";
 import { useEffect, useRef, useState } from "react";
 import { CacheMap } from "./CacheMap.ts";
-import { subscriptionClient } from "./client.ts";
+import { useSubscriptionClient } from "./useSubscriptionClient.ts";
 
 const subscriptionQuery = `
   subscription($minLat: Float!, $minLon: Float!, $maxLat: Float!, $maxLon: Float!, $codespaceId: String, $operatorRef: String) {
@@ -68,10 +68,13 @@ export const useVehiclePositionsData = (filter: Filter | null) => {
     useRef<AsyncIterableIterator<FormattedExecutionResult<Data, unknown>>>(
       null,
     );
+
+  const subscriptionClient = useSubscriptionClient();
   useEffect(() => {
     if (subscription.current?.return) {
       subscription.current.return();
     }
+
     subscription.current = subscriptionClient.iterate<Data>({
       query: subscriptionQuery,
       variables: {
@@ -100,6 +103,6 @@ export const useVehiclePositionsData = (filter: Filter | null) => {
     if (filter) {
       subscribe();
     }
-  }, [filter]);
+  }, [filter, subscriptionClient]);
   return data;
 };
