@@ -1,4 +1,4 @@
 {
   "vehicle-positions-graphql-endpoint": "https://api.staging.entur.io/realtime/v2/vehicles/graphql",
-  "vehicle-positions-subscriptions-endpoint": "wss://api.stagin.entur.io/realtime/v2/vehicles/subscriptions"
+  "vehicle-positions-subscriptions-endpoint": "wss://api.staging.entur.io/realtime/v2/vehicles/subscriptions"
 }
