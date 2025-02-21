@@ -10,7 +10,7 @@ jobs:
   deploy_dev:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Download all workflow run artifacts
         uses: actions/download-artifact@v4
         with:
@@ -29,7 +29,7 @@ jobs:
   deploy_staging:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Download all workflow run artifacts
         uses: actions/download-artifact@v4
         with:
@@ -48,7 +48,7 @@ jobs:
   deploy_prod:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Download all workflow run artifacts
         uses: actions/download-artifact@v4
         with:
