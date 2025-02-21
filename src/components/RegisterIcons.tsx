@@ -1,10 +1,10 @@
 import { useEffect } from "react";
 import { useMap } from "react-map-gl/maplibre";
 
-import busIcon from "./static/images/bus.png";
-import ferryIcon from "./static/images/ferry.png";
-import trainIcon from "./static/images/train.png";
-import tramIcon from "./static/images/tram.png";
+import busIcon from "../static/images/bus.png";
+import ferryIcon from "../static/images/ferry.png";
+import trainIcon from "../static/images/train.png";
+import tramIcon from "../static/images/tram.png";
 
 // Prepare a small list of icons we want to register
 const images = [

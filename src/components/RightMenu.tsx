@@ -1,8 +1,8 @@
 import { Component } from "react";
-import filterIcon from "./static/images/filter.png";
-import metadataIcon from "./static/images/metadata.png";
-import layersIcon from "./static/images/layers.png";
-import { Filter, VehicleUpdate } from "./types.ts";
+import filterIcon from "../static/images/filter.png";
+import metadataIcon from "../static/images/metadata.png";
+import layersIcon from "../static/images/layers.png";
+import { Filter, VehicleUpdate } from "../types.ts";
 import { CodespaceFilter } from "./CodespaceFilter.tsx";
 import { MetadataBox } from "./MetadataBox.tsx";
 import { MapLayerToggles } from "./MapLayerToggles.tsx";

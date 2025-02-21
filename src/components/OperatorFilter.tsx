@@ -8,8 +8,8 @@ import {
   SelectChangeEvent,
   Typography,
 } from "@mui/material";
-import { Filter } from "./types.ts";
-import { useOperators } from "./useOperators.ts";
+import { Filter } from "../types.ts";
+import { useOperators } from "../hooks/useOperators.ts";
 
 type OperatorFilterProps = {
   currentFilter: Filter;

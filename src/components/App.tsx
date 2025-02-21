@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Filter } from "./types.ts";
-import { useVehiclePositionsData } from "./useVehiclePositionsData.ts";
+import { Filter } from "../types.ts";
+import { useVehiclePositionsData } from "../hooks/useVehiclePositionsData.ts";
 import { MapView } from "./MapView.tsx";
 import { ThemeProvider } from "@mui/material";
 import { createTheme } from "@mui/material/styles";

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { gql, request } from "graphql-request";
-import { useConfig } from "./config/ConfigContext.ts";
+import { useConfig } from "../config/ConfigContext.ts";
 
 const query = gql`
   query ($codespaceId: String!) {

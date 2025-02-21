@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useMap } from "react-map-gl/maplibre";
-import { VehicleModeEnumeration, VehicleUpdate } from "./types.ts";
+import { VehicleModeEnumeration, VehicleUpdate } from "../types.ts";
 import { GeoJSONSource } from "maplibre-gl";
 
 type SelectedVehicleProperties = {

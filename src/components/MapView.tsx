@@ -1,7 +1,7 @@
 import { Map, Popup, NavigationControl } from "react-map-gl/maplibre";
 import { mapStyle } from "./mapStyle.ts";
 import { CaptureBoundingBox } from "./CaptureBoundingBox.tsx";
-import { Filter, VehicleUpdate } from "./types.ts";
+import { Filter, VehicleUpdate } from "../types.ts";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { SelectedVehicle, VehicleMarkers } from "./VehicleMarkers.tsx";
 import { useState } from "react";

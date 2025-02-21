@@ -1,7 +1,7 @@
 import { FormattedExecutionResult } from "graphql-ws";
-import { Data, Filter, VehicleUpdate } from "./types.ts";
+import { Data, Filter, VehicleUpdate } from "../types.ts";
 import { useEffect, useRef, useState } from "react";
-import { CacheMap } from "./CacheMap.ts";
+import { CacheMap } from "../utils/CacheMap.ts";
 import { useSubscriptionClient } from "./useSubscriptionClient.ts";
 
 const subscriptionQuery = `

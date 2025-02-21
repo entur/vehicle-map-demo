@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useMap } from "react-map-gl/maplibre";
-import { Filter } from "./types";
+import { Filter } from "../types.ts";
 
 // a simple throttle
 const throttle = <T extends any[]>(

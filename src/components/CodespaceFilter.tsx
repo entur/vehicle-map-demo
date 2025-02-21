@@ -8,8 +8,8 @@ import {
   MenuItem,
   SelectChangeEvent,
 } from "@mui/material";
-import { Filter } from "./types.ts";
-import { useCodespaces } from "./useCodespaces.ts";
+import { Filter } from "../types.ts";
+import { useCodespaces } from "../hooks/useCodespaces.ts";
 
 type CodespaceFilterProps = {
   currentFilter: Filter;

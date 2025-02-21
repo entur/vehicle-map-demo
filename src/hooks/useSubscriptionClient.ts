@@ -1,5 +1,5 @@
 import { createClient } from "graphql-ws";
-import { useConfig } from "./config/ConfigContext.ts";
+import { useConfig } from "../config/ConfigContext.ts";
 import { useRef } from "react";
 
 export const useSubscriptionClient = () => {

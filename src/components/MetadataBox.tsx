@@ -1,5 +1,5 @@
 import { Card, CardContent, Typography } from "@mui/material";
-import { VehicleUpdate } from "./types.ts";
+import { VehicleUpdate } from "../types.ts";
 
 // You can adjust/extend this type based on the metadata you want to display
 type MetadataBoxProps = {
