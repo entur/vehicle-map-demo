@@ -7,7 +7,7 @@ import { SelectedVehicle, VehicleMarkers } from "./VehicleMarkers.tsx";
 import { useState } from "react";
 import { RegisterIcons } from "./RegisterIcons.tsx";
 import { UserPositionDetector } from "./UserPositionDetector.tsx";
-import RightMenu from "./RightMenu.tsx";
+import { RightMenu } from "./RightMenu";
 
 type MapViewProps = {
   data: VehicleUpdate[];
