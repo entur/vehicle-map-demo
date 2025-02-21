@@ -26,7 +26,6 @@ export function OperatorFilter({
 
   const handleChange = (e: SelectChangeEvent) => {
     const value = e.target.value as string;
-    // Merge the new operatorRef into the existing filter object
     setCurrentFilter({
       ...currentFilter,
       operatorRef: value,

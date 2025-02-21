@@ -24,7 +24,6 @@ export function CodespaceFilter({
 
   const handleChange = (e: SelectChangeEvent) => {
     const value = e.target.value as string;
-    // Merge the new codespaceId into the existing filter object
     setCurrentFilter({
       ...currentFilter,
       codespaceId: value,
