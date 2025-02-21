@@ -18,13 +18,15 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           run-id: ${{ github.event.workflow_run.id }}
-          name: build
-          path: build
+          name: dist
+          path: dist
           github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Copy config
+        run: cp .github/environments/config-dev.json dist/bootstrap.json
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
-          repoToken: '${{ secrets.GITHUB_TOKEN }}'
-          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_VEHICLE_MAP_DEMO_DEV }}'
+          repoToken: "${{ secrets.GITHUB_TOKEN }}"
+          firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT_VEHICLE_MAP_DEMO_DEV }}"
           channelId: live
           projectId: vehicle-map-demo-dev
   deploy_staging:
@@ -35,13 +37,15 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           run-id: ${{ github.event.workflow_run.id }}
-          name: build
-          path: build
+          name: dist
+          path: dist
           github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Copy config
+        run: cp .github/environments/config-staging.json dist/bootstrap.json
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
-          repoToken: '${{ secrets.GITHUB_TOKEN }}'
-          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_VEHICLE_MAP_DEMO_STAGING }}'
+          repoToken: "${{ secrets.GITHUB_TOKEN }}"
+          firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT_VEHICLE_MAP_DEMO_STAGING }}"
           channelId: live
           projectId: vehicle-map-demo-staging
   deploy_prod:
@@ -52,12 +56,14 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           run-id: ${{ github.event.workflow_run.id }}
-          name: build
-          path: build
+          name: dist
+          path: dist
           github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Copy config
+        run: cp .github/environments/config-prod.json dist/bootstrap.json
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
-          repoToken: '${{ secrets.GITHUB_TOKEN }}'
-          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_VEHICLE_MAP_DEMO_PROD }}'
+          repoToken: "${{ secrets.GITHUB_TOKEN }}"
+          firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT_VEHICLE_MAP_DEMO_PROD }}"
           channelId: live
           projectId: vehicle-map-demo-prod

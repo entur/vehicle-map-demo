@@ -2,22 +2,23 @@
 # https://github.com/firebase/firebase-tools
 
 name: Build PR
-'on': pull_request
+"on": pull_request
 jobs:
   build_and_preview:
-    if: '${{ github.event.pull_request.head.repo.full_name == github.repository }}'
+    if: "${{ github.event.pull_request.head.repo.full_name == github.repository }}"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v4
         with:
-          node-version: 10.24
-      - run: npm ci && npm run build
-      - uses: actions/setup-node@v4
-        with:
           node-version: 18.12
+      - run: npm ci
+      - run: npm run check
+      - run: npm run build
+      - name: Copy config
+        run: cp .github/environments/config-dev.json dist/bootstrap.json
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
-          repoToken: '${{ secrets.GITHUB_TOKEN }}'
-          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_VEHICLE_MAP_DEMO_DEV }}'
+          repoToken: "${{ secrets.GITHUB_TOKEN }}"
+          firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT_VEHICLE_MAP_DEMO_DEV }}"
           projectId: vehicle-map-demo-dev
