@@ -12,10 +12,18 @@ export const RightMenuButtons = ({
   activeContent,
   setActiveContent,
 }: RightMenuButtonsProps) => {
+  const toggleSidebar = (newActiveContent: ContentType) => {
+    if (newActiveContent === activeContent) {
+      setActiveContent(null);
+    } else {
+      setActiveContent(newActiveContent);
+    }
+  };
+
   return (
     <>
       <button
-        onClick={() => setActiveContent("filtering")}
+        onClick={() => toggleSidebar("filtering")}
         className={`sidebar-button right ${activeContent === "filtering" ? "active" : ""} ${
           activeContent ? "open" : ""
         }`}
@@ -32,7 +40,7 @@ export const RightMenuButtons = ({
       </button>
 
       <button
-        onClick={() => setActiveContent("metadata")}
+        onClick={() => toggleSidebar("metadata")}
         className={`sidebar-button right ${activeContent === "metadata" ? "active" : ""} ${
           activeContent ? "open" : ""
         }`}
@@ -49,7 +57,7 @@ export const RightMenuButtons = ({
       </button>
 
       <button
-        onClick={() => setActiveContent("layers")}
+        onClick={() => toggleSidebar("layers")}
         className={`sidebar-button right ${activeContent === "layers" ? "active" : ""} ${
           activeContent ? "open" : ""
         }`}

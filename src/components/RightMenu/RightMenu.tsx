@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Filter, VehicleUpdate } from "../../types.ts";
-import { Drawer } from "@mui/material";
 import { RightMenuButtons } from "./RightMenuButtons.tsx";
 import { DrawerContent } from "./DrawerContent.tsx";
 import { ContentType } from "./types.ts";
@@ -24,11 +23,7 @@ export const RightMenu = ({
         activeContent={activeContent}
         setActiveContent={setActiveContent}
       />
-      <Drawer
-        anchor="right"
-        open={!!activeContent}
-        onClose={() => setActiveContent(null)}
-      >
+      <div className={`right-menu-container ${activeContent ? "open" : ""}`}>
         {activeContent && (
           <DrawerContent
             activeContent={activeContent}
@@ -37,7 +32,7 @@ export const RightMenu = ({
             data={data}
           />
         )}
-      </Drawer>
+      </div>
     </>
   );
 };

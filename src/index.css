@@ -2,6 +2,23 @@ body {
   margin: 0;
 }
 
+.right-menu-container {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  background-color: #f4f4f4;
+  overflow-x: hidden;
+  transition: 0.3s;
+  margin-top: 20px;
+  box-shadow: none;
+}
+
+.right-menu-container.open {
+  width: 250px;
+  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
+}
+
 .sidebar-button.right {
   position: absolute;
   right: 5px;
@@ -23,7 +40,7 @@ body {
 }
 
 .sidebar-button.right.open {
-  /* right: 200px; /* Shifted position when sidebar is open */
+  right: 255px; /* Shifted position when sidebar is open */
 }
 
 .sidebar-button.active {
