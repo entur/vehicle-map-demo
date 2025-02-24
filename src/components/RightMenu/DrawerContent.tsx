@@ -4,6 +4,7 @@ import { MetadataBox } from "../MetadataBox.tsx";
 import { MapLayerToggles } from "../MapLayerToggles.tsx";
 import { ContentType } from "./types.ts";
 import { Filter, VehicleUpdate } from "../../types.ts";
+import { DataChecker } from "../DataChecker/DataChecker.tsx";
 
 type DrawerContentProps = {
   activeContent: ContentType;
@@ -36,6 +37,7 @@ export const DrawerContent = ({
         <MetadataBox title={"Metadata"} data={data} />
       )}
       {activeContent === "layers" && currentFilter && <MapLayerToggles />}
+      {activeContent === "stoplight" && currentFilter && <DataChecker />}
     </>
   );
 };

@@ -1,6 +1,7 @@
 import filterIcon from "../../static/images/filter.png";
 import metadataIcon from "../../static/images/metadata.png";
 import layersIcon from "../../static/images/layers.png";
+import stoplightIcon from "../../static/images/stoplight.png";
 import { ContentType } from "./types.ts";
 
 type RightMenuButtonsProps = {
@@ -69,6 +70,22 @@ export const RightMenuButtons = ({
           src={layersIcon}
           alt="Layers"
           title="Layers"
+          style={{ width: "40px", height: "40px" }}
+        />
+      </button>
+      <button
+        onClick={() => toggleSidebar("stoplight")}
+        className={`sidebar-button right ${activeContent === "stoplight" ? "active" : ""} ${
+          activeContent ? "open" : ""
+        }`}
+        style={{
+          top: "185px",
+        }}
+      >
+        <img
+          src={stoplightIcon}
+          alt="Data summary"
+          title="Data summary"
           style={{ width: "40px", height: "40px" }}
         />
       </button>

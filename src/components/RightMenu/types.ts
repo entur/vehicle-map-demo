@@ -1,1 +1,1 @@
-export type ContentType = "filtering" | "metadata" | "layers";
+export type ContentType = "filtering" | "metadata" | "layers" | "stoplight";

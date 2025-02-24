@@ -1,15 +1,7 @@
-import {
-  Card,
-  CardContent,
-  Typography,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  SelectChangeEvent,
-} from "@mui/material";
-import { Filter } from "../types.ts";
-import { useCodespaces } from "../hooks/useCodespaces.ts";
+import { Card, CardContent, Typography } from "@mui/material";
+import { Filter } from "../types";
+import { CodespaceSelector } from "./CodespaceSelector";
+import { SelectChangeEvent } from "@mui/material";
 
 type CodespaceFilterProps = {
   currentFilter: Filter;
@@ -20,8 +12,6 @@ export function CodespaceFilter({
   currentFilter,
   setCurrentFilter,
 }: CodespaceFilterProps) {
-  const codespaces = useCodespaces();
-
   const handleChange = (e: SelectChangeEvent) => {
     const value = e.target.value as string;
     setCurrentFilter({
@@ -37,25 +27,10 @@ export function CodespaceFilter({
         <Typography variant="h6" gutterBottom>
           Codespace Filter
         </Typography>
-        <FormControl fullWidth>
-          <InputLabel id="codespace-select-label">Select Codespace</InputLabel>
-          <Select
-            labelId="codespace-select-label"
-            id="codespace-select"
-            value={currentFilter.codespaceId ?? ""}
-            onChange={handleChange}
-            label="Select Codespace"
-          >
-            <MenuItem value="">
-              <em>All</em>
-            </MenuItem>
-            {codespaces.map((cs) => (
-              <MenuItem key={cs} value={cs}>
-                {cs}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+        <CodespaceSelector
+          value={currentFilter.codespaceId ?? ""}
+          onChange={handleChange}
+        />
       </CardContent>
     </Card>
   );
