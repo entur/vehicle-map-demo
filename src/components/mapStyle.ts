@@ -18,6 +18,10 @@ export const mapStyle: StyleSpecification = {
       clusterMaxZoom: 14, // Max zoom to cluster points on
       clusterRadius: 5,
     },
+    vehicleTraces: {
+      type: "geojson",
+      data: { type: "FeatureCollection", features: [] },
+    },
   },
 
   layers: [
@@ -25,6 +29,25 @@ export const mapStyle: StyleSpecification = {
       id: "osm",
       type: "raster",
       source: "osm", // This must match the source key above
+    },
+    {
+      id: "vehicle-trace-layer",
+      type: "line",
+      source: "vehicleTraces",
+      layout: {
+        "line-cap": "round", // Options: butt, round, square
+        "line-join": "round", // Options: miter, bevel, round
+        //"line-translate": [10, 10],    // Shifts the line by x and y pixels
+        //"line-translate-anchor": "map" // "map" or "viewport"
+      },
+      paint: {
+        "line-color": "#0000FF", // Blue color
+        "line-width": 4, // Thicker line
+        "line-opacity": 0.8, // Slightly transparent
+        //"line-dasharray": [2, 4],      // Dashed line pattern
+        "line-gap-width": 2, // Creates a gap (for a border effect if layering multiple lines)
+        "line-blur": 0.5, // Slight blur effect
+      },
     },
     {
       id: "vehicle-layer",
