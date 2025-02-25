@@ -71,7 +71,7 @@ export const mapStyle: StyleSpecification = {
       paint: {
         "text-color": "#000",
         "text-halo-color": "#FFF",
-        "text-halo-width": 5,
+        "text-halo-width": 6,
         "text-opacity": ["interpolate", ["linear"], ["zoom"], 13, 0, 13.01, 1],
       },
     },
@@ -104,6 +104,8 @@ export const mapStyle: StyleSpecification = {
           300,
           "#FF0000", // red
         ],
+        "circle-stroke-color": "#000",
+        "circle-stroke-width": 2,
       },
       layout: {
         // "visibility": "none" // Uncomment if you want hidden by default
