@@ -58,13 +58,13 @@ export const mapStyle: StyleSpecification = {
           0.25,
           18,
           0.35, // bigger at zoom 18
-        ], // Adjust size as needed
+        ],
         "icon-allow-overlap": true,
-        "text-field": ["get", "lineCode"], // read from feature.properties.lineCode
-        "text-size": 12,
+        "text-field": ["get", "lineCode"],
+        "text-size": 14,
         "text-font": ["Open Sans Regular", "Arial Unicode MS Regular"],
         "text-anchor": "top-left", // put text above the point
-        "text-offset": [0, -3.1],
+        "text-offset": [0, -2.8],
         // shift it a bit so it doesn’t overlap the icon
         "text-allow-overlap": true,
       },
@@ -85,14 +85,14 @@ export const mapStyle: StyleSpecification = {
           "interpolate",
           ["linear"],
           ["zoom"],
-          // At zoom level 12, radius will be 6
+          // At zoom level 13, radius will be 10
           13,
-          10,
-          // At zoom level 16, radius will be 10
-          15,
           9,
-          17,
+          // At zoom level 15, radius will be 9
+          15,
           8,
+          17,
+          7,
         ],
         "circle-translate": [-20, -30],
         "circle-color": [
