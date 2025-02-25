@@ -11,29 +11,35 @@ import {
   Box,
 } from "@mui/material";
 import { DataResults } from "./DataResults.tsx";
+import { VehicleUpdateComplete } from "../../types.ts";
+import { memo } from "react";
 
 type DataDialogProps = {
   open: boolean;
   onClose: () => void;
-  selectedCodespace: string;
-  selectedOperator: string;
+  selectedCodespace?: string;
+  selectedOperator?: string;
+  loading: boolean;
+  data: VehicleUpdateComplete[];
 };
 
-export function DataDialog({
+export const DataDialog = memo(function DataDialog({
+  data,
+  loading,
   open,
   onClose,
   selectedCodespace,
   selectedOperator,
 }: DataDialogProps) {
   return (
-    <Dialog open={open} onClose={onClose}>
+    <Dialog open={open} onClose={onClose} maxWidth="md">
       <DialogTitle>
         <Box textAlign="center">
           <Typography variant="h5">Data summary</Typography>
         </Box>
       </DialogTitle>
       <DialogContent>
-        <List>
+        <List dense>
           <ListItem>
             <ListItemText
               primary={"Codespace: " + selectedCodespace || "N/A"}
@@ -43,11 +49,11 @@ export function DataDialog({
             />
           </ListItem>
         </List>
-        <DataResults />
+        <DataResults data={data} loading={loading} />
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Close</Button>
       </DialogActions>
     </Dialog>
   );
-}
+});

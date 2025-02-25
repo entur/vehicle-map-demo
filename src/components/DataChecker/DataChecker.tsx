@@ -1,19 +1,28 @@
-import { useState } from "react";
+import { memo, useState } from "react";
 import { Card, CardContent, Typography, Button, Box } from "@mui/material";
 import { SelectChangeEvent } from "@mui/material";
 import { CodespaceSelector } from "../CodespaceSelector.tsx";
 import { OperatorSelector } from "../OperatorSelector.tsx";
 import { DataDialog } from "./DataDialog.tsx";
+import { useVehiclePositionsSnapshotFetcher } from "../../hooks/useVehiclePositionsSnapshotFetcher.ts";
 
-export function DataChecker() {
-  const [selectedCodespace, setSelectedCodespace] = useState("");
-  const [selectedOperator, setSelectedOperator] = useState("");
+export const DataChecker = memo(function DataChecker() {
+  const [selectedCodespace, setSelectedCodespace] = useState<
+    string | undefined
+  >();
+  const [selectedOperator, setSelectedOperator] = useState<
+    string | undefined
+  >();
   const [dialogOpen, setDialogOpen] = useState(false);
+
+  const { data, loading, fetchSnapshot } = useVehiclePositionsSnapshotFetcher();
 
   const handleCodespaceChange = (e: SelectChangeEvent) => {
     const value = e.target.value as string;
     setSelectedCodespace(value);
-    setSelectedOperator("");
+    if (selectedOperator !== undefined) {
+      setSelectedOperator(undefined);
+    }
   };
 
   const handleOperatorChange = (e: SelectChangeEvent) => {
@@ -22,6 +31,10 @@ export function DataChecker() {
   };
 
   const runDataTest = () => {
+    fetchSnapshot({
+      codespaceId: selectedCodespace,
+      operatorRef: selectedOperator,
+    });
     setDialogOpen(true);
   };
 
@@ -45,9 +58,9 @@ export function DataChecker() {
 
         <Box mb={2}>
           <OperatorSelector
-            value={selectedOperator}
+            value={selectedOperator ?? ""}
             onChange={handleOperatorChange}
-            codespaceId={selectedCodespace}
+            codespaceId={selectedCodespace ?? ""}
           />
         </Box>
 
@@ -56,12 +69,15 @@ export function DataChecker() {
           color="primary"
           onClick={runDataTest}
           disabled={!selectedCodespace}
+          fullWidth
         >
           Run data summary
         </Button>
       </CardContent>
 
       <DataDialog
+        data={data}
+        loading={loading}
         open={dialogOpen}
         onClose={handleCloseDialog}
         selectedCodespace={selectedCodespace}
@@ -69,4 +85,4 @@ export function DataChecker() {
       />
     </Card>
   );
-}
+});
