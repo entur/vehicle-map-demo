@@ -8,12 +8,14 @@ import {
   FormControlLabel,
   Switch,
 } from "@mui/material";
+import { MapViewOptions } from "./MapView.tsx";
 
-/**
- * Example layer toggles for your map.
- * Adjust the layer IDs below to match your mapStyle.ts definitions.
- */
-export function MapLayerToggles() {
+type Props = {
+  mapViewOptions: MapViewOptions;
+  setMapViewOptions: (mapViewOptions: MapViewOptions) => void;
+};
+
+export function MapLayerToggles({ mapViewOptions, setMapViewOptions }: Props) {
   const { current: mapRef } = useMap();
   const [layerVisibility, setLayerVisibility] = useState({
     "vehicle-delay-heatmap": false,
@@ -53,7 +55,20 @@ export function MapLayerToggles() {
             }
             label="Vehicles"
           />
-
+          <FormControlLabel
+            control={
+              <Switch
+                checked={mapViewOptions.showVehicleTraces}
+                onChange={(e) =>
+                  setMapViewOptions({
+                    ...mapViewOptions,
+                    showVehicleTraces: e.target.checked,
+                  })
+                }
+              />
+            }
+            label="Vehicle traces"
+          />
           <FormControlLabel
             control={
               <Switch

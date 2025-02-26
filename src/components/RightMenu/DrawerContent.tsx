@@ -6,7 +6,6 @@ import { ContentType } from "./types.ts";
 import { Filter, VehicleUpdate } from "../../types.ts";
 import { DataChecker } from "../DataChecker/DataChecker.tsx";
 import { MapViewOptions } from "../MapView.tsx";
-import { ShowVehicleTracesCheckbox } from "./ShowVehicleTracesCheckbox.tsx";
 
 type DrawerContentProps = {
   activeContent: ContentType;
@@ -39,16 +38,15 @@ export const DrawerContent = ({
           currentFilter={currentFilter}
         />
       )}
-      {activeContent === "filtering" && (
-        <ShowVehicleTracesCheckbox
+      {activeContent === "metadata" && currentFilter && (
+        <MetadataBox title={"Metadata"} data={data} />
+      )}
+      {activeContent === "layers" && currentFilter && (
+        <MapLayerToggles
           mapViewOptions={mapViewOptions}
           setMapViewOptions={setMapViewOptions}
         />
       )}
-      {activeContent === "metadata" && currentFilter && (
-        <MetadataBox title={"Metadata"} data={data} />
-      )}
-      {activeContent === "layers" && currentFilter && <MapLayerToggles />}
       {activeContent === "stoplight" && currentFilter && <DataChecker />}
     </>
   );

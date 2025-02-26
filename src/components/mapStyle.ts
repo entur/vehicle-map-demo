@@ -37,8 +37,6 @@ export const mapStyle: StyleSpecification = {
       layout: {
         "line-cap": "round", // Options: butt, round, square
         "line-join": "round", // Options: miter, bevel, round
-        //"line-translate": [10, 10],    // Shifts the line by x and y pixels
-        //"line-translate-anchor": "map" // "map" or "viewport"
       },
       paint: {
         "line-color": "#0000FF", // Blue color
