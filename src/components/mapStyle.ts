@@ -36,14 +36,26 @@ export const mapStyle: StyleSpecification = {
       source: "vehicleTraces",
       layout: {
         "line-cap": "round", // Options: butt, round, square
-        "line-join": "round", // Options: miter, bevel, round
+        "line-join": "miter", // Options: miter, bevel, round
       },
       paint: {
-        "line-color": "#0000FF", // Blue color
-        "line-width": 4, // Thicker line
-        "line-opacity": 0.8, // Slightly transparent
+        "line-color": "#9353a1",
+        "line-width": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          // At zoom level 13, radius will be 10
+          6,
+          3,
+          // At zoom level 15, radius will be 9
+          12,
+          7,
+          17,
+          20,
+        ], // Thicker line
+        "line-opacity": 0.6, // Slightly transparent
         //"line-dasharray": [2, 4],      // Dashed line pattern
-        "line-gap-width": 2, // Creates a gap (for a border effect if layering multiple lines)
+
         "line-blur": 0.5, // Slight blur effect
       },
     },

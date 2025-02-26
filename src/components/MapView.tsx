@@ -19,6 +19,9 @@ type MapViewProps = {
 
 export type MapViewOptions = {
   showVehicleTraces: boolean;
+  showVehicles: boolean;
+  showDelay: boolean;
+  showDelayHeatmap: boolean;
 };
 
 export function MapView({
@@ -31,6 +34,9 @@ export function MapView({
 
   const [mapViewOptions, setMapViewOptions] = useState<MapViewOptions>({
     showVehicleTraces: false,
+    showVehicles: true,
+    showDelay: true,
+    showDelayHeatmap: false,
   });
 
   return (
@@ -60,7 +66,7 @@ export function MapView({
         data={data.map((vehicle) => vehicle.vehicleUpdate)}
         setSelectedVehicle={setSelectedVehicle}
       />
-      {mapViewOptions.showVehicleTraces && <VehicleTraces data={data} />}
+      <VehicleTraces data={data} />
       {selectedVehicle && (
         <Popup
           longitude={selectedVehicle.coordinates[0]}
