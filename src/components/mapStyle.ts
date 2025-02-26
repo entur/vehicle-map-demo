@@ -29,6 +29,11 @@ export const mapStyle: StyleSpecification = {
       id: "osm",
       type: "raster",
       source: "osm", // This must match the source key above
+      paint: {
+        "raster-saturation": 0.3,
+
+        "raster-contrast": 0.1, // adjusts the contrast
+      },
     },
     {
       id: "vehicle-trace-layer",
