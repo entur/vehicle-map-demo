@@ -84,13 +84,21 @@ export const useVehiclePositionsData = (
       subscription.current.return();
     }
 
-    subscription.current = subscriptionClient.iterate<Data>({
-      query: subscriptionQuery,
-      variables: {
+    let boundingBoxParams = {};
+
+    if (filter?.boundingBox) {
+      boundingBoxParams = {
         minLon: filter?.boundingBox[0][0],
         minLat: filter?.boundingBox[0][1],
         maxLon: filter?.boundingBox[1][0],
         maxLat: filter?.boundingBox[1][1],
+      };
+    }
+
+    subscription.current = subscriptionClient.iterate<Data>({
+      query: subscriptionQuery,
+      variables: {
+        ...boundingBoxParams,
         ...(filter?.codespaceId && { codespaceId: filter.codespaceId }),
         ...(filter?.operatorRef && { operatorRef: filter.operatorRef }),
       },
@@ -128,7 +136,7 @@ export const useVehiclePositionsData = (
         setData(filterVehicles(filter, Array.from(map.current.values())));
       }
     };
-    if (filter) {
+    if (filter && filter.boundingBox) {
       subscribe();
     }
   }, [filter, subscriptionClient, mapViewOptions]);
