@@ -42,6 +42,7 @@ export const mapStyle: StyleSpecification = {
       layout: {
         "line-cap": "round", // Options: butt, round, square
         "line-join": "miter", // Options: miter, bevel, round
+        visibility: "none",
       },
       paint: {
         "line-color": "#9353a1",
