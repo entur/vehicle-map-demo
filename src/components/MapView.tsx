@@ -1,24 +1,30 @@
 import { Map, Popup, NavigationControl } from "react-map-gl/maplibre";
 import { mapStyle } from "./mapStyle.ts";
 import { CaptureBoundingBox } from "./CaptureBoundingBox.tsx";
-import { Filter, VehicleUpdate } from "../types.ts";
+import { Filter, MapViewOptions } from "../types.ts";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { SelectedVehicle, VehicleMarkers } from "./VehicleMarkers.tsx";
 import { useState } from "react";
 import { RegisterIcons } from "./RegisterIcons.tsx";
 import { UserPositionDetector } from "./UserPositionDetector.tsx";
 import { RightMenu } from "./RightMenu";
+import { VehicleData } from "../hooks/useVehiclePositionsData.ts";
+import { VehicleTraces } from "./VehicleTraces.tsx";
 
 type MapViewProps = {
-  data: VehicleUpdate[];
+  data: VehicleData[];
   setCurrentFilter: React.Dispatch<React.SetStateAction<Filter | null>>;
   currentFilter: Filter | null;
+  mapViewOptions: MapViewOptions;
+  setMapViewOptions: (mapViewOptions: MapViewOptions) => void;
 };
 
 export function MapView({
   data,
   setCurrentFilter,
   currentFilter,
+  mapViewOptions,
+  setMapViewOptions,
 }: MapViewProps) {
   const [selectedVehicle, setSelectedVehicle] =
     useState<SelectedVehicle | null>(null);
@@ -34,17 +40,23 @@ export function MapView({
     >
       <NavigationControl position="top-left" />
       <RightMenu
-        data={data}
+        data={data.map((vehicle) => vehicle.vehicleUpdate)}
         setCurrentFilter={setCurrentFilter}
         currentFilter={currentFilter}
-      ></RightMenu>
+        mapViewOptions={mapViewOptions}
+        setMapViewOptions={setMapViewOptions}
+      />
       <RegisterIcons />
       <UserPositionDetector />
       <CaptureBoundingBox
         currentFilter={currentFilter}
         setCurrentFilter={setCurrentFilter}
       />
-      <VehicleMarkers data={data} setSelectedVehicle={setSelectedVehicle} />
+      <VehicleMarkers
+        data={data.map((vehicle) => vehicle.vehicleUpdate)}
+        setSelectedVehicle={setSelectedVehicle}
+      />
+      {mapViewOptions.showVehicleTraces && <VehicleTraces data={data} />}
       {selectedVehicle && (
         <Popup
           longitude={selectedVehicle.coordinates[0]}

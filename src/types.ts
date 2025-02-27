@@ -118,3 +118,10 @@ export type DataItem = {
   category: string;
   itemsWithValue: number;
 };
+
+export type MapViewOptions = {
+  showVehicleTraces: boolean;
+  showVehicles: boolean;
+  showDelay: boolean;
+  showDelayHeatmap: boolean;
+};

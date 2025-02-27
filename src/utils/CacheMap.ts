@@ -31,6 +31,10 @@ export class CacheMap<K, T> extends Map {
     }
   }
 
+  get(key: K): T | undefined {
+    return super.get(key);
+  }
+
   set(key: K, value: T) {
     if (this.timeouts.has(key)) {
       this.clearTimeout(key);

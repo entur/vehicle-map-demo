@@ -1,4 +1,4 @@
-import { useState, ChangeEvent } from "react";
+import { ChangeEvent } from "react";
 import { useMap } from "react-map-gl/maplibre";
 import {
   Card,
@@ -8,21 +8,19 @@ import {
   FormControlLabel,
   Switch,
 } from "@mui/material";
+import { MapViewOptions } from "../types.ts";
 
-/**
- * Example layer toggles for your map.
- * Adjust the layer IDs below to match your mapStyle.ts definitions.
- */
-export function MapLayerToggles() {
+type Props = {
+  mapViewOptions: MapViewOptions;
+  setMapViewOptions: (mapViewOptions: MapViewOptions) => void;
+};
+
+export function MapLayerToggles({ mapViewOptions, setMapViewOptions }: Props) {
   const { current: mapRef } = useMap();
-  const [layerVisibility, setLayerVisibility] = useState({
-    "vehicle-delay-heatmap": false,
-    delay: true,
-    "vehicle-layer": true,
-  });
 
   const handleToggleLayer =
-    (layerId: string) => (event: ChangeEvent<HTMLInputElement>) => {
+    (optionKey: keyof MapViewOptions, layerId: string) =>
+    (event: ChangeEvent<HTMLInputElement>) => {
       if (!mapRef) return;
 
       const map = mapRef.getMap();
@@ -31,10 +29,10 @@ export function MapLayerToggles() {
 
       map.setLayoutProperty(layerId, "visibility", newVisibility);
 
-      setLayerVisibility((prev) => ({
-        ...prev,
-        [layerId]: isVisible,
-      }));
+      setMapViewOptions({
+        ...mapViewOptions,
+        [optionKey]: isVisible,
+      });
     };
 
   return (
@@ -47,28 +45,41 @@ export function MapLayerToggles() {
           <FormControlLabel
             control={
               <Switch
-                checked={layerVisibility["vehicle-layer"]}
-                onChange={handleToggleLayer("vehicle-layer")}
+                checked={mapViewOptions.showVehicles}
+                onChange={handleToggleLayer("showVehicles", "vehicle-layer")}
               />
             }
             label="Vehicles"
           />
-
           <FormControlLabel
             control={
               <Switch
-                checked={layerVisibility.delay}
-                onChange={handleToggleLayer("delay")}
+                checked={mapViewOptions.showVehicleTraces}
+                onChange={handleToggleLayer(
+                  "showVehicleTraces",
+                  "vehicle-trace-layer",
+                )}
+              />
+            }
+            label="Vehicle Traces"
+          />
+          <FormControlLabel
+            control={
+              <Switch
+                checked={mapViewOptions.showDelay}
+                onChange={handleToggleLayer("showDelay", "delay")}
               />
             }
             label="Delay"
           />
-
           <FormControlLabel
             control={
               <Switch
-                checked={layerVisibility["vehicle-delay-heatmap"]}
-                onChange={handleToggleLayer("vehicle-delay-heatmap")}
+                checked={mapViewOptions.showDelayHeatmap}
+                onChange={handleToggleLayer(
+                  "showDelayHeatmap",
+                  "vehicle-delay-heatmap",
+                )}
               />
             }
             label="Delay Heatmap"
