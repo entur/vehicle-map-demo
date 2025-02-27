@@ -8,7 +8,7 @@ import {
   FormControlLabel,
   Switch,
 } from "@mui/material";
-import { MapViewOptions } from "./MapView.tsx";
+import { MapViewOptions } from "../types.ts";
 
 type Props = {
   mapViewOptions: MapViewOptions;

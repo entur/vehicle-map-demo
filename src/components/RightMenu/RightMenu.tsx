@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { Filter, VehicleUpdate } from "../../types.ts";
+import { Filter, MapViewOptions, VehicleUpdate } from "../../types.ts";
 import { RightMenuButtons } from "./RightMenuButtons.tsx";
 import { DrawerContent } from "./DrawerContent.tsx";
 import { ContentType } from "./types.ts";
-import { MapViewOptions } from "../MapView.tsx";
 
 interface RightMenuProps {
   setCurrentFilter: (filter: Filter) => void;
