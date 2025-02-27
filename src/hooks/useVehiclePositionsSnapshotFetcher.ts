@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { gql, request } from "graphql-request";
 import { useConfig } from "../config/ConfigContext.ts";
 import { VehicleUpdateComplete } from "../types.ts";
+import { useRequestHeaders } from "./useRequestHeaders.ts";
 
 const query = gql`
   query ($codespaceId: String, $operatorRef: String) {
@@ -65,6 +66,7 @@ export function useVehiclePositionsSnapshotFetcher() {
   const [data, setData] = useState<VehicleUpdateComplete[]>([]);
   const [loading, setLoading] = useState(false);
   const config = useConfig();
+  const requestHeaders = useRequestHeaders();
 
   const fetchSnapshot = useCallback(
     async ({
@@ -79,6 +81,7 @@ export function useVehiclePositionsSnapshotFetcher() {
         config["vehicle-positions-graphql-endpoint"],
         query,
         { codespaceId, operatorRef },
+        requestHeaders,
       );
       setData(response.vehicles);
       setLoading(false);
