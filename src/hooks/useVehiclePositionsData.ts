@@ -1,5 +1,5 @@
 import { FormattedExecutionResult } from "graphql-ws";
-import { Data, Filter, VehicleUpdate } from "../types.ts";
+import { Data, Filter, MapViewOptions, VehicleUpdate } from "../types.ts";
 import { useEffect, useRef, useState } from "react";
 import { CacheMap } from "../utils/CacheMap.ts";
 import { useSubscriptionClient } from "./useSubscriptionClient.ts";
@@ -63,7 +63,10 @@ export type VehicleData = {
   trace: number[][];
 };
 
-export const useVehiclePositionsData = (filter: Filter | null) => {
+export const useVehiclePositionsData = (
+  filter: Filter | null,
+  mapViewOptions: MapViewOptions,
+) => {
   const map = useRef<CacheMap<string, VehicleData>>(
     new CacheMap({ expirationInMs: 60_000 }),
   );
@@ -102,11 +105,18 @@ export const useVehiclePositionsData = (filter: Filter | null) => {
           ) {
             let trace = map.current.get(vehicle.vehicleId)?.trace;
 
-            if (!trace) {
+            if (mapViewOptions.showVehicleTraces) {
+              if (!trace) {
+                trace = [];
+              }
+
+              trace.push([
+                vehicle.location.longitude,
+                vehicle.location.latitude,
+              ]);
+            } else {
               trace = [];
             }
-
-            trace.push([vehicle.location.longitude, vehicle.location.latitude]);
 
             map.current.set(vehicle.vehicleId, {
               vehicleId: vehicle.vehicleId,
@@ -121,6 +131,6 @@ export const useVehiclePositionsData = (filter: Filter | null) => {
     if (filter) {
       subscribe();
     }
-  }, [filter, subscriptionClient]);
+  }, [filter, subscriptionClient, mapViewOptions]);
   return data;
 };

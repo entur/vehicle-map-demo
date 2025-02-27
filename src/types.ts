@@ -44,3 +44,10 @@ export type VehicleUpdate = {
 export type Data = {
   vehicles: VehicleUpdate[];
 };
+
+export type MapViewOptions = {
+  showVehicleTraces: boolean;
+  showVehicles: boolean;
+  showDelay: boolean;
+  showDelayHeatmap: boolean;
+};

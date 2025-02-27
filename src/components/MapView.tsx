@@ -1,7 +1,7 @@
 import { Map, Popup, NavigationControl } from "react-map-gl/maplibre";
 import { mapStyle } from "./mapStyle.ts";
 import { CaptureBoundingBox } from "./CaptureBoundingBox.tsx";
-import { Filter } from "../types.ts";
+import { Filter, MapViewOptions } from "../types.ts";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { SelectedVehicle, VehicleMarkers } from "./VehicleMarkers.tsx";
 import { useState } from "react";
@@ -15,29 +15,19 @@ type MapViewProps = {
   data: VehicleData[];
   setCurrentFilter: React.Dispatch<React.SetStateAction<Filter | null>>;
   currentFilter: Filter | null;
-};
-
-export type MapViewOptions = {
-  showVehicleTraces: boolean;
-  showVehicles: boolean;
-  showDelay: boolean;
-  showDelayHeatmap: boolean;
+  mapViewOptions: MapViewOptions;
+  setMapViewOptions: (mapViewOptions: MapViewOptions) => void;
 };
 
 export function MapView({
   data,
   setCurrentFilter,
   currentFilter,
+  mapViewOptions,
+  setMapViewOptions,
 }: MapViewProps) {
   const [selectedVehicle, setSelectedVehicle] =
     useState<SelectedVehicle | null>(null);
-
-  const [mapViewOptions, setMapViewOptions] = useState<MapViewOptions>({
-    showVehicleTraces: false,
-    showVehicles: true,
-    showDelay: true,
-    showDelayHeatmap: false,
-  });
 
   return (
     <Map
