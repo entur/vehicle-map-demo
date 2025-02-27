@@ -48,10 +48,7 @@ export function MapView({
       />
       <RegisterIcons />
       <UserPositionDetector />
-      <CaptureBoundingBox
-        currentFilter={currentFilter}
-        setCurrentFilter={setCurrentFilter}
-      />
+      <CaptureBoundingBox setCurrentFilter={setCurrentFilter} />
       <VehicleMarkers
         data={data.map((vehicle) => vehicle.vehicleUpdate)}
         setSelectedVehicle={setSelectedVehicle}
