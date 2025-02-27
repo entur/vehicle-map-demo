@@ -66,7 +66,7 @@ export function MapView({
         data={data.map((vehicle) => vehicle.vehicleUpdate)}
         setSelectedVehicle={setSelectedVehicle}
       />
-      <VehicleTraces data={data} />
+      {mapViewOptions.showVehicleTraces && <VehicleTraces data={data} />}
       {selectedVehicle && (
         <Popup
           longitude={selectedVehicle.coordinates[0]}
