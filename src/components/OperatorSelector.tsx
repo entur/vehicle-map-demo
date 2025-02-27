@@ -8,9 +8,9 @@ import {
 import { useOperators } from "../hooks/useOperators";
 
 interface OperatorSelectorProps {
-  value: string;
+  value?: string;
   onChange: (e: SelectChangeEvent) => void;
-  codespaceId: string;
+  codespaceId?: string;
   label?: string;
 }
 
@@ -20,7 +20,7 @@ export function OperatorSelector({
   codespaceId,
   label = "Select Operator",
 }: OperatorSelectorProps) {
-  const operators = useOperators(codespaceId);
+  const operators = useOperators(codespaceId!);
 
   return (
     <FormControl fullWidth>
@@ -29,7 +29,7 @@ export function OperatorSelector({
         disabled={!codespaceId}
         labelId="operator-selector-label"
         id="operator-selector"
-        value={value}
+        value={value === undefined ? "" : value}
         onChange={onChange}
         label={label}
       >

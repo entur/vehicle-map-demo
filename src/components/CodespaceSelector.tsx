@@ -8,7 +8,7 @@ import {
 import { useCodespaces } from "../hooks/useCodespaces";
 
 interface CodespaceSelectorProps {
-  value: string;
+  value?: string;
   onChange: (e: SelectChangeEvent) => void;
   label?: string;
 }
@@ -26,7 +26,7 @@ export function CodespaceSelector({
       <Select
         labelId="codespace-selector-label"
         id="codespace-selector"
-        value={value}
+        value={value === undefined ? "" : value}
         onChange={onChange}
         label={label}
       >

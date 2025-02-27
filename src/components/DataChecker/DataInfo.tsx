@@ -36,7 +36,8 @@ export function DataInfo() {
           <DialogContentText>
             The data summary is calculated as the sum of all data items with a
             value divided by the sum of all data items (with and without value),
-            expressed as a percentage.
+            expressed as a percentage. This summary only states if data is
+            present and does not say anything about the quality of the data.
             <br />
             <br />
             Evaluation thresholds:
