@@ -9,6 +9,7 @@ type SelectedVehicleProperties = {
   lineCode: string;
   codespaceId: string;
   delay: number;
+  followed: boolean;
 };
 
 export type SelectedVehicle = {
@@ -18,7 +19,11 @@ export type SelectedVehicle = {
 
 const createFeature = (
   vehicle: VehicleUpdate,
-): GeoJSON.Feature<GeoJSON.Point, SelectedVehicleProperties> => {
+  isFollowed: boolean = false,
+): GeoJSON.Feature<
+  GeoJSON.Point,
+  SelectedVehicleProperties & { followed: boolean }
+> => {
   return {
     type: "Feature",
     geometry: {
@@ -31,6 +36,7 @@ const createFeature = (
       lineCode: vehicle.line.publicCode,
       codespaceId: vehicle.codespace.codespaceId,
       delay: vehicle.delay,
+      followed: isFollowed,
     },
   };
 };
@@ -38,9 +44,11 @@ const createFeature = (
 export function VehicleMarkers({
   data,
   setSelectedVehicle,
+  followedVehicleId, // pass the followed vehicle's id from your parent component
 }: {
   data: VehicleUpdate[];
   setSelectedVehicle: (selectedVehicle: SelectedVehicle | null) => void;
+  followedVehicleId: string | null;
 }) {
   const { current: mapRef } = useMap();
 
@@ -50,45 +58,47 @@ export function VehicleMarkers({
     }
 
     const map = mapRef.getMap();
-    const features = data.map(createFeature);
-    const source = map?.getSource("vehicles") as GeoJSONSource;
+    // Create features and mark the followed one
+    const features = data.map((vehicle) =>
+      createFeature(vehicle, vehicle.vehicleId === followedVehicleId),
+    );
+    const source = map.getSource("vehicles") as GeoJSONSource;
     source.setData({
       type: "FeatureCollection",
-      features: features,
+      features,
     });
 
-    // Change cursor on hover over the bus icons
-    const mouseenterSubscription = map.on(
-      "mouseenter",
-      "vehicle-layer",
-      (e) => {
-        map.getCanvas().style.cursor = "pointer";
-
-        const features = map.queryRenderedFeatures(e.point, {
-          layers: ["vehicle-layer"],
+    // Set selected vehicle on click.
+    const clickSubscription = map.on("click", "vehicle-layer", (e) => {
+      const features = map.queryRenderedFeatures(e.point, {
+        layers: ["vehicle-layer"],
+      });
+      if (features.length) {
+        const feature = features[0];
+        const point = feature.geometry as GeoJSON.Point;
+        const coordinates = point.coordinates.slice();
+        setSelectedVehicle({
+          coordinates,
+          properties: feature.properties as SelectedVehicleProperties,
         });
-        if (features.length) {
-          const feature = features[0];
-          const point = features[0].geometry as GeoJSON.Point;
-          const coordinates = point.coordinates.slice();
-          setSelectedVehicle({
-            coordinates,
-            properties: feature.properties as SelectedVehicleProperties,
-          });
-        }
-      },
-    );
+      }
+    });
 
-    const mouseleaveSubscription = map.on("mouseleave", "vehicle-layer", () => {
-      map.getCanvas().style.cursor = "";
-      setSelectedVehicle(null);
+    // Optionally, clear the selection when clicking on an area without a vehicle.
+    const clearSelectionOnClick = map.on("click", (e) => {
+      const features = map.queryRenderedFeatures(e.point, {
+        layers: ["vehicle-layer"],
+      });
+      if (!features.length) {
+        setSelectedVehicle(null);
+      }
     });
 
     return () => {
-      mouseenterSubscription.unsubscribe();
-      mouseleaveSubscription.unsubscribe();
+      clickSubscription.unsubscribe();
+      clearSelectionOnClick.unsubscribe();
     };
-  }, [data, mapRef, setSelectedVehicle]);
+  }, [data, mapRef, setSelectedVehicle, followedVehicleId]);
 
   return null;
 }

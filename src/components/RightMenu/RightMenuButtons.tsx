@@ -53,7 +53,7 @@ export const RightMenuButtons = ({
           src={metadataIcon}
           alt="Metadata"
           title="Metadata"
-          style={{ width: "40px", height: "40px" }}
+          className="icon"
         />
       </button>
 

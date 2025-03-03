@@ -32,15 +32,14 @@ body {
     right 0.3s,
     background-color 0.2s;
 
-  /* Center the text/icon inside (optional) */
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px; /* adjust if needed */
+  font-size: 16px;
 }
 
 .sidebar-button.right.open {
-  right: 255px; /* Shifted position when sidebar is open */
+  right: 255px;
 }
 
 .sidebar-button.active {
@@ -48,5 +47,44 @@ body {
 }
 
 .sidebar-button:hover {
-  background: #5d9c9b; /* Slightly darker when hovered */
+  background: #5d9c9b;
+}
+
+.vehicle-popup-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.vehicle-popup-actions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  width: 100%;
+}
+
+.round-icon-button {
+  border: 2px solid black;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  cursor: pointer;
+  transition:
+    right 0.3s,
+    background-color 0.2s;
+}
+
+.round-icon-button:hover {
+  background: #5d9c9b;
+}
+
+.icon {
+  width: 40px;
+  height: 40px;
 }
