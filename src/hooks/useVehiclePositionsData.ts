@@ -31,7 +31,6 @@ const subscriptionQuery = `
 `;
 
 const filterVehicles = (filter: Filter | null, vehicles: VehicleData[]) => {
-  // If no filter, return all vehicles
   if (!filter) {
     return vehicles;
   }
@@ -44,12 +43,10 @@ const filterVehicles = (filter: Filter | null, vehicles: VehicleData[]) => {
       vehicle.vehicleUpdate.location.longitude < filter.boundingBox[1][0];
 
     const inCodespace =
-      // If filter.codespaceId is falsy (e.g. undefined/null), skip codespace filtering
       !filter.codespaceId ||
       vehicle.vehicleUpdate.codespace.codespaceId === filter.codespaceId;
 
     const inOperatorRef =
-      // If filter.operatorRef is falsy (e.g. undefined/null), skip operatorRef filtering
       !filter.operatorRef ||
       vehicle.vehicleUpdate.operator.operatorRef === filter.operatorRef;
 
