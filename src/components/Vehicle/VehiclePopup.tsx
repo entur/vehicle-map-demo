@@ -1,9 +1,9 @@
 import { Popup } from "react-map-gl/maplibre";
-import { SelectedVehicle } from "./VehicleMarkers";
-import { useVehicleUpdateCompleteSubscription } from "../hooks/useVehicleUpdateCompleteSubscription";
-import { FollowButton } from "./Vehicle/FollowButton";
-import { DetailsButton } from "./Vehicle/DetailsButton";
-import { VehicleInfo } from "./Vehicle/VehicleInfo";
+import { SelectedVehicle } from "./VehicleMarkers.tsx";
+import { useVehicleUpdateCompleteSubscription } from "../../hooks/useVehicleUpdateCompleteSubscription.ts";
+import { FollowButton } from "./FollowButton.tsx";
+import { DetailsButton } from "./DetailsButton.tsx";
+import { VehicleInfo } from "./VehicleInfo.tsx";
 
 type VehiclePopupProps = {
   vehicle: SelectedVehicle;

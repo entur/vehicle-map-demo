@@ -8,12 +8,12 @@ import { mapStyle } from "./mapStyle.ts";
 import { CaptureBoundingBox } from "./CaptureBoundingBox.tsx";
 import { Filter, MapViewOptions } from "../types.ts";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { SelectedVehicle, VehicleMarkers } from "./VehicleMarkers.tsx";
+import { SelectedVehicle, VehicleMarkers } from "./Vehicle/VehicleMarkers.tsx";
 import { RegisterIcons } from "./RegisterIcons.tsx";
 import { RightMenu } from "./RightMenu";
 import { VehicleData } from "../hooks/useVehiclePositionsData.ts";
-import { VehicleTraces } from "./VehicleTraces.tsx";
-import { VehiclePopup } from "./VehiclePopup";
+import { VehicleTraces } from "./Vehicle/VehicleTraces.tsx";
+import { VehiclePopup } from "./Vehicle/VehiclePopup.tsx";
 
 type MapViewProps = {
   data: VehicleData[];

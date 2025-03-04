@@ -12,18 +12,18 @@ export function VehicleInfo({ vehicleData }: VehicleInfoCardProps) {
 
   return (
     <Box display="flex" flexDirection="column" alignItems="center">
-      <Avatar
-        sx={{
-          bgcolor: "primary.main",
-          width: 56,
-          height: 56,
-          fontSize: "1.25rem",
-          marginBottom: 1,
-        }}
-      >
-        {vehicleData.line.publicCode}
-      </Avatar>
-
+      {vehicleData.line.publicCode && (
+        <Avatar
+          sx={{
+            bgcolor: "primary.main",
+            width: 48,
+            height: 48,
+            fontSize: "1rem",
+          }}
+        >
+          {vehicleData.line.publicCode}
+        </Avatar>
+      )}
       <Typography variant="subtitle1" gutterBottom={false} align="center">
         {vehicleData.originName} - {vehicleData.destinationName}
       </Typography>
@@ -31,12 +31,11 @@ export function VehicleInfo({ vehicleData }: VehicleInfoCardProps) {
       <Typography variant="body2">
         <strong>ID:</strong> {vehicleData.vehicleId}
       </Typography>
-      <Typography variant="body2">
-        <strong>Mode:</strong> {vehicleData.mode}
-      </Typography>
-      <Typography variant="body2">
-        <strong>Delay:</strong> {vehicleData.delay}
-      </Typography>
+      {vehicleData.operator.operatorRef && (
+        <Typography variant="body2">
+          <strong>Operator:</strong> {vehicleData.operator.operatorRef}
+        </Typography>
+      )}
       <Typography variant="body2">
         <strong>Codespace:</strong> {vehicleData.codespace.codespaceId}
       </Typography>

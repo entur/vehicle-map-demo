@@ -1,7 +1,7 @@
 import Tooltip from "@mui/material/Tooltip";
 import detailsIcon from "../../static/images/details.png";
 import { useState } from "react";
-import { VehicleDetailsDialog } from "../VehicleDetailsDialog.tsx";
+import { VehicleDetailsDialog } from "./VehicleDetailsDialog.tsx";
 import { VehicleUpdateComplete } from "../../types.ts";
 
 type DetailsButtonProps = {

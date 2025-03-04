@@ -8,7 +8,7 @@ import {
   Stack,
   Divider,
 } from "@mui/material";
-import { VehicleUpdateComplete } from "../types";
+import { VehicleUpdateComplete } from "../../types.ts";
 
 type VehicleDetailsDialogProps = {
   open: boolean;
