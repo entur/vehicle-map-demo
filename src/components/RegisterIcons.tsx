@@ -5,14 +5,18 @@ import busIcon from "../static/images/bus.png";
 import ferryIcon from "../static/images/ferry.png";
 import trainIcon from "../static/images/train.png";
 import tramIcon from "../static/images/tram.png";
-import eyeIcon from "../static/images/eye.png";
+import redMarkerIcon from "../static/images/markerRed.png";
+import greenMarkerIcon from "../static/images/markerGreen.png";
+import yellowMarkerIcon from "../static/images/markerYellow.png";
 
 const images = [
   { name: "bus-icon", url: busIcon },
   { name: "ferry-icon", url: ferryIcon },
   { name: "train-icon", url: trainIcon },
   { name: "tram-icon", url: tramIcon },
-  { name: "eye-icon", url: eyeIcon },
+  { name: "red-marker-icon", url: redMarkerIcon },
+  { name: "green-marker-icon", url: greenMarkerIcon },
+  { name: "yellow-marker-icon", url: yellowMarkerIcon },
 ];
 
 export function RegisterIcons() {

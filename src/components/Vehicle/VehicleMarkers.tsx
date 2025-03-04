@@ -19,7 +19,7 @@ export type SelectedVehicle = {
 
 const createFeature = (
   vehicle: VehicleUpdate,
-  isFollowed: boolean = false,
+  isFollowed: boolean,
 ): GeoJSON.Feature<
   GeoJSON.Point,
   SelectedVehicleProperties & { followed: boolean }
@@ -44,7 +44,7 @@ const createFeature = (
 export function VehicleMarkers({
   data,
   setSelectedVehicle,
-  followedVehicleId, // pass the followed vehicle's id from your parent component
+  followedVehicleId,
 }: {
   data: VehicleUpdate[];
   setSelectedVehicle: (selectedVehicle: SelectedVehicle | null) => void;

@@ -108,16 +108,23 @@ export const mapStyle: StyleSpecification = {
         "text-opacity": ["interpolate", ["linear"], ["zoom"], 13, 0, 13.01, 1],
       },
     },
-    // New layer: show the eyeIcon above the vehicle icon for the followed vehicle.
     {
       id: "vehicle-follow-layer",
       type: "symbol",
       source: "vehicles",
       layout: {
-        "icon-image": "eyeIcon", // Ensure you've added this image to the map (e.g., via RegisterIcons)
-        "icon-size": 0.05,
+        "icon-image": "green-marker-icon",
+        "icon-size": 0.25,
         "icon-anchor": "bottom",
-        "icon-offset": [0, 0], // Adjust this value as needed
+        "icon-offset": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          4,
+          ["literal", [0, -30]], // At zoom 4, offset is [0, -30]
+          18,
+          ["literal", [0, -180]], // At zoom 18, offset is [0, -80]
+        ],
         "icon-allow-overlap": true,
       },
       filter: ["==", ["get", "followed"], true],
