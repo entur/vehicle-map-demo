@@ -39,6 +39,7 @@ export type VehicleUpdate = {
     latitude: number;
     longitude: number;
   };
+  serviceJourney: ServiceJourney;
 };
 
 export type ServiceJourney = {

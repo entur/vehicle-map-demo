@@ -26,6 +26,9 @@ const subscriptionQuery = `
         latitude
         longitude
       }
+      serviceJourney {
+        id
+      }
     }
   }
 `;
@@ -111,7 +114,9 @@ export const useVehiclePositionsData = (
             vehicle.location.latitude &&
             vehicle.location.longitude
           ) {
-            let trace = map.current.get(vehicle.vehicleId)?.trace;
+            let trace = map.current.get(
+              vehicle.vehicleId + "_" + vehicle.serviceJourney.id,
+            )?.trace;
 
             if (mapViewOptions.showVehicleTraces) {
               if (!trace) {
@@ -126,11 +131,14 @@ export const useVehiclePositionsData = (
               trace = [];
             }
 
-            map.current.set(vehicle.vehicleId, {
-              vehicleId: vehicle.vehicleId,
-              vehicleUpdate: vehicle,
-              trace,
-            });
+            map.current.set(
+              vehicle.vehicleId + "_" + vehicle.serviceJourney.id,
+              {
+                vehicleId: vehicle.vehicleId + "_" + vehicle.serviceJourney.id,
+                vehicleUpdate: vehicle,
+                trace,
+              },
+            );
           }
         });
         setData(filterVehicles(filter, Array.from(map.current.values())));
