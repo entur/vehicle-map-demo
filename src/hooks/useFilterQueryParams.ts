@@ -2,6 +2,7 @@ import { Filter } from "../types.ts";
 import { useEffect, useRef } from "react";
 
 function getQueryParams() {
+  if (!window.location.search) return {};
   return window.location.search
     .slice(1)
     .split("&")
