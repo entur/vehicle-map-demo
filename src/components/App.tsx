@@ -4,7 +4,8 @@ import { Filter, MapViewOptions } from "../types.ts";
 import { useVehiclePositionsData } from "../hooks/useVehiclePositionsData.ts";
 import { MapView } from "./MapView.tsx";
 import { ThemeProvider } from "@mui/material";
-import { theme } from "./theme.ts"; // Adjust the path if needed
+import { theme } from "./theme.ts";
+import { useFilterQueryParams } from "../hooks/useFilterQueryParams.ts";
 
 function App() {
   const [currentFilter, setCurrentFilter] = useState<Filter | null>(null);
@@ -15,6 +16,7 @@ function App() {
     showDelayHeatmap: false,
   });
   const data = useVehiclePositionsData(currentFilter, mapViewOptions);
+  useFilterQueryParams(currentFilter, setCurrentFilter);
 
   return (
     <div style={{ width: "100vw", height: "100vh" }}>

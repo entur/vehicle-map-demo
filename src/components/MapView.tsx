@@ -52,10 +52,7 @@ export function MapView({
         setMapViewOptions={setMapViewOptions}
       />
       <RegisterIcons />
-      <CaptureBoundingBox
-        currentFilter={currentFilter}
-        setCurrentFilter={setCurrentFilter}
-      />
+      <CaptureBoundingBox setCurrentFilter={setCurrentFilter} />
       <VehicleMarkers
         data={data.map((vehicle) => vehicle.vehicleUpdate)}
         setSelectedVehicle={setSelectedVehicle}
