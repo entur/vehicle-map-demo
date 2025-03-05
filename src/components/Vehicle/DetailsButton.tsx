@@ -20,7 +20,7 @@ export function DetailsButton({ vehicleData }: DetailsButtonProps) {
           className="round-icon-button"
           onClick={() => setDetailsOpen(true)}
         >
-          <img src={detailsIcon} alt="Follow" className="icon" />
+          <img src={detailsIcon} alt="Detail" className="icon" />
         </button>
       </Tooltip>
 
