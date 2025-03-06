@@ -75,14 +75,26 @@ export function MapLayerToggles({ mapViewOptions, setMapViewOptions }: Props) {
           <FormControlLabel
             control={
               <Switch
-                checked={mapViewOptions.showDelayHeatmap}
+                checked={mapViewOptions.showUpdateFrequency}
                 onChange={handleToggleLayer(
-                  "showDelayHeatmap",
-                  "vehicle-delay-heatmap",
+                  "showUpdateFrequency",
+                  "vehicle-update-interval-icon-layer",
                 )}
               />
             }
-            label="Delay Heatmap"
+            label="Update frequency"
+          />
+          <FormControlLabel
+            control={
+              <Switch
+                checked={mapViewOptions.showVehicleHeatmap}
+                onChange={handleToggleLayer(
+                  "showVehicleHeatmap",
+                  "vehicles-heatmap",
+                )}
+              />
+            }
+            label="Vehicle Heatmap"
           />
         </FormGroup>
       </CardContent>

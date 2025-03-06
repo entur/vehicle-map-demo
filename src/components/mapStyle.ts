@@ -28,11 +28,10 @@ export const mapStyle: StyleSpecification = {
     {
       id: "osm",
       type: "raster",
-      source: "osm", // This must match the source key above
+      source: "osm",
       paint: {
         "raster-saturation": 0.3,
-
-        "raster-contrast": 0.1, // adjusts the contrast
+        "raster-contrast": 0.1,
       },
     },
     {
@@ -40,8 +39,8 @@ export const mapStyle: StyleSpecification = {
       type: "line",
       source: "vehicleTraces",
       layout: {
-        "line-cap": "round", // Options: butt, round, square
-        "line-join": "miter", // Options: miter, bevel, round
+        "line-cap": "round",
+        "line-join": "miter",
         visibility: "none",
       },
       paint: {
@@ -58,11 +57,9 @@ export const mapStyle: StyleSpecification = {
           7,
           17,
           20,
-        ], // Thicker line
-        "line-opacity": 0.6, // Slightly transparent
-        //"line-dasharray": [2, 4],      // Dashed line pattern
-
-        "line-blur": 0.5, // Slight blur effect
+        ],
+        "line-opacity": 0.6,
+        "line-blur": 0.5,
       },
     },
     {
@@ -102,9 +99,8 @@ export const mapStyle: StyleSpecification = {
         "text-field": ["get", "lineCode"],
         "text-size": 14,
         "text-font": ["Open Sans Regular", "Arial Unicode MS Regular"],
-        "text-anchor": "top-left", // put text above the point
+        "text-anchor": "top-left",
         "text-offset": [0, -2.8],
-        // shift it a bit so it doesn’t overlap the icon
         "text-allow-overlap": true,
       },
       paint: {
@@ -137,46 +133,73 @@ export const mapStyle: StyleSpecification = {
         "circle-color": [
           "step",
           ["get", "delay"],
-          "#00FF00", // green
+          "#00FF00",
           180,
-          "#FFFF00", // yellow
+          "#FFFF00",
           300,
-          "#FF0000", // red
+          "#FF0000",
         ],
         "circle-stroke-color": "#000",
         "circle-stroke-width": 2,
       },
       layout: {
-        // "visibility": "none" // Uncomment if you want hidden by default
+        visibility: "none", // Default visibility
       },
     },
     {
-      id: "vehicle-delay-heatmap",
-      type: "heatmap",
-      source: "vehicles", // Same source name as in your style
-      maxzoom: 19, // For instance
-      paint: {
-        // Weight each point by its "delay" property:
-        "heatmap-weight": [
-          "interpolate",
-          ["linear"],
-          ["get", "delay"],
-          0,
-          0, // If delay=0, weight=0
-          180,
-          0.5, // If delay=180, weight=0.5
-          300,
-          1, // If delay=300 or above, weight=1
+      id: "vehicle-update-interval-text-layer",
+      type: "symbol",
+      source: "vehicles",
+      minzoom: 13,
+      layout: {
+        "text-field": [
+          "concat",
+          ["to-string", ["get", "updateInterval"]],
+          "ms",
         ],
-
-        // Increase the heatmap intensity at higher zoom levels:
-        "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 0, 1, 14, 3],
-
-        // Define a color ramp for the heatmap:
+        "text-size": 12,
+        "text-offset": [0, 1.5],
+        "text-anchor": "top",
+        "text-allow-overlap": true,
+      },
+      paint: {
+        "text-color": "#000000",
+        "text-halo-color": "#FFF",
+        "text-halo-width": 6,
+      },
+    },
+    {
+      id: "vehicle-update-interval-icon-layer",
+      type: "symbol",
+      source: "vehicles",
+      layout: {
+        "icon-image": [
+          "case",
+          ["<", ["get", "updateInterval"], 10000],
+          "green-marker",
+          ["<", ["get", "updateInterval"], 20000],
+          "orange-marker",
+          ["<", ["get", "updateInterval"], 60000],
+          "red-marker",
+          "skull-marker",
+        ],
+        "icon-size": 0.2,
+        "icon-allow-overlap": true,
+        visibility: "none", // Uncomment if you want hidden by default
+      },
+    },
+    {
+      id: "vehicles-heatmap",
+      type: "heatmap",
+      source: "vehicles",
+      maxzoom: 15,
+      paint: {
+        "heatmap-weight": 1,
+        "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 0, 1, 15, 3],
         "heatmap-color": [
           "interpolate",
           ["linear"],
-          ["heatmap-density"], // The computed "density" of points
+          ["heatmap-density"],
           0,
           "rgba(33,102,172,0)",
           0.2,
@@ -190,12 +213,8 @@ export const mapStyle: StyleSpecification = {
           1,
           "rgb(178,24,43)",
         ],
-
-        // Increase radius as zoom increases
-        "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 0, 2, 14, 20],
-
-        // Decrease heatmap opacity at high zoom levels
-        "heatmap-opacity": ["interpolate", ["linear"], ["zoom"], 8, 1, 14, 0.3],
+        "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 0, 2, 15, 20],
+        "heatmap-opacity": 0.8,
       },
       layout: {
         visibility: "none",

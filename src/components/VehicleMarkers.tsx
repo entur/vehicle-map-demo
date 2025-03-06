@@ -9,6 +9,7 @@ type SelectedVehicleProperties = {
   lineCode: string;
   codespaceId: string;
   delay: number;
+  updateInterval: number;
 };
 
 export type SelectedVehicle = {
@@ -19,6 +20,9 @@ export type SelectedVehicle = {
 const createFeature = (
   vehicle: VehicleUpdate,
 ): GeoJSON.Feature<GeoJSON.Point, SelectedVehicleProperties> => {
+  const lastUpdateTimestamp = Date.parse(vehicle.lastUpdated);
+  const updateInterval = Date.now() - lastUpdateTimestamp;
+
   return {
     type: "Feature",
     geometry: {
@@ -31,6 +35,7 @@ const createFeature = (
       lineCode: vehicle.line.publicCode,
       codespaceId: vehicle.codespace.codespaceId,
       delay: vehicle.delay,
+      updateInterval: updateInterval,
     },
   };
 };
