@@ -127,4 +127,5 @@ export type MapViewOptions = {
   showDelay: boolean;
   showVehicleHeatmap: boolean;
   showUpdateFrequency: boolean;
+  showDeadUpdateFrequency: boolean;
 };

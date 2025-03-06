@@ -84,6 +84,19 @@ export function MapLayerToggles({ mapViewOptions, setMapViewOptions }: Props) {
             }
             label="Update frequency"
           />
+
+          <FormControlLabel
+            control={
+              <Switch
+                checked={mapViewOptions.showDeadUpdateFrequency}
+                onChange={handleToggleLayer(
+                  "showDeadUpdateFrequency",
+                  "vehicle-update-interval-skull-layer",
+                )}
+              />
+            }
+            label="Update frequency (more than 30s since update)"
+          />
           <FormControlLabel
             control={
               <Switch

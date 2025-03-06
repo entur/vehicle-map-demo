@@ -175,17 +175,29 @@ export const mapStyle: StyleSpecification = {
       layout: {
         "icon-image": [
           "case",
-          ["<", ["get", "updateInterval"], 10000],
+          ["<", ["get", "updateInterval"], 3000],
           "green-marker",
-          ["<", ["get", "updateInterval"], 20000],
+          ["<", ["get", "updateInterval"], 15000],
           "orange-marker",
-          ["<", ["get", "updateInterval"], 60000],
+          ["<", ["get", "updateInterval"], 30000],
           "red-marker",
-          "skull-marker",
+          "",
         ],
         "icon-size": 0.2,
         "icon-allow-overlap": true,
-        visibility: "none", // Uncomment if you want hidden by default
+        visibility: "none",
+      },
+    },
+    {
+      id: "vehicle-update-interval-skull-layer",
+      type: "symbol",
+      source: "vehicles",
+      filter: [">=", ["get", "updateInterval"], 30000],
+      layout: {
+        "icon-image": "skull-marker",
+        "icon-size": 0.2,
+        "icon-allow-overlap": true,
+        visibility: "none",
       },
     },
     {
