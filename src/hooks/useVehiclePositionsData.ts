@@ -56,7 +56,18 @@ const filterVehicles = (filter: Filter | null, vehicles: VehicleData[]) => {
       !filter.operatorRef ||
       vehicle.vehicleUpdate.operator.operatorRef === filter.operatorRef;
 
-    return inOperatorRef && inBoundingBox && inCodespace;
+    const vehicleLastUpdated = new Date(
+      vehicle.vehicleUpdate.lastUpdated,
+    ).getTime();
+    const lastUpdatedWithin10Minutes =
+      Date.now() - vehicleLastUpdated < 10 * 60 * 1000;
+
+    return (
+      inOperatorRef &&
+      inBoundingBox &&
+      inCodespace &&
+      lastUpdatedWithin10Minutes
+    );
   });
 };
 

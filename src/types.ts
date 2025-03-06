@@ -40,6 +40,7 @@ export type VehicleUpdate = {
     longitude: number;
   };
   serviceJourney: ServiceJourney;
+  lastUpdated: string;
 };
 
 export type ServiceJourney = {
