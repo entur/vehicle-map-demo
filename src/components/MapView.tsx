@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState } from "react";
 import {
   Map,
   NavigationControl,
@@ -14,6 +14,7 @@ import { RightMenu } from "./RightMenu";
 import { VehicleData } from "../hooks/useVehiclePositionsData.ts";
 import { VehicleTraces } from "./Vehicle/VehicleTraces.tsx";
 import { VehiclePopup } from "./Vehicle/VehiclePopup.tsx";
+import { useFollowedVehicle } from "../hooks/useFollowedVehicle"; // adjust path as needed
 
 type MapViewProps = {
   data: VehicleData[];
@@ -32,52 +33,17 @@ export function MapView({
 }: MapViewProps) {
   const [selectedVehicle, setSelectedVehicle] =
     useState<SelectedVehicle | null>(null);
-
-  const [followedVehicle, setFollowedVehicle] =
-    useState<SelectedVehicle | null>(null);
   const mapRef = useRef<any>(null);
 
   const handleMapLoad = (event: any) => {
     mapRef.current = event.target;
   };
 
-  useEffect(() => {
-    if (followedVehicle && mapRef.current) {
-      const updatedVehicleData = data.find(
-        (vehicle) =>
-          vehicle.vehicleUpdate.vehicleId === followedVehicle.properties.id,
-      );
-      if (updatedVehicleData) {
-        const newCoords = [
-          updatedVehicleData.vehicleUpdate.location.longitude,
-          updatedVehicleData.vehicleUpdate.location.latitude,
-        ];
-
-        if (
-          newCoords[0] !== followedVehicle.coordinates[0] ||
-          newCoords[1] !== followedVehicle.coordinates[1]
-        ) {
-          const updatedFollowVehicle = {
-            ...followedVehicle,
-            coordinates: newCoords,
-          };
-          setFollowedVehicle(updatedFollowVehicle);
-          mapRef.current.flyTo({
-            center: newCoords,
-            essential: true,
-          });
-        }
-      }
-    }
-  }, [data, followedVehicle]);
-
-  const handleFollowToggle = () => {
-    if (followedVehicle?.properties.id === selectedVehicle?.properties.id) {
-      setFollowedVehicle(null);
-    } else if (selectedVehicle) {
-      setFollowedVehicle(selectedVehicle);
-    }
-  };
+  const { followedVehicle, handleFollowToggle } = useFollowedVehicle(
+    data,
+    selectedVehicle,
+    mapRef,
+  );
 
   return (
     <Map
