@@ -26,6 +26,9 @@ const subscriptionQuery = `
         latitude
         longitude
       }
+      serviceJourney {
+        id
+      }
     }
   }
 `;
@@ -50,7 +53,18 @@ const filterVehicles = (filter: Filter | null, vehicles: VehicleData[]) => {
       !filter.operatorRef ||
       vehicle.vehicleUpdate.operator.operatorRef === filter.operatorRef;
 
-    return inOperatorRef && inBoundingBox && inCodespace;
+    const vehicleLastUpdated = new Date(
+      vehicle.vehicleUpdate.lastUpdated,
+    ).getTime();
+    const lastUpdatedWithin10Minutes =
+      Date.now() - vehicleLastUpdated < 10 * 60 * 1000;
+
+    return (
+      inOperatorRef &&
+      inBoundingBox &&
+      inCodespace &&
+      lastUpdatedWithin10Minutes
+    );
   });
 };
 
@@ -81,13 +95,21 @@ export const useVehiclePositionsData = (
       subscription.current.return();
     }
 
-    subscription.current = subscriptionClient.iterate<Data>({
-      query: subscriptionQuery,
-      variables: {
+    let boundingBoxParams = {};
+
+    if (filter?.boundingBox) {
+      boundingBoxParams = {
         minLon: filter?.boundingBox[0][0],
         minLat: filter?.boundingBox[0][1],
         maxLon: filter?.boundingBox[1][0],
         maxLat: filter?.boundingBox[1][1],
+      };
+    }
+
+    subscription.current = subscriptionClient.iterate<Data>({
+      query: subscriptionQuery,
+      variables: {
+        ...boundingBoxParams,
         ...(filter?.codespaceId && { codespaceId: filter.codespaceId }),
         ...(filter?.operatorRef && { operatorRef: filter.operatorRef }),
       },
@@ -100,7 +122,9 @@ export const useVehiclePositionsData = (
             vehicle.location.latitude &&
             vehicle.location.longitude
           ) {
-            let trace = map.current.get(vehicle.vehicleId)?.trace;
+            let trace = map.current.get(
+              vehicle.vehicleId + "_" + vehicle.serviceJourney.id,
+            )?.trace;
 
             if (mapViewOptions.showVehicleTraces) {
               if (!trace) {
@@ -115,17 +139,20 @@ export const useVehiclePositionsData = (
               trace = [];
             }
 
-            map.current.set(vehicle.vehicleId, {
-              vehicleId: vehicle.vehicleId,
-              vehicleUpdate: vehicle,
-              trace,
-            });
+            map.current.set(
+              vehicle.vehicleId + "_" + vehicle.serviceJourney.id,
+              {
+                vehicleId: vehicle.vehicleId + "_" + vehicle.serviceJourney.id,
+                vehicleUpdate: vehicle,
+                trace,
+              },
+            );
           }
         });
         setData(filterVehicles(filter, Array.from(map.current.values())));
       }
     };
-    if (filter) {
+    if (filter && filter.boundingBox) {
       subscribe();
     }
   }, [filter, subscriptionClient, mapViewOptions]);

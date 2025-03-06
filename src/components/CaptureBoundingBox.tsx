@@ -29,7 +29,6 @@ const arraysAreEqual = (a?: number[][], b?: number[][]) => {
 export function CaptureBoundingBox({
   setCurrentFilter,
 }: {
-  currentFilter: Filter | null;
   setCurrentFilter: React.Dispatch<React.SetStateAction<Filter | null>>;
 }) {
   const { current: map } = useMap();
