@@ -1,6 +1,6 @@
+import { useRef, useState } from "react";
 import {
   Map,
-  Popup,
   NavigationControl,
   GeolocateControl,
 } from "react-map-gl/maplibre";
@@ -8,12 +8,13 @@ import { mapStyle } from "./mapStyle.ts";
 import { CaptureBoundingBox } from "./CaptureBoundingBox.tsx";
 import { Filter, MapViewOptions } from "../types.ts";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { SelectedVehicle, VehicleMarkers } from "./VehicleMarkers.tsx";
-import { useState } from "react";
+import { SelectedVehicle, VehicleMarkers } from "./Vehicle/VehicleMarkers.tsx";
 import { RegisterIcons } from "./RegisterIcons.tsx";
 import { RightMenu } from "./RightMenu";
 import { VehicleData } from "../hooks/useVehiclePositionsData.ts";
-import { VehicleTraces } from "./VehicleTraces.tsx";
+import { VehicleTraces } from "./Vehicle/VehicleTraces.tsx";
+import { VehiclePopup } from "./Vehicle/VehiclePopup.tsx";
+import { useFollowedVehicle } from "../hooks/useFollowedVehicle"; // adjust path as needed
 
 type MapViewProps = {
   data: VehicleData[];
@@ -32,15 +33,23 @@ export function MapView({
 }: MapViewProps) {
   const [selectedVehicle, setSelectedVehicle] =
     useState<SelectedVehicle | null>(null);
+  const mapRef = useRef<any>(null);
+
+  const handleMapLoad = (event: any) => {
+    mapRef.current = event.target;
+  };
+
+  const { followedVehicle, handleFollowToggle } = useFollowedVehicle(
+    data,
+    selectedVehicle,
+    mapRef,
+  );
 
   return (
     <Map
-      initialViewState={{
-        longitude: 10.0,
-        latitude: 64.0,
-        zoom: 4,
-      }}
+      initialViewState={{ longitude: 10.0, latitude: 64.0, zoom: 4 }}
       mapStyle={mapStyle}
+      onLoad={handleMapLoad}
     >
       <NavigationControl position="top-left" />
       <GeolocateControl position="top-left" />
@@ -56,24 +65,19 @@ export function MapView({
       <VehicleMarkers
         data={data.map((vehicle) => vehicle.vehicleUpdate)}
         setSelectedVehicle={setSelectedVehicle}
+        followedVehicleId={
+          followedVehicle ? followedVehicle.properties.id : null
+        }
       />
       {mapViewOptions.showVehicleTraces && <VehicleTraces data={data} />}
+
       {selectedVehicle && (
-        <Popup
-          longitude={selectedVehicle.coordinates[0]}
-          latitude={selectedVehicle.coordinates[1]}
-          anchor="top"
+        <VehiclePopup
+          vehicle={selectedVehicle}
           onClose={() => setSelectedVehicle(null)}
-        >
-          <div>
-            <h4>Vehicle Info</h4>
-            <p>ID: {selectedVehicle.properties.id as string}</p>
-            <p>Mode: {selectedVehicle.properties.mode as string}</p>
-            <p>Line number: {selectedVehicle.properties.lineCode as string}</p>
-            <p>Delay: {selectedVehicle.properties.delay as number}</p>
-            <p>Codespace: {selectedVehicle.properties.codespaceId}</p>
-          </div>
-        </Popup>
+          onFollow={handleFollowToggle}
+          followedVehicle={followedVehicle}
+        />
       )}
     </Map>
   );
