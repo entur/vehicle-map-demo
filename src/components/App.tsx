@@ -13,7 +13,9 @@ function App() {
     showVehicleTraces: false,
     showVehicles: true,
     showDelay: true,
-    showDelayHeatmap: false,
+    showUpdateFrequency: false,
+    showDeadUpdateFrequency: false,
+    showVehicleHeatmap: false,
   });
   const data = useVehiclePositionsData(currentFilter, mapViewOptions);
   useFilterQueryParams(currentFilter, setCurrentFilter);
