@@ -8,9 +8,9 @@ import tramIcon from "../static/images/tram.png";
 import redMarkerIcon from "../static/images/markerRed.png";
 import greenMarkerIcon from "../static/images/markerGreen.png";
 import yellowMarkerIcon from "../static/images/markerYellow.png";
-import redMarker from "../static/images/redMarker.png";
-import orangeMarker from "../static/images/orangeMarker.png";
-import greenMarker from "../static/images/greenMarker.png";
+import redMarker from "../static/images/redUpdate.png";
+import orangeMarker from "../static/images/yellowUpdate.png";
+import greenMarker from "../static/images/greenUpdate.png";
 import skullMarker from "../static/images/skullMarker.png";
 
 const images = [
