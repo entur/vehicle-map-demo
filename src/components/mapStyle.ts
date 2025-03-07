@@ -200,9 +200,30 @@ export const mapStyle: StyleSpecification = {
           "red-marker",
           "",
         ],
-        "icon-size": 0.2,
+        "icon-size": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          13,
+          0.25,
+          15,
+          0.2,
+          17,
+          0.17,
+        ],
         "icon-allow-overlap": true,
         visibility: "none",
+        "icon-offset": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          4,
+          ["literal", [-50, 0]], // At zoom 4, offset is [0, -30]
+          12,
+          ["literal", [-150, 0]], // At zoom 18, offset is [0, -80]
+          18,
+          ["literal", [-400, 0]], // At zoom 18, offset is [0, -80]
+        ],
       },
     },
     {
