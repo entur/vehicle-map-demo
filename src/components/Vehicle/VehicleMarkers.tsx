@@ -58,7 +58,6 @@ export function VehicleMarkers({
     }
 
     const map = mapRef.getMap();
-    // Create features and mark the followed one
     const features = data.map((vehicle) =>
       createFeature(vehicle, vehicle.vehicleId === followedVehicleId),
     );
@@ -68,7 +67,6 @@ export function VehicleMarkers({
       features,
     });
 
-    // Set selected vehicle on click.
     const clickSubscription = map.on("click", "vehicle-layer", (e) => {
       const features = map.queryRenderedFeatures(e.point, {
         layers: ["vehicle-layer"],
@@ -84,7 +82,6 @@ export function VehicleMarkers({
       }
     });
 
-    // Optionally, clear the selection when clicking on an area without a vehicle.
     const clearSelectionOnClick = map.on("click", (e) => {
       const features = map.queryRenderedFeatures(e.point, {
         layers: ["vehicle-layer"],
