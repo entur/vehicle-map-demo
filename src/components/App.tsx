@@ -1,4 +1,3 @@
-// App.tsx
 import { useState } from "react";
 import { Filter, MapViewOptions } from "../types.ts";
 import { useVehiclePositionsData } from "../hooks/useVehiclePositionsData.ts";

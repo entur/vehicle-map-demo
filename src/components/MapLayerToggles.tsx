@@ -61,7 +61,7 @@ export function MapLayerToggles({ mapViewOptions, setMapViewOptions }: Props) {
                 )}
               />
             }
-            label="Vehicle Traces"
+            label="Vehicle traces"
           />
           <FormControlLabel
             control={
@@ -95,7 +95,7 @@ export function MapLayerToggles({ mapViewOptions, setMapViewOptions }: Props) {
                 )}
               />
             }
-            label="Update frequency (more than 30s since update)"
+            label="Stale updates"
           />
           <FormControlLabel
             control={
@@ -107,7 +107,7 @@ export function MapLayerToggles({ mapViewOptions, setMapViewOptions }: Props) {
                 )}
               />
             }
-            label="Vehicle Heatmap"
+            label="Vehicle heatmap"
           />
         </FormGroup>
       </CardContent>

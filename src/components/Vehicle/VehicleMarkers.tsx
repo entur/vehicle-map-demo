@@ -10,6 +10,7 @@ type SelectedVehicleProperties = {
   codespaceId: string;
   delay: number;
   followed: boolean;
+  updateInterval: number;
 };
 
 export type SelectedVehicle = {
@@ -24,6 +25,8 @@ const createFeature = (
   GeoJSON.Point,
   SelectedVehicleProperties & { followed: boolean }
 > => {
+  const lastUpdateTimestamp = Date.parse(vehicle.lastUpdated);
+  const updateInterval = Date.now() - lastUpdateTimestamp;
   return {
     type: "Feature",
     geometry: {
@@ -37,6 +40,7 @@ const createFeature = (
       codespaceId: vehicle.codespace.codespaceId,
       delay: vehicle.delay,
       followed: isFollowed,
+      updateInterval: updateInterval,
     },
   };
 };
