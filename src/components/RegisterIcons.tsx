@@ -5,6 +5,9 @@ import busIcon from "../static/images/bus.png";
 import ferryIcon from "../static/images/ferry.png";
 import trainIcon from "../static/images/train.png";
 import tramIcon from "../static/images/tram.png";
+import redMarkerIcon from "../static/images/markerRed.png";
+import greenMarkerIcon from "../static/images/markerGreen.png";
+import yellowMarkerIcon from "../static/images/markerYellow.png";
 import redMarker from "../static/images/redMarker.png";
 import orangeMarker from "../static/images/orangeMarker.png";
 import greenMarker from "../static/images/greenMarker.png";
@@ -15,6 +18,9 @@ const images = [
   { name: "ferry-icon", url: ferryIcon },
   { name: "train-icon", url: trainIcon },
   { name: "tram-icon", url: tramIcon },
+  { name: "red-marker-icon", url: redMarkerIcon },
+  { name: "green-marker-icon", url: greenMarkerIcon },
+  { name: "yellow-marker-icon", url: yellowMarkerIcon },
   { name: "red-marker", url: redMarker },
   { name: "orange-marker", url: orangeMarker },
   { name: "green-marker", url: greenMarker },

@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useMap } from "react-map-gl/maplibre";
 import { GeoJSONSource } from "maplibre-gl";
-import { VehicleData } from "../hooks/useVehiclePositionsData.ts";
+import { VehicleData } from "../../hooks/useVehiclePositionsData.ts";
 
 const createFeature = (
   vehicle: VehicleData,

@@ -15,7 +15,7 @@ export const mapStyle: StyleSpecification = {
       type: "geojson",
       data: { type: "FeatureCollection", features: [] },
       cluster: false,
-      clusterMaxZoom: 14, // Max zoom to cluster points on
+      clusterMaxZoom: 14,
       clusterRadius: 5,
     },
     vehicleTraces: {
@@ -49,10 +49,8 @@ export const mapStyle: StyleSpecification = {
           "interpolate",
           ["linear"],
           ["zoom"],
-          // At zoom level 13, radius will be 10
           6,
           3,
-          // At zoom level 15, radius will be 9
           12,
           7,
           17,
@@ -78,7 +76,7 @@ export const mapStyle: StyleSpecification = {
           "train-icon",
           "TRAM",
           "tram-icon",
-          /* default: */ "bus-red",
+          "bus-red",
         ],
         "icon-size": [
           "interpolate",
@@ -87,13 +85,13 @@ export const mapStyle: StyleSpecification = {
           4,
           0.08,
           8,
-          0.12, // smaller at zoom 8
+          0.12,
           12,
-          0.2, // medium at zoom 12
+          0.2,
           14,
           0.25,
           18,
-          0.35, // bigger at zoom 18
+          0.35,
         ],
         "icon-allow-overlap": true,
         "text-field": ["get", "lineCode"],
@@ -111,6 +109,27 @@ export const mapStyle: StyleSpecification = {
       },
     },
     {
+      id: "vehicle-follow-layer",
+      type: "symbol",
+      source: "vehicles",
+      layout: {
+        "icon-image": "green-marker-icon",
+        "icon-size": 0.25,
+        "icon-anchor": "bottom",
+        "icon-offset": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          4,
+          ["literal", [0, -30]], // At zoom 4, offset is [0, -30]
+          18,
+          ["literal", [0, -180]], // At zoom 18, offset is [0, -80]
+        ],
+        "icon-allow-overlap": true,
+      },
+      filter: ["==", ["get", "followed"], true],
+    },
+    {
       id: "delay",
       type: "circle",
       source: "vehicles",
@@ -120,10 +139,8 @@ export const mapStyle: StyleSpecification = {
           "interpolate",
           ["linear"],
           ["zoom"],
-          // At zoom level 13, radius will be 10
           13,
           9,
-          // At zoom level 15, radius will be 9
           15,
           8,
           17,
