@@ -8,6 +8,10 @@ import tramIcon from "../static/images/tram.png";
 import redMarkerIcon from "../static/images/markerRed.png";
 import greenMarkerIcon from "../static/images/markerGreen.png";
 import yellowMarkerIcon from "../static/images/markerYellow.png";
+import redMarker from "../static/images/redUpdate.png";
+import orangeMarker from "../static/images/yellowUpdate.png";
+import greenMarker from "../static/images/greenUpdate.png";
+import skullMarker from "../static/images/skullMarker.png";
 
 const images = [
   { name: "bus-icon", url: busIcon },
@@ -17,6 +21,10 @@ const images = [
   { name: "red-marker-icon", url: redMarkerIcon },
   { name: "green-marker-icon", url: greenMarkerIcon },
   { name: "yellow-marker-icon", url: yellowMarkerIcon },
+  { name: "red-marker", url: redMarker },
+  { name: "orange-marker", url: orangeMarker },
+  { name: "green-marker", url: greenMarker },
+  { name: "skull-marker", url: skullMarker },
 ];
 
 export function RegisterIcons() {

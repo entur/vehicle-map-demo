@@ -125,5 +125,7 @@ export type MapViewOptions = {
   showVehicleTraces: boolean;
   showVehicles: boolean;
   showDelay: boolean;
-  showDelayHeatmap: boolean;
+  showVehicleHeatmap: boolean;
+  showUpdateFrequency: boolean;
+  showDeadUpdateFrequency: boolean;
 };

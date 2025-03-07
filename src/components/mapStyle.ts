@@ -159,25 +159,93 @@ export const mapStyle: StyleSpecification = {
         "circle-stroke-color": "#000",
         "circle-stroke-width": 2,
       },
+      layout: {
+        visibility: "none", // Default visibility
+      },
     },
     {
-      id: "vehicle-delay-heatmap",
-      type: "heatmap",
+      id: "vehicle-update-interval-text-layer",
+      type: "symbol",
       source: "vehicles",
-      maxzoom: 19,
+      minzoom: 13,
+      layout: {
+        "text-field": [
+          "concat",
+          ["to-string", ["get", "updateInterval"]],
+          "ms",
+        ],
+        "text-size": 12,
+        "text-offset": [0, 1.5],
+        "text-anchor": "top",
+        "text-allow-overlap": true,
+      },
       paint: {
-        "heatmap-weight": [
+        "text-color": "#000000",
+        "text-halo-color": "#FFF",
+        "text-halo-width": 6,
+      },
+    },
+    {
+      id: "vehicle-update-interval-icon-layer",
+      type: "symbol",
+      source: "vehicles",
+      layout: {
+        "icon-image": [
+          "case",
+          ["<", ["get", "updateInterval"], 3000],
+          "green-marker",
+          ["<", ["get", "updateInterval"], 15000],
+          "orange-marker",
+          ["<", ["get", "updateInterval"], 30000],
+          "red-marker",
+          "",
+        ],
+        "icon-size": [
           "interpolate",
           ["linear"],
-          ["get", "delay"],
-          0,
-          0,
-          180,
-          0.5,
-          300,
-          1,
+          ["zoom"],
+          13,
+          0.25,
+          15,
+          0.2,
+          17,
+          0.17,
         ],
-        "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 0, 1, 14, 3],
+        "icon-allow-overlap": true,
+        visibility: "none",
+        "icon-offset": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          4,
+          ["literal", [-50, 0]], // At zoom 4, offset is [0, -30]
+          12,
+          ["literal", [-150, 0]], // At zoom 18, offset is [0, -80]
+          18,
+          ["literal", [-400, 0]], // At zoom 18, offset is [0, -80]
+        ],
+      },
+    },
+    {
+      id: "vehicle-update-interval-skull-layer",
+      type: "symbol",
+      source: "vehicles",
+      filter: [">=", ["get", "updateInterval"], 30000],
+      layout: {
+        "icon-image": "skull-marker",
+        "icon-size": 0.2,
+        "icon-allow-overlap": true,
+        visibility: "none",
+      },
+    },
+    {
+      id: "vehicles-heatmap",
+      type: "heatmap",
+      source: "vehicles",
+      maxzoom: 15,
+      paint: {
+        "heatmap-weight": 1,
+        "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 0, 1, 15, 3],
         "heatmap-color": [
           "interpolate",
           ["linear"],
@@ -195,8 +263,8 @@ export const mapStyle: StyleSpecification = {
           1,
           "rgb(178,24,43)",
         ],
-        "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 0, 2, 14, 20],
-        "heatmap-opacity": ["interpolate", ["linear"], ["zoom"], 8, 1, 14, 0.3],
+        "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 0, 2, 15, 20],
+        "heatmap-opacity": 0.8,
       },
       layout: {
         visibility: "none",
