@@ -6,9 +6,9 @@ import {
   ListItemText,
   Skeleton,
 } from "@mui/material";
-import redlightIcon from "../../static/images/redlight.png";
-import orangelightIcon from "../../static/images/orangelight.png";
-import greenlightIcon from "../../static/images/greenlight.png";
+import redlightIcon from "../../static/images/redLight.png";
+import orangelightIcon from "../../static/images/orangeLight.png";
+import greenlightIcon from "../../static/images/greenLight.png";
 import { DataInfo } from "./DataInfo";
 import { DataItem, VehicleUpdateComplete } from "../../types.ts";
 import { transformVehicleUpdates } from "../../utils/transformVehicleUpdates.ts";

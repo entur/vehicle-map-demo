@@ -1,7 +1,7 @@
 import { CodespaceFilter } from "../CodespaceFilter.tsx";
 import { OperatorFilter } from "../OperatorFilter.tsx";
-import { MetadataBox } from "../MetadataBox.tsx";
-import { MapLayerToggles } from "../MapLayerToggles.tsx";
+import { InfoBox } from "../InfoBox.tsx";
+import { MapLayers } from "../MapLayers.tsx";
 import { ContentType } from "./types.ts";
 import { Filter, MapViewOptions, VehicleUpdate } from "../../types.ts";
 import { DataChecker } from "../DataChecker/DataChecker.tsx";
@@ -37,11 +37,11 @@ export const DrawerContent = ({
           currentFilter={currentFilter}
         />
       )}
-      {activeContent === "metadata" && currentFilter && (
-        <MetadataBox title={"Metadata"} data={data} />
+      {activeContent === "info" && currentFilter && (
+        <InfoBox title={"Info"} data={data} />
       )}
       {activeContent === "layers" && currentFilter && (
-        <MapLayerToggles
+        <MapLayers
           mapViewOptions={mapViewOptions}
           setMapViewOptions={setMapViewOptions}
         />

@@ -1,4 +1,3 @@
-// App.tsx
 import { useState } from "react";
 import { Filter, MapViewOptions } from "../types.ts";
 import { useVehiclePositionsData } from "../hooks/useVehiclePositionsData.ts";
@@ -13,7 +12,9 @@ function App() {
     showVehicleTraces: false,
     showVehicles: true,
     showDelay: true,
-    showDelayHeatmap: false,
+    showUpdateFrequency: false,
+    showDeadUpdateFrequency: false,
+    showVehicleHeatmap: false,
   });
   const data = useVehiclePositionsData(currentFilter, mapViewOptions);
   useFilterQueryParams(currentFilter, setCurrentFilter);

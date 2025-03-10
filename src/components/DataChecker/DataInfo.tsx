@@ -34,9 +34,9 @@ export function DataInfo() {
         <DialogTitle>Calculation Details</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            The data summary is calculated as the sum of all data items with a
+            The data report is calculated as the sum of all data items with a
             value divided by the sum of all data items (with and without value),
-            expressed as a percentage. This summary only states if data is
+            expressed as a percentage. This report only states if data is
             present and does not say anything about the quality of the data.
             <br />
             <br />

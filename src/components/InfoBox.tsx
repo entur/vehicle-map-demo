@@ -1,13 +1,13 @@
 import { Card, CardContent, Typography } from "@mui/material";
 import { VehicleUpdate } from "../types.ts";
+import { Legend } from "./Legend.tsx";
 
-// You can adjust/extend this type based on the metadata you want to display
-type MetadataBoxProps = {
+type InfoBoxProps = {
   title: string;
   data?: VehicleUpdate[];
 };
 
-export function MetadataBox({ title, data }: MetadataBoxProps) {
+export function InfoBox({ title, data }: InfoBoxProps) {
   return (
     <Card>
       <CardContent>
@@ -19,6 +19,7 @@ export function MetadataBox({ title, data }: MetadataBoxProps) {
             {"Size of data set: " + data.length}
           </Typography>
         )}
+        <Legend />
       </CardContent>
     </Card>
   );
