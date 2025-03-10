@@ -147,7 +147,6 @@ export const mapStyle: StyleSpecification = {
         "icon-size": 0.18,
         "icon-offset": [-100, -180],
         "icon-allow-overlap": true,
-        visibility: "none", // Default visibility
       },
     },
     {
@@ -165,6 +164,7 @@ export const mapStyle: StyleSpecification = {
         "text-offset": [0, 1.5],
         "text-anchor": "top",
         "text-allow-overlap": true,
+        visibility: "none",
       },
       paint: {
         "text-color": "#000000",
@@ -205,11 +205,11 @@ export const mapStyle: StyleSpecification = {
           ["linear"],
           ["zoom"],
           4,
-          ["literal", [-50, 0]], // At zoom 4, offset is [0, -30]
+          ["literal", [-50, 0]],
           12,
-          ["literal", [-150, 0]], // At zoom 18, offset is [0, -80]
+          ["literal", [-150, 0]],
           18,
-          ["literal", [-400, 0]], // At zoom 18, offset is [0, -80]
+          ["literal", [-400, 0]],
         ],
       },
     },
