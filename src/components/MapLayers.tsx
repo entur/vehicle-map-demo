@@ -7,15 +7,23 @@ import {
   FormGroup,
   FormControlLabel,
   Switch,
+  Box,
 } from "@mui/material";
 import { MapViewOptions } from "../types.ts";
+
+import busIcon from "../static/images/bus.png";
+import greenMarker from "../static/images/greenUpdate.png";
+import skullMarker from "../static/images/skull.png";
+import greenLight from "../static/images/greenLight.png";
+import heatMap from "../static/images/heatmap.png";
+import traces from "../static/images/traces.png";
 
 type Props = {
   mapViewOptions: MapViewOptions;
   setMapViewOptions: (mapViewOptions: MapViewOptions) => void;
 };
 
-export function MapLayerToggles({ mapViewOptions, setMapViewOptions }: Props) {
+export function MapLayers({ mapViewOptions, setMapViewOptions }: Props) {
   const { current: mapRef } = useMap();
 
   const handleToggleLayer =
@@ -35,6 +43,17 @@ export function MapLayerToggles({ mapViewOptions, setMapViewOptions }: Props) {
       });
     };
 
+  const getLabelWithIcon = (icon: string, label: string) => (
+    <Box sx={{ display: "flex", alignItems: "center" }}>
+      <img
+        src={icon}
+        alt={label}
+        style={{ height: 24, width: "auto", marginRight: 8 }}
+      />
+      <Typography variant="body2">{label}</Typography>
+    </Box>
+  );
+
   return (
     <Card>
       <CardContent>
@@ -49,7 +68,7 @@ export function MapLayerToggles({ mapViewOptions, setMapViewOptions }: Props) {
                 onChange={handleToggleLayer("showVehicles", "vehicle-layer")}
               />
             }
-            label="Vehicles"
+            label={getLabelWithIcon(busIcon, "Vehicles")}
           />
           <FormControlLabel
             control={
@@ -61,7 +80,7 @@ export function MapLayerToggles({ mapViewOptions, setMapViewOptions }: Props) {
                 )}
               />
             }
-            label="Vehicle traces"
+            label={getLabelWithIcon(traces, "Vehicle traces")}
           />
           <FormControlLabel
             control={
@@ -70,7 +89,7 @@ export function MapLayerToggles({ mapViewOptions, setMapViewOptions }: Props) {
                 onChange={handleToggleLayer("showDelay", "delay")}
               />
             }
-            label="Delay"
+            label={getLabelWithIcon(greenLight, "Delay")}
           />
           <FormControlLabel
             control={
@@ -82,9 +101,8 @@ export function MapLayerToggles({ mapViewOptions, setMapViewOptions }: Props) {
                 )}
               />
             }
-            label="Update frequency"
+            label={getLabelWithIcon(greenMarker, "Update frequency")}
           />
-
           <FormControlLabel
             control={
               <Switch
@@ -95,7 +113,7 @@ export function MapLayerToggles({ mapViewOptions, setMapViewOptions }: Props) {
                 )}
               />
             }
-            label="Stale updates (30s+)"
+            label={getLabelWithIcon(skullMarker, "Stale updates (30s+)")}
           />
           <FormControlLabel
             control={
@@ -107,7 +125,7 @@ export function MapLayerToggles({ mapViewOptions, setMapViewOptions }: Props) {
                 )}
               />
             }
-            label="Vehicle heatmap"
+            label={getLabelWithIcon(heatMap, "Vehicle heatmap")}
           />
         </FormGroup>
       </CardContent>

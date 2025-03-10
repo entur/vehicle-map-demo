@@ -1,7 +1,7 @@
 import { CodespaceFilter } from "../CodespaceFilter.tsx";
 import { OperatorFilter } from "../OperatorFilter.tsx";
 import { InfoBox } from "../InfoBox.tsx";
-import { MapLayerToggles } from "../MapLayerToggles.tsx";
+import { MapLayers } from "../MapLayers.tsx";
 import { ContentType } from "./types.ts";
 import { Filter, MapViewOptions, VehicleUpdate } from "../../types.ts";
 import { DataChecker } from "../DataChecker/DataChecker.tsx";
@@ -41,7 +41,7 @@ export const DrawerContent = ({
         <InfoBox title={"Info"} data={data} />
       )}
       {activeContent === "layers" && currentFilter && (
-        <MapLayerToggles
+        <MapLayers
           mapViewOptions={mapViewOptions}
           setMapViewOptions={setMapViewOptions}
         />
