@@ -95,7 +95,7 @@ export function MapLayerToggles({ mapViewOptions, setMapViewOptions }: Props) {
                 )}
               />
             }
-            label="Stale updates"
+            label="Stale updates (30s+)"
           />
           <FormControlLabel
             control={

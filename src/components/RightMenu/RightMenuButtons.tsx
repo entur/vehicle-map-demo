@@ -1,5 +1,5 @@
 import filterIcon from "../../static/images/filter.png";
-import metadataIcon from "../../static/images/metadata.png";
+import infoIcon from "../../static/images/info.png";
 import layersIcon from "../../static/images/layers.png";
 import stoplightIcon from "../../static/images/stoplight.png";
 import { ContentType } from "./types.ts";
@@ -24,12 +24,28 @@ export const RightMenuButtons = ({
   return (
     <>
       <button
+        onClick={() => toggleSidebar("layers")}
+        className={`sidebar-button right ${activeContent === "layers" ? "active" : ""} ${
+          activeContent ? "open" : ""
+        }`}
+        style={{
+          top: "20px",
+        }}
+      >
+        <img
+          src={layersIcon}
+          alt="Layers"
+          title="Layers"
+          style={{ width: "40px", height: "40px" }}
+        />
+      </button>
+      <button
         onClick={() => toggleSidebar("filtering")}
         className={`sidebar-button right ${activeContent === "filtering" ? "active" : ""} ${
           activeContent ? "open" : ""
         }`}
         style={{
-          top: "20px",
+          top: "75px",
         }}
       >
         <img
@@ -41,38 +57,17 @@ export const RightMenuButtons = ({
       </button>
 
       <button
-        onClick={() => toggleSidebar("metadata")}
-        className={`sidebar-button right ${activeContent === "metadata" ? "active" : ""} ${
-          activeContent ? "open" : ""
-        }`}
-        style={{
-          top: "75px",
-        }}
-      >
-        <img
-          src={metadataIcon}
-          alt="Metadata"
-          title="Metadata"
-          className="icon"
-        />
-      </button>
-
-      <button
-        onClick={() => toggleSidebar("layers")}
-        className={`sidebar-button right ${activeContent === "layers" ? "active" : ""} ${
+        onClick={() => toggleSidebar("info")}
+        className={`sidebar-button right ${activeContent === "info" ? "active" : ""} ${
           activeContent ? "open" : ""
         }`}
         style={{
           top: "130px",
         }}
       >
-        <img
-          src={layersIcon}
-          alt="Layers"
-          title="Layers"
-          style={{ width: "40px", height: "40px" }}
-        />
+        <img src={infoIcon} alt="Info" title="Info" className="icon" />
       </button>
+
       <button
         onClick={() => toggleSidebar("stoplight")}
         className={`sidebar-button right ${activeContent === "stoplight" ? "active" : ""} ${
@@ -84,8 +79,8 @@ export const RightMenuButtons = ({
       >
         <img
           src={stoplightIcon}
-          alt="Data summary"
-          title="Data summary"
+          alt="Data report"
+          title="Data report"
           style={{ width: "40px", height: "40px" }}
         />
       </button>

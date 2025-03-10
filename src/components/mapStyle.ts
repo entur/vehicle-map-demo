@@ -131,35 +131,22 @@ export const mapStyle: StyleSpecification = {
     },
     {
       id: "delay",
-      type: "circle",
+      type: "symbol",
       source: "vehicles",
       minzoom: 13,
-      paint: {
-        "circle-radius": [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          13,
-          9,
-          15,
-          8,
-          17,
-          7,
-        ],
-        "circle-translate": [-20, -30],
-        "circle-color": [
+      layout: {
+        "icon-image": [
           "step",
           ["get", "delay"],
-          "#00FF00",
-          180,
-          "#FFFF00",
+          "green-light",
+          120,
+          "orange-light",
           300,
-          "#FF0000",
+          "red-light", //
         ],
-        "circle-stroke-color": "#000",
-        "circle-stroke-width": 2,
-      },
-      layout: {
+        "icon-size": 0.18,
+        "icon-offset": [-100, -180],
+        "icon-allow-overlap": true,
         visibility: "none", // Default visibility
       },
     },

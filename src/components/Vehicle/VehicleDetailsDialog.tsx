@@ -10,8 +10,8 @@ import {
   Box,
 } from "@mui/material";
 import { VehicleUpdateComplete } from "../../types";
-import redlightIcon from "../../static/images/redlight.png";
-import greenlightIcon from "../../static/images/greenlight.png";
+import redlightIcon from "../../static/images/redLight.png";
+import greenlightIcon from "../../static/images/greenLight.png";
 import detailsIcon from "../../static/images/details.png";
 import jsonIcon from "../../static/images/json.png";
 import Tooltip from "@mui/material/Tooltip";

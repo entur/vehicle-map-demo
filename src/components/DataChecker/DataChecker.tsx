@@ -46,7 +46,7 @@ export const DataChecker = memo(function DataChecker() {
     <Card>
       <CardContent>
         <Typography variant="h6" gutterBottom>
-          Data summary
+          Data report
         </Typography>
 
         <Box mb={2}>
@@ -71,7 +71,7 @@ export const DataChecker = memo(function DataChecker() {
           disabled={!selectedCodespace}
           fullWidth
         >
-          Run data summary
+          Run data report
         </Button>
       </CardContent>
 
