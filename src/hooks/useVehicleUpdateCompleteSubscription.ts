@@ -8,8 +8,8 @@ type SubscriptionData = {
 };
 
 const subscriptionQuery = `
-  subscription($vehicleId: String!) {
-    vehicles(vehicleId: $vehicleId) {
+  subscription($vehicleId: String!, $serviceJourneyId: String!) {
+    vehicles(vehicleId: $vehicleId, serviceJourneyId: $serviceJourneyId) {
       direction
       serviceJourney {
         id
@@ -66,7 +66,10 @@ const subscriptionQuery = `
   }
 `;
 
-export const useVehicleUpdateCompleteSubscription = (vehicleId: string) => {
+export const useVehicleUpdateCompleteSubscription = (
+  vehicleId: string,
+  serviceJourneyId: string,
+) => {
   const [vehicleUpdate, setVehicleUpdate] =
     useState<VehicleUpdateComplete | null>(null);
 
@@ -83,7 +86,7 @@ export const useVehicleUpdateCompleteSubscription = (vehicleId: string) => {
 
     subscriptionRef.current = subscriptionClient.iterate<SubscriptionData>({
       query: subscriptionQuery,
-      variables: { vehicleId },
+      variables: { vehicleId, serviceJourneyId },
     });
 
     const subscribe = async () => {
