@@ -36,9 +36,9 @@ export function OperatorSelector({
         <MenuItem value="">
           <em>All</em>
         </MenuItem>
-        {operators.map((o) => (
-          <MenuItem key={o} value={o}>
-            {o}
+        {operators.map((operator) => (
+          <MenuItem key={operator.operatorRef} value={operator.operatorRef}>
+            {operator.name}
           </MenuItem>
         ))}
       </Select>

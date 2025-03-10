@@ -2,17 +2,19 @@ import { useEffect, useState } from "react";
 import { gql, request } from "graphql-request";
 import { useConfig } from "../config/ConfigContext.ts";
 import { useRequestHeaders } from "./useRequestHeaders.ts";
+import { Operator } from "../types.ts";
 
 const query = gql`
   query ($codespaceId: String!) {
     operators(codespaceId: $codespaceId) {
       operatorRef
+      name
     }
   }
 `;
 
 export function useOperators(codespaceId: string) {
-  const [operators, setOperators] = useState<string[]>([]);
+  const [operators, setOperators] = useState<Operator[]>([]);
   const config = useConfig();
   const requestHeaders = useRequestHeaders();
   useEffect(() => {
@@ -23,11 +25,7 @@ export function useOperators(codespaceId: string) {
         { codespaceId },
         requestHeaders,
       );
-      setOperators(
-        response.operators.map(
-          (operator: { operatorRef: any }) => operator.operatorRef,
-        ),
-      );
+      setOperators(response.operators);
     };
     fetchOperators();
   }, [codespaceId, config]);

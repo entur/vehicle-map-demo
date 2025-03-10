@@ -108,6 +108,11 @@ export function VehicleDetailsDialog({
             />
             <DataRow
               label="Operator"
+              value={vehicleData.operator.name}
+              rawValue={vehicleData.operator.name}
+            />
+            <DataRow
+              label="Operator reference"
               value={vehicleData.operator.operatorRef}
               rawValue={vehicleData.operator.operatorRef}
             />
