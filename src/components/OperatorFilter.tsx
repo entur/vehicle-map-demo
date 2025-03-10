@@ -1,7 +1,6 @@
-import { Card, CardContent, Typography } from "@mui/material";
+import { OperatorSelector } from "./OperatorSelector";
 import { SelectChangeEvent } from "@mui/material";
 import { Filter } from "../types";
-import { OperatorSelector } from "./OperatorSelector";
 
 type OperatorFilterProps = {
   currentFilter: Filter;
@@ -21,17 +20,12 @@ export function OperatorFilter({
   };
 
   return (
-    <Card>
-      <CardContent>
-        <Typography variant="h6" gutterBottom>
-          Operator Filter
-        </Typography>
-        <OperatorSelector
-          value={currentFilter.operatorRef ?? ""}
-          onChange={handleChange}
-          codespaceId={currentFilter.codespaceId ?? ""}
-        />
-      </CardContent>
-    </Card>
+    <div>
+      <OperatorSelector
+        value={currentFilter.operatorRef ?? ""}
+        onChange={handleChange}
+        codespaceId={currentFilter.codespaceId ?? ""}
+      />
+    </div>
   );
 }

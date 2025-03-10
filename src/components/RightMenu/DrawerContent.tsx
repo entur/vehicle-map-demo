@@ -1,10 +1,9 @@
-import { CodespaceFilter } from "../CodespaceFilter.tsx";
-import { OperatorFilter } from "../OperatorFilter.tsx";
 import { InfoBox } from "../InfoBox.tsx";
 import { MapLayers } from "../MapLayers.tsx";
 import { ContentType } from "./types.ts";
 import { Filter, MapViewOptions, VehicleUpdate } from "../../types.ts";
 import { DataChecker } from "../DataChecker/DataChecker.tsx";
+import { FilterBox } from "../FilterBox.tsx";
 
 type DrawerContentProps = {
   activeContent: ContentType;
@@ -26,17 +25,12 @@ export const DrawerContent = ({
   return (
     <>
       {activeContent === "filtering" && currentFilter && (
-        <CodespaceFilter
+        <FilterBox
           setCurrentFilter={setCurrentFilter}
           currentFilter={currentFilter}
         />
       )}
-      {activeContent === "filtering" && currentFilter && (
-        <OperatorFilter
-          setCurrentFilter={setCurrentFilter}
-          currentFilter={currentFilter}
-        />
-      )}
+
       {activeContent === "info" && currentFilter && (
         <InfoBox title={"Info"} data={data} />
       )}
