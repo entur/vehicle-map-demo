@@ -49,9 +49,9 @@ export function VehicleInfo({ vehicleData }: VehicleInfoCardProps) {
       <Typography variant="body2">
         <strong>ID:</strong> {vehicleData.vehicleId}
       </Typography>
-      {vehicleData.operator.operatorRef && (
+      {vehicleData.operator?.operatorRef && (
         <Typography variant="body2">
-          <strong>Operator:</strong> {vehicleData.operator.operatorRef}
+          <strong>Operator:</strong> {vehicleData.operator?.operatorRef}
         </Typography>
       )}
       <Typography variant="body2">
