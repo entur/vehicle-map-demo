@@ -26,6 +26,7 @@ export type Codespace = {
 
 export type Operator = {
   operatorRef: string;
+  name: string;
 };
 
 export type VehicleUpdate = {

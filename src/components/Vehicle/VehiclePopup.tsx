@@ -20,6 +20,7 @@ export function VehiclePopup({
 }: VehiclePopupProps) {
   const subscriptionData = useVehicleUpdateCompleteSubscription(
     vehicle.properties.id,
+    vehicle.properties.serviceJourneyId,
   );
 
   const longitude =

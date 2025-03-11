@@ -11,6 +11,7 @@ type SelectedVehicleProperties = {
   delay: number;
   followed: boolean;
   updateInterval: number;
+  serviceJourneyId: string;
 };
 
 export type SelectedVehicle = {
@@ -41,6 +42,7 @@ const createFeature = (
       delay: vehicle.delay,
       followed: isFollowed,
       updateInterval: updateInterval,
+      serviceJourneyId: vehicle.serviceJourney.id,
     },
   };
 };

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { VehicleData } from "./useVehiclePositionsData.ts"; // adjust import as needed
+import { VehicleData } from "./useVehiclePositionsData.ts";
 import { SelectedVehicle } from "../components/Vehicle/VehicleMarkers.tsx";
 
 export function useFollowedVehicle(
@@ -10,7 +10,6 @@ export function useFollowedVehicle(
   const [followedVehicle, setFollowedVehicle] =
     useState<SelectedVehicle | null>(null);
 
-  // This effect updates the followed vehicle's coordinates and flies the map if necessary.
   useEffect(() => {
     if (followedVehicle && mapRef.current) {
       const updatedVehicleData = data.find(
@@ -41,9 +40,12 @@ export function useFollowedVehicle(
     }
   }, [data, followedVehicle, mapRef]);
 
-  // Toggle the followed vehicle based on the currently selected vehicle.
   const handleFollowToggle = () => {
-    if (followedVehicle?.properties.id === selectedVehicle?.properties.id) {
+    if (
+      followedVehicle?.properties.id === selectedVehicle?.properties.id &&
+      followedVehicle?.properties.serviceJourneyId ===
+        selectedVehicle?.properties.serviceJourneyId
+    ) {
       setFollowedVehicle(null);
     } else if (selectedVehicle) {
       setFollowedVehicle(selectedVehicle);
