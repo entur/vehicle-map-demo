@@ -5,8 +5,8 @@ import { CacheMap } from "../utils/CacheMap.ts";
 import { useSubscriptionClient } from "./useSubscriptionClient.ts";
 
 const subscriptionQuery = `
-  subscription($minLat: Float!, $minLon: Float!, $maxLat: Float!, $maxLon: Float!, $codespaceId: String, $operatorRef: String) {
-    vehicles (boundingBox: {minLat: $minLat, minLon: $minLon, maxLat: $maxLat, maxLon: $maxLon}, codespaceId: $codespaceId, operatorRef: $operatorRef) {
+  subscription($minLat: Float!, $minLon: Float!, $maxLat: Float!, $maxLon: Float!, $codespaceId: String, $operatorRef: String, $maxDataAge: Duration) {
+    vehicles (boundingBox: {minLat: $minLat, minLon: $minLon, maxLat: $maxLat, maxLon: $maxLon}, codespaceId: $codespaceId, operatorRef: $operatorRef, maxDataAge: $maxDataAge) {
       vehicleId
       codespace {
         codespaceId
@@ -112,6 +112,7 @@ export const useVehiclePositionsData = (
         ...boundingBoxParams,
         ...(filter?.codespaceId && { codespaceId: filter.codespaceId }),
         ...(filter?.operatorRef && { operatorRef: filter.operatorRef }),
+        maxDataAge: "PT1M", // 60 seconds
       },
     });
     const subscribe = async () => {
