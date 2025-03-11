@@ -112,7 +112,7 @@ export const useVehiclePositionsData = (
         ...boundingBoxParams,
         ...(filter?.codespaceId && { codespaceId: filter.codespaceId }),
         ...(filter?.operatorRef && { operatorRef: filter.operatorRef }),
-        maxDataAge: "PT1M", // 60 seconds
+        maxDataAge: "PT30S", // 60 seconds
       },
     });
     const subscribe = async () => {

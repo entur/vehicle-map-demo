@@ -23,8 +23,8 @@ export function Legend() {
     { icon: orangeMarker, label: "Update frequency < 15s" },
     { icon: redMarker, label: "Update frequency < 30s" },
     { icon: skullMarker, label: "Update frequency > 30s" },
-    { icon: greenLight, label: "Update frequency < 2m" },
-    { icon: orangeLight, label: "Update frequency < 5m" },
+    { icon: greenLight, label: "Delay < 2m" },
+    { icon: orangeLight, label: "Delay < 5m" },
     { icon: redLight, label: "Delay > 5m" },
   ];
 
