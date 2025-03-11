@@ -4,6 +4,7 @@ import {
   Select,
   MenuItem,
   SelectChangeEvent,
+  Typography,
 } from "@mui/material";
 import { useOperators } from "../hooks/useOperators";
 
@@ -36,9 +37,16 @@ export function OperatorSelector({
         <MenuItem value="">
           <em>All</em>
         </MenuItem>
-        {operators.map((o) => (
-          <MenuItem key={o} value={o}>
-            {o}
+        {operators.map((operator) => (
+          <MenuItem key={operator.operatorRef} value={operator.operatorRef}>
+            <div>
+              <Typography variant="body1" fontWeight="bold">
+                {operator.name}
+              </Typography>
+              <Typography variant="body2" color="textSecondary">
+                {operator.operatorRef}
+              </Typography>
+            </div>
           </MenuItem>
         ))}
       </Select>

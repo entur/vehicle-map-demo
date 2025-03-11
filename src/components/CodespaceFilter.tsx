@@ -1,7 +1,6 @@
-import { Card, CardContent, Typography } from "@mui/material";
-import { Filter } from "../types";
 import { CodespaceSelector } from "./CodespaceSelector";
 import { SelectChangeEvent } from "@mui/material";
+import { Filter } from "../types";
 
 type CodespaceFilterProps = {
   currentFilter: Filter;
@@ -22,16 +21,11 @@ export function CodespaceFilter({
   };
 
   return (
-    <Card>
-      <CardContent>
-        <Typography variant="h6" gutterBottom>
-          Codespace Filter
-        </Typography>
-        <CodespaceSelector
-          value={currentFilter.codespaceId ?? ""}
-          onChange={handleChange}
-        />
-      </CardContent>
-    </Card>
+    <div>
+      <CodespaceSelector
+        value={currentFilter.codespaceId ?? ""}
+        onChange={handleChange}
+      />
+    </div>
   );
 }

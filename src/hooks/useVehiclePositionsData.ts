@@ -13,6 +13,7 @@ const subscriptionQuery = `
       }
       operator {
         operatorRef
+        name
       }
       lastUpdated
       mode
