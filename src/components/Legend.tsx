@@ -10,6 +10,7 @@ import skullMarker from "../static/images/skull.png";
 import greenLight from "../static/images/greenLight.png";
 import orangeLight from "../static/images/orangeLight.png";
 import redLight from "../static/images/redLight.png";
+import ufo from "../static/images/ufo.png";
 import { Box, Typography } from "@mui/material";
 
 export function Legend() {
@@ -18,6 +19,7 @@ export function Legend() {
     { icon: ferryIcon, label: "Ferry" },
     { icon: trainIcon, label: "Train" },
     { icon: tramIcon, label: "Tram" },
+    { icon: ufo, label: "Unknown transport" },
     { icon: greenMarkerIcon, label: "Follow vehicle marker" },
     { icon: greenMarker, label: "Update frequency < 2s" },
     { icon: orangeMarker, label: "Update frequency < 15s" },
