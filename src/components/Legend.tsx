@@ -10,6 +10,7 @@ import skullMarker from "../static/images/skull.png";
 import greenLight from "../static/images/greenLight.png";
 import orangeLight from "../static/images/orangeLight.png";
 import redLight from "../static/images/redLight.png";
+import redSkull from "../static/images/skullRed.png";
 import { Box, Typography } from "@mui/material";
 
 export function Legend() {
@@ -23,8 +24,9 @@ export function Legend() {
     { icon: orangeMarker, label: "Update frequency < 15s" },
     { icon: redMarker, label: "Update frequency < 30s" },
     { icon: skullMarker, label: "Update frequency > 30s" },
-    { icon: greenLight, label: "Update frequency < 2m" },
-    { icon: orangeLight, label: "Update frequency < 5m" },
+    { icon: redSkull, label: "Update frequency > 1h" },
+    { icon: greenLight, label: "Delay < 2m" },
+    { icon: orangeLight, label: "Delay < 5m" },
     { icon: redLight, label: "Delay > 5m" },
   ];
 

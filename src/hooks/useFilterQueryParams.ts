@@ -45,7 +45,11 @@ export function useFilterQueryParams(
 
       Object.entries(updatedParams).forEach(([key, value]) => {
         if (value !== undefined) {
-          url.searchParams.set(key, value);
+          if (typeof value === "string") {
+            url.searchParams.set(key, value);
+          } else {
+            url.searchParams.set(key, "" + value);
+          }
         } else {
           url.searchParams.delete(key);
         }

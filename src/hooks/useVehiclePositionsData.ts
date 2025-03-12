@@ -5,8 +5,8 @@ import { CacheMap } from "../utils/CacheMap.ts";
 import { useSubscriptionClient } from "./useSubscriptionClient.ts";
 
 const subscriptionQuery = `
-  subscription($minLat: Float!, $minLon: Float!, $maxLat: Float!, $maxLon: Float!, $codespaceId: String, $operatorRef: String) {
-    vehicles (boundingBox: {minLat: $minLat, minLon: $minLon, maxLat: $maxLat, maxLon: $maxLon}, codespaceId: $codespaceId, operatorRef: $operatorRef) {
+  subscription($minLat: Float!, $minLon: Float!, $maxLat: Float!, $maxLon: Float!, $codespaceId: String, $operatorRef: String, $maxDataAge: Duration) {
+    vehicles (boundingBox: {minLat: $minLat, minLon: $minLon, maxLat: $maxLat, maxLon: $maxLon}, codespaceId: $codespaceId, operatorRef: $operatorRef, maxDataAge: $maxDataAge) {
       vehicleId
       codespace {
         codespaceId
@@ -57,15 +57,11 @@ const filterVehicles = (filter: Filter | null, vehicles: VehicleData[]) => {
     const vehicleLastUpdated = new Date(
       vehicle.vehicleUpdate.lastUpdated,
     ).getTime();
-    const lastUpdatedWithin10Minutes =
-      Date.now() - vehicleLastUpdated < 10 * 60 * 1000;
+    const lastUpdatedWithin =
+      Date.now() - vehicleLastUpdated <
+      (filter?.ageLimit ? filter?.ageLimit : 10 * 60) * 1000; // 10 minutes as default
 
-    return (
-      inOperatorRef &&
-      inBoundingBox &&
-      inCodespace &&
-      lastUpdatedWithin10Minutes
-    );
+    return inOperatorRef && inBoundingBox && inCodespace && lastUpdatedWithin;
   });
 };
 
@@ -113,6 +109,7 @@ export const useVehiclePositionsData = (
         ...boundingBoxParams,
         ...(filter?.codespaceId && { codespaceId: filter.codespaceId }),
         ...(filter?.operatorRef && { operatorRef: filter.operatorRef }),
+        maxDataAge: filter?.maxDataAge ? filter?.maxDataAge : "PT30S", // default 30 seconds
       },
     });
     const subscribe = async () => {
