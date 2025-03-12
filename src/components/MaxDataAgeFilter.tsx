@@ -39,7 +39,7 @@ export function MaxDataAgeFilter({
         input: {
           endAdornment: (
             <InputAdornment position="end">
-              <Tooltip title={"Show details"}>
+              <Tooltip title={"Clear"}>
                 <button
                   className="round-icon-button round-icon-button-small"
                   onClick={handleClear}
