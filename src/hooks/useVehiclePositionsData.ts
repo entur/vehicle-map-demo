@@ -57,15 +57,11 @@ const filterVehicles = (filter: Filter | null, vehicles: VehicleData[]) => {
     const vehicleLastUpdated = new Date(
       vehicle.vehicleUpdate.lastUpdated,
     ).getTime();
-    const lastUpdatedWithin10Minutes =
-      Date.now() - vehicleLastUpdated < 10 * 60 * 1000;
+    const lastUpdatedWithin =
+      Date.now() - vehicleLastUpdated <
+      (filter?.ageLimit ? filter?.ageLimit : 10 * 60) * 1000; // 10 minutes as default
 
-    return (
-      inOperatorRef &&
-      inBoundingBox &&
-      inCodespace &&
-      lastUpdatedWithin10Minutes
-    );
+    return inOperatorRef && inBoundingBox && inCodespace && lastUpdatedWithin;
   });
 };
 
@@ -113,7 +109,7 @@ export const useVehiclePositionsData = (
         ...boundingBoxParams,
         ...(filter?.codespaceId && { codespaceId: filter.codespaceId }),
         ...(filter?.operatorRef && { operatorRef: filter.operatorRef }),
-        maxDataAge: "PT30S", // 60 seconds
+        maxDataAge: filter?.maxDataAge ? filter?.maxDataAge : "PT30S", // default 30 seconds
       },
     });
     const subscribe = async () => {
