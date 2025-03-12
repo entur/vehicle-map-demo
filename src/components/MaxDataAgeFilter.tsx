@@ -12,12 +12,25 @@ export function MaxDataAgeFilter({
   currentFilter,
   setCurrentFilter,
 }: MaxDataAgeFilterProps) {
+  const displayValue = currentFilter.maxDataAge
+    ? currentFilter.maxDataAge.match(/^PT(\d+)S$/)?.[1] || ""
+    : "";
+
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
-    setCurrentFilter({
-      ...currentFilter,
-      maxDataAge: value,
-    });
+    const seconds = parseInt(value, 10);
+    if (!isNaN(seconds) && seconds >= 0) {
+      const isoDuration = `PT${seconds}S`;
+      setCurrentFilter({
+        ...currentFilter,
+        maxDataAge: isoDuration,
+      });
+    } else {
+      setCurrentFilter({
+        ...currentFilter,
+        maxDataAge: undefined,
+      });
+    }
   };
 
   const handleClear = () => {
@@ -29,11 +42,11 @@ export function MaxDataAgeFilter({
 
   return (
     <TextField
-      label="Max Data Age"
+      label="Max data age"
       type="text"
-      value={currentFilter.maxDataAge ?? ""}
+      value={displayValue}
       onChange={handleChange}
-      helperText="Enter duration in ISO‑8601 format (e.g. PT1M for 60 seconds)"
+      helperText="Enter seconds. Limits age of data from subscription."
       fullWidth
       slotProps={{
         input: {
@@ -44,7 +57,7 @@ export function MaxDataAgeFilter({
                   className="round-icon-button round-icon-button-small"
                   onClick={handleClear}
                 >
-                  <img src={clearIcon} alt="Detail" className="icon-small" />
+                  <img src={clearIcon} alt="Clear" className="icon-small" />
                 </button>
               </Tooltip>
             </InputAdornment>

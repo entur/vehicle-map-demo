@@ -219,7 +219,12 @@ export const mapStyle: StyleSpecification = {
       source: "vehicles",
       filter: [">=", ["get", "updateInterval"], 30000],
       layout: {
-        "icon-image": "skull-marker",
+        "icon-image": [
+          "case",
+          [">", ["get", "updateInterval"], 3600000],
+          "red-skull-marker",
+          "skull-marker",
+        ],
         "icon-size": 0.2,
         "icon-allow-overlap": true,
         visibility: "none",

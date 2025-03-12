@@ -30,8 +30,9 @@ export function AgeLimitFilter({
 
   return (
     <TextField
-      label="Age Limit (seconds)"
+      label="Update age limit"
       value={currentFilter.ageLimit ?? ""}
+      helperText="Enter seconds. Limits update age of displayed data."
       onChange={handleChange}
       fullWidth
       slotProps={{
@@ -43,7 +44,7 @@ export function AgeLimitFilter({
                   className="round-icon-button round-icon-button-small"
                   onClick={handleClear}
                 >
-                  <img src={clearIcon} alt="Detail" className="icon-small" />
+                  <img src={clearIcon} alt="Clear" className="icon-small" />
                 </button>
               </Tooltip>
             </InputAdornment>
