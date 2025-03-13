@@ -12,18 +12,14 @@ export function MaxDataAgeFilter({
   currentFilter,
   setCurrentFilter,
 }: MaxDataAgeFilterProps) {
-  const displayValue = currentFilter.maxDataAge
-    ? currentFilter.maxDataAge.match(/^PT(\d+)S$/)?.[1] || ""
-    : "";
-
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
     const seconds = parseInt(value, 10);
     if (!isNaN(seconds) && seconds >= 0) {
-      const isoDuration = `PT${seconds}S`;
+      console.log("Setting maxDataAge to " + seconds);
       setCurrentFilter({
         ...currentFilter,
-        maxDataAge: isoDuration,
+        maxDataAge: seconds,
       });
     } else {
       setCurrentFilter({
@@ -44,7 +40,7 @@ export function MaxDataAgeFilter({
     <TextField
       label="Max data age"
       type="text"
-      value={displayValue}
+      value={currentFilter.maxDataAge}
       onChange={handleChange}
       helperText="Enter seconds. Limits age of data from subscription."
       fullWidth

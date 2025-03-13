@@ -54,14 +54,7 @@ const filterVehicles = (filter: Filter | null, vehicles: VehicleData[]) => {
       !filter.operatorRef ||
       vehicle.vehicleUpdate.operator.operatorRef === filter.operatorRef;
 
-    const vehicleLastUpdated = new Date(
-      vehicle.vehicleUpdate.lastUpdated,
-    ).getTime();
-    const lastUpdatedWithin =
-      Date.now() - vehicleLastUpdated <
-      (filter?.ageLimit ? filter?.ageLimit : 10 * 60) * 1000; // 10 minutes as default
-
-    return inOperatorRef && inBoundingBox && inCodespace && lastUpdatedWithin;
+    return inOperatorRef && inBoundingBox && inCodespace;
   });
 };
 
@@ -71,13 +64,17 @@ export type VehicleData = {
   trace: number[][];
 };
 
+function getVehicleTtl(vehicle: VehicleUpdate, maxDataAge: number) {
+  const vehicleLastUpdated = new Date(vehicle.lastUpdated).getTime();
+  const lastUpdatedWithin = Date.now() - vehicleLastUpdated;
+  return Math.max(0, maxDataAge * 1000 - lastUpdatedWithin);
+}
+
 export const useVehiclePositionsData = (
   filter: Filter | null,
   mapViewOptions: MapViewOptions,
 ) => {
-  const map = useRef<CacheMap<string, VehicleData>>(
-    new CacheMap({ expirationInMs: 60_000 }),
-  );
+  const map = useRef<CacheMap<string, VehicleData>>(new CacheMap());
   const [data, setData] = useState<VehicleData[]>(
     Array.from(map.current.values()),
   );
@@ -103,13 +100,15 @@ export const useVehiclePositionsData = (
       };
     }
 
+    const maxDataAge = filter?.maxDataAge ? filter?.maxDataAge : 30; // default 30 seconds
+
     subscription.current = subscriptionClient.iterate<Data>({
       query: subscriptionQuery,
       variables: {
         ...boundingBoxParams,
         ...(filter?.codespaceId && { codespaceId: filter.codespaceId }),
         ...(filter?.operatorRef && { operatorRef: filter.operatorRef }),
-        maxDataAge: filter?.maxDataAge ? filter?.maxDataAge : "PT30S", // default 30 seconds
+        maxDataAge: `PT${maxDataAge}S`,
       },
     });
     const subscribe = async () => {
@@ -144,6 +143,7 @@ export const useVehiclePositionsData = (
                 vehicleUpdate: vehicle,
                 trace,
               },
+              getVehicleTtl(vehicle, maxDataAge),
             );
           }
         });

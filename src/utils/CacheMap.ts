@@ -3,9 +3,9 @@ type CacheMapOptions = {
 };
 
 export class CacheMap<K, T> extends Map {
-  constructor({ expirationInMs }: CacheMapOptions) {
+  constructor(options?: CacheMapOptions) {
     super();
-    this.expirationInMs = expirationInMs;
+    this.expirationInMs = options?.expirationInMs;
   }
 
   private expirationInMs: number | undefined;
@@ -19,14 +19,17 @@ export class CacheMap<K, T> extends Map {
     }
   }
 
-  private setTimeout(key: K) {
-    if (this.expirationInMs !== undefined) {
+  private setTimeout(key: K, expirationInMs?: number) {
+    if (expirationInMs !== undefined) {
       this.timeouts.set(
         key,
-        window.setTimeout(() => {
-          this.delete(key);
-          this.timeouts.delete(key);
-        }, this.expirationInMs),
+        window.setTimeout(
+          () => {
+            this.delete(key);
+            this.timeouts.delete(key);
+          },
+          expirationInMs ? expirationInMs : this.expirationInMs,
+        ),
       );
     }
   }
@@ -35,12 +38,12 @@ export class CacheMap<K, T> extends Map {
     return super.get(key);
   }
 
-  set(key: K, value: T) {
+  set(key: K, value: T, expirationInMs?: number) {
     if (this.timeouts.has(key)) {
       this.clearTimeout(key);
     }
     super.set(key, value);
-    this.setTimeout(key);
+    this.setTimeout(key, expirationInMs);
     return this;
   }
 
