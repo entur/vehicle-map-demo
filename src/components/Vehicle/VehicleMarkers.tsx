@@ -12,6 +12,7 @@ type SelectedVehicleProperties = {
   followed: boolean;
   updateInterval: number;
   serviceJourneyId: string;
+  occupancyStatus: string;
 };
 
 export type SelectedVehicle = {
@@ -43,6 +44,7 @@ const createFeature = (
       followed: isFollowed,
       updateInterval: updateInterval,
       serviceJourneyId: vehicle.serviceJourney.id,
+      occupancyStatus: vehicle.occupancyStatus,
     },
   };
 };

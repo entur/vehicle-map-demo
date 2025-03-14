@@ -17,6 +17,7 @@ import skullMarker from "../static/images/skull.png";
 import greenLight from "../static/images/greenLight.png";
 import heatMap from "../static/images/heatmap.png";
 import traces from "../static/images/traces.png";
+import occupancy2 from "../static/images/occupancy2.png";
 
 type Props = {
   mapViewOptions: MapViewOptions;
@@ -43,12 +44,12 @@ export function MapLayers({ mapViewOptions, setMapViewOptions }: Props) {
       });
     };
 
-  const getLabelWithIcon = (icon: string, label: string) => (
+  const getLabelWithIcon = (icon: string, label: string, height: number) => (
     <Box sx={{ display: "flex", alignItems: "center" }}>
       <img
         src={icon}
         alt={label}
-        style={{ height: 24, width: "auto", marginRight: 8 }}
+        style={{ height: height, width: "auto", marginRight: 8 }}
       />
       <Typography variant="body2">{label}</Typography>
     </Box>
@@ -68,7 +69,7 @@ export function MapLayers({ mapViewOptions, setMapViewOptions }: Props) {
                 onChange={handleToggleLayer("showVehicles", "vehicle-layer")}
               />
             }
-            label={getLabelWithIcon(busIcon, "Vehicles")}
+            label={getLabelWithIcon(busIcon, "Vehicles", 22)}
           />
           <FormControlLabel
             control={
@@ -80,7 +81,7 @@ export function MapLayers({ mapViewOptions, setMapViewOptions }: Props) {
                 )}
               />
             }
-            label={getLabelWithIcon(traces, "Vehicle traces")}
+            label={getLabelWithIcon(traces, "Vehicle traces", 24)}
           />
           <FormControlLabel
             control={
@@ -89,7 +90,7 @@ export function MapLayers({ mapViewOptions, setMapViewOptions }: Props) {
                 onChange={handleToggleLayer("showDelay", "delay")}
               />
             }
-            label={getLabelWithIcon(greenLight, "Delay")}
+            label={getLabelWithIcon(greenLight, "Delay", 24)}
           />
           <FormControlLabel
             control={
@@ -101,7 +102,7 @@ export function MapLayers({ mapViewOptions, setMapViewOptions }: Props) {
                 )}
               />
             }
-            label={getLabelWithIcon(greenMarker, "Update frequency")}
+            label={getLabelWithIcon(greenMarker, "Update frequency", 16)}
           />
           <FormControlLabel
             control={
@@ -113,7 +114,16 @@ export function MapLayers({ mapViewOptions, setMapViewOptions }: Props) {
                 )}
               />
             }
-            label={getLabelWithIcon(skullMarker, "Stale updates (30s+)")}
+            label={getLabelWithIcon(skullMarker, "Stale updates (30s+)", 24)}
+          />
+          <FormControlLabel
+            control={
+              <Switch
+                checked={mapViewOptions.showOccupancy}
+                onChange={handleToggleLayer("showOccupancy", "occupancy-layer")}
+              />
+            }
+            label={getLabelWithIcon(occupancy2, "Occupancy", 8)}
           />
           <FormControlLabel
             control={
@@ -125,7 +135,7 @@ export function MapLayers({ mapViewOptions, setMapViewOptions }: Props) {
                 )}
               />
             }
-            label={getLabelWithIcon(heatMap, "Vehicle heatmap")}
+            label={getLabelWithIcon(heatMap, "Vehicle heatmap", 24)}
           />
         </FormGroup>
       </CardContent>

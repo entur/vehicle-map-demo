@@ -15,6 +15,7 @@ function App() {
     showUpdateFrequency: false,
     showDeadUpdateFrequency: false,
     showVehicleHeatmap: false,
+    showOccupancy: false,
   });
   const data = useVehiclePositionsData(currentFilter, mapViewOptions);
   useFilterQueryParams(currentFilter, setCurrentFilter);
