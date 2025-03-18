@@ -1,12 +1,12 @@
-import { InfoBox } from "../InfoBox.tsx";
 import { MapLayers } from "../MapLayers.tsx";
-import { ContentType } from "./types.ts";
+import { RightContentType } from "./types.ts";
 import { Filter, MapViewOptions, VehicleUpdate } from "../../types.ts";
 import { DataChecker } from "../DataChecker/DataChecker.tsx";
 import { FilterBox } from "../FilterBox.tsx";
+import { Legend } from "../Legend.tsx";
 
 type DrawerContentProps = {
-  activeContent: ContentType;
+  activeContent: RightContentType;
   currentFilter: Filter | null | undefined;
   setCurrentFilter: (filter: Filter) => void;
   mapViewOptions: MapViewOptions;
@@ -20,7 +20,6 @@ export const DrawerContent = ({
   setCurrentFilter,
   mapViewOptions,
   setMapViewOptions,
-  data,
 }: DrawerContentProps) => {
   return (
     <>
@@ -31,9 +30,7 @@ export const DrawerContent = ({
         />
       )}
 
-      {activeContent === "info" && currentFilter && (
-        <InfoBox title={"Info"} data={data} />
-      )}
+      {activeContent === "info" && currentFilter && <Legend />}
       {activeContent === "layers" && currentFilter && (
         <MapLayers
           mapViewOptions={mapViewOptions}

@@ -2,18 +2,18 @@ import filterIcon from "../../static/images/filter.png";
 import infoIcon from "../../static/images/info.png";
 import layersIcon from "../../static/images/layers.png";
 import stoplightIcon from "../../static/images/stoplight.png";
-import { ContentType } from "./types.ts";
+import { RightContentType } from "./types.ts";
 
 type RightMenuButtonsProps = {
-  activeContent: ContentType | null;
-  setActiveContent: (contentType: ContentType | null) => void;
+  activeContent: RightContentType | null;
+  setActiveContent: (contentType: RightContentType | null) => void;
 };
 
 export const RightMenuButtons = ({
   activeContent,
   setActiveContent,
 }: RightMenuButtonsProps) => {
-  const toggleSidebar = (newActiveContent: ContentType) => {
+  const toggleSidebar = (newActiveContent: RightContentType) => {
     if (newActiveContent === activeContent) {
       setActiveContent(null);
     } else {

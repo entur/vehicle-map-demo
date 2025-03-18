@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Filter, MapViewOptions, VehicleUpdate } from "../../types.ts";
-import { RightMenuButtons } from "./RightMenuButtons.tsx";
+import { LeftMenuButtons } from "./LeftMenuButtons.tsx";
 import { DrawerContent } from "./DrawerContent.tsx";
-import { RightContentType } from "./types.ts";
+import { LeftContentType } from "./types.ts";
 
-interface RightMenuProps {
+interface LeftMenuProps {
   setCurrentFilter: (filter: Filter) => void;
   currentFilter: Filter | null | undefined;
   mapViewOptions: MapViewOptions;
@@ -12,24 +12,24 @@ interface RightMenuProps {
   data: VehicleUpdate[];
 }
 
-export const RightMenu = ({
+export const LeftMenu = ({
   currentFilter,
   setCurrentFilter,
   mapViewOptions,
   setMapViewOptions,
   data,
-}: RightMenuProps) => {
-  const [activeContent, setActiveContent] = useState<RightContentType | null>(
+}: LeftMenuProps) => {
+  const [activeContent, setActiveContent] = useState<LeftContentType | null>(
     null,
   );
 
   return (
     <>
-      <RightMenuButtons
+      <LeftMenuButtons
         activeContent={activeContent}
         setActiveContent={setActiveContent}
       />
-      <div className={`right-menu-container ${activeContent ? "open" : ""}`}>
+      <div className={`left-menu-container ${activeContent ? "open" : ""}`}>
         {activeContent && (
           <DrawerContent
             activeContent={activeContent}
