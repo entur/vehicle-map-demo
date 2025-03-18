@@ -12,6 +12,7 @@ export type Filter = {
   boundingBox: number[][];
   codespaceId?: string;
   operatorRef?: string;
+  maxDataAge?: number;
 };
 
 export type Line = {

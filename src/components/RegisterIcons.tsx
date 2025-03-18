@@ -13,6 +13,7 @@ import skullMarker from "../static/images/skull.png";
 import redLight from "../static/images/redLight.png";
 import orangeLight from "../static/images/orangeLight.png";
 import greenLight from "../static/images/greenLight.png";
+import redSkull from "../static/images/skullRed.png";
 
 const images = [
   { name: "bus-icon", url: busIcon },
@@ -27,6 +28,7 @@ const images = [
   { name: "red-light", url: redLight },
   { name: "orange-light", url: orangeLight },
   { name: "green-light", url: greenLight },
+  { name: "red-skull-marker", url: redSkull },
 ];
 
 export function RegisterIcons() {
