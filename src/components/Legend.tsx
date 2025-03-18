@@ -37,7 +37,7 @@ export function Legend() {
     { icon: orangeMarker, label: "Update frequency < 15s", height: 18 },
     { icon: redMarker, label: "Update frequency < 30s", height: 16 },
     { icon: skullMarker, label: "Update frequency > 30s", height: 24 },
-    { icon: redSkull, label: "Update frequency > 1h", height: 24  },
+    { icon: redSkull, label: "Update frequency > 1h", height: 24 },
     { icon: greenLight, label: "Update frequency < 2m", height: 24 },
     { icon: orangeLight, label: "Update frequency < 5m", height: 24 },
     { icon: redLight, label: "Delay > 5m", height: 24 },
@@ -68,6 +68,7 @@ export function Legend() {
       label: "Not accepting any passengers",
       height: 22,
     },
+  ];
 
   return (
     <Box sx={{ mt: 2 }}>
