@@ -3,7 +3,6 @@ import { CodespaceFilter } from "./CodespaceFilter";
 import { OperatorFilter } from "./OperatorFilter";
 import { Filter as FilterType } from "../types.ts";
 import { MaxDataAgeFilter } from "./MaxDataAgeFilter.tsx";
-import { AgeLimitFilter } from "./AgeLimitFilter.tsx";
 
 type FilterProps = {
   currentFilter: FilterType;
@@ -23,11 +22,6 @@ export function FilterBox({ currentFilter, setCurrentFilter }: FilterProps) {
         />
         <Box mt={2}></Box>
         <OperatorFilter
-          currentFilter={currentFilter}
-          setCurrentFilter={setCurrentFilter}
-        />
-        <Box mt={2} />
-        <AgeLimitFilter
           currentFilter={currentFilter}
           setCurrentFilter={setCurrentFilter}
         />

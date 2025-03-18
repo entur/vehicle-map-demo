@@ -12,9 +12,7 @@ export type Filter = {
   boundingBox: number[][];
   codespaceId?: string;
   operatorRef?: string;
-  // kick out old vehicle updates in list - number in seconds
-  ageLimit?: number;
-  maxDataAge?: string;
+  maxDataAge?: number;
 };
 
 export type Line = {
