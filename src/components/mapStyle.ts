@@ -317,6 +317,7 @@ export const mapStyle: StyleSpecification = {
           ["literal", [0, 140]],
         ],
         "icon-allow-overlap": true,
+        visibility: "none",
       },
     },
   ],
