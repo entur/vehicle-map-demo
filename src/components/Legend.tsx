@@ -43,16 +43,16 @@ export function Legend() {
     { icon: redLight, label: "Delay > 5m", height: 24 },
     {
       icon: occupancy0,
-      label: "Empty or has very few passengers",
+      label: "Empty/very few passengers",
       height: 8,
     },
     {
       icon: occupancy1,
-      label: "More than ~50% of seats are available",
+      label: "More than ~50% seats available",
       height: 8,
     },
-    { icon: occupancy2, label: "~10%-50% of seats are available", height: 8 },
-    { icon: occupancy3, label: "Only standing room is available", height: 8 },
+    { icon: occupancy2, label: "~10%-50% seats available", height: 8 },
+    { icon: occupancy3, label: "Only standing room available", height: 8 },
     {
       icon: occupancy4,
       label: "Standing room only, at or near crush load",
@@ -60,12 +60,12 @@ export function Legend() {
     },
     {
       icon: occupancy5,
-      label: "Full; no more passengers can board",
+      label: "Full",
       height: 8,
     },
     {
       icon: occupancy6,
-      label: "Not accepting any passengers",
+      label: "Not accepting passengers",
       height: 22,
     },
   ];
