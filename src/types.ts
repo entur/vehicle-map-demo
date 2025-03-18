@@ -12,6 +12,7 @@ export type Filter = {
   boundingBox: number[][];
   codespaceId?: string;
   operatorRef?: string;
+  maxDataAge?: number;
 };
 
 export type Line = {
@@ -42,6 +43,7 @@ export type VehicleUpdate = {
   };
   serviceJourney: ServiceJourney;
   lastUpdated: string;
+  occupancyStatus: OccupancyStatus;
 };
 
 export type ServiceJourney = {
@@ -129,4 +131,5 @@ export type MapViewOptions = {
   showVehicleHeatmap: boolean;
   showUpdateFrequency: boolean;
   showDeadUpdateFrequency: boolean;
+  showOccupancy: boolean;
 };

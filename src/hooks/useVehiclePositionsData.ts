@@ -5,8 +5,8 @@ import { CacheMap } from "../utils/CacheMap.ts";
 import { useSubscriptionClient } from "./useSubscriptionClient.ts";
 
 const subscriptionQuery = `
-  subscription($minLat: Float!, $minLon: Float!, $maxLat: Float!, $maxLon: Float!, $codespaceId: String, $operatorRef: String) {
-    vehicles (boundingBox: {minLat: $minLat, minLon: $minLon, maxLat: $maxLat, maxLon: $maxLon}, codespaceId: $codespaceId, operatorRef: $operatorRef) {
+  subscription($minLat: Float!, $minLon: Float!, $maxLat: Float!, $maxLon: Float!, $codespaceId: String, $operatorRef: String, $maxDataAge: Duration) {
+    vehicles (boundingBox: {minLat: $minLat, minLon: $minLon, maxLat: $maxLat, maxLon: $maxLon}, codespaceId: $codespaceId, operatorRef: $operatorRef, maxDataAge: $maxDataAge) {
       vehicleId
       codespace {
         codespaceId
@@ -30,6 +30,7 @@ const subscriptionQuery = `
       serviceJourney {
         id
       }
+      occupancyStatus
     }
   }
 `;
@@ -54,18 +55,7 @@ const filterVehicles = (filter: Filter | null, vehicles: VehicleData[]) => {
       !filter.operatorRef ||
       vehicle.vehicleUpdate.operator.operatorRef === filter.operatorRef;
 
-    const vehicleLastUpdated = new Date(
-      vehicle.vehicleUpdate.lastUpdated,
-    ).getTime();
-    const lastUpdatedWithin10Minutes =
-      Date.now() - vehicleLastUpdated < 10 * 60 * 1000;
-
-    return (
-      inOperatorRef &&
-      inBoundingBox &&
-      inCodespace &&
-      lastUpdatedWithin10Minutes
-    );
+    return inOperatorRef && inBoundingBox && inCodespace;
   });
 };
 
@@ -75,13 +65,17 @@ export type VehicleData = {
   trace: number[][];
 };
 
+function getVehicleTtl(vehicle: VehicleUpdate, maxDataAge: number) {
+  const vehicleLastUpdated = new Date(vehicle.lastUpdated).getTime();
+  const lastUpdatedWithin = Date.now() - vehicleLastUpdated;
+  return Math.max(0, maxDataAge * 1000 - lastUpdatedWithin);
+}
+
 export const useVehiclePositionsData = (
   filter: Filter | null,
   mapViewOptions: MapViewOptions,
 ) => {
-  const map = useRef<CacheMap<string, VehicleData>>(
-    new CacheMap({ expirationInMs: 60_000 }),
-  );
+  const map = useRef<CacheMap<string, VehicleData>>(new CacheMap());
   const [data, setData] = useState<VehicleData[]>(
     Array.from(map.current.values()),
   );
@@ -107,12 +101,15 @@ export const useVehiclePositionsData = (
       };
     }
 
+    const maxDataAge = filter?.maxDataAge ? filter?.maxDataAge : 30; // default 30 seconds
+
     subscription.current = subscriptionClient.iterate<Data>({
       query: subscriptionQuery,
       variables: {
         ...boundingBoxParams,
         ...(filter?.codespaceId && { codespaceId: filter.codespaceId }),
         ...(filter?.operatorRef && { operatorRef: filter.operatorRef }),
+        maxDataAge: `PT${maxDataAge}S`,
       },
     });
     const subscribe = async () => {
@@ -147,6 +144,7 @@ export const useVehiclePositionsData = (
                 vehicleUpdate: vehicle,
                 trace,
               },
+              getVehicleTtl(vehicle, maxDataAge),
             );
           }
         });
