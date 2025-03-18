@@ -20,6 +20,7 @@ import occupancy3 from "../static/images/occupancy3.png";
 import occupancy4 from "../static/images/occupancy4.png";
 import occupancy5 from "../static/images/occupancy5.png";
 import occupancy6 from "../static/images/occupancy6.png";
+import redSkull from "../static/images/skullRed.png";
 
 const images = [
   { name: "bus-icon", url: busIcon },
@@ -41,6 +42,7 @@ const images = [
   { name: "occupancy4", url: occupancy4 },
   { name: "occupancy5", url: occupancy5 },
   { name: "occupancy6", url: occupancy6 },
+  { name: "red-skull-marker", url: redSkull },
 ];
 
 export function RegisterIcons() {
