@@ -11,6 +11,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { SelectedVehicle, VehicleMarkers } from "./Vehicle/VehicleMarkers.tsx";
 import { RegisterIcons } from "./RegisterIcons.tsx";
 import { RightMenu } from "./RightMenu";
+import { LeftMenu } from "./LeftMenu";
 import { VehicleData } from "../hooks/useVehiclePositionsData.ts";
 import { VehicleTraces } from "./Vehicle/VehicleTraces.tsx";
 import { VehiclePopup } from "./Vehicle/VehiclePopup.tsx";
@@ -53,6 +54,13 @@ export function MapView({
     >
       <NavigationControl position="top-left" />
       <GeolocateControl position="top-left" />
+      <LeftMenu
+        data={data.map((vehicle) => vehicle.vehicleUpdate)}
+        setCurrentFilter={setCurrentFilter}
+        currentFilter={currentFilter}
+        mapViewOptions={mapViewOptions}
+        setMapViewOptions={setMapViewOptions}
+      />
       <RightMenu
         data={data.map((vehicle) => vehicle.vehicleUpdate)}
         setCurrentFilter={setCurrentFilter}

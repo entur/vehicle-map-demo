@@ -18,7 +18,7 @@ import occupancy4 from "../static/images/occupancy4.png";
 import occupancy5 from "../static/images/occupancy5.png";
 import occupancy6 from "../static/images/occupancy6.png";
 import redSkull from "../static/images/skullRed.png";
-import { Box, Typography } from "@mui/material";
+import { Box, Card, CardContent, Typography } from "@mui/material";
 
 type LegendItems = {
   icon: any;
@@ -43,16 +43,16 @@ export function Legend() {
     { icon: redLight, label: "Delay > 5m", height: 24 },
     {
       icon: occupancy0,
-      label: "Empty or has very few passengers",
+      label: "Empty/very few passengers",
       height: 8,
     },
     {
       icon: occupancy1,
-      label: "More than ~50% of seats are available",
+      label: "More than ~50% seats available",
       height: 8,
     },
-    { icon: occupancy2, label: "~10%-50% of seats are available", height: 8 },
-    { icon: occupancy3, label: "Only standing room is available", height: 8 },
+    { icon: occupancy2, label: "~10%-50% seats available", height: 8 },
+    { icon: occupancy3, label: "Only standing room available", height: 8 },
     {
       icon: occupancy4,
       label: "Standing room only, at or near crush load",
@@ -60,31 +60,37 @@ export function Legend() {
     },
     {
       icon: occupancy5,
-      label: "Full; no more passengers can board",
+      label: "Full",
       height: 8,
     },
     {
       icon: occupancy6,
-      label: "Not accepting any passengers",
+      label: "Not accepting passengers",
       height: 22,
     },
   ];
 
   return (
-    <Box sx={{ mt: 2 }}>
-      <Typography variant="h6" gutterBottom>
-        Map legend
-      </Typography>
-      {legendItems.map((item, index) => (
-        <Box key={index} sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-          <img
-            src={item.icon}
-            alt={item.label}
-            style={{ width: "auto", height: item.height, marginRight: 8 }}
-          />
-          <Typography variant="body2">{item.label}</Typography>
-        </Box>
-      ))}
-    </Box>
+    <Card>
+      <CardContent>
+        <Typography variant="h6" gutterBottom>
+          Map legend
+        </Typography>
+
+        {legendItems.map((item, index) => (
+          <Box
+            key={index}
+            sx={{ display: "flex", alignItems: "center", mb: 1 }}
+          >
+            <img
+              src={item.icon}
+              alt={item.label}
+              style={{ width: "auto", height: item.height, marginRight: 8 }}
+            />
+            <Typography variant="body2">{item.label}</Typography>
+          </Box>
+        ))}
+      </CardContent>
+    </Card>
   );
 }

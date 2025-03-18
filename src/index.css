@@ -98,3 +98,50 @@ body {
   width: 32px;
   height: 32px;
 }
+
+.left-menu-container {
+  position: absolute;
+  top: 125px;
+  left: 0;
+  width: 0;
+  background-color: #f4f4f4;
+  overflow-x: hidden;
+  transition: 0.3s;
+  margin-top: 20px;
+  box-shadow: none;
+}
+
+.left-menu-container.open {
+  width: 250px;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+}
+
+.sidebar-button.left {
+  position: absolute;
+  left: 5px;
+  width: 48px;
+  height: 48px;
+  background: #fff;
+  border: 1px solid;
+  border-radius: 50%;
+  cursor: pointer;
+  transition:
+    left 0.3s,
+    background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.sidebar-button.left.open {
+  left: 255px;
+}
+
+.sidebar-button.active {
+  background: #1fcac2;
+}
+
+.sidebar-button:hover {
+  background: #5d9c9b;
+}
