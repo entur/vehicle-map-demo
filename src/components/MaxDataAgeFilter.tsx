@@ -40,9 +40,9 @@ export function MaxDataAgeFilter({
     <TextField
       label="Max data age"
       type="text"
-      value={currentFilter.maxDataAge}
+      value={currentFilter.maxDataAge ?? ""}
       onChange={handleChange}
-      helperText="Enter seconds. Limits age of data from subscription."
+      helperText="Enter seconds. Limits age of data."
       fullWidth
       slotProps={{
         input: {
