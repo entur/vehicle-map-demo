@@ -1,4 +1,5 @@
 {
   "vehicle-positions-graphql-endpoint": "https://api.dev.entur.io/realtime/v2/vehicles/graphql",
-  "vehicle-positions-subscriptions-endpoint": "wss://api.dev.entur.io/realtime/v2/vehicles/subscriptions"
+  "vehicle-positions-subscriptions-endpoint": "wss://api.dev.entur.io/realtime/v2/vehicles/subscriptions",
+  "vehicle-positions-et-client-name": "entur-vehicle-map-demo-dev"
 }
