@@ -133,3 +133,44 @@ export type MapViewOptions = {
   showDeadUpdateFrequency: boolean;
   showOccupancy: boolean;
 };
+
+export type Stop = {
+  id: string;
+  name: string;
+  location: {
+    latitude: number;
+    longitude: number;
+  };
+};
+
+export type CallType = "RECORDED" | "ESTIMATED";
+
+export type Call = {
+  stopPoint: Stop;
+  order: number;
+  aimedArrivalTime: string | null;
+  aimedDepartureTime: string | null;
+  expectedArrivalTime: string | null;
+  expectedDepartureTime: string | null;
+  actualArrivalTime: string | null;
+  actualDepartureTime: string | null;
+  callType: CallType;
+  cancellation: boolean;
+  forBoarding: boolean | null;
+  occupancyStatus: OccupancyStatus | null;
+};
+
+export type EstimatedTimetableUpdate = {
+  serviceJourney: ServiceJourney;
+  line: Line;
+  mode: VehicleModeEnumeration;
+  originName: string;
+  destinationName: string;
+  cancellation: boolean;
+  calls: Call[];
+};
+
+export type RoutePolyline = {
+  coordinates: number[][]; // [lng, lat] pairs
+  length: number | null;
+};
