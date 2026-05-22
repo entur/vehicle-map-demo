@@ -8,7 +8,7 @@ on:
     branches:
       - master
     paths-ignore:
-      - '**/README.md'
+      - "**/README.md"
   schedule:
     - cron: "0 3 * * MON"
 
