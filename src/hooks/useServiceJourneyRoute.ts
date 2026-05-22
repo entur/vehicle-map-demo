@@ -66,7 +66,7 @@ export function useServiceJourneyRoute(
       });
 
     return () => controller.abort();
-  }, [serviceJourneyId, config, requestHeaders]);
+  }, [serviceJourneyId, config]);
 
   return route;
 }
