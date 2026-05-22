@@ -54,6 +54,17 @@ export function SelectedVehiclePanel({
 
   const showNotAvailable = !serviceJourneyId || (timedOut && !timetable);
 
+  const headerTitle = vehicleData
+    ? [
+        vehicleData.line.publicCode,
+        [vehicleData.originName, vehicleData.destinationName]
+          .filter((name) => name && name !== "null")
+          .join(" → "),
+      ]
+        .filter(Boolean)
+        .join(" ")
+    : "Loading…";
+
   return (
     <Drawer
       anchor="left"
@@ -78,9 +89,7 @@ export function SelectedVehiclePanel({
       >
         <Box>
           <Typography variant="h6" sx={{ lineHeight: 1.2 }}>
-            {vehicleData
-              ? `${vehicleData.line.publicCode ?? ""} ${vehicleData.originName} → ${vehicleData.destinationName}`
-              : "Loading…"}
+            {headerTitle}
           </Typography>
           {vehicleData && (
             <Typography variant="caption" color="text.secondary">
