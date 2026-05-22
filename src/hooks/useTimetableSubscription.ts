@@ -9,7 +9,7 @@ type SubscriptionData = {
 
 const subscriptionQuery = `
   subscription($serviceJourneyId: String!, $date: String!) {
-    timetables(serviceJourneyIdAndDates: [{ serviceJourneyId: $serviceJourneyId, date: $date }]) {
+    timetables(serviceJourneyIdAndDates: [{ id: $serviceJourneyId, date: $date }]) {
       serviceJourney {
         id
         date
