@@ -12,7 +12,8 @@ type SelectedVehiclePanelProps = {
   onCancellationChange?: (cancelled: boolean) => void;
 };
 
-const DRAWER_WIDTH = "min(420px, 90vw)";
+const DRAWER_WIDTH = "min(320px, 90vw)";
+const DRAWER_TOP_OFFSET = 160;
 const NO_TIMETABLE_TIMEOUT_MS = 3000;
 
 export function SelectedVehiclePanel({
@@ -55,12 +56,14 @@ export function SelectedVehiclePanel({
 
   return (
     <Drawer
-      anchor="right"
+      anchor="left"
       variant="persistent"
       open={open}
       PaperProps={{
         sx: {
           width: DRAWER_WIDTH,
+          top: DRAWER_TOP_OFFSET,
+          height: `calc(100% - ${DRAWER_TOP_OFFSET}px)`,
           padding: 2,
           boxSizing: "border-box",
           display: "flex",
