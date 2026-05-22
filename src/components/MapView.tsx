@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Map,
   NavigationControl,
@@ -16,6 +16,8 @@ import { VehicleData } from "../hooks/useVehiclePositionsData.ts";
 import { VehicleTraces } from "./Vehicle/VehicleTraces.tsx";
 import { VehiclePopup } from "./Vehicle/VehiclePopup.tsx";
 import { useFollowedVehicle } from "../hooks/useFollowedVehicle"; // adjust path as needed
+import { SelectedVehiclePanel } from "./SelectedVehiclePanel";
+import { RouteLayer } from "./RouteLayer.tsx";
 
 type MapViewProps = {
   data: VehicleData[];
@@ -34,7 +36,14 @@ export function MapView({
 }: MapViewProps) {
   const [selectedVehicle, setSelectedVehicle] =
     useState<SelectedVehicle | null>(null);
+  const [tripCancelled, setTripCancelled] = useState(false);
   const mapRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (selectedVehicle === null) {
+      setTripCancelled(false);
+    }
+  }, [selectedVehicle]);
 
   const handleMapLoad = (event: any) => {
     mapRef.current = event.target;
@@ -47,46 +56,58 @@ export function MapView({
   );
 
   return (
-    <Map
-      initialViewState={{ longitude: 10.0, latitude: 64.0, zoom: 4 }}
-      mapStyle={mapStyle}
-      onLoad={handleMapLoad}
-    >
-      <NavigationControl position="top-left" />
-      <GeolocateControl position="top-left" />
-      <LeftMenu
-        data={data.map((vehicle) => vehicle.vehicleUpdate)}
-        setCurrentFilter={setCurrentFilter}
-        currentFilter={currentFilter}
-        mapViewOptions={mapViewOptions}
-        setMapViewOptions={setMapViewOptions}
-      />
-      <RightMenu
-        data={data.map((vehicle) => vehicle.vehicleUpdate)}
-        setCurrentFilter={setCurrentFilter}
-        currentFilter={currentFilter}
-        mapViewOptions={mapViewOptions}
-        setMapViewOptions={setMapViewOptions}
-      />
-      <RegisterIcons />
-      <CaptureBoundingBox setCurrentFilter={setCurrentFilter} />
-      <VehicleMarkers
-        data={data.map((vehicle) => vehicle.vehicleUpdate)}
-        setSelectedVehicle={setSelectedVehicle}
-        followedVehicleId={
-          followedVehicle ? followedVehicle.properties.id : null
-        }
-      />
-      {mapViewOptions.showVehicleTraces && <VehicleTraces data={data} />}
-
-      {selectedVehicle && (
-        <VehiclePopup
-          vehicle={selectedVehicle}
-          onClose={() => setSelectedVehicle(null)}
-          onFollow={handleFollowToggle}
-          followedVehicle={followedVehicle}
+    <>
+      <Map
+        initialViewState={{ longitude: 10.0, latitude: 64.0, zoom: 4 }}
+        mapStyle={mapStyle}
+        onLoad={handleMapLoad}
+      >
+        <NavigationControl position="top-left" />
+        <GeolocateControl position="top-left" />
+        <LeftMenu
+          data={data.map((vehicle) => vehicle.vehicleUpdate)}
+          setCurrentFilter={setCurrentFilter}
+          currentFilter={currentFilter}
+          mapViewOptions={mapViewOptions}
+          setMapViewOptions={setMapViewOptions}
         />
-      )}
-    </Map>
+        <RightMenu
+          data={data.map((vehicle) => vehicle.vehicleUpdate)}
+          setCurrentFilter={setCurrentFilter}
+          currentFilter={currentFilter}
+          mapViewOptions={mapViewOptions}
+          setMapViewOptions={setMapViewOptions}
+        />
+        <RegisterIcons />
+        <CaptureBoundingBox setCurrentFilter={setCurrentFilter} />
+        <VehicleMarkers
+          data={data.map((vehicle) => vehicle.vehicleUpdate)}
+          setSelectedVehicle={setSelectedVehicle}
+          followedVehicleId={
+            followedVehicle ? followedVehicle.properties.id : null
+          }
+        />
+        {mapViewOptions.showVehicleTraces && <VehicleTraces data={data} />}
+        <RouteLayer
+          serviceJourneyId={
+            selectedVehicle?.properties.serviceJourneyId ?? null
+          }
+          cancelled={tripCancelled}
+        />
+        {selectedVehicle && (
+          <VehiclePopup
+            vehicle={selectedVehicle}
+            onClose={() => setSelectedVehicle(null)}
+            onFollow={handleFollowToggle}
+            followedVehicle={followedVehicle}
+          />
+        )}
+      </Map>
+      <SelectedVehiclePanel
+        selectedVehicle={selectedVehicle}
+        onClose={() => setSelectedVehicle(null)}
+        onCancellationChange={setTripCancelled}
+      />
+    </>
   );
 }

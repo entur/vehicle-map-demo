@@ -9,6 +9,7 @@ import { Timetable } from "./Timetable.tsx";
 type SelectedVehiclePanelProps = {
   selectedVehicle: SelectedVehicle | null;
   onClose: () => void;
+  onCancellationChange?: (cancelled: boolean) => void;
 };
 
 const DRAWER_WIDTH = "min(420px, 90vw)";
@@ -17,6 +18,7 @@ const NO_TIMETABLE_TIMEOUT_MS = 3000;
 export function SelectedVehiclePanel({
   selectedVehicle,
   onClose,
+  onCancellationChange,
 }: SelectedVehiclePanelProps) {
   const serviceJourneyId = selectedVehicle?.properties.serviceJourneyId ?? null;
   const date = selectedVehicle?.properties.date ?? null;
@@ -44,6 +46,10 @@ export function SelectedVehiclePanel({
   const open = selectedVehicle !== null;
   const currentOrder = vehicleData?.monitoredCall?.order ?? null;
   const tripCancelled = timetable?.cancellation === true;
+
+  useEffect(() => {
+    onCancellationChange?.(tripCancelled);
+  }, [tripCancelled, onCancellationChange]);
 
   const showNotAvailable = !serviceJourneyId || (timedOut && !timetable);
 
