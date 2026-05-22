@@ -15,7 +15,7 @@ export function delayColour(bucket: DelayBucket): string {
     case "early":
       return "#2980b9";
     case "ontime":
-      return "inherit";
+      return "#1f8a3a";
   }
 }
 
