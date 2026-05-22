@@ -13,7 +13,7 @@ type SelectedVehiclePanelProps = {
 };
 
 const DRAWER_WIDTH = "min(320px, 90vw)";
-const DRAWER_TOP_OFFSET = 160;
+const DRAWER_TOP_OFFSET = 220;
 const NO_TIMETABLE_TIMEOUT_MS = 3000;
 
 export function SelectedVehiclePanel({
