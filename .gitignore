@@ -30,3 +30,6 @@ dist-ssr
 /playwright/.cache/
 
 public/bootstrap.json
+
+.superpowers/
+

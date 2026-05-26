@@ -12,6 +12,7 @@ type SelectedVehicleProperties = {
   followed: boolean;
   updateInterval: number;
   serviceJourneyId: string;
+  date: string;
   occupancyStatus: string;
 };
 
@@ -44,6 +45,7 @@ const createFeature = (
       followed: isFollowed,
       updateInterval: updateInterval,
       serviceJourneyId: vehicle.serviceJourney.id,
+      date: vehicle.serviceJourney.date,
       occupancyStatus: vehicle.occupancyStatus,
     },
   };

@@ -22,6 +22,10 @@ export const mapStyle: StyleSpecification = {
       type: "geojson",
       data: { type: "FeatureCollection", features: [] },
     },
+    serviceJourneyRoute: {
+      type: "geojson",
+      data: { type: "FeatureCollection", features: [] },
+    },
   },
 
   layers: [
@@ -32,6 +36,20 @@ export const mapStyle: StyleSpecification = {
       paint: {
         "raster-saturation": 0.3,
         "raster-contrast": 0.1,
+      },
+    },
+    {
+      id: "service-journey-route-layer",
+      type: "line",
+      source: "serviceJourneyRoute",
+      layout: {
+        "line-cap": "round",
+        "line-join": "round",
+      },
+      paint: {
+        "line-color": "#1fcac2",
+        "line-width": 4,
+        "line-opacity": 0.85,
       },
     },
     {

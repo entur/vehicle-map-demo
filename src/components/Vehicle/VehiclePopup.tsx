@@ -34,6 +34,7 @@ export function VehiclePopup({
         longitude={longitude}
         latitude={latitude}
         anchor="top"
+        offset={[0, 15]}
         onClose={onClose}
         closeOnClick={false}
         className="vehicle-popup"

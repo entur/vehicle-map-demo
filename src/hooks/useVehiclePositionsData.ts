@@ -29,6 +29,7 @@ const subscriptionQuery = `
       }
       serviceJourney {
         id
+        date
       }
       occupancyStatus
     }
