@@ -58,13 +58,17 @@ export type DatedServiceJourney = {
 
 export type OccupancyStatus =
   | "noData" // No occupancy data is available
+  | "unknown" // SIRI: unknown
   | "empty" // Vehicle is considered empty or has very few passengers
   | "manySeatsAvailable" // More than ~50% of seats are available
+  | "seatsAvailable" // SIRI: some seats are available
   | "fewSeatsAvailable" // ~10%-50% of seats are available
+  | "standingAvailable" // SIRI: standing room is available
   | "standingRoomOnly" // Only standing room is available
   | "crushedStandingRoomOnly" // Standing room only, at or near crush load
   | "full" // Vehicle is full; no more passengers can board
-  | "notAcceptingPassengers"; // Vehicle is not accepting any passengers
+  | "notAcceptingPassengers" // Vehicle is not accepting any passengers
+  | "undefined"; // SIRI: undefined
 
 export type VehicleStatusEnumeration =
   | "ASSIGNED"
