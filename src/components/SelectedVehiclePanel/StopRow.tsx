@@ -79,9 +79,9 @@ export function StopRow({ call, isCurrent }: StopRowProps) {
 
   return (
     <Box
-      display="flex"
-      alignItems="center"
       sx={{
+        display: "flex",
+        alignItems: "center",
         padding: "5px 0",
         borderBottom: "1px dotted #eee",
         opacity: isPast && !isCurrent ? 0.55 : 1,

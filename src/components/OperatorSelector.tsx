@@ -40,7 +40,7 @@ export function OperatorSelector({
         {operators.map((operator) => (
           <MenuItem key={operator.operatorRef} value={operator.operatorRef}>
             <div>
-              <Typography variant="body1" fontWeight="bold">
+              <Typography variant="body1" sx={{ fontWeight: "bold" }}>
                 {operator.name}
               </Typography>
               <Typography variant="body2" color="textSecondary">

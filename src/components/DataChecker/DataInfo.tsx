@@ -19,7 +19,14 @@ export function DataInfo() {
 
   return (
     <>
-      <Box mt={2} display="flex" justifyContent="flex-end" alignItems="center">
+      <Box
+        sx={{
+          mt: 2,
+          display: "flex",
+          justifyContent: "flex-end",
+          alignItems: "center",
+        }}
+      >
         <IconButton onClick={handleInfoOpen} size="small">
           <img
             src={infoIcon}

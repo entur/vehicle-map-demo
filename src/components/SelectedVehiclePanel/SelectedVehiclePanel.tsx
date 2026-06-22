@@ -70,22 +70,26 @@ export function SelectedVehiclePanel({
       anchor="left"
       variant="persistent"
       open={open}
-      PaperProps={{
-        sx: {
-          width: DRAWER_WIDTH,
-          top: DRAWER_TOP_OFFSET,
-          height: `calc(100% - ${DRAWER_TOP_OFFSET}px)`,
-          padding: 2,
-          boxSizing: "border-box",
-          display: "flex",
-          flexDirection: "column",
+      slotProps={{
+        paper: {
+          sx: {
+            width: DRAWER_WIDTH,
+            top: DRAWER_TOP_OFFSET,
+            height: `calc(100% - ${DRAWER_TOP_OFFSET}px)`,
+            padding: 2,
+            boxSizing: "border-box",
+            display: "flex",
+            flexDirection: "column",
+          },
         },
       }}
     >
       <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="flex-start"
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+        }}
       >
         <Box>
           <Typography variant="h6" sx={{ lineHeight: 1.2 }}>

@@ -34,7 +34,7 @@ export const DataDialog = memo(function DataDialog({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md">
       <DialogTitle>
-        <Box textAlign="center">
+        <Box sx={{ textAlign: "center" }}>
           <Typography variant="h5">Data report</Typography>
         </Box>
       </DialogTitle>

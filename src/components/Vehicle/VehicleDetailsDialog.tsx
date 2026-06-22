@@ -34,7 +34,7 @@ function DataRow({ label, value, rawValue }: DataRowProps) {
     rawValue !== undefined &&
     (typeof rawValue === "string" ? rawValue.trim() !== "" : true);
   return (
-    <Box display="flex" alignItems="center" mb={1}>
+    <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
       <img
         src={hasData ? greenlightIcon : redlightIcon}
         alt="status"
@@ -65,7 +65,13 @@ export function VehicleDetailsDialog({
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       <DialogTitle>
-        <Box display="flex" justifyContent="space-between" alignItems="center">
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
           <span>Vehicle Details</span>
           <Tooltip title={showJson ? "View details" : "View JSON"}>
             <button className="round-icon-button" onClick={toggleJson}>
