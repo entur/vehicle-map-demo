@@ -9,10 +9,10 @@ type DetailsButtonProps = {
 };
 
 export function DetailsButton({ vehicleData }: DetailsButtonProps) {
+  const [detailsOpen, setDetailsOpen] = useState(false);
   if (!vehicleData) {
     return null;
   }
-  const [detailsOpen, setDetailsOpen] = useState(false);
   return (
     <>
       <Tooltip title={"Show details"}>
