@@ -77,9 +77,7 @@ export const useVehiclePositionsData = (
   mapViewOptions: MapViewOptions,
 ) => {
   const map = useRef<CacheMap<string, VehicleData>>(new CacheMap());
-  const [data, setData] = useState<VehicleData[]>(
-    Array.from(map.current.values()),
-  );
+  const [data, setData] = useState<VehicleData[]>([]);
   const subscription =
     useRef<AsyncIterableIterator<FormattedExecutionResult<Data, unknown>>>(
       null,
