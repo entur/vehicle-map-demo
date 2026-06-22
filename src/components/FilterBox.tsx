@@ -20,12 +20,12 @@ export function FilterBox({ currentFilter, setCurrentFilter }: FilterProps) {
           currentFilter={currentFilter}
           setCurrentFilter={setCurrentFilter}
         />
-        <Box mt={2}></Box>
+        <Box sx={{ mt: 2 }} />
         <OperatorFilter
           currentFilter={currentFilter}
           setCurrentFilter={setCurrentFilter}
         />
-        <Box mt={2} />
+        <Box sx={{ mt: 2 }} />
         <MaxDataAgeFilter
           currentFilter={currentFilter}
           setCurrentFilter={setCurrentFilter}

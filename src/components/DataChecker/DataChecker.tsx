@@ -49,14 +49,14 @@ export const DataChecker = memo(function DataChecker() {
           Data report
         </Typography>
 
-        <Box mb={2}>
+        <Box sx={{ mb: 2 }}>
           <CodespaceSelector
             value={selectedCodespace}
             onChange={handleCodespaceChange}
           />
         </Box>
 
-        <Box mb={2}>
+        <Box sx={{ mb: 2 }}>
           <OperatorSelector
             value={selectedOperator ?? ""}
             onChange={handleOperatorChange}
