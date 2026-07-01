@@ -21,8 +21,7 @@ export function RouteLayer({ serviceJourneyId, cancelled }: RouteLayerProps) {
     if (!mapRef) return;
     const map = mapRef.getMap();
     const source = map.getSource("serviceJourneyRoute") as
-      | GeoJSONSource
-      | undefined;
+      GeoJSONSource | undefined;
     if (!source) return;
 
     if (!route || route.coordinates.length === 0) {

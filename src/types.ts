@@ -1,12 +1,5 @@
 export type VehicleModeEnumeration =
-  | "AIR"
-  | "BUS"
-  | "COACH"
-  | "FERRY"
-  | "METRO"
-  | "TAXI"
-  | "TRAM"
-  | "RAIL";
+  "AIR" | "BUS" | "COACH" | "FERRY" | "METRO" | "TAXI" | "TRAM" | "RAIL";
 
 export type Filter = {
   boundingBox: number[][];
