@@ -7,14 +7,11 @@ on:
       - completed
 
 jobs:
-  deploy_dev:
+  prepare_dev:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-      - name: Download all workflow run artifacts
+      - name: Download build artifact from triggering run
         uses: actions/download-artifact@v8
         with:
           run-id: ${{ github.event.workflow_run.id }}
@@ -23,20 +20,29 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Copy config
         run: cp .github/environments/config-dev.json dist/bootstrap.json
-      - uses: FirebaseExtended/action-hosting-deploy@v0
+      - name: Re-upload prepared artifact
+        uses: actions/upload-artifact@v7
         with:
-          repoToken: "${{ secrets.GITHUB_TOKEN }}"
-          firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT_VEHICLE_MAP_DEMO_DEV }}"
-          channelId: live
-          projectId: vehicle-map-demo-dev
-  deploy_staging:
+          name: deploy-dev
+          path: dist
+  deploy_dev:
+    needs: [prepare_dev]
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+    uses: entur/gha-firebase/.github/workflows/firebase-hosting-deploy.yml@v1
+    with:
+      gcp_project_id: vehicle-map-demo-dev
+      environment: dev
+      build_artifact_name: deploy-dev
+      build_artifact_path: dist
+
+  prepare_staging:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-      - name: Download all workflow run artifacts
+      - name: Download build artifact from triggering run
         uses: actions/download-artifact@v8
         with:
           run-id: ${{ github.event.workflow_run.id }}
@@ -45,20 +51,29 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Copy config
         run: cp .github/environments/config-staging.json dist/bootstrap.json
-      - uses: FirebaseExtended/action-hosting-deploy@v0
+      - name: Re-upload prepared artifact
+        uses: actions/upload-artifact@v7
         with:
-          repoToken: "${{ secrets.GITHUB_TOKEN }}"
-          firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT_VEHICLE_MAP_DEMO_STAGING }}"
-          channelId: live
-          projectId: vehicle-map-demo-staging
-  deploy_prod:
+          name: deploy-staging
+          path: dist
+  deploy_staging:
+    needs: [prepare_staging]
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+    uses: entur/gha-firebase/.github/workflows/firebase-hosting-deploy.yml@v1
+    with:
+      gcp_project_id: vehicle-map-demo-staging
+      environment: tst
+      build_artifact_name: deploy-staging
+      build_artifact_path: dist
+
+  prepare_prod:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-      - name: Download all workflow run artifacts
+      - name: Download build artifact from triggering run
         uses: actions/download-artifact@v8
         with:
           run-id: ${{ github.event.workflow_run.id }}
@@ -67,9 +82,20 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Copy config
         run: cp .github/environments/config-prod.json dist/bootstrap.json
-      - uses: FirebaseExtended/action-hosting-deploy@v0
+      - name: Re-upload prepared artifact
+        uses: actions/upload-artifact@v7
         with:
-          repoToken: "${{ secrets.GITHUB_TOKEN }}"
-          firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT_VEHICLE_MAP_DEMO_PROD }}"
-          channelId: live
-          projectId: vehicle-map-demo-prod
+          name: deploy-prod
+          path: dist
+  deploy_prod:
+    needs: [prepare_prod]
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+    uses: entur/gha-firebase/.github/workflows/firebase-hosting-deploy.yml@v1
+    with:
+      gcp_project_id: vehicle-map-demo-prod
+      environment: prd
+      build_artifact_name: deploy-prod
+      build_artifact_path: dist

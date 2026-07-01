@@ -1,7 +1,7 @@
 name: Build PR
 "on": pull_request
 jobs:
-  build_and_preview:
+  build:
     if: "${{ github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.login != 'dependabot[bot]' }}"
     runs-on: ubuntu-latest
     steps:
@@ -14,8 +14,22 @@ jobs:
       - run: npm run build
       - name: Copy config
         run: cp .github/environments/config-dev.json dist/bootstrap.json
-      - uses: FirebaseExtended/action-hosting-deploy@v0
+      - name: Archive build artifact
+        uses: actions/upload-artifact@v7
         with:
-          repoToken: "${{ secrets.GITHUB_TOKEN }}"
-          firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT_VEHICLE_MAP_DEMO_DEV }}"
-          projectId: vehicle-map-demo-dev
+          name: dist
+          path: dist
+
+  preview:
+    needs: [build]
+    if: "${{ github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.login != 'dependabot[bot]' }}"
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+    uses: entur/gha-firebase/.github/workflows/firebase-hosting-preview.yml@v1
+    with:
+      gcp_project_id: vehicle-map-demo-dev
+      environment: dev
+      build_artifact_name: dist
+      build_artifact_path: dist
