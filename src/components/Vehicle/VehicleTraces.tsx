@@ -1,11 +1,10 @@
 import { useEffect } from "react";
 import { useMap } from "react-map-gl/maplibre";
 import { GeoJSONSource } from "maplibre-gl";
+import type { Feature, LineString } from "geojson";
 import { VehicleData } from "../../hooks/useVehiclePositionsData.ts";
 
-const createFeature = (
-  vehicle: VehicleData,
-): GeoJSON.Feature<GeoJSON.LineString> => {
+const createFeature = (vehicle: VehicleData): Feature<LineString> => {
   return {
     type: "Feature",
     geometry: {

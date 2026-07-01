@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useMap } from "react-map-gl/maplibre";
 import { VehicleModeEnumeration, VehicleUpdate } from "../../types.ts";
 import { GeoJSONSource } from "maplibre-gl";
+import type { Feature, Point } from "geojson";
 
 type SelectedVehicleProperties = {
   id: string;
@@ -24,10 +25,7 @@ export type SelectedVehicle = {
 const createFeature = (
   vehicle: VehicleUpdate,
   isFollowed: boolean,
-): GeoJSON.Feature<
-  GeoJSON.Point,
-  SelectedVehicleProperties & { followed: boolean }
-> => {
+): Feature<Point, SelectedVehicleProperties & { followed: boolean }> => {
   const lastUpdateTimestamp = Date.parse(vehicle.lastUpdated);
   const updateInterval = Date.now() - lastUpdateTimestamp;
   return {
@@ -83,7 +81,7 @@ export function VehicleMarkers({
       });
       if (features.length) {
         const feature = features[0];
-        const point = feature.geometry as GeoJSON.Point;
+        const point = feature.geometry as Point;
         const coordinates = point.coordinates.slice();
         setSelectedVehicle({
           coordinates,

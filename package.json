@@ -28,6 +28,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.61.1",
+    "@types/geojson": "^7946.0.16",
     "@types/node": "^26.1.0",
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
