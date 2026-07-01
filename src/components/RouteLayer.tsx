@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useMap } from "react-map-gl/maplibre";
 import { GeoJSONSource } from "maplibre-gl";
+import type { FeatureCollection } from "geojson";
 import { useServiceJourneyRoute } from "../hooks/useServiceJourneyRoute.ts";
 
 type RouteLayerProps = {
@@ -8,7 +9,7 @@ type RouteLayerProps = {
   cancelled: boolean;
 };
 
-const EMPTY_FEATURE_COLLECTION: GeoJSON.FeatureCollection = {
+const EMPTY_FEATURE_COLLECTION: FeatureCollection = {
   type: "FeatureCollection",
   features: [],
 };
