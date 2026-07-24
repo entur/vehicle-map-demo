@@ -20,7 +20,7 @@
     "graphql": "^16.10.0",
     "graphql-request": "^7.1.2",
     "graphql-ws": "^6.1.1",
-    "maplibre-gl": "^5.1.0",
+    "maplibre-gl": "^6.0.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-map-gl": "^8.0.1"
