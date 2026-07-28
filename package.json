@@ -29,7 +29,7 @@
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.62.0",
     "@types/geojson": "^7946.0.16",
-    "@types/node": "^26.1.1",
+    "@types/node": "^26.1.2",
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
     "@vitejs/plugin-react": "^6.0.4",
