@@ -58,6 +58,24 @@ describe("resolveCallTimes", () => {
     expect(resolved.delaySeconds).toBe(540);
   });
 
+  // The other half of the contract: a RecordedCall carries either expected or
+  // actual times, so one omitting actual must still resolve from expected.
+  test("uses expected time when a recorded call has no actual times", () => {
+    const resolved = resolveCallTimes(
+      call({
+        callType: "RECORDED",
+        aimedArrivalTime: "2026-08-06T09:44:00+02:00",
+        aimedDepartureTime: "2026-08-06T09:45:00+02:00",
+        expectedArrivalTime: "2026-08-06T09:53:00+02:00",
+        expectedDepartureTime: "2026-08-06T09:55:00+02:00",
+      }),
+    );
+
+    expect(resolved.aimed).toBe("2026-08-06T09:45:00+02:00");
+    expect(resolved.realtime).toBe("2026-08-06T09:55:00+02:00");
+    expect(resolved.delaySeconds).toBe(600);
+  });
+
   test("ignores expected entirely when an actual time is present", () => {
     const resolved = resolveCallTimes(
       call({
