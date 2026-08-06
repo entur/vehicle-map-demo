@@ -8,6 +8,7 @@ on:
 
 jobs:
   prepare_dev:
+    if: "${{ github.event.workflow_run.conclusion == 'success' }}"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -39,6 +40,7 @@ jobs:
       build_artifact_path: dist
 
   prepare_staging:
+    if: "${{ github.event.workflow_run.conclusion == 'success' }}"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -70,6 +72,7 @@ jobs:
       build_artifact_path: dist
 
   prepare_prod:
+    if: "${{ github.event.workflow_run.conclusion == 'success' }}"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7

@@ -1,5 +1,6 @@
 import { Box, Typography } from "@mui/material";
 import { Call } from "../../types.ts";
+import { resolveCallTimes } from "./callTimes.ts";
 import { delayBucket, delayColour } from "./delayThresholds.ts";
 
 type StopRowProps = {
@@ -30,32 +31,20 @@ function formatTime(iso: string | null): string | null {
   });
 }
 
-function delaySeconds(aimed: string | null, expected: string | null): number {
-  if (!aimed || !expected) return 0;
-  const a = Date.parse(aimed);
-  const e = Date.parse(expected);
-  if (Number.isNaN(a) || Number.isNaN(e)) return 0;
-  return Math.round((e - a) / 1000);
-}
-
 export function StopRow({ call, isCurrent }: StopRowProps) {
   const isPast = call.callType === "RECORDED";
   const isCancelled = call.cancellation;
 
-  // Use departure time for non-terminal stops; the last stop's row falls back
-  // to arrival because there is no departure.
-  const aimed = call.aimedDepartureTime ?? call.aimedArrivalTime;
-  const expected = call.expectedDepartureTime ?? call.expectedArrivalTime;
+  const { aimed, realtime, delaySeconds } = resolveCallTimes(call);
   const aimedLabel = formatTime(aimed);
-  const expectedLabel = formatTime(expected);
+  const realtimeLabel = formatTime(realtime);
 
-  const deltaSeconds = delaySeconds(aimed, expected);
-  const bucket = delayBucket(deltaSeconds);
-  const expectedColour = delayColour(bucket);
+  const bucket = delayBucket(delaySeconds);
+  const realtimeColour = delayColour(bucket);
   const showAimed =
     aimedLabel !== null &&
-    expectedLabel !== null &&
-    aimedLabel !== expectedLabel;
+    realtimeLabel !== null &&
+    aimedLabel !== realtimeLabel;
 
   const occupancy = call.occupancyStatus
     ? OCCUPANCY_DISPLAY[call.occupancyStatus]
@@ -126,10 +115,10 @@ export function StopRow({ call, isCurrent }: StopRowProps) {
           sx={{
             fontSize: 12,
             fontWeight: 600,
-            color: isCancelled ? "#c0392b" : expectedColour,
+            color: isCancelled ? "#c0392b" : realtimeColour,
           }}
         >
-          {isCancelled ? "—" : (expectedLabel ?? aimedLabel ?? "—")}
+          {isCancelled ? "—" : (realtimeLabel ?? aimedLabel ?? "—")}
         </Typography>
       </Box>
 
