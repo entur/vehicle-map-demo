@@ -1,7 +1,17 @@
 name: Build PR
 "on": pull_request
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm test
   build:
+    needs: [test]
     if: "${{ github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.login != 'dependabot[bot]' }}"
     runs-on: ubuntu-latest
     steps:
