@@ -78,12 +78,14 @@ function TranslationLines({
 function SituationRow({
   situation,
   dense,
+  expanded,
+  onToggle,
 }: {
   situation: Situation;
   dense: boolean;
+  expanded: boolean;
+  onToggle: () => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
-
   const summaryText = pickTranslation(situation.summary);
   const descriptionText = pickTranslation(situation.description);
   const adviceText = pickTranslation(situation.advice);
@@ -95,8 +97,6 @@ function SituationRow({
   const colour = severityColour(situation.severity);
   const validity = formatValidity(situation);
   const links = (situation.infoLinks ?? []).filter((link) => link.uri);
-
-  const toggle = () => setExpanded((open) => !open);
 
   return (
     <Box
@@ -114,11 +114,11 @@ function SituationRow({
         role="button"
         tabIndex={0}
         aria-expanded={expanded}
-        onClick={toggle}
+        onClick={onToggle}
         onKeyDown={(event) => {
           if (event.key === "Enter" || event.key === " ") {
             event.preventDefault();
-            toggle();
+            onToggle();
           }
         }}
         sx={{
@@ -230,7 +230,24 @@ export function SituationList({
   situations,
   dense = false,
 }: SituationListProps) {
+  // Expansion is tracked by situationNumber, not by list position: a
+  // reordered or inserted/removed frame from the eventually-consistent feed
+  // must not leave the wrong row expanded because React reused a slot.
+  const [openNumbers, setOpenNumbers] = useState<Set<string>>(new Set());
+
   if (!situations?.length) return null;
+
+  const toggle = (situationNumber: string) => {
+    setOpenNumbers((open) => {
+      const next = new Set(open);
+      if (next.has(situationNumber)) {
+        next.delete(situationNumber);
+      } else {
+        next.add(situationNumber);
+      }
+      return next;
+    });
+  };
 
   return (
     <Box
@@ -246,11 +263,15 @@ export function SituationList({
       {situations.map((situation, index) => (
         // Keyed with the index as well as the number: because nothing is
         // deduplicated, the same situationNumber can legitimately appear twice
-        // during a version regression and a bare key would collide.
+        // during a version regression and a bare key would collide. This key
+        // is only for React reconciliation — expansion state lives in
+        // openNumbers below, keyed by situationNumber, not by this key.
         <SituationRow
           key={`${situation.situationNumber}-${index}`}
           situation={situation}
           dense={dense}
+          expanded={openNumbers.has(situation.situationNumber)}
+          onToggle={() => toggle(situation.situationNumber)}
         />
       ))}
     </Box>
