@@ -11,14 +11,14 @@ React + TypeScript + Vite SPA that visualizes Entur's realtime vehicle positions
 - `npm run dev` — start Vite dev server on http://localhost:5173
 - `npm run build` — type-check (`tsc -b`) then production build
 - `npm run lint` — ESLint over the project
-- `npm run check` — Prettier check (this is what CI gates on, not `lint`)
+- `npm run check` — Prettier check (one of the two CI gates alongside `npm test`; `lint` is not gated)
 - `npm run format` — Prettier write
 - `npm test` — Vitest unit tests (`vitest run`), currently covering the pure helpers in `src/components/SelectedVehiclePanel/`
 - `npx playwright test` — run Playwright smoke tests (auto-starts `npm run dev`)
 - `npx playwright test tests/smoketests.spec.ts -g "has map"` — run a single test by title
 - `npx playwright test --project=chromium` — run only one browser project
 
-CI (`.github/workflows/build.yml`) runs only `npm run check` and `npm run build` — it does **not** run `lint`, `test`, or Playwright. A Husky pre-commit hook runs `lint-staged` → Prettier on staged files.
+CI (`.github/workflows/build.yml`) runs `npm test` in a `test` job, then `npm run check` and `npm run build` in a `build` job gated on it (`needs: test`) — it does **not** run `lint` or Playwright. A Husky pre-commit hook runs `lint-staged` → Prettier on staged files.
 
 `vitest.config.ts` sets `environment: "node"` and `include: ["src/**/*.test.ts"]`, so component (`.tsx`) tests are not collected — keep testable logic in plain `.ts` modules.
 
