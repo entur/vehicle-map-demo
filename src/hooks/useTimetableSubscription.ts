@@ -7,7 +7,23 @@ type SubscriptionData = {
   timetables: EstimatedTimetableUpdate[];
 };
 
+const situationFieldsFragment = `
+  fragment SituationFields on Situation {
+    situationNumber
+    version
+    severity
+    reportType
+    summary { value language }
+    description { value language }
+    advice { value language }
+    validityPeriods { startTime endTime }
+    infoLinks { uri labels { value language } }
+  }
+`;
+
 const subscriptionQuery = `
+  ${situationFieldsFragment}
+
   subscription($serviceJourneyId: String!, $date: String!) {
     timetables(serviceJourneyIdAndDates: [{ id: $serviceJourneyId, date: $date }]) {
       serviceJourney {
@@ -23,6 +39,9 @@ const subscriptionQuery = `
       originName
       destinationName
       cancellation
+      situations {
+        ...SituationFields
+      }
       calls {
         stopPoint {
           id
@@ -43,6 +62,9 @@ const subscriptionQuery = `
         cancellation
         forBoarding
         occupancyStatus
+        situations {
+          ...SituationFields
+        }
       }
     }
   }

@@ -20,6 +20,7 @@ function call(overrides: Partial<Call>): Call {
     cancellation: false,
     forBoarding: true,
     occupancyStatus: null,
+    situations: null,
     ...overrides,
   };
 }

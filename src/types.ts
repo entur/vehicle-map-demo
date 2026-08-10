@@ -142,6 +142,50 @@ export type Stop = {
 
 export type CallType = "RECORDED" | "ESTIMATED";
 
+export type SeverityEnumeration =
+  | "unknown"
+  | "verySlight"
+  | "slight"
+  | "normal"
+  | "severe"
+  | "verySevere"
+  | "noImpact"
+  | "undefined";
+
+export type TranslatedString = {
+  value: string | null;
+  language: string | null;
+};
+
+export type ValidityPeriod = {
+  startTime: string | null;
+  endTime: string | null;
+};
+
+export type InfoLink = {
+  uri: string | null;
+  labels: TranslatedString[];
+};
+
+/**
+ * A deviation message from the realtime feed (SIRI situation exchange).
+ *
+ * Only the fields the panel renders are modelled. The API also returns
+ * affects/detail/keywords/priority/progress/creationTime/openEnded/age — add
+ * them here and to the query when something actually displays them.
+ */
+export type Situation = {
+  situationNumber: string;
+  version: number | null;
+  severity: SeverityEnumeration | null;
+  reportType: string | null;
+  summary: TranslatedString[];
+  description: TranslatedString[];
+  advice: TranslatedString[];
+  validityPeriods: ValidityPeriod[];
+  infoLinks: InfoLink[];
+};
+
 export type Call = {
   stopPoint: Stop;
   order: number;
@@ -155,6 +199,7 @@ export type Call = {
   cancellation: boolean;
   forBoarding: boolean | null;
   occupancyStatus: OccupancyStatus | null;
+  situations: Situation[] | null;
 };
 
 export type EstimatedTimetableUpdate = {
@@ -165,6 +210,7 @@ export type EstimatedTimetableUpdate = {
   destinationName: string;
   cancellation: boolean;
   calls: Call[];
+  situations: Situation[] | null;
 };
 
 export type RoutePolyline = {
