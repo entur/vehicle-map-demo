@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Situation, TranslatedString } from "../../types.ts";
 import { severityColour } from "./situationSeverity.ts";
 import { isRedundant, pickTranslation } from "./situationText.ts";
+import { formatValidity } from "./situationValidity.ts";
 
 type SituationListProps = {
   situations: Situation[] | null;
@@ -10,40 +11,30 @@ type SituationListProps = {
   dense?: boolean;
 };
 
-function formatDateTime(iso: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return iso;
-  return date.toLocaleString(undefined, {
-    day: "2-digit",
-    month: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
-}
-
-function formatValidity(situation: Situation): string | null {
-  const period = situation.validityPeriods?.[0];
-  if (!period?.startTime) return null;
-  const end = period.endTime ? formatDateTime(period.endTime) : "open ended";
-  return `${formatDateTime(period.startTime)} – ${end}`;
-}
-
 /**
  * Every translation of one field, each tagged with its language.
  *
  * The collapsed row shows a single picked string; this is the expanded view's
  * job, so someone debugging the feed can see exactly what was published and in
  * which languages.
+ *
+ * `omitIfEqualTo` drops individual entries that are redundant against that
+ * value (e.g. the picked summary text), decided per entry rather than for the
+ * block as a whole — a description whose NO text repeats the summary but
+ * whose EN text adds detail must keep the EN line.
  */
 function TranslationLines({
   label,
   strings,
+  omitIfEqualTo = null,
 }: {
   label: string;
   strings: TranslatedString[];
+  omitIfEqualTo?: string | null;
 }) {
-  const entries = (strings ?? []).filter((entry) => entry.value?.trim());
+  const entries = (strings ?? [])
+    .filter((entry) => entry.value?.trim())
+    .filter((entry) => !isRedundant(entry.value, omitIfEqualTo));
   if (!entries.length) return null;
 
   return (
@@ -88,7 +79,6 @@ function SituationRow({
 }) {
   const summaryText = pickTranslation(situation.summary);
   const descriptionText = pickTranslation(situation.description);
-  const adviceText = pickTranslation(situation.advice);
 
   // Fall back through description to the bare identifier, so a situation with
   // no usable text is still visible and countable rather than a blank row.
@@ -165,23 +155,29 @@ function SituationRow({
       {expanded && (
         <Box sx={{ paddingBottom: 0.5 }}>
           <TranslationLines label="Summary" strings={situation.summary} />
-          {!isRedundant(descriptionText, summaryText) && (
-            <TranslationLines
-              label="Description"
-              strings={situation.description}
-            />
-          )}
-          {!isRedundant(adviceText, summaryText) && (
-            <TranslationLines label="Advice" strings={situation.advice} />
-          )}
+          <TranslationLines
+            label="Description"
+            strings={situation.description}
+            omitIfEqualTo={summaryText}
+          />
+          <TranslationLines
+            label="Advice"
+            strings={situation.advice}
+            omitIfEqualTo={summaryText}
+          />
 
           {validity && (
-            <Typography
-              component="div"
-              sx={{ marginTop: 0.75, fontSize: 10, color: "#777" }}
-            >
-              Valid {validity}
-            </Typography>
+            <Box sx={{ marginTop: 0.75 }}>
+              {validity.map((period, index) => (
+                <Typography
+                  key={index}
+                  component="div"
+                  sx={{ fontSize: 10, color: "#777" }}
+                >
+                  Valid {period}
+                </Typography>
+              ))}
+            </Box>
           )}
 
           {links.length > 0 && (
@@ -233,7 +229,7 @@ export function SituationList({
   // Expansion is tracked by situationNumber, not by list position: a
   // reordered or inserted/removed frame from the eventually-consistent feed
   // must not leave the wrong row expanded because React reused a slot.
-  const [openNumbers, setOpenNumbers] = useState<Set<string>>(new Set());
+  const [openNumbers, setOpenNumbers] = useState<Set<string>>(() => new Set());
 
   if (!situations?.length) return null;
 
@@ -254,10 +250,11 @@ export function SituationList({
       sx={{
         marginTop: 1,
         // The trip-level list sits above the scrollable timetable and would
-        // push it out of view on a trip with many messages, so it scrolls
+        // push it out of view on a trip with many messages, so it caps its
+        // own height at ~40% of its container (the drawer) and scrolls
         // internally instead. The inline stop-level list is already inside the
         // timetable's own scroll container and must not nest a second one.
-        ...(dense ? {} : { maxHeight: "40vh", overflowY: "auto" }),
+        ...(dense ? {} : { maxHeight: "40%", overflowY: "auto" }),
       }}
     >
       {situations.map((situation, index) => (
@@ -266,6 +263,12 @@ export function SituationList({
         // during a version regression and a bare key would collide. This key
         // is only for React reconciliation — expansion state lives in
         // openNumbers below, keyed by situationNumber, not by this key.
+        //
+        // One consequence: two rows sharing a situationNumber (that same
+        // version-regression case) expand and collapse together, since
+        // expansion state is keyed by situationNumber rather than by this
+        // per-row key. That's acceptable — arguably useful for comparing two
+        // versions of one message side by side.
         <SituationRow
           key={`${situation.situationNumber}-${index}`}
           situation={situation}

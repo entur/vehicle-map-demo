@@ -126,7 +126,10 @@ export function SelectedVehiclePanel({
         </Box>
       )}
 
-      <SituationList situations={timetable?.situations ?? null} />
+      <SituationList
+        key={serviceJourneyId}
+        situations={timetable?.situations ?? null}
+      />
 
       {vehicleData && (
         <Typography

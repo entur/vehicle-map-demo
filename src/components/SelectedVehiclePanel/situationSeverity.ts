@@ -37,11 +37,15 @@ const SEVERITY_RANK: Record<SeverityEnumeration, number> = {
 };
 
 // An absent severity ranks with `unknown`/`undefined` rather than lowest, so a
-// null does not lose to noImpact.
-const UNRATED = 1;
+// null does not lose to noImpact. Derived from the table itself so retuning
+// the table cannot let the two drift apart.
+const UNRATED = SEVERITY_RANK.unknown;
 
 function rank(severity: SeverityEnumeration | null): number {
-  return severity ? SEVERITY_RANK[severity] : UNRATED;
+  // The GraphQL enum is trusted, never validated, so a value arriving from
+  // the wire outside the union looks up as `undefined` here — fall back to
+  // UNRATED rather than letting it silently never win a comparison.
+  return severity ? (SEVERITY_RANK[severity] ?? UNRATED) : UNRATED;
 }
 
 /**

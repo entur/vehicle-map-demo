@@ -63,4 +63,14 @@ describe("worstSeverity", () => {
   test("returns null for an empty list", () => {
     expect(worstSeverity([])).toBeNull();
   });
+
+  // The GraphQL enum is trusted, never validated, so a live feed can send a
+  // severity value outside the SeverityEnumeration union. This cast simulates
+  // that unknown enum member arriving from the wire; it must still rank above
+  // noImpact rather than silently losing every comparison.
+  test("ranks an out-of-union severity value above noImpact", () => {
+    expect(
+      worstSeverity([s("noImpact"), s("bogus" as SeverityEnumeration)]),
+    ).toBe("bogus");
+  });
 });
