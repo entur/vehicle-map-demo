@@ -5,6 +5,7 @@ import { useVehicleUpdateCompleteSubscription } from "../../hooks/useVehicleUpda
 import { useTimetableSubscription } from "../../hooks/useTimetableSubscription.ts";
 import { delayBucket, delayColour, formatDelay } from "./delayThresholds.ts";
 import { Timetable } from "./Timetable.tsx";
+import { SituationList } from "./SituationList.tsx";
 
 type SelectedVehiclePanelProps = {
   selectedVehicle: SelectedVehicle | null;
@@ -124,6 +125,8 @@ export function SelectedVehiclePanel({
           Trip cancelled
         </Box>
       )}
+
+      <SituationList situations={timetable?.situations ?? null} />
 
       {vehicleData && (
         <Typography
