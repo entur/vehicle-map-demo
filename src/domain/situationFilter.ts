@@ -1,5 +1,5 @@
 import { NationalSituation } from "../types.ts";
-import { CountEntry, countBy } from "./situationStats.ts";
+import { CountEntry, NONE, countBy } from "./situationStats.ts";
 import { FLAG_LEVEL, SituationFlag } from "./situationFlags.ts";
 
 export type SituationFilter = {
@@ -18,13 +18,15 @@ export const EMPTY_SITUATION_FILTER: SituationFilter = {
 
 /**
  * An empty facet means "unconstrained". Within a facet the selected values are
- * ORed; across facets they are ANDed. A situation whose value for a constrained
- * facet is absent never matches — there is no selectable `(none)` facet, so a
- * null cannot be asked for.
+ * ORed; across facets they are ANDed. `facetCounts` surfaces a `(none)` row for
+ * situations whose value is absent, and that row is selectable like any other:
+ * checking it asks for exactly the situations with a null value for this facet
+ * — the anomalous ones a feed-debugging tool exists to find.
  */
 function matches(value: string | null, selected: string[]): boolean {
   if (selected.length === 0) return true;
-  return value !== null && selected.includes(value);
+  if (value === null) return selected.includes(NONE);
+  return selected.includes(value);
 }
 
 export function applySituationFilter(

@@ -6,6 +6,7 @@ import {
   applySituationFilter,
   facetCounts,
 } from "./situationFilter.ts";
+import { NONE } from "./situationStats.ts";
 
 const A = makeSituation({
   situationNumber: "A",
@@ -72,7 +73,7 @@ describe("applySituationFilter", () => {
     expect(result).toEqual([]);
   });
 
-  it("excludes a situation whose facet value is absent when that facet is constrained", () => {
+  it("excludes a situation whose codespace is absent when that facet is constrained to a real value", () => {
     const noCodespace = makeSituation({
       situationNumber: "C",
       codespace: null,
@@ -83,6 +84,65 @@ describe("applySituationFilter", () => {
       new Map([["C", []]]),
     );
     expect(result).toEqual([]);
+  });
+
+  it("excludes a situation whose severity is absent when that facet is constrained to a real value", () => {
+    const noSeverity = makeSituation({
+      situationNumber: "C",
+      severity: null,
+    });
+    const result = applySituationFilter(
+      [noSeverity],
+      { ...EMPTY_SITUATION_FILTER, severities: ["severe"] },
+      new Map([["C", []]]),
+    );
+    expect(result).toEqual([]);
+  });
+
+  it("excludes a situation whose reportType is absent when that facet is constrained to a real value", () => {
+    const noReportType = makeSituation({
+      situationNumber: "C",
+      reportType: null,
+    });
+    const result = applySituationFilter(
+      [noReportType],
+      { ...EMPTY_SITUATION_FILTER, reportTypes: ["INCIDENT"] },
+      new Map([["C", []]]),
+    );
+    expect(result).toEqual([]);
+  });
+
+  it("matches a situation with an absent value when the '(none)' facet row is selected", () => {
+    const noCodespace = makeSituation({
+      situationNumber: "C",
+      codespace: null,
+    });
+    const result = applySituationFilter(
+      [A, noCodespace],
+      { ...EMPTY_SITUATION_FILTER, codespaces: [NONE] },
+      new Map([
+        ["A", []],
+        ["C", []],
+      ]),
+    );
+    expect(result.map((s) => s.situationNumber)).toEqual(["C"]);
+  });
+
+  it("'(none)' and a real value OR together within the same facet", () => {
+    const noSeverity = makeSituation({
+      situationNumber: "C",
+      severity: null,
+    });
+    const result = applySituationFilter(
+      [A, B, noSeverity],
+      { ...EMPTY_SITUATION_FILTER, severities: ["severe", NONE] },
+      new Map([
+        ["A", []],
+        ["B", []],
+        ["C", []],
+      ]),
+    );
+    expect(result.map((s) => s.situationNumber)).toEqual(["A", "C"]);
   });
 });
 

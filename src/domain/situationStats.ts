@@ -2,6 +2,9 @@ import { NationalSituation, TranslatedString } from "../types.ts";
 
 export type CountEntry = { value: string; count: number };
 
+/** The bucket label `countBy` uses for a null key — also selectable as a facet value. */
+export const NONE = "(none)";
+
 /** Fixed order, so a shape string is comparable across situations. */
 const AFFECTS_KINDS = [
   "lines",
@@ -23,7 +26,7 @@ export function countBy<T>(
 ): CountEntry[] {
   const counts = new Map<string, number>();
   for (const item of items) {
-    const value = key(item) ?? "(none)";
+    const value = key(item) ?? NONE;
     counts.set(value, (counts.get(value) ?? 0) + 1);
   }
   return [...counts.entries()]
