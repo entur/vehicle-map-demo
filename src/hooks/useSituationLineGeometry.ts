@@ -77,32 +77,42 @@ export function useSituationLineGeometry(
 
     const fetchBatches = async () => {
       for (let start = 0; start < pending.length; start += BATCH_SIZE) {
-        const batch = pending.slice(start, start + BATCH_SIZE);
-        const variables = Object.fromEntries(
-          batch.map((ref, index) => [`l${index}`, ref]),
-        );
+        try {
+          const batch = pending.slice(start, start + BATCH_SIZE);
+          const variables = Object.fromEntries(
+            batch.map((ref, index) => [`l${index}`, ref]),
+          );
 
-        const response = await request<BatchResponse>({
-          url: config["vehicle-positions-graphql-endpoint"],
-          document: buildBatchQuery(batch),
-          variables,
-          requestHeaders,
-          signal: controller.signal,
-        });
+          const response = await request<BatchResponse>({
+            url: config["vehicle-positions-graphql-endpoint"],
+            document: buildBatchQuery(batch),
+            variables,
+            requestHeaders,
+            signal: controller.signal,
+          });
 
-        batch.forEach((ref, index) => {
-          const points = longestPolyline(response[`l${index}`] ?? null);
-          cache.current.set(ref, points ? decodePolyline(points) : []);
-        });
+          if (controller.signal.aborted) return;
 
-        if (controller.signal.aborted) return;
-        setGeometry(new Map(cache.current));
+          batch.forEach((ref, index) => {
+            const points = longestPolyline(response[`l${index}`] ?? null);
+            cache.current.set(ref, points ? decodePolyline(points) : []);
+          });
+
+          setGeometry(new Map(cache.current));
+        } catch (err) {
+          if (controller.signal.aborted) return;
+          console.error(
+            `Failed to fetch situation line geometry batch starting at index ${start}:`,
+            err,
+          );
+          continue;
+        }
       }
     };
 
     fetchBatches().catch((err) => {
       if (controller.signal.aborted) return;
-      console.error("Failed to fetch situation line geometry", err);
+      console.error("Unexpected error in situation line geometry fetch:", err);
     });
 
     return () => controller.abort();
