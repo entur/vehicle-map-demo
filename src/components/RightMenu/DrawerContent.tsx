@@ -4,6 +4,7 @@ import { Filter, MapViewOptions, VehicleUpdate } from "../../types.ts";
 import { DataChecker } from "../DataChecker/DataChecker.tsx";
 import { FilterBox } from "../FilterBox.tsx";
 import { Legend } from "../Legend.tsx";
+import { SituationsPanel } from "../SituationsPanel";
 
 type DrawerContentProps = {
   activeContent: RightContentType;
@@ -38,6 +39,7 @@ export const DrawerContent = ({
         />
       )}
       {activeContent === "stoplight" && currentFilter && <DataChecker />}
+      {activeContent === "situations" && <SituationsPanel />}
     </>
   );
 };

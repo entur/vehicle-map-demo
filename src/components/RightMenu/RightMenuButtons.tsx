@@ -1,6 +1,7 @@
 import filterIcon from "../../static/images/filter.png";
 import infoIcon from "../../static/images/info.png";
 import layersIcon from "../../static/images/layers.png";
+import orangeMarkerIcon from "../../static/images/orangeMarker.png";
 import stoplightIcon from "../../static/images/stoplight.png";
 import { RightContentType } from "./types.ts";
 
@@ -81,6 +82,23 @@ export const RightMenuButtons = ({
           src={stoplightIcon}
           alt="Data report"
           title="Data report"
+          style={{ width: "40px", height: "40px" }}
+        />
+      </button>
+
+      <button
+        onClick={() => toggleSidebar("situations")}
+        className={`sidebar-button right ${activeContent === "situations" ? "active" : ""} ${
+          activeContent ? "open" : ""
+        }`}
+        style={{
+          top: "240px",
+        }}
+      >
+        <img
+          src={orangeMarkerIcon}
+          alt="Situations"
+          title="Situations"
           style={{ width: "40px", height: "40px" }}
         />
       </button>
