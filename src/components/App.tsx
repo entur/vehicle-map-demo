@@ -5,6 +5,7 @@ import { MapView } from "./MapView.tsx";
 import { ThemeProvider } from "@mui/material";
 import { theme } from "./theme.ts";
 import { useFilterQueryParams } from "../hooks/useFilterQueryParams.ts";
+import { SituationsProvider } from "../situations/SituationsProvider.tsx";
 
 function App() {
   const [currentFilter, setCurrentFilter] = useState<Filter | null>(null);
@@ -23,13 +24,15 @@ function App() {
   return (
     <div style={{ width: "100vw", height: "100vh" }}>
       <ThemeProvider theme={theme}>
-        <MapView
-          data={data}
-          setCurrentFilter={setCurrentFilter}
-          currentFilter={currentFilter}
-          mapViewOptions={mapViewOptions}
-          setMapViewOptions={setMapViewOptions}
-        />
+        <SituationsProvider>
+          <MapView
+            data={data}
+            setCurrentFilter={setCurrentFilter}
+            currentFilter={currentFilter}
+            mapViewOptions={mapViewOptions}
+            setMapViewOptions={setMapViewOptions}
+          />
+        </SituationsProvider>
       </ThemeProvider>
     </div>
   );
