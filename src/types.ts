@@ -170,9 +170,12 @@ export type InfoLink = {
 /**
  * A deviation message from the realtime feed (SIRI situation exchange).
  *
- * Only the fields the panel renders are modelled. The API also returns
- * affects/detail/keywords/priority/progress/creationTime/openEnded/age — add
- * them here and to the query when something actually displays them.
+ * This is the trimmed shape the timetable subscription's `Call`/
+ * `EstimatedTimetableUpdate` selects — only the fields that view renders.
+ * Do not widen this type for fields used elsewhere: affects, priority,
+ * progress, creationTime, openEnded and age are already modelled and
+ * displayed on the sibling `NationalSituation` below, which the situations
+ * feed uses instead.
  */
 export type Situation = {
   situationNumber: string;
