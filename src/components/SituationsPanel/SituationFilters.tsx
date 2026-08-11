@@ -1,6 +1,9 @@
 import { Box, Checkbox, FormControlLabel, Typography } from "@mui/material";
 import { CountEntry } from "../../domain/situationStats.ts";
-import { SituationFilter } from "../../domain/situationFilter.ts";
+import {
+  EMPTY_SITUATION_FILTER,
+  SituationFilter,
+} from "../../domain/situationFilter.ts";
 import { FLAG_LEVEL, SituationFlag } from "../../domain/situationFlags.ts";
 import { useSituations } from "../../situations/SituationsContext.ts";
 
@@ -110,14 +113,7 @@ export function SituationFilters() {
           <Box
             component="button"
             type="button"
-            onClick={() =>
-              setFilter({
-                codespaces: [],
-                severities: [],
-                reportTypes: [],
-                flags: [],
-              })
-            }
+            onClick={() => setFilter(EMPTY_SITUATION_FILTER)}
             sx={{
               border: "none",
               background: "none",
