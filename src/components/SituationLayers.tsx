@@ -1,9 +1,10 @@
 import type { FeatureCollection } from "geojson";
 import { GeoJSONSource, LngLatBounds } from "maplibre-gl";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMap } from "react-map-gl/maplibre";
 import { useSituations } from "../situations/SituationsContext.ts";
 import { VehicleUpdate } from "../types.ts";
+import { SituationPopup } from "./SituationsPanel/SituationPopup.tsx";
 
 const EMPTY_FEATURE_COLLECTION: FeatureCollection = {
   type: "FeatureCollection",
@@ -12,6 +13,15 @@ const EMPTY_FEATURE_COLLECTION: FeatureCollection = {
 
 /** Cap on how far a selection can zoom in, so a single point doesn't fly to max zoom. */
 const MAX_SELECTION_ZOOM = 15;
+
+/** The layers a click can land on. The halo layer is decoration, not a target. */
+const CLICKABLE_LAYERS = ["situation-points-layer", "situation-lines-layer"];
+
+type PopupState = {
+  longitude: number;
+  latitude: number;
+  situationNumbers: string[];
+};
 
 function useSetSourceData(sourceId: string, data: FeatureCollection) {
   const { current: mapRef } = useMap();
@@ -51,8 +61,14 @@ export function SituationLayers({
   vehicles: VehicleUpdate[];
   visible: boolean;
 }) {
-  const { feed, features, selected } = useSituations();
+  const { feed, features, selected, setSelected } = useSituations();
   const { current: mapRef } = useMap();
+  const [popup, setPopup] = useState<PopupState | null>(null);
+
+  // Set when a selection originates from a map click, so the fitBounds effect
+  // below can skip that one run. Flying the view to something the user just
+  // clicked on — and could therefore already see — is disorienting.
+  const selectedFromMap = useRef(false);
 
   const points: FeatureCollection = useMemo(
     () => ({ type: "FeatureCollection", features: features.pointFeatures }),
@@ -112,7 +128,65 @@ export function SituationLayers({
   // Each time this *does* run, it reads `features` from the same render's
   // closure, which is already current — `features` does not itself depend
   // on `selected`, so there is no staleness to worry about.
+  // Clicking a situation feature opens a popup listing everything under the
+  // pointer. Hidden layers render nothing, so `queryRenderedFeatures` returns
+  // nothing while the Situations toggle is off and no popup can open.
   useEffect(() => {
+    if (!mapRef) return;
+    const map = mapRef.getMap();
+
+    const hitLayers = () => CLICKABLE_LAYERS.filter((id) => map.getLayer(id));
+
+    const clickSubscription = map.on("click", (event) => {
+      const layers = hitLayers();
+      if (layers.length === 0) return;
+
+      const hits = map.queryRenderedFeatures(event.point, { layers });
+      if (hits.length === 0) {
+        setPopup(null);
+        return;
+      }
+
+      // One click can hit several situations at the same place; keep them all,
+      // in hit order, deduplicated only by situation.
+      const situationNumbers = [
+        ...new Set(
+          hits
+            .map((feature) => feature.properties?.situationNumber)
+            .filter((value): value is string => typeof value === "string"),
+        ),
+      ];
+
+      setPopup({
+        longitude: event.lngLat.lng,
+        latitude: event.lngLat.lat,
+        situationNumbers,
+      });
+    });
+
+    const enterSubscriptions = hitLayers().map((id) =>
+      map.on("mouseenter", id, () => {
+        map.getCanvas().style.cursor = "pointer";
+      }),
+    );
+    const leaveSubscriptions = hitLayers().map((id) =>
+      map.on("mouseleave", id, () => {
+        map.getCanvas().style.cursor = "";
+      }),
+    );
+
+    return () => {
+      clickSubscription.unsubscribe();
+      enterSubscriptions.forEach((s) => s.unsubscribe());
+      leaveSubscriptions.forEach((s) => s.unsubscribe());
+    };
+  }, [mapRef]);
+
+  useEffect(() => {
+    if (selectedFromMap.current) {
+      selectedFromMap.current = false;
+      return;
+    }
     if (!mapRef || !selected || !visible) return;
 
     const bounds = new LngLatBounds();
@@ -144,5 +218,22 @@ export function SituationLayers({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected, mapRef, visible]);
 
-  return null;
+  // Derived rather than synced: hiding the layers hides anything opened from
+  // them, without an effect that clears state. The popup can only have been
+  // opened while visible, so showing the layers again restores a popup that is
+  // still pointing at real features.
+  if (!popup || !visible) return null;
+
+  return (
+    <SituationPopup
+      longitude={popup.longitude}
+      latitude={popup.latitude}
+      situationNumbers={popup.situationNumbers}
+      onSelect={(situationNumber) => {
+        selectedFromMap.current = true;
+        setSelected(situationNumber);
+      }}
+      onClose={() => setPopup(null)}
+    />
+  );
 }
