@@ -1,4 +1,5 @@
 import { Box, Typography } from "@mui/material";
+import { memo, useCallback } from "react";
 import { useSituations } from "../../situations/SituationsContext.ts";
 import { SituationFilters } from "./SituationFilters.tsx";
 import { SituationRow } from "./SituationRow.tsx";
@@ -55,9 +56,37 @@ function StatusLine() {
   );
 }
 
-export function SituationsPanel() {
+/**
+ * Memoized on an empty prop list, which makes this an exact re-render boundary:
+ * the panel takes no props and reads everything from `useSituations`, so the
+ * only thing that should redraw it is the situations context itself.
+ *
+ * Without this it redraws on every *vehicle* frame. `App` holds the vehicle
+ * positions in state and this panel is (indirectly) its child, so each frame
+ * recreates the element tree down through `RightMenu` → `DrawerContent`. That
+ * costs one full pass over every filtered situation — roughly 8,000 component
+ * renders per frame at national zoom, several times a second, none of which can
+ * change anything on screen.
+ *
+ * In development that is fatal rather than merely wasteful: React emits a
+ * `performance.measure()` entry per component render, the user-timing buffer is
+ * never cleared, and the tab reaches an out-of-memory renderer crash in minutes.
+ * Measured with the panel open: ~21,000 measures/second against ~900 with it
+ * closed.
+ */
+export const SituationsPanel = memo(function SituationsPanel() {
   const { feed, filtered, flagsBySituation, features, selected, setSelected } =
     useSituations();
+
+  // Functional update rather than a read of `selected`, so this keeps one
+  // identity for the life of the panel and the memoized rows can skip on it.
+  const handleSelect = useCallback(
+    (situationNumber: string) =>
+      setSelected((current) =>
+        current === situationNumber ? null : situationNumber,
+      ),
+    [setSelected],
+  );
 
   const selectedSituation =
     selected === null
@@ -112,13 +141,7 @@ export function SituationsPanel() {
               0
             }
             selected={selected === situation.situationNumber}
-            onSelect={() =>
-              setSelected(
-                selected === situation.situationNumber
-                  ? null
-                  : situation.situationNumber,
-              )
-            }
+            onSelect={handleSelect}
           />
         ))}
       </Box>
@@ -136,4 +159,4 @@ export function SituationsPanel() {
       <SituationStatsTables />
     </Box>
   );
-}
+});

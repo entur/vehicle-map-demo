@@ -22,7 +22,13 @@ export type SituationsContextValue = {
   stats: SituationStats;
   facets: FacetCounts;
   selected: string | null;
-  setSelected: (situationNumber: string | null) => void;
+  /**
+   * The full `useState` setter rather than a narrowed `(value) => void`, so
+   * consumers can toggle with a functional update and keep their callback
+   * identity independent of `selected` — which is what lets the memoized rows
+   * skip re-rendering when the selection moves.
+   */
+  setSelected: React.Dispatch<React.SetStateAction<string | null>>;
 };
 
 export const SituationsContext =

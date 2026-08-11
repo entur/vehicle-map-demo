@@ -1,4 +1,5 @@
 import { Box, Typography } from "@mui/material";
+import { memo } from "react";
 import { NationalSituation } from "../../types.ts";
 import { FLAG_LEVEL, SituationFlag } from "../../domain/situationFlags.ts";
 import { severityColour } from "../SelectedVehiclePanel/situationSeverity.ts";
@@ -9,10 +10,29 @@ type SituationRowProps = {
   flags: SituationFlag[];
   featureCount: number;
   selected: boolean;
-  onSelect: () => void;
+  onSelect: (situationNumber: string) => void;
 };
 
-export function SituationRow({
+/**
+ * Compared by hand because `flags` is rebuilt — new array, same contents — on
+ * every situations frame, which is precisely the render this memo exists to
+ * skip. A default shallow compare would see a new array and re-render all ~580
+ * rows each time.
+ */
+function propsAreEqual(a: SituationRowProps, b: SituationRowProps): boolean {
+  return (
+    // Situations that were not in the incoming frame keep their object
+    // identity in the feed's Map, so this is a real early-out.
+    a.situation === b.situation &&
+    a.featureCount === b.featureCount &&
+    a.selected === b.selected &&
+    a.onSelect === b.onSelect &&
+    a.flags.length === b.flags.length &&
+    a.flags.every((flag, index) => flag === b.flags[index])
+  );
+}
+
+function SituationRowImpl({
   situation,
   flags,
   featureCount,
@@ -25,7 +45,7 @@ export function SituationRow({
     <Box
       component="button"
       type="button"
-      onClick={onSelect}
+      onClick={() => onSelect(situation.situationNumber)}
       aria-pressed={selected}
       sx={{
         display: "block",
@@ -70,3 +90,5 @@ export function SituationRow({
     </Box>
   );
 }
+
+export const SituationRow = memo(SituationRowImpl, propsAreEqual);
