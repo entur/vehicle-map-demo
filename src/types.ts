@@ -129,6 +129,7 @@ export type MapViewOptions = {
   showUpdateFrequency: boolean;
   showDeadUpdateFrequency: boolean;
   showOccupancy: boolean;
+  showSituations: boolean;
 };
 
 export type Stop = {

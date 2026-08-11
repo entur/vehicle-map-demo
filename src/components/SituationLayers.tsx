@@ -38,8 +38,19 @@ function useSetSourceData(sourceId: string, data: FeatureCollection) {
  * service journey, and adding one to the streamed vehicle subscription would
  * cost bandwidth on every frame to match ten more situations — see the plan's
  * spec amendment.
+ *
+ * `visible` reflects the "Situations" toggle in MapLayers, which owns the three
+ * layers' `visibility` directly. The sources are kept fed either way — hiding
+ * the layers must not disturb the panel — but the map is not flown to a
+ * selection the user cannot see.
  */
-export function SituationLayers({ vehicles }: { vehicles: VehicleUpdate[] }) {
+export function SituationLayers({
+  vehicles,
+  visible,
+}: {
+  vehicles: VehicleUpdate[];
+  visible: boolean;
+}) {
   const { feed, features, selected } = useSituations();
   const { current: mapRef } = useMap();
 
@@ -102,7 +113,7 @@ export function SituationLayers({ vehicles }: { vehicles: VehicleUpdate[] }) {
   // closure, which is already current — `features` does not itself depend
   // on `selected`, so there is no staleness to worry about.
   useEffect(() => {
-    if (!mapRef || !selected) return;
+    if (!mapRef || !selected || !visible) return;
 
     const bounds = new LngLatBounds();
     let hasCoordinates = false;
@@ -131,7 +142,7 @@ export function SituationLayers({ vehicles }: { vehicles: VehicleUpdate[] }) {
       duration: 800,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected, mapRef]);
+  }, [selected, mapRef, visible]);
 
   return null;
 }

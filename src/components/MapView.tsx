@@ -97,6 +97,7 @@ export function MapView({
         />
         <SituationLayers
           vehicles={data.map((vehicle) => vehicle.vehicleUpdate)}
+          visible={mapViewOptions.showSituations}
         />
         {selectedVehicle && (
           <VehiclePopup

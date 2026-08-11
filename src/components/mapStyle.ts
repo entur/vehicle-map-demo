@@ -89,6 +89,12 @@ export const mapStyle: StyleSpecification = {
       id: "situation-lines-layer",
       type: "line",
       source: "situationLines",
+      // The three situation layers start hidden and are revealed together by
+      // the "Situations" toggle in MapLayers. Hiding them does not stop the
+      // situations subscription or the panel — only the drawing.
+      layout: {
+        visibility: "none",
+      },
       paint: {
         "line-color": severityColourExpression,
         "line-width": 4,
@@ -99,6 +105,9 @@ export const mapStyle: StyleSpecification = {
       id: "situation-affected-vehicles-layer",
       type: "circle",
       source: "situationVehicles",
+      layout: {
+        visibility: "none",
+      },
       paint: {
         "circle-radius": 16,
         "circle-color": "#1fcac2",
@@ -111,6 +120,9 @@ export const mapStyle: StyleSpecification = {
       id: "situation-points-layer",
       type: "circle",
       source: "situationPoints",
+      layout: {
+        visibility: "none",
+      },
       paint: {
         "circle-radius": 7,
         "circle-color": severityColourExpression,

@@ -18,6 +18,7 @@ import greenLight from "../static/images/greenLight.png";
 import heatMap from "../static/images/heatmap.png";
 import traces from "../static/images/traces.png";
 import occupancy2 from "../static/images/occupancy2.png";
+import situationMarker from "../static/images/orangeMarker.png";
 
 type Props = {
   mapViewOptions: MapViewOptions;
@@ -27,8 +28,10 @@ type Props = {
 export function MapLayers({ mapViewOptions, setMapViewOptions }: Props) {
   const { current: mapRef } = useMap();
 
+  // Takes one layer id or several: situations draw across three layers
+  // (lines, affected-vehicle halos, points) that must reveal and hide together.
   const handleToggleLayer =
-    (optionKey: keyof MapViewOptions, layerId: string) =>
+    (optionKey: keyof MapViewOptions, layerIds: string | string[]) =>
     (event: ChangeEvent<HTMLInputElement>) => {
       if (!mapRef) return;
 
@@ -36,7 +39,9 @@ export function MapLayers({ mapViewOptions, setMapViewOptions }: Props) {
       const isVisible = event.target.checked;
       const newVisibility = isVisible ? "visible" : "none";
 
-      map.setLayoutProperty(layerId, "visibility", newVisibility);
+      for (const layerId of [layerIds].flat()) {
+        map.setLayoutProperty(layerId, "visibility", newVisibility);
+      }
 
       setMapViewOptions({
         ...mapViewOptions,
@@ -136,6 +141,19 @@ export function MapLayers({ mapViewOptions, setMapViewOptions }: Props) {
               />
             }
             label={getLabelWithIcon(heatMap, "Vehicle heatmap", 24)}
+          />
+          <FormControlLabel
+            control={
+              <Switch
+                checked={mapViewOptions.showSituations}
+                onChange={handleToggleLayer("showSituations", [
+                  "situation-lines-layer",
+                  "situation-affected-vehicles-layer",
+                  "situation-points-layer",
+                ])}
+              />
+            }
+            label={getLabelWithIcon(situationMarker, "Situations", 22)}
           />
         </FormGroup>
       </CardContent>
