@@ -32,6 +32,15 @@ function StatusLine() {
       : `${filtered.length} of ${feed.situations.length} situations`;
 
   if (feed.status === "error") {
+    // A subscription that never delivered a single frame before failing
+    // (e.g. the schema simply doesn't expose `Subscription.situations` in
+    // this environment) is a different situation from a feed that dropped
+    // mid-stream — "showing 0 of 0 situations received before —" is
+    // ungrammatical and implies data that never existed. Only claim a
+    // dropped connection once something had actually arrived.
+    if (feed.lastUpdated === null) {
+      return <>Situations feed unavailable in this environment</>;
+    }
     return (
       <>
         Connection lost — showing {counts} received before {updated}
