@@ -69,9 +69,9 @@ function AffectsGroup({
       <Typography component="div" sx={{ fontSize: 10, color: "#666" }}>
         {label} ({entries.length})
       </Typography>
-      {entries.map((entry) => (
+      {entries.map((entry, index) => (
         <Typography
-          key={entry}
+          key={`${entry}-${index}`}
           component="div"
           sx={{ fontSize: 11, wordBreak: "break-all", paddingLeft: 1 }}
         >
@@ -147,8 +147,12 @@ export function SituationDetail({
         >
           Validity
         </Typography>
-        {(validity ?? ["—"]).map((line) => (
-          <Typography key={line} component="div" sx={{ fontSize: 11 }}>
+        {(validity ?? ["—"]).map((line, index) => (
+          <Typography
+            key={`${line}-${index}`}
+            component="div"
+            sx={{ fontSize: 11 }}
+          >
             {line}
           </Typography>
         ))}
