@@ -39,6 +39,7 @@ When introducing a new config key, update the `Config` interface in `ConfigConte
 4. `useVehiclePositionsData(filter, mapViewOptions)` opens a `graphql-ws` subscription via `useSubscriptionClient`. Incoming `VehicleUpdate`s are written into a `CacheMap` keyed by `vehicleId + "_" + serviceJourney.id`, with a per-entry TTL computed as `maxDataAge - (now - lastUpdated)` so stale vehicles auto-expire. The filter is also re-applied client-side before pushing to state.
 5. `MapView` renders markers (`VehicleMarkers`), optional traces (`VehicleTraces`), popups (`VehiclePopup`), and the `LeftMenu`/`RightMenu` overlays. Selecting a vehicle in the popup can open `useVehicleUpdateCompleteSubscription` for richer per-vehicle details.
 6. Selecting a vehicle also opens `useTimetableSubscription(serviceJourneyId, date)`, whose `timetables` frames carry deviation messages as `Situation` objects in two places: `EstimatedTimetableUpdate.situations` (trip-wide) and `Call.situations` (one stop). Both render through the same `SituationList` component. Situations are shown exactly as delivered — no deduplication, no severity filtering — because the demo exists to expose what the feed actually contains; `situationNumber` and `version` are displayed so a version regression in the eventually-consistent stream stays visible.
+7. Separately from the vehicle pipeline, `SituationsProvider` (wrapping `<MapView>` in `App`) opens an **unfiltered** national `situations` subscription via `useSituationsSubscription`, keyed by `situationNumber` with latest-wins and no TTL. Everything derived from it is pure and lives in `src/domain/`: `situationFlags` (three lifecycle flags), `situationFeatures` (affects → GeoJSON plus the unmappable list), `situationStats` and `situationFilter`. Two consumers read the context — `SituationLayers` inside `<Map>`, and `SituationsPanel` in the right-menu drawer.
 
 Key invariants worth preserving:
 
@@ -46,11 +47,40 @@ Key invariants worth preserving:
 - The subscription is re-opened whenever `filter` or `mapViewOptions` changes (the previous async iterator is `.return()`ed first). Adding new subscription variables means adding them to the dependency array as well.
 - The `maxDataAge` is sent to the server as an ISO 8601 duration string (`PT{n}S`) and is also used locally to compute cache TTL — keep these two uses in sync.
 - The `situations` selection set is a single GraphQL fragment spread at both the timetable and the call level, so the two cannot drift apart.
+- The `situations` root query and subscription are **hidden from introspection**, exactly like `timetables`. They validate and stream normally; do not conclude from an introspection dump that they are gone.
+- `situations` is served with data only in **dev**. Staging and prod return an empty list, which the panel reports as "No situations published in this environment" — distinct from an error and from a filter matching nothing.
+- Situation stats and facet counts are computed over the **unfiltered** set. Recomputing them over the filtered set would collapse every count to match the current selection and make the readouts useless.
+- Situation features are deduplicated **within** a situation only. Two situations affecting one stop deliberately produce two coincident features; collapsing them would hide the duplication this tool exists to expose.
+- `SituationFields` and `SituationQaFields` in `src/hooks/situationFragments.ts` both target the GraphQL `Situation` type. The timetable subscription spreads only the first, at two levels; the situations subscription spreads both. Adding a field to `SituationFields` therefore adds it to the timetable query as well.
 
 ## Map / icons
 
 - `react-map-gl` uses the `maplibre` entry point (`react-map-gl/maplibre`), not Mapbox. The style is defined inline in `src/components/mapStyle.ts` and uses Entur's tile/style endpoints — no Mapbox token is needed.
 - SVG vehicle icons are loaded via `vite-svg-loader` (see `vite.config.ts` and `src/components/RegisterIcons.tsx`). New icons need to be registered there to be available as map symbols.
+
+## Situations carry almost no geography
+
+`Affects.stopPoints` and `Affects.stopPlaces` are the only coordinate-bearing
+fields the situations feed exposes. `Line` has no geometry of any kind, and the
+service-journey IDs situations publish (`VYG:ServiceJourney:601_159720-R`,
+`NSB:DatedServiceJourney:…`) are in a different namespace from the realtime
+feed's, so they resolve to nothing — `serviceJourney(id:)` and `timetables` both
+return empty for them.
+
+Affected lines are therefore drawn from geometry **borrowed** from a vehicle
+running that line right now, via `vehicles(lineRef:)` →
+`serviceJourney.pointsOnLink`, cached per line ref in `useSituationLineGeometry`.
+A ref that yields nothing is cached as an empty array and not retried for the
+session.
+
+Measured on dev: 108 of 581 situations place on the map. 319 of the remainder
+reference only dated service journeys. Prod carries far better `pointsOnLink`
+coverage (87% of vehicles versus 31% on dev), so the same code would place
+roughly 223 there — but prod serves no situations at all today.
+
+Do not "fix" the low coverage by inventing centroids or by falling back to
+Journey Planner. Staying on one API is a project constraint, and a synthetic
+position would be worse than an honest absence in a data-QA tool.
 
 ## TypeScript / lint conventions
 
