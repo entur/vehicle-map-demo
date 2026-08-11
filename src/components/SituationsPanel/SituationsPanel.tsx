@@ -3,6 +3,8 @@ import { useSituations } from "../../situations/SituationsContext.ts";
 import { SituationFilters } from "./SituationFilters.tsx";
 import { SituationRow } from "./SituationRow.tsx";
 import { SituationStatsTables } from "./SituationStatsTables.tsx";
+import { SituationDetail } from "./SituationDetail.tsx";
+import { UnmappableList } from "./UnmappableList.tsx";
 
 function StatusLine() {
   const { feed, filtered } = useSituations();
@@ -48,6 +50,11 @@ export function SituationsPanel() {
   const { feed, filtered, flagsBySituation, features, selected, setSelected } =
     useSituations();
 
+  const selectedSituation =
+    selected === null
+      ? null
+      : (feed.situations.find((s) => s.situationNumber === selected) ?? null);
+
   return (
     <Box sx={{ padding: 2, overflowY: "auto", height: "100%" }}>
       <Typography
@@ -90,6 +97,16 @@ export function SituationsPanel() {
           />
         ))}
       </Box>
+
+      {selectedSituation && (
+        <SituationDetail
+          situation={selectedSituation}
+          flags={flagsBySituation.get(selectedSituation.situationNumber) ?? []}
+          onClose={() => setSelected(null)}
+        />
+      )}
+
+      <UnmappableList />
 
       <SituationStatsTables />
     </Box>
