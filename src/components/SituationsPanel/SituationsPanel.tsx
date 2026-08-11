@@ -1,5 +1,7 @@
 import { Box, Typography } from "@mui/material";
 import { useSituations } from "../../situations/SituationsContext.ts";
+import { SituationFilters } from "./SituationFilters.tsx";
+import { SituationRow } from "./SituationRow.tsx";
 import { SituationStatsTables } from "./SituationStatsTables.tsx";
 
 function StatusLine() {
@@ -43,7 +45,8 @@ function StatusLine() {
 }
 
 export function SituationsPanel() {
-  const { feed } = useSituations();
+  const { feed, filtered, flagsBySituation, features, selected, setSelected } =
+    useSituations();
 
   return (
     <Box sx={{ padding: 2, overflowY: "auto", height: "100%" }}>
@@ -63,6 +66,30 @@ export function SituationsPanel() {
       >
         <StatusLine />
       </Typography>
+
+      <SituationFilters />
+
+      <Box sx={{ maxHeight: "40vh", overflowY: "auto", marginBottom: 2 }}>
+        {filtered.map((situation) => (
+          <SituationRow
+            key={situation.situationNumber}
+            situation={situation}
+            flags={flagsBySituation.get(situation.situationNumber) ?? []}
+            featureCount={
+              features.featureCountBySituation.get(situation.situationNumber) ??
+              0
+            }
+            selected={selected === situation.situationNumber}
+            onSelect={() =>
+              setSelected(
+                selected === situation.situationNumber
+                  ? null
+                  : situation.situationNumber,
+              )
+            }
+          />
+        ))}
+      </Box>
 
       <SituationStatsTables />
     </Box>
