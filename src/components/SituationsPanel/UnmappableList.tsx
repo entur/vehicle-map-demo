@@ -30,12 +30,12 @@ export function UnmappableList() {
         Not on the map ({unmappable.length} of {feed.situations.length})
       </Typography>
       <Box sx={{ maxHeight: "25vh", overflowY: "auto" }}>
-        {unmappable.map((situationNumber, index) => {
+        {unmappable.map((situationNumber) => {
           const situation = byNumber.get(situationNumber);
           if (!situation) return null;
           return (
             <Box
-              key={`${situationNumber}-${index}`}
+              key={situationNumber}
               component="button"
               type="button"
               onClick={() =>
