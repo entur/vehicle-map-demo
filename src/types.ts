@@ -186,6 +186,60 @@ export type Situation = {
   infoLinks: InfoLink[];
 };
 
+export type SituationProgress =
+  | "draft"
+  | "pendingApproval"
+  | "approvedDraft"
+  | "open"
+  | "published"
+  | "closing"
+  | "closed";
+
+/**
+ * What a situation claims to affect.
+ *
+ * Only `stopPoints` and `stopPlaces` carry coordinates — `Line` exposes no
+ * geometry at all, and the service-journey IDs here are in a different
+ * namespace from the realtime feed's, so they resolve to nothing. See the
+ * design spec for the measurements behind that.
+ */
+export type AffectedStop = {
+  id: string;
+  name: string | null;
+  location: { latitude: number; longitude: number } | null;
+};
+
+export type Affects = {
+  vehicleModes: VehicleModeEnumeration[] | null;
+  lines: Line[] | null;
+  stopPoints: AffectedStop[] | null;
+  stopPlaces: AffectedStop[] | null;
+  serviceJourneys: ServiceJourney[] | null;
+  datedServiceJourneys: { id: string }[] | null;
+  operators: Operator[] | null;
+};
+
+/**
+ * A situation from the national `situations` feed, as opposed to the trimmed
+ * `Situation` the timetable subscription selects. Every field here comes from
+ * the `SituationQaFields` fragment.
+ */
+export type NationalSituation = Situation & {
+  participantRef: string | null;
+  codespace: Codespace | null;
+  sourceType: string | null;
+  progress: SituationProgress | null;
+  priority: number | null;
+  planned: boolean | null;
+  creationTime: string | null;
+  versionedAtTime: string | null;
+  lastUpdated: string | null;
+  expiration: string | null;
+  openEnded: boolean | null;
+  age: string | null;
+  affects: Affects | null;
+};
+
 export type Call = {
   stopPoint: Stop;
   order: number;
