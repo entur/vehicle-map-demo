@@ -18,6 +18,7 @@ import { VehiclePopup } from "./Vehicle/VehiclePopup.tsx";
 import { useFollowedVehicle } from "../hooks/useFollowedVehicle"; // adjust path as needed
 import { SelectedVehiclePanel } from "./SelectedVehiclePanel";
 import { RouteLayer } from "./RouteLayer.tsx";
+import { SituationLayers } from "./SituationLayers.tsx";
 
 type MapViewProps = {
   data: VehicleData[];
@@ -93,6 +94,9 @@ export function MapView({
             selectedVehicle?.properties.serviceJourneyId ?? null
           }
           cancelled={tripCancelled}
+        />
+        <SituationLayers
+          vehicles={data.map((vehicle) => vehicle.vehicleUpdate)}
         />
         {selectedVehicle && (
           <VehiclePopup

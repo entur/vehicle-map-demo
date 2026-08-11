@@ -1,8 +1,8 @@
 import { SeverityEnumeration } from "../../types.ts";
 
-const SEVERE = "#c0392b";
-const NOTABLE = "#e07a1f";
-const MUTED = "#999999";
+export const SEVERITY_SEVERE = "#c0392b";
+export const SEVERITY_MUTED = "#999999";
+export const SEVERITY_NOTABLE = "#e07a1f";
 
 /**
  * Colour for a situation's severity marker.
@@ -17,11 +17,11 @@ export function severityColour(
   switch (severity) {
     case "severe":
     case "verySevere":
-      return SEVERE;
+      return SEVERITY_SEVERE;
     case "noImpact":
-      return MUTED;
+      return SEVERITY_MUTED;
     default:
-      return NOTABLE;
+      return SEVERITY_NOTABLE;
   }
 }
 

@@ -1,4 +1,25 @@
-import { StyleSpecification } from "@maplibre/maplibre-gl-style-spec";
+import {
+  ExpressionSpecification,
+  StyleSpecification,
+} from "@maplibre/maplibre-gl-style-spec";
+import {
+  SEVERITY_MUTED,
+  SEVERITY_NOTABLE,
+  SEVERITY_SEVERE,
+} from "./SelectedVehiclePanel/situationSeverity.ts";
+
+// Same mapping as severityColour(): only noImpact is greyed, and the literal
+// string "undefined" — 48% of the live feed — stays in the notable colour
+// because those are real incident messages.
+const severityColourExpression: ExpressionSpecification = [
+  "match",
+  ["get", "severity"],
+  ["severe", "verySevere"],
+  SEVERITY_SEVERE,
+  "noImpact",
+  SEVERITY_MUTED,
+  SEVERITY_NOTABLE,
+];
 
 export const mapStyle: StyleSpecification = {
   version: 8,
@@ -26,6 +47,18 @@ export const mapStyle: StyleSpecification = {
       type: "geojson",
       data: { type: "FeatureCollection", features: [] },
     },
+    situationLines: {
+      type: "geojson",
+      data: { type: "FeatureCollection", features: [] },
+    },
+    situationPoints: {
+      type: "geojson",
+      data: { type: "FeatureCollection", features: [] },
+    },
+    situationVehicles: {
+      type: "geojson",
+      data: { type: "FeatureCollection", features: [] },
+    },
   },
 
   layers: [
@@ -50,6 +83,52 @@ export const mapStyle: StyleSpecification = {
         "line-color": "#1fcac2",
         "line-width": 4,
         "line-opacity": 0.85,
+      },
+    },
+    {
+      id: "situation-lines-layer",
+      type: "line",
+      source: "situationLines",
+      paint: {
+        "line-color": severityColourExpression,
+        "line-width": 4,
+        "line-opacity": 0.7,
+      },
+    },
+    {
+      id: "situation-affected-vehicles-layer",
+      type: "circle",
+      source: "situationVehicles",
+      paint: {
+        "circle-radius": 16,
+        "circle-color": "#1fcac2",
+        "circle-opacity": 0.2,
+        "circle-stroke-width": 2,
+        "circle-stroke-color": "#1fcac2",
+      },
+    },
+    {
+      id: "situation-points-layer",
+      type: "circle",
+      source: "situationPoints",
+      paint: {
+        "circle-radius": 7,
+        "circle-color": severityColourExpression,
+        "circle-opacity": 0.85,
+        // reportType is uppercase in this API. Stroke carries it so the fill
+        // stays free for severity, avoiding an icon sprite pipeline.
+        "circle-stroke-width": [
+          "case",
+          ["==", ["get", "reportType"], "INCIDENT"],
+          2,
+          1,
+        ],
+        "circle-stroke-color": [
+          "case",
+          ["==", ["get", "reportType"], "INCIDENT"],
+          "#2b2b2b",
+          "#ffffff",
+        ],
       },
     },
     {
