@@ -67,7 +67,6 @@ export function useSituationsSubscription(): SituationsFeed {
 
   useEffect(() => {
     byNumber.current = new Map();
-    setFeed({ situations: [], status: "connecting", lastUpdated: null });
 
     const emptyTimer = setTimeout(() => {
       setFeed((previous) =>
