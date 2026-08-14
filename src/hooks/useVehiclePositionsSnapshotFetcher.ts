@@ -6,7 +6,11 @@ import { useRequestHeaders } from "./useRequestHeaders.ts";
 
 const query = gql`
   query ($codespaceId: String, $operatorRef: String) {
-    vehicles(codespaceId: $codespaceId, operatorRef: $operatorRef) {
+    vehicles(
+      codespaceId: $codespaceId
+      operatorRef: $operatorRef
+      includeInvalidLocations: true
+    ) {
       direction
       serviceJourney {
         id
