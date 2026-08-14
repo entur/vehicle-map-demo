@@ -27,17 +27,24 @@ function useSetSourceData(sourceId: string, data: FeatureCollection) {
   const { current: mapRef } = useMap();
 
   useEffect(() => {
-    if (!mapRef) return;
-    const source = mapRef.getMap().getSource(sourceId) as
+    const source = mapRef?.getMap().getSource(sourceId) as
       GeoJSONSource | undefined;
-    if (!source) return;
-
-    source.setData(data);
-
-    return () => {
-      source.setData(EMPTY_FEATURE_COLLECTION);
-    };
+    source?.setData(data);
   }, [sourceId, data, mapRef]);
+
+  // Emptying the source belongs to unmount alone. Doing it in the cleanup of
+  // the effect above ran it on every `data` change too — clear, then refill,
+  // with a repaint free to land in between. The affected-vehicle collection is
+  // rebuilt on every vehicle frame (~17/s), so those halos blinked constantly;
+  // the points and lines sources only change on a situations frame, which is
+  // why they looked fine.
+  useEffect(() => {
+    return () => {
+      const source = mapRef?.getMap().getSource(sourceId) as
+        GeoJSONSource | undefined;
+      source?.setData(EMPTY_FEATURE_COLLECTION);
+    };
+  }, [sourceId, mapRef]);
 }
 
 /**
