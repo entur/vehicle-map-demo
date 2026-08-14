@@ -21,7 +21,7 @@ function buildBatchQuery(refs: string[]): string {
   const fields = refs
     .map(
       (_, index) =>
-        `l${index}: vehicles(lineRef: $l${index}) { serviceJourney { pointsOnLink { length points } } }`,
+        `l${index}: vehicles(lineRef: $l${index}, includeInvalidLocations: true) { serviceJourney { pointsOnLink { length points } } }`,
     )
     .join("\n    ");
   return `query(${variables}) {\n    ${fields}\n  }`;
