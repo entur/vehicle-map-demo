@@ -89,9 +89,11 @@ export const mapStyle: StyleSpecification = {
       id: "situation-lines-layer",
       type: "line",
       source: "situationLines",
-      // The three situation layers start hidden and are revealed together by
-      // the "Situations" toggle in MapLayers. Hiding them does not stop the
-      // situations subscription or the panel — only the drawing.
+      // All three situation layers start hidden. Lines and points are revealed
+      // together by the "Situations" toggle in MapLayers; the affected-vehicle
+      // halos need Vehicles on as well, so MapLayers derives their visibility
+      // from both. Hiding any of them does not stop the situations
+      // subscription or the panel — only the drawing.
       layout: {
         visibility: "none",
       },

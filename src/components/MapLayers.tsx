@@ -25,11 +25,19 @@ type Props = {
   setMapViewOptions: (mapViewOptions: MapViewOptions) => void;
 };
 
+/**
+ * The affected-vehicle halos are not toggled directly. They annotate a vehicle
+ * marker, so a ring with nothing inside it is meaningless — they need both
+ * Vehicles and Situations on, and are derived from the two rather than owned by
+ * either switch.
+ */
+const AFFECTED_VEHICLES_LAYER = "situation-affected-vehicles-layer";
+
 export function MapLayers({ mapViewOptions, setMapViewOptions }: Props) {
   const { current: mapRef } = useMap();
 
-  // Takes one layer id or several: situations draw across three layers
-  // (lines, affected-vehicle halos, points) that must reveal and hide together.
+  // Takes one layer id or several: situations draw across lines and points that
+  // must reveal and hide together.
   const handleToggleLayer =
     (optionKey: keyof MapViewOptions, layerIds: string | string[]) =>
     (event: ChangeEvent<HTMLInputElement>) => {
@@ -43,10 +51,17 @@ export function MapLayers({ mapViewOptions, setMapViewOptions }: Props) {
         map.setLayoutProperty(layerId, "visibility", newVisibility);
       }
 
-      setMapViewOptions({
-        ...mapViewOptions,
-        [optionKey]: isVisible,
-      });
+      const next = { ...mapViewOptions, [optionKey]: isVisible };
+
+      // Reapplied on every toggle rather than only on the two that matter, so
+      // the rule has no chance to drift out of step with the switches.
+      map.setLayoutProperty(
+        AFFECTED_VEHICLES_LAYER,
+        "visibility",
+        next.showVehicles && next.showSituations ? "visible" : "none",
+      );
+
+      setMapViewOptions(next);
     };
 
   const getLabelWithIcon = (icon: string, label: string, height: number) => (
@@ -148,7 +163,6 @@ export function MapLayers({ mapViewOptions, setMapViewOptions }: Props) {
                 checked={mapViewOptions.showSituations}
                 onChange={handleToggleLayer("showSituations", [
                   "situation-lines-layer",
-                  "situation-affected-vehicles-layer",
                   "situation-points-layer",
                 ])}
               />

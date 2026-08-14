@@ -56,10 +56,11 @@ function useSetSourceData(sourceId: string, data: FeatureCollection) {
  * cost bandwidth on every frame to match ten more situations — see the plan's
  * spec amendment.
  *
- * `visible` reflects the "Situations" toggle in MapLayers, which owns the three
- * layers' `visibility` directly. The sources are kept fed either way — hiding
- * the layers must not disturb the panel — but the map is not flown to a
- * selection the user cannot see.
+ * `visible` reflects the "Situations" toggle in MapLayers, which owns the
+ * layers' `visibility` directly — including the affected-vehicle halos, which
+ * it derives from Situations and Vehicles together. The sources are kept fed
+ * either way — hiding the layers must not disturb the panel — but the map is
+ * not flown to a selection the user cannot see.
  */
 export function SituationLayers({
   vehicles,
