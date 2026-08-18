@@ -3,14 +3,12 @@ import { CountEntry, NONE, countBy } from "./situationStats.ts";
 import { FLAG_LEVEL, SituationFlag } from "./situationFlags.ts";
 
 export type SituationFilter = {
-  codespaces: string[];
   severities: string[];
   reportTypes: string[];
   flags: SituationFlag[];
 };
 
 export const EMPTY_SITUATION_FILTER: SituationFilter = {
-  codespaces: [],
   severities: [],
   reportTypes: [],
   flags: [],
@@ -29,13 +27,26 @@ function matches(value: string | null, selected: string[]): boolean {
   return selected.includes(value);
 }
 
+/**
+ * `codespaceId` is the map's global codespace filter, not a panel facet: it
+ * arrives from `Filter.codespaceId` rather than from `filter`, and it is a
+ * single value because the control that sets it is a single-select. An empty
+ * string is what the dropdown holds when nothing is chosen, so it means
+ * unconstrained just as `null` does.
+ *
+ * The match is strict — a situation carrying no codespace at all drops out
+ * whenever one is selected, rather than surviving as an unattributed match.
+ * Those situations stay reachable by clearing the filter, and their count
+ * remains visible in the stats table, which is computed over the whole feed.
+ */
 export function applySituationFilter(
   situations: NationalSituation[],
   filter: SituationFilter,
   flagsBySituation: ReadonlyMap<string, SituationFlag[]>,
+  codespaceId: string | null,
 ): NationalSituation[] {
   return situations.filter((situation) => {
-    if (!matches(situation.codespace?.codespaceId ?? null, filter.codespaces))
+    if (codespaceId && situation.codespace?.codespaceId !== codespaceId)
       return false;
     if (!matches(situation.severity, filter.severities)) return false;
     if (!matches(situation.reportType, filter.reportTypes)) return false;
@@ -48,7 +59,6 @@ export function applySituationFilter(
 }
 
 export type FacetCounts = {
-  codespaces: CountEntry[];
   severities: CountEntry[];
   reportTypes: CountEntry[];
   flags: CountEntry[];
@@ -78,7 +88,6 @@ export function facetCounts(
   }
 
   return {
-    codespaces: countBy(situations, (s) => s.codespace?.codespaceId ?? null),
     severities: countBy(situations, (s) => s.severity),
     reportTypes: countBy(situations, (s) => s.reportType),
     flags: ALL_FLAGS.map((flag) => ({

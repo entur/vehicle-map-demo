@@ -15,7 +15,13 @@ import { useSituationLineGeometry } from "../hooks/useSituationLineGeometry.ts";
 import { useSituationsSubscription } from "../hooks/useSituationsSubscription.ts";
 import { SituationsContext } from "./SituationsContext.ts";
 
-export function SituationsProvider({ children }: { children: ReactNode }) {
+export function SituationsProvider({
+  children,
+  codespaceId,
+}: {
+  children: ReactNode;
+  codespaceId?: string;
+}) {
   const feed = useSituationsSubscription();
   const [filter, setFilter] = useState<SituationFilter>(EMPTY_SITUATION_FILTER);
   const [selected, setSelected] = useState<string | null>(null);
@@ -66,8 +72,14 @@ export function SituationsProvider({ children }: { children: ReactNode }) {
   );
 
   const filtered = useMemo(
-    () => applySituationFilter(feed.situations, filter, flagsBySituation),
-    [feed.situations, filter, flagsBySituation],
+    () =>
+      applySituationFilter(
+        feed.situations,
+        filter,
+        flagsBySituation,
+        codespaceId ?? null,
+      ),
+    [feed.situations, filter, flagsBySituation, codespaceId],
   );
 
   const features = useMemo(

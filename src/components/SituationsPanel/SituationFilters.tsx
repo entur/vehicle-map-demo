@@ -11,8 +11,8 @@ import { SeverityEnumeration } from "../../types.ts";
 
 type FacetKey = keyof SituationFilter;
 
-/** Chips are far denser than checkbox rows — the codespace facet alone runs to
- * sixteen values, and the drawer is only 250px wide. */
+/** Chips are far denser than checkbox rows, and the drawer is only 250px
+ * wide. */
 function FacetChip({
   label,
   count,
@@ -185,10 +185,7 @@ export function SituationFilters() {
   const { facets, filter, setFilter } = useSituations();
 
   const selectedCount =
-    filter.codespaces.length +
-    filter.severities.length +
-    filter.reportTypes.length +
-    filter.flags.length;
+    filter.severities.length + filter.reportTypes.length + filter.flags.length;
 
   return (
     <Box
@@ -243,11 +240,6 @@ export function SituationFilters() {
         title="Report type"
         facetKey="reportTypes"
         entries={facets.reportTypes}
-      />
-      <Facet
-        title="Codespace"
-        facetKey="codespaces"
-        entries={facets.codespaces}
       />
       <Facet
         title="Quality flags"

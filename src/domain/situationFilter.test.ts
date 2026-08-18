@@ -28,9 +28,9 @@ const FLAGS = new Map<string, SituationFlag[]>([
 
 describe("applySituationFilter", () => {
   it("returns everything when no facet is constrained", () => {
-    expect(applySituationFilter([A, B], EMPTY_SITUATION_FILTER, FLAGS)).toEqual(
-      [A, B],
-    );
+    expect(
+      applySituationFilter([A, B], EMPTY_SITUATION_FILTER, FLAGS, null),
+    ).toEqual([A, B]);
   });
 
   it("ORs within a facet", () => {
@@ -38,6 +38,7 @@ describe("applySituationFilter", () => {
       [A, B],
       { ...EMPTY_SITUATION_FILTER, severities: ["severe", "normal"] },
       FLAGS,
+      null,
     );
     expect(result).toEqual([A, B]);
   });
@@ -48,9 +49,10 @@ describe("applySituationFilter", () => {
       {
         ...EMPTY_SITUATION_FILTER,
         severities: ["severe"],
-        codespaces: ["ATB"],
+        reportTypes: ["GENERAL"],
       },
       FLAGS,
+      null,
     );
     expect(result).toEqual([]);
   });
@@ -60,6 +62,7 @@ describe("applySituationFilter", () => {
       [A, B],
       { ...EMPTY_SITUATION_FILTER, flags: ["staleOpenEnded"] },
       FLAGS,
+      null,
     );
     expect(result.map((s) => s.situationNumber)).toEqual(["A"]);
   });
@@ -69,19 +72,7 @@ describe("applySituationFilter", () => {
       [A, B],
       { ...EMPTY_SITUATION_FILTER, flags: ["staleOpenEnded", "notYetActive"] },
       FLAGS,
-    );
-    expect(result).toEqual([]);
-  });
-
-  it("excludes a situation whose codespace is absent when that facet is constrained to a real value", () => {
-    const noCodespace = makeSituation({
-      situationNumber: "C",
-      codespace: null,
-    });
-    const result = applySituationFilter(
-      [noCodespace],
-      { ...EMPTY_SITUATION_FILTER, codespaces: ["NSB"] },
-      new Map([["C", []]]),
+      null,
     );
     expect(result).toEqual([]);
   });
@@ -95,6 +86,7 @@ describe("applySituationFilter", () => {
       [noSeverity],
       { ...EMPTY_SITUATION_FILTER, severities: ["severe"] },
       new Map([["C", []]]),
+      null,
     );
     expect(result).toEqual([]);
   });
@@ -108,22 +100,24 @@ describe("applySituationFilter", () => {
       [noReportType],
       { ...EMPTY_SITUATION_FILTER, reportTypes: ["INCIDENT"] },
       new Map([["C", []]]),
+      null,
     );
     expect(result).toEqual([]);
   });
 
   it("matches a situation with an absent value when the '(none)' facet row is selected", () => {
-    const noCodespace = makeSituation({
+    const noSeverity = makeSituation({
       situationNumber: "C",
-      codespace: null,
+      severity: null,
     });
     const result = applySituationFilter(
-      [A, noCodespace],
-      { ...EMPTY_SITUATION_FILTER, codespaces: [NONE] },
+      [A, noSeverity],
+      { ...EMPTY_SITUATION_FILTER, severities: [NONE] },
       new Map([
         ["A", []],
         ["C", []],
       ]),
+      null,
     );
     expect(result.map((s) => s.situationNumber)).toEqual(["C"]);
   });
@@ -141,8 +135,60 @@ describe("applySituationFilter", () => {
         ["B", []],
         ["C", []],
       ]),
+      null,
     );
     expect(result.map((s) => s.situationNumber)).toEqual(["A", "C"]);
+  });
+
+  describe("the map's codespace filter", () => {
+    it("keeps only situations belonging to the selected codespace", () => {
+      const result = applySituationFilter(
+        [A, B],
+        EMPTY_SITUATION_FILTER,
+        FLAGS,
+        "NSB",
+      );
+      expect(result.map((s) => s.situationNumber)).toEqual(["A"]);
+    });
+
+    it("leaves the set untouched when no codespace is selected", () => {
+      expect(
+        applySituationFilter([A, B], EMPTY_SITUATION_FILTER, FLAGS, null),
+      ).toEqual([A, B]);
+    });
+
+    it("treats the empty string as no codespace selected", () => {
+      expect(
+        applySituationFilter([A, B], EMPTY_SITUATION_FILTER, FLAGS, ""),
+      ).toEqual([A, B]);
+    });
+
+    it("excludes situations whose codespace is absent, rather than treating them as unattributed matches", () => {
+      const noCodespace = makeSituation({
+        situationNumber: "C",
+        codespace: null,
+      });
+      const result = applySituationFilter(
+        [A, noCodespace],
+        EMPTY_SITUATION_FILTER,
+        new Map([
+          ["A", []],
+          ["C", []],
+        ]),
+        "NSB",
+      );
+      expect(result.map((s) => s.situationNumber)).toEqual(["A"]);
+    });
+
+    it("ANDs with the panel's facet filters", () => {
+      const result = applySituationFilter(
+        [A, B],
+        { ...EMPTY_SITUATION_FILTER, severities: ["normal"] },
+        FLAGS,
+        "NSB",
+      );
+      expect(result).toEqual([]);
+    });
   });
 });
 
@@ -153,10 +199,6 @@ describe("facetCounts", () => {
       { value: "noEndTime", count: 1 },
       { value: "staleOpenEnded", count: 1 },
       { value: "notYetActive", count: 0 },
-    ]);
-    expect(counts.codespaces).toEqual([
-      { value: "ATB", count: 1 },
-      { value: "NSB", count: 1 },
     ]);
   });
 });
