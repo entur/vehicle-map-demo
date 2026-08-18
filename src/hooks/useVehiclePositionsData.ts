@@ -6,7 +6,7 @@ import { useSubscriptionClient } from "./useSubscriptionClient.ts";
 
 const subscriptionQuery = `
   subscription($minLat: Float!, $minLon: Float!, $maxLat: Float!, $maxLon: Float!, $codespaceId: String, $operatorRef: String, $maxDataAge: Duration) {
-    vehicles (boundingBox: {minLat: $minLat, minLon: $minLon, maxLat: $maxLat, maxLon: $maxLon}, codespaceId: $codespaceId, operatorRef: $operatorRef, maxDataAge: $maxDataAge) {
+    vehicles (boundingBox: {minLat: $minLat, minLon: $minLon, maxLat: $maxLat, maxLon: $maxLon}, codespaceId: $codespaceId, operatorRef: $operatorRef, maxDataAge: $maxDataAge, includeInvalidLocations: true) {
       vehicleId
       codespace {
         codespaceId
@@ -114,10 +114,16 @@ export const useVehiclePositionsData = (
     const subscribe = async () => {
       for await (const event of subscription.current!) {
         event?.data?.vehicles.forEach((vehicle) => {
+          // `location` itself is nullable in the schema and everything
+          // downstream dereferences it, so that check stays. The coordinates
+          // are checked against null rather than for truthiness: latitude or
+          // longitude of exactly 0 is the most common invalid position the
+          // feed carries, and a truthiness test would discard precisely the
+          // vehicles `includeInvalidLocations: true` was turned on to show.
           if (
             vehicle.location &&
-            vehicle.location.latitude &&
-            vehicle.location.longitude
+            vehicle.location.latitude != null &&
+            vehicle.location.longitude != null
           ) {
             let trace = map.current.get(
               vehicle.vehicleId + "_" + vehicle.serviceJourney.id,

@@ -69,8 +69,13 @@ export function VehicleMarkers({
     const features = data.map((vehicle) =>
       createFeature(vehicle, vehicle.vehicleId === followedVehicleId),
     );
-    const source = map.getSource("vehicles") as GeoJSONSource;
-    source.setData({
+    // The source is declared in mapStyle, but getSource() returns undefined
+    // until the style has finished loading — and this effect runs on the first
+    // vehicle frame, which can arrive first. Guard the write rather than
+    // returning early: the click subscriptions below must still be registered,
+    // and a later frame re-runs this effect once the source exists.
+    const source = map.getSource("vehicles") as GeoJSONSource | undefined;
+    source?.setData({
       type: "FeatureCollection",
       features,
     });

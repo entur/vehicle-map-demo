@@ -9,7 +9,7 @@ type SubscriptionData = {
 
 const subscriptionQuery = `
   subscription($vehicleId: String!, $serviceJourneyId: String!) {
-    vehicles(vehicleId: $vehicleId, serviceJourneyId: $serviceJourneyId) {
+    vehicles(vehicleId: $vehicleId, serviceJourneyId: $serviceJourneyId, includeInvalidLocations: true) {
       direction
       serviceJourney {
         id
