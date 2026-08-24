@@ -6,6 +6,10 @@ import { useTimetableSubscription } from "../../hooks/useTimetableSubscription.t
 import { delayBucket, delayColour, formatDelay } from "./delayThresholds.ts";
 import { Timetable } from "./Timetable.tsx";
 import { SituationList } from "./SituationList.tsx";
+import {
+  DETAIL_DRAWER_TOP_OFFSET,
+  DETAIL_DRAWER_WIDTH,
+} from "../detailDrawer.ts";
 
 type SelectedVehiclePanelProps = {
   selectedVehicle: SelectedVehicle | null;
@@ -13,8 +17,8 @@ type SelectedVehiclePanelProps = {
   onCancellationChange?: (cancelled: boolean) => void;
 };
 
-const DRAWER_WIDTH = "min(320px, 90vw)";
-const DRAWER_TOP_OFFSET = 220;
+const DRAWER_WIDTH = DETAIL_DRAWER_WIDTH;
+const DRAWER_TOP_OFFSET = DETAIL_DRAWER_TOP_OFFSET;
 const NO_TIMETABLE_TIMEOUT_MS = 3000;
 
 export function SelectedVehiclePanel({

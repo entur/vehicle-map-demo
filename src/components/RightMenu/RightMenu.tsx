@@ -4,7 +4,7 @@ import { RightMenuButtons } from "./RightMenuButtons.tsx";
 import { DrawerContent } from "./DrawerContent.tsx";
 import { RightContentType } from "./types.ts";
 import { ModeSwitch } from "../ModeSwitch.tsx";
-import { AppMode, rightRailTools } from "../../domain/appMode.ts";
+import { AppMode, isWideTool, rightRailTools } from "../../domain/appMode.ts";
 
 interface RightMenuProps {
   mode: AppMode;
@@ -47,19 +47,29 @@ export const RightMenu = ({
     }
   }
 
+  // One source for how far everything shifts, so the drawer, the rail buttons
+  // and the mode switch cannot disagree about where the drawer's edge is.
+  const wide = activeContent !== null && isWideTool(activeContent);
+
   return (
     <>
       <ModeSwitch
         mode={mode}
         setMode={setMode}
         drawerOpen={activeContent !== null}
+        wide={wide}
       />
       <RightMenuButtons
         mode={mode}
         activeContent={activeContent}
         setActiveContent={setActiveContent}
+        wide={wide}
       />
-      <div className={`right-menu-container ${activeContent ? "open" : ""}`}>
+      <div
+        className={`right-menu-container ${activeContent ? "open" : ""} ${
+          wide ? "wide" : ""
+        }`}
+      >
         {activeContent && (
           <DrawerContent
             mode={mode}

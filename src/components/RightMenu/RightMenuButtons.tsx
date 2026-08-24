@@ -2,6 +2,7 @@ import filterIcon from "../../static/images/filter.png";
 import infoIcon from "../../static/images/info.png";
 import layersIcon from "../../static/images/layers.png";
 import orangeMarkerIcon from "../../static/images/orangeMarker.png";
+import statisticsIcon from "../../static/images/statistics.png";
 import stoplightIcon from "../../static/images/stoplight.png";
 import { AppMode, rightRailTools } from "../../domain/appMode.ts";
 import { RightContentType } from "./types.ts";
@@ -21,6 +22,14 @@ const TOOLS: Record<RightContentType, Tool> = {
     icon: stoplightIcon,
     label: "Data report",
   },
+  // Shares the icon with the vehicles-mode left-rail Statistics button. They
+  // never appear together — that rail is hidden in situations mode — and the
+  // shared icon reads correctly: both are aggregate readouts over a feed.
+  situationStats: {
+    content: "situationStats",
+    icon: statisticsIcon,
+    label: "Feed report",
+  },
   situations: {
     content: "situations",
     icon: orangeMarkerIcon,
@@ -39,12 +48,15 @@ type RightMenuButtonsProps = {
   mode: AppMode;
   activeContent: RightContentType | null;
   setActiveContent: (contentType: RightContentType | null) => void;
+  /** The open drawer is a wide one, so the buttons shift further left. */
+  wide: boolean;
 };
 
 export const RightMenuButtons = ({
   mode,
   activeContent,
   setActiveContent,
+  wide,
 }: RightMenuButtonsProps) => {
   const toggleSidebar = (newActiveContent: RightContentType) => {
     setActiveContent(
@@ -62,7 +74,7 @@ export const RightMenuButtons = ({
             onClick={() => toggleSidebar(content)}
             className={`sidebar-button right ${
               activeContent === content ? "active" : ""
-            } ${activeContent ? "open" : ""}`}
+            } ${activeContent ? "open" : ""} ${wide ? "wide" : ""}`}
             style={{ top: `${FIRST_BUTTON_TOP + index * BUTTON_PITCH}px` }}
           >
             <img

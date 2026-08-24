@@ -5,6 +5,7 @@ import { DataChecker } from "../DataChecker/DataChecker.tsx";
 import { FilterBox } from "../FilterBox.tsx";
 import { Legend } from "../Legend.tsx";
 import { SituationsPanel } from "../SituationsPanel";
+import { SituationStatsTables } from "../SituationsPanel/SituationStatsTables.tsx";
 import { AppMode } from "../../domain/appMode.ts";
 
 type DrawerContentProps = {
@@ -45,6 +46,7 @@ export const DrawerContent = ({
       )}
       {activeContent === "stoplight" && currentFilter && <DataChecker />}
       {activeContent === "situations" && <SituationsPanel />}
+      {activeContent === "situationStats" && <SituationStatsTables />}
     </>
   );
 };

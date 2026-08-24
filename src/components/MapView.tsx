@@ -19,6 +19,7 @@ import { useFollowedVehicle } from "../hooks/useFollowedVehicle"; // adjust path
 import { SelectedVehiclePanel } from "./SelectedVehiclePanel";
 import { RouteLayer } from "./RouteLayer.tsx";
 import { SituationLayers } from "./SituationLayers.tsx";
+import { SituationDetailPanel } from "./SituationsPanel/SituationDetailPanel.tsx";
 import { AppMode } from "../domain/appMode.ts";
 import { ModeLayers } from "./ModeLayers.tsx";
 
@@ -141,6 +142,7 @@ export function MapView({
           onCancellationChange={setTripCancelled}
         />
       )}
+      {mode === "situations" && <SituationDetailPanel />}
     </>
   );
 }

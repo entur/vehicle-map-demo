@@ -13,6 +13,7 @@ import {
   isVehicleFeedEnabled,
   otherMode,
   parseAppMode,
+  isWideTool,
   rightRailTools,
 } from "./appMode.ts";
 
@@ -135,15 +136,16 @@ describe("feed predicates", () => {
   });
 });
 
-describe("rightRailTools", () => {
-  const KNOWN_CONTENT_TYPES: RightContentType[] = [
-    "filtering",
-    "info",
-    "layers",
-    "stoplight",
-    "situations",
-  ];
+const KNOWN_CONTENT_TYPES: RightContentType[] = [
+  "filtering",
+  "info",
+  "layers",
+  "stoplight",
+  "situations",
+  "situationStats",
+];
 
+describe("rightRailTools", () => {
   it("returns the expected tools per mode", () => {
     expect(rightRailTools("vehicles")).toEqual([
       "layers",
@@ -155,6 +157,7 @@ describe("rightRailTools", () => {
       "layers",
       "filtering",
       "situations",
+      "situationStats",
     ]);
   });
 
@@ -163,6 +166,22 @@ describe("rightRailTools", () => {
       for (const tool of rightRailTools(mode)) {
         expect(KNOWN_CONTENT_TYPES).toContain(tool);
       }
+    }
+  });
+});
+
+describe("isWideTool", () => {
+  it("marks the feed report wide and the browsing tools narrow", () => {
+    expect(isWideTool("situationStats")).toBe(true);
+    expect(isWideTool("situations")).toBe(false);
+    expect(isWideTool("filtering")).toBe(false);
+  });
+
+  it("marks only tools some mode's rail actually offers", () => {
+    // A wide tool no rail can open would silently never widen anything.
+    const offered = new Set(APP_MODES.flatMap((mode) => rightRailTools(mode)));
+    for (const tool of KNOWN_CONTENT_TYPES) {
+      if (isWideTool(tool)) expect(offered.has(tool)).toBe(true);
     }
   });
 });

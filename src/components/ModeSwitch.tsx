@@ -5,6 +5,8 @@ type Props = {
   mode: AppMode;
   setMode: (mode: AppMode) => void;
   drawerOpen: boolean;
+  /** The open drawer is a wide one, so the switch shifts further left. */
+  wide: boolean;
 };
 
 /**
@@ -12,10 +14,10 @@ type Props = {
  * inside a drawer — which is closed by default — would leave the app with no
  * on-screen indication of which feed is running.
  */
-export function ModeSwitch({ mode, setMode, drawerOpen }: Props) {
+export function ModeSwitch({ mode, setMode, drawerOpen, wide }: Props) {
   return (
     <ToggleButtonGroup
-      className={`mode-switch ${drawerOpen ? "open" : ""}`}
+      className={`mode-switch ${drawerOpen ? "open" : ""} ${wide ? "wide" : ""}`}
       value={mode}
       exclusive
       size="small"

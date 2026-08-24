@@ -19,6 +19,13 @@ body {
   box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
 }
 
+/* Tools whose content does not fit a 250px column — see isWideTool. The rail
+   buttons and the mode switch shift by the same amount, so all three stay in
+   step; changing one width means changing all three. */
+.right-menu-container.open.wide {
+  width: 460px;
+}
+
 .sidebar-button.right {
   position: absolute;
   right: 5px;
@@ -40,6 +47,10 @@ body {
 
 .sidebar-button.right.open {
   right: 255px;
+}
+
+.sidebar-button.right.open.wide {
+  right: 465px;
 }
 
 .sidebar-button.active {
@@ -157,4 +168,8 @@ body {
 
 .mode-switch.open {
   right: 255px;
+}
+
+.mode-switch.open.wide {
+  right: 465px;
 }

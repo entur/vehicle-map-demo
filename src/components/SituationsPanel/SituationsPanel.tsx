@@ -2,8 +2,6 @@ import { Box, Typography } from "@mui/material";
 import { memo, useCallback } from "react";
 import { useSituations } from "../../situations/SituationsContext.ts";
 import { SituationRow } from "./SituationRow.tsx";
-import { SituationStatsTables } from "./SituationStatsTables.tsx";
-import { SituationDetail } from "./SituationDetail.tsx";
 import { UnmappableList } from "./UnmappableList.tsx";
 
 function StatusLine() {
@@ -87,11 +85,6 @@ export const SituationsPanel = memo(function SituationsPanel() {
     [setSelected],
   );
 
-  const selectedSituation =
-    selected === null
-      ? null
-      : (feed.situations.find((s) => s.situationNumber === selected) ?? null);
-
   return (
     <Box
       sx={{
@@ -143,17 +136,7 @@ export const SituationsPanel = memo(function SituationsPanel() {
         ))}
       </Box>
 
-      {selectedSituation && (
-        <SituationDetail
-          situation={selectedSituation}
-          flags={flagsBySituation.get(selectedSituation.situationNumber) ?? []}
-          onClose={() => setSelected(null)}
-        />
-      )}
-
       <UnmappableList />
-
-      <SituationStatsTables />
     </Box>
   );
 });
