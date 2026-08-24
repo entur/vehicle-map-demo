@@ -34,6 +34,41 @@ export function countBy<T>(
     .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value));
 }
 
+/**
+ * Counts by a key over `subset`, but offering every value present in `all` —
+ * so a value the subset lacks stays listed at zero rather than vanishing. That
+ * absence is itself information: "this codespace publishes nothing severe" is
+ * only visible if the chip survives.
+ *
+ * Order comes from `compare`, applied to the values, defaulting to
+ * alphabetical. Deliberately not by count: these entries label filter chips,
+ * and chips that reshuffle whenever a count changes are hard to aim at. `NONE`
+ * always sorts last — it is the absence of a value rather than one of them.
+ */
+export function countByWithin<T>(
+  all: T[],
+  subset: T[],
+  key: (item: T) => string | null,
+  compare: (a: string, b: string) => number = (a, b) => a.localeCompare(b),
+): CountEntry[] {
+  const counts = new Map<string, number>();
+  for (const item of all) counts.set(key(item) ?? NONE, 0);
+  for (const item of subset) {
+    const value = key(item) ?? NONE;
+    // Guard rather than assume: a subset that is not a subset would otherwise
+    // introduce a value `all` never had.
+    if (counts.has(value)) counts.set(value, (counts.get(value) ?? 0) + 1);
+  }
+
+  return [...counts.entries()]
+    .map(([value, count]) => ({ value, count }))
+    .sort((a, b) => {
+      if (a.value === NONE) return b.value === NONE ? 0 : 1;
+      if (b.value === NONE) return -1;
+      return compare(a.value, b.value);
+    });
+}
+
 /** Which affects kinds a situation populates, e.g. `lines+serviceJourneys`. */
 export function affectsShape(situation: NationalSituation): string {
   const affects = situation.affects;

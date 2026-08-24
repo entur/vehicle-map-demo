@@ -16,6 +16,18 @@ export const FLAG_LEVEL: Record<SituationFlag, FlagLevel> = {
   notYetActive: "info",
 };
 
+/**
+ * The flags offered as filter facets. `notYetActive` is deliberately absent: a
+ * situation that has not started yet is still relevant to someone planning
+ * ahead, so the panel should not invite you to slice it away. It stays in
+ * `FLAG_LEVEL` because rows and the detail view still badge it — "starts later"
+ * is worth seeing, just not worth filtering on.
+ */
+export const FILTERABLE_FLAGS: SituationFlag[] = [
+  "noEndTime",
+  "staleOpenEnded",
+];
+
 export const STALE_OPEN_ENDED_DAYS = 90;
 
 const DAY_MS = 24 * 60 * 60 * 1000;

@@ -5,6 +5,7 @@ import {
   EMPTY_SITUATION_FILTER,
   applySituationFilter,
   facetCounts,
+  matchesCodespace,
 } from "./situationFilter.ts";
 import { NONE } from "./situationStats.ts";
 
@@ -194,11 +195,113 @@ describe("applySituationFilter", () => {
 
 describe("facetCounts", () => {
   it("counts flags over the set it is given, including zero-count flags", () => {
-    const counts = facetCounts([A, B], FLAGS);
+    const counts = facetCounts([A, B], [A, B], FLAGS);
     expect(counts.flags).toEqual([
       { value: "noEndTime", count: 1 },
       { value: "staleOpenEnded", count: 1 },
-      { value: "notYetActive", count: 0 },
+    ]);
+  });
+});
+
+describe("facetCounts — filterable flags", () => {
+  it("does not offer notYetActive as a facet", () => {
+    // A situation that has not started yet is still relevant, so the panel
+    // should not invite you to slice the list by it. The flag stays on rows
+    // and in the detail view as a badge; it just is not a filter.
+    const facets = facetCounts([A, B], [A, B], FLAGS);
+    expect(facets.flags.map((entry) => entry.value)).not.toContain(
+      "notYetActive",
+    );
+  });
+
+  it("still offers the two quality flags, in order", () => {
+    const facets = facetCounts([A, B], [A, B], FLAGS);
+    expect(facets.flags.map((entry) => entry.value)).toEqual([
+      "noEndTime",
+      "staleOpenEnded",
+    ]);
+  });
+});
+
+describe("matchesCodespace", () => {
+  it("matches on strict equality", () => {
+    expect(matchesCodespace(A, "NSB")).toBe(true);
+    expect(matchesCodespace(A, "ATB")).toBe(false);
+  });
+
+  it("treats null and the empty string as no codespace selected", () => {
+    expect(matchesCodespace(A, null)).toBe(true);
+    expect(matchesCodespace(A, "")).toBe(true);
+  });
+
+  it("excludes a situation carrying no codespace when one is selected", () => {
+    const unattributed = makeSituation({ codespace: null });
+    expect(matchesCodespace(unattributed, "NSB")).toBe(false);
+    expect(matchesCodespace(unattributed, null)).toBe(true);
+  });
+});
+
+describe("facetCounts — scoped to a codespace", () => {
+  const NSB_ONLY = [A];
+
+  it("counts only the situations in the selected codespace", () => {
+    const facets = facetCounts([A, B], NSB_ONLY, FLAGS);
+    expect(facets.severities.find((e) => e.value === "severe")?.count).toBe(1);
+    expect(facets.severities.find((e) => e.value === "normal")?.count).toBe(0);
+  });
+
+  it("keeps a severity the codespace lacks, at zero", () => {
+    const facets = facetCounts([A, B], NSB_ONLY, FLAGS);
+    expect(facets.severities.map((e) => e.value)).toContain("normal");
+  });
+
+  it("scopes the flag counts too", () => {
+    const facets = facetCounts([A, B], NSB_ONLY, FLAGS);
+    expect(facets.flags).toEqual([
+      { value: "noEndTime", count: 1 },
+      { value: "staleOpenEnded", count: 1 },
+    ]);
+  });
+});
+
+describe("facetCounts — ordering", () => {
+  it("orders severities least to most severe, regardless of count", () => {
+    const many = [
+      makeSituation({ situationNumber: "1", severity: "severe" }),
+      makeSituation({ situationNumber: "2", severity: "normal" }),
+      makeSituation({ situationNumber: "3", severity: "normal" }),
+      makeSituation({ situationNumber: "4", severity: "normal" }),
+      makeSituation({ situationNumber: "5", severity: "noImpact" }),
+      makeSituation({ situationNumber: "6", severity: "slight" }),
+    ];
+    const facets = facetCounts(many, many, new Map());
+    expect(facets.severities.map((e) => e.value)).toEqual([
+      "noImpact",
+      "slight",
+      "normal",
+      "severe",
+    ]);
+  });
+
+  it("puts a severity-less situation's (none) bucket last", () => {
+    const many = [
+      makeSituation({ situationNumber: "1", severity: "severe" }),
+      makeSituation({ situationNumber: "2", severity: null }),
+    ];
+    const facets = facetCounts(many, many, new Map());
+    expect(facets.severities.map((e) => e.value)).toEqual(["severe", NONE]);
+  });
+
+  it("orders report types alphabetically, regardless of count", () => {
+    const many = [
+      makeSituation({ situationNumber: "1", reportType: "INCIDENT" }),
+      makeSituation({ situationNumber: "2", reportType: "INCIDENT" }),
+      makeSituation({ situationNumber: "3", reportType: "GENERAL" }),
+    ];
+    const facets = facetCounts(many, many, new Map());
+    expect(facets.reportTypes.map((e) => e.value)).toEqual([
+      "GENERAL",
+      "INCIDENT",
     ]);
   });
 });

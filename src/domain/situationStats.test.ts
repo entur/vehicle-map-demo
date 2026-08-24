@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { makeSituation } from "../__fixtures__/makeSituation.ts";
-import { affectsShape, countBy, situationStats } from "./situationStats.ts";
+import {
+  affectsShape,
+  countBy,
+  countByWithin,
+  situationStats,
+} from "./situationStats.ts";
 
 const EMPTY_AFFECTS = {
   vehicleModes: null,
@@ -105,6 +110,71 @@ describe("situationStats", () => {
     expect(stats.summaryLanguages).toEqual([
       { value: "EN+NO", count: 1 },
       { value: "untagged", count: 1 },
+    ]);
+  });
+});
+
+describe("countByWithin", () => {
+  const all = [
+    { kind: "a" },
+    { kind: "a" },
+    { kind: "b" },
+    { kind: "c" },
+    { kind: null },
+  ];
+
+  it("counts over the subset, not the whole set", () => {
+    const subset = [{ kind: "a" }, { kind: "b" }];
+    const counts = countByWithin(all, subset, (item) => item.kind);
+    expect(counts.find((entry) => entry.value === "a")?.count).toBe(1);
+  });
+
+  it("keeps a value the subset lacks, at zero", () => {
+    // The absence is the signal: "this codespace publishes nothing severe" is
+    // worth seeing, and a vanishing chip hides it.
+    const subset = [{ kind: "a" }];
+    const counts = countByWithin(all, subset, (item) => item.kind);
+    expect(counts.find((entry) => entry.value === "c")).toEqual({
+      value: "c",
+      count: 0,
+    });
+  });
+
+  it("offers exactly the values present in the whole set", () => {
+    const subset = [{ kind: "a" }];
+    const counts = countByWithin(all, subset, (item) => item.kind);
+    expect(counts.map((entry) => entry.value).sort()).toEqual([
+      "(none)",
+      "a",
+      "b",
+      "c",
+    ]);
+  });
+
+  it("never invents a value the whole set does not have", () => {
+    const subset = [{ kind: "zzz" }];
+    const counts = countByWithin(all, subset, (item) => item.kind);
+    expect(counts.map((entry) => entry.value)).not.toContain("zzz");
+  });
+
+  it("puts (none) last", () => {
+    const counts = countByWithin(all, all, (item) => item.kind);
+    expect(counts[counts.length - 1].value).toBe("(none)");
+  });
+
+  it("orders by the supplied comparator, not by count", () => {
+    const subset = all;
+    const counts = countByWithin(
+      all,
+      subset,
+      (item) => item.kind,
+      (x, y) => y.localeCompare(x),
+    );
+    expect(counts.map((entry) => entry.value)).toEqual([
+      "c",
+      "b",
+      "a",
+      "(none)",
     ]);
   });
 });

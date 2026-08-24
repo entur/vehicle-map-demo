@@ -25,7 +25,12 @@ export function severityColour(
   }
 }
 
-const SEVERITY_RANK: Record<SeverityEnumeration, number> = {
+/**
+ * Least to most serious. Exported because the situations panel orders its
+ * severity filter chips by it — one table, so a chip order and a "worst of
+ * these" comparison can never disagree about which severity outranks which.
+ */
+export const SEVERITY_RANK: Record<SeverityEnumeration, number> = {
   noImpact: 0,
   unknown: 1,
   undefined: 1,

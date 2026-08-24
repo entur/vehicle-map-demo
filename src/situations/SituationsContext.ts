@@ -3,7 +3,7 @@ import { SituationsFeed } from "../hooks/useSituationsSubscription.ts";
 import { SituationFeatures } from "../domain/situationFeatures.ts";
 import { FacetCounts, SituationFilter } from "../domain/situationFilter.ts";
 import { SituationFlag } from "../domain/situationFlags.ts";
-import { SituationStats } from "../domain/situationStats.ts";
+import { CountEntry, SituationStats } from "../domain/situationStats.ts";
 import { NationalSituation } from "../types.ts";
 
 export type SituationsContextValue = {
@@ -21,8 +21,22 @@ export type SituationsContextValue = {
    * situations are in play.
    */
   features: SituationFeatures;
-  /** Computed over the unfiltered set, so the readouts stay still as the user narrows. */
+  /**
+   * Computed over the feed narrowed by the map's codespace filter — the same
+   * scope as `facets`, and the same thing the vehicles-mode Data report does
+   * for a codespace. Never narrowed by the panel's own facets, which would make
+   * each table describe only the click that produced it.
+   */
   stats: SituationStats;
+  /** What `stats` covers, for the report to state its own scope. */
+  statsScope: { codespaceId: string | null; count: number; total: number };
+  /**
+   * Situations per codespace over the **whole feed**, never scoped — this is
+   * what the codespace dropdown offers. Deliberately not `stats.byCodespace`,
+   * which is scoped: a dropdown built from it collapses to the codespace
+   * already selected, stranding the user there.
+   */
+  feedCodespaceCounts: CountEntry[];
   facets: FacetCounts;
   selected: string | null;
   /**

@@ -8,9 +8,10 @@ import {
   SituationFilter,
   applySituationFilter,
   facetCounts,
+  matchesCodespace,
 } from "../domain/situationFilter.ts";
 import { SituationFlag, situationFlags } from "../domain/situationFlags.ts";
-import { situationStats } from "../domain/situationStats.ts";
+import { countBy, situationStats } from "../domain/situationStats.ts";
 import { useSituationLineGeometry } from "../hooks/useSituationLineGeometry.ts";
 import { useSituationsSubscription } from "../hooks/useSituationsSubscription.ts";
 import { SituationsContext } from "./SituationsContext.ts";
@@ -91,14 +92,39 @@ export function SituationsProvider({
     [filtered, lineGeometry],
   );
 
+  // The map's codespace filter alone — deliberately not `filtered`, which also
+  // carries the panel's own facets. Counting within the codespace keeps the
+  // readouts meaningful; counting within the facets would make each one
+  // describe only the click that produced it.
+  const withinCodespace = useMemo(
+    () =>
+      feed.situations.filter((situation) =>
+        matchesCodespace(situation, codespaceId ?? null),
+      ),
+    [feed.situations, codespaceId],
+  );
+
+  // Scoped to the map's codespace filter, like the facet counts and like the
+  // vehicles-mode Data report, which fetches its snapshot for one codespace.
+  // Deliberately not narrowed by the panel's own facets: selecting `severe`
+  // must not make the severity table read "severe: N, everything else 0".
   const stats = useMemo(
-    () => situationStats(feed.situations),
+    () => situationStats(withinCodespace),
+    [withinCodespace],
+  );
+
+  // The dropdown's own options, over the WHOLE feed and never scoped. Separate
+  // from `stats.byCodespace`, which is scoped to the current codespace: deriving
+  // the options from that collapsed the dropdown to the one codespace already
+  // selected, leaving no way to switch to another.
+  const feedCodespaceCounts = useMemo(
+    () => countBy(feed.situations, (s) => s.codespace?.codespaceId ?? null),
     [feed.situations],
   );
 
   const facets = useMemo(
-    () => facetCounts(feed.situations, flagsBySituation),
-    [feed.situations, flagsBySituation],
+    () => facetCounts(feed.situations, withinCodespace, flagsBySituation),
+    [feed.situations, withinCodespace, flagsBySituation],
   );
 
   const value = useMemo(
@@ -110,6 +136,12 @@ export function SituationsProvider({
       filtered,
       features,
       stats,
+      feedCodespaceCounts,
+      statsScope: {
+        codespaceId: codespaceId ?? null,
+        count: withinCodespace.length,
+        total: feed.situations.length,
+      },
       facets,
       selected,
       setSelected,
@@ -121,6 +153,9 @@ export function SituationsProvider({
       filtered,
       features,
       stats,
+      feedCodespaceCounts,
+      codespaceId,
+      withinCodespace,
       facets,
       selected,
     ],
