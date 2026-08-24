@@ -23,7 +23,11 @@ export function useFilterQueryParams(
   useEffect(() => {
     if (!loadState.current.loaded) {
       loadState.current.loaded = true;
-      const queryParams = getQueryParams();
+      // `mode` shares the query string but is not part of Filter — it is owned
+      // by useModeQueryParam. Merging it here would put a stray key into the
+      // filter object and, from there, into the subscription variables.
+      const { mode: _mode, ...queryParams } = getQueryParams();
+      void _mode;
       setFilter({
         ...(filter || {}),
         ...queryParams,

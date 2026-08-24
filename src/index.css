@@ -145,3 +145,16 @@ body {
 .sidebar-button:hover {
   background: #5d9c9b;
 }
+
+.mode-switch {
+  position: absolute;
+  top: 20px;
+  right: 5px;
+  z-index: 1;
+  background: #fff;
+  transition: right 0.3s;
+}
+
+.mode-switch.open {
+  right: 255px;
+}

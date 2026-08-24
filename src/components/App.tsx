@@ -5,10 +5,13 @@ import { MapView } from "./MapView.tsx";
 import { ThemeProvider } from "@mui/material";
 import { theme } from "./theme.ts";
 import { useFilterQueryParams } from "../hooks/useFilterQueryParams.ts";
+import { useModeQueryParam } from "../hooks/useModeQueryParam.ts";
 import { SituationsProvider } from "../situations/SituationsProvider.tsx";
+import { AppMode } from "../domain/appMode.ts";
 
 function App() {
   const [currentFilter, setCurrentFilter] = useState<Filter | null>(null);
+  const [mode, setMode] = useState<AppMode>("vehicles");
   const [mapViewOptions, setMapViewOptions] = useState<MapViewOptions>({
     showVehicleTraces: false,
     showVehicles: true,
@@ -22,12 +25,15 @@ function App() {
   });
   const data = useVehiclePositionsData(currentFilter, mapViewOptions);
   useFilterQueryParams(currentFilter, setCurrentFilter);
+  useModeQueryParam(mode, setMode);
 
   return (
     <div style={{ width: "100vw", height: "100vh" }}>
       <ThemeProvider theme={theme}>
         <SituationsProvider codespaceId={currentFilter?.codespaceId}>
           <MapView
+            mode={mode}
+            setMode={setMode}
             data={data}
             setCurrentFilter={setCurrentFilter}
             currentFilter={currentFilter}

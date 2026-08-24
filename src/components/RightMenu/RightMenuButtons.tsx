@@ -3,105 +3,82 @@ import infoIcon from "../../static/images/info.png";
 import layersIcon from "../../static/images/layers.png";
 import orangeMarkerIcon from "../../static/images/orangeMarker.png";
 import stoplightIcon from "../../static/images/stoplight.png";
+import { AppMode } from "../../domain/appMode.ts";
 import { RightContentType } from "./types.ts";
 
+type Tool = {
+  content: RightContentType;
+  icon: string;
+  label: string;
+};
+
+const TOOLS: Record<RightContentType, Tool> = {
+  layers: { content: "layers", icon: layersIcon, label: "Layers" },
+  filtering: { content: "filtering", icon: filterIcon, label: "Filter" },
+  info: { content: "info", icon: infoIcon, label: "Info" },
+  stoplight: {
+    content: "stoplight",
+    icon: stoplightIcon,
+    label: "Data report",
+  },
+  situations: {
+    content: "situations",
+    icon: orangeMarkerIcon,
+    // Deliberately not "Situations": that is the mode toggle's label, and the
+    // label drives both `alt` and `title`, so reusing it would give two
+    // controls the same accessible name.
+    label: "Situations panel",
+  },
+};
+
+const TOOLS_BY_MODE: Record<AppMode, RightContentType[]> = {
+  vehicles: ["layers", "filtering", "info", "stoplight"],
+  situations: ["layers", "filtering", "situations"],
+};
+
+/** Below the mode switch, then one button pitch apart. */
+const FIRST_BUTTON_TOP = 75;
+const BUTTON_PITCH = 55;
+
 type RightMenuButtonsProps = {
+  mode: AppMode;
   activeContent: RightContentType | null;
   setActiveContent: (contentType: RightContentType | null) => void;
 };
 
 export const RightMenuButtons = ({
+  mode,
   activeContent,
   setActiveContent,
 }: RightMenuButtonsProps) => {
   const toggleSidebar = (newActiveContent: RightContentType) => {
-    if (newActiveContent === activeContent) {
-      setActiveContent(null);
-    } else {
-      setActiveContent(newActiveContent);
-    }
+    setActiveContent(
+      newActiveContent === activeContent ? null : newActiveContent,
+    );
   };
 
   return (
     <>
-      <button
-        onClick={() => toggleSidebar("layers")}
-        className={`sidebar-button right ${activeContent === "layers" ? "active" : ""} ${
-          activeContent ? "open" : ""
-        }`}
-        style={{
-          top: "20px",
-        }}
-      >
-        <img
-          src={layersIcon}
-          alt="Layers"
-          title="Layers"
-          style={{ width: "40px", height: "40px" }}
-        />
-      </button>
-      <button
-        onClick={() => toggleSidebar("filtering")}
-        className={`sidebar-button right ${activeContent === "filtering" ? "active" : ""} ${
-          activeContent ? "open" : ""
-        }`}
-        style={{
-          top: "75px",
-        }}
-      >
-        <img
-          src={filterIcon}
-          alt="Filter"
-          title="Filter"
-          style={{ width: "40px", height: "40px" }}
-        />
-      </button>
-
-      <button
-        onClick={() => toggleSidebar("info")}
-        className={`sidebar-button right ${activeContent === "info" ? "active" : ""} ${
-          activeContent ? "open" : ""
-        }`}
-        style={{
-          top: "130px",
-        }}
-      >
-        <img src={infoIcon} alt="Info" title="Info" className="icon" />
-      </button>
-
-      <button
-        onClick={() => toggleSidebar("stoplight")}
-        className={`sidebar-button right ${activeContent === "stoplight" ? "active" : ""} ${
-          activeContent ? "open" : ""
-        }`}
-        style={{
-          top: "185px",
-        }}
-      >
-        <img
-          src={stoplightIcon}
-          alt="Data report"
-          title="Data report"
-          style={{ width: "40px", height: "40px" }}
-        />
-      </button>
-
-      <button
-        onClick={() => toggleSidebar("situations")}
-        className={`sidebar-button right ${activeContent === "situations" ? "active" : ""} ${
-          activeContent ? "open" : ""
-        }`}
-        style={{
-          top: "240px",
-        }}
-      >
-        <img
-          src={orangeMarkerIcon}
-          alt="Situations"
-          title="Situations"
-          style={{ width: "40px", height: "40px" }}
-        />
-      </button>
+      {TOOLS_BY_MODE[mode].map((content, index) => {
+        const tool = TOOLS[content];
+        return (
+          <button
+            key={content}
+            onClick={() => toggleSidebar(content)}
+            className={`sidebar-button right ${
+              activeContent === content ? "active" : ""
+            } ${activeContent ? "open" : ""}`}
+            style={{ top: `${FIRST_BUTTON_TOP + index * BUTTON_PITCH}px` }}
+          >
+            <img
+              src={tool.icon}
+              alt={tool.label}
+              title={tool.label}
+              style={{ width: "40px", height: "40px" }}
+            />
+          </button>
+        );
+      })}
     </>
   );
 };
