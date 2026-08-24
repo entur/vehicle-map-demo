@@ -66,16 +66,20 @@ export function ModeLayers({
 
     // getLayer/getSource return undefined until the style has loaded, and this
     // effect can run first. Same hazard the vehicle and situation source
-    // writers already guard against.
+    // writers already guard against. Unlike "load", "idle" fires every time
+    // the map settles after rendering rather than once per Map instance, so
+    // the fallback below can still fire on a later effect run even if an
+    // earlier run already consumed a "load"/"idle" event — isStyleLoaded()
+    // can go transiently false again well after the initial load.
     if (map.isStyleLoaded()) {
       apply();
       return;
     }
-    map.once("load", apply);
-    // If the effect re-runs before "load" fires, drop the pending handler —
+    map.once("idle", apply);
+    // If the effect re-runs before "idle" fires, drop the pending handler —
     // otherwise each run stacks another one and they all fire at once.
     return () => {
-      map.off("load", apply);
+      map.off("idle", apply);
     };
   }, [mode, mapRef, mapViewOptions]);
 
