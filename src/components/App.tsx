@@ -7,7 +7,11 @@ import { theme } from "./theme.ts";
 import { useFilterQueryParams } from "../hooks/useFilterQueryParams.ts";
 import { useModeQueryParam } from "../hooks/useModeQueryParam.ts";
 import { SituationsProvider } from "../situations/SituationsProvider.tsx";
-import { AppMode } from "../domain/appMode.ts";
+import {
+  AppMode,
+  isSituationsFeedEnabled,
+  isVehicleFeedEnabled,
+} from "../domain/appMode.ts";
 
 function App() {
   const [currentFilter, setCurrentFilter] = useState<Filter | null>(null);
@@ -23,14 +27,21 @@ function App() {
     showAffectedStops: true,
     showAffectedLines: true,
   });
-  const data = useVehiclePositionsData(currentFilter, mapViewOptions);
+  const data = useVehiclePositionsData(
+    currentFilter,
+    mapViewOptions,
+    isVehicleFeedEnabled(mode),
+  );
   useFilterQueryParams(currentFilter, setCurrentFilter);
   useModeQueryParam(mode, setMode);
 
   return (
     <div style={{ width: "100vw", height: "100vh" }}>
       <ThemeProvider theme={theme}>
-        <SituationsProvider codespaceId={currentFilter?.codespaceId}>
+        <SituationsProvider
+          codespaceId={currentFilter?.codespaceId}
+          enabled={isSituationsFeedEnabled(mode)}
+        >
           <MapView
             mode={mode}
             setMode={setMode}

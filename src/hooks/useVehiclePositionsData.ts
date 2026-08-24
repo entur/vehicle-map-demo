@@ -75,6 +75,7 @@ function getVehicleTtl(vehicle: VehicleUpdate, maxDataAge: number) {
 export const useVehiclePositionsData = (
   filter: Filter | null,
   mapViewOptions: MapViewOptions,
+  enabled: boolean,
 ) => {
   const map = useRef<CacheMap<string, VehicleData>>(new CacheMap());
   const [data, setData] = useState<VehicleData[]>([]);
@@ -87,6 +88,16 @@ export const useVehiclePositionsData = (
   useEffect(() => {
     if (subscription.current?.return) {
       subscription.current.return();
+    }
+
+    if (!enabled || !filter?.boundingBox) {
+      // A fresh instance rather than `.clear()`: CacheMap extends Map and
+      // overrides `delete` to cancel each entry's timeout, but does not
+      // override `clear`, so clearing would drop the entries and leave the
+      // timers pending. Mirrors how useSituationsSubscription resets.
+      map.current = new CacheMap();
+      setData([]);
+      return;
     }
 
     let boundingBoxParams = {};
@@ -156,9 +167,7 @@ export const useVehiclePositionsData = (
         setData(filterVehicles(filter, Array.from(map.current.values())));
       }
     };
-    if (filter && filter.boundingBox) {
-      subscribe();
-    }
-  }, [filter, subscriptionClient, mapViewOptions]);
+    subscribe();
+  }, [filter, subscriptionClient, mapViewOptions, enabled]);
   return data;
 };

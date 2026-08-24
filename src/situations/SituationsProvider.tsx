@@ -1,4 +1,4 @@
-import { ReactNode, useMemo, useState } from "react";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 import {
   buildSituationFeatures,
   collectLineRefs,
@@ -18,13 +18,19 @@ import { SituationsContext } from "./SituationsContext.ts";
 export function SituationsProvider({
   children,
   codespaceId,
+  enabled,
 }: {
   children: ReactNode;
   codespaceId?: string;
+  enabled: boolean;
 }) {
-  const feed = useSituationsSubscription();
+  const feed = useSituationsSubscription(enabled);
   const [filter, setFilter] = useState<SituationFilter>(EMPTY_SITUATION_FILTER);
   const [selected, setSelected] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!enabled) setSelected(null);
+  }, [enabled]);
 
   const flagsBySituation = useMemo(() => {
     // `Date.now()` here is genuinely impure — `react-hooks/purity` is right

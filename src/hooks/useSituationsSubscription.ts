@@ -51,7 +51,7 @@ export type SituationsFeed = {
  * not go stale by age: the server retires them, and everything it serves has
  * `progress: open`.
  */
-export function useSituationsSubscription(): SituationsFeed {
+export function useSituationsSubscription(enabled: boolean): SituationsFeed {
   const [feed, setFeed] = useState<SituationsFeed>({
     situations: [],
     status: "connecting",
@@ -66,6 +66,14 @@ export function useSituationsSubscription(): SituationsFeed {
   const subscriptionClient = useSubscriptionClient();
 
   useEffect(() => {
+    if (!enabled) {
+      // Reset rather than freeze: the feed has no TTL, so keeping the last
+      // frames would present a stale snapshot as live on returning.
+      byNumber.current = new Map();
+      setFeed({ situations: [], status: "connecting", lastUpdated: null });
+      return;
+    }
+
     byNumber.current = new Map();
 
     const emptyTimer = setTimeout(() => {
@@ -111,7 +119,7 @@ export function useSituationsSubscription(): SituationsFeed {
       clearTimeout(emptyTimer);
       subscription.current?.return?.();
     };
-  }, [subscriptionClient]);
+  }, [subscriptionClient, enabled]);
 
   return feed;
 }
