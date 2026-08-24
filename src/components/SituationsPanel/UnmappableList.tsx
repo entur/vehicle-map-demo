@@ -8,13 +8,16 @@ import { affectsShape } from "../../domain/situationStats.ts";
  * majority, dominated by the ones referencing only dated service journeys,
  * whose IDs resolve to nothing geographic in this API.
  *
- * This list is computed over the unfiltered set and is these situations' only
- * surface, so it exists whether or not the current filter would show them.
+ * This is the map's complement over the *filtered* set: every situation the
+ * current filter admits is either drawn on the map or listed here. Computing
+ * it over the whole feed instead would leave it contradicting the controls
+ * above it — listing ATB situations while the map filter is narrowed to AKT.
  */
 export function UnmappableList() {
-  const { unmappable, feed, setSelected, selected } = useSituations();
+  const { features, filtered, setSelected, selected } = useSituations();
+  const unmappable = features.unmappable;
 
-  const byNumber = new Map(feed.situations.map((s) => [s.situationNumber, s]));
+  const byNumber = new Map(filtered.map((s) => [s.situationNumber, s]));
 
   return (
     <Box sx={{ marginBottom: 2 }}>
@@ -27,7 +30,7 @@ export function UnmappableList() {
           color: "#666",
         }}
       >
-        Not on the map ({unmappable.length} of {feed.situations.length})
+        Not on the map ({unmappable.length} of {filtered.length})
       </Typography>
       <Box sx={{ maxHeight: "25vh", overflowY: "auto" }}>
         {unmappable.map((situationNumber) => {

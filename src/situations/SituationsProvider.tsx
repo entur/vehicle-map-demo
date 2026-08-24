@@ -63,14 +63,6 @@ export function SituationsProvider({
   );
   const lineGeometry = useSituationLineGeometry(lineRefs);
 
-  // Built twice, over different sets and for different consumers: once over
-  // everything, only to learn which situations have no map presence at all;
-  // once over the filtered set, to feed the map layers.
-  const allFeatures = useMemo(
-    () => buildSituationFeatures(feed.situations, lineGeometry),
-    [feed.situations, lineGeometry],
-  );
-
   const filtered = useMemo(
     () =>
       applySituationFilter(
@@ -82,6 +74,12 @@ export function SituationsProvider({
     [feed.situations, filter, flagsBySituation, codespaceId],
   );
 
+  // Built over the filtered set only. Both consumers want the same set: the
+  // map layers draw these features, and the panel's "not on the map" list is
+  // the leftover — the situations the user is currently looking at that the
+  // map cannot show. Deriving that list from the whole feed instead would let
+  // it contradict every other control in the panel, listing situations from
+  // codespaces the map filter has excluded.
   const features = useMemo(
     () => buildSituationFeatures(filtered, lineGeometry),
     [filtered, lineGeometry],
@@ -105,7 +103,6 @@ export function SituationsProvider({
       setFilter,
       filtered,
       features,
-      unmappable: allFeatures.unmappable,
       stats,
       facets,
       selected,
@@ -117,7 +114,6 @@ export function SituationsProvider({
       filter,
       filtered,
       features,
-      allFeatures,
       stats,
       facets,
       selected,

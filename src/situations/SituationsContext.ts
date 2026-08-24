@@ -14,10 +14,13 @@ export type SituationsContextValue = {
   setFilter: (filter: SituationFilter) => void;
   /** The subset the user is currently looking at. */
   filtered: NationalSituation[];
-  /** Features built over `filtered` — this is what the map draws. */
+  /**
+   * Features built over `filtered` — what the map draws, plus the
+   * `unmappable` remainder the "not on the map" list shows. Both follow the
+   * filter, so the map and the panel can never disagree about which
+   * situations are in play.
+   */
   features: SituationFeatures;
-  /** Situation numbers with no map presence, over the **unfiltered** set. */
-  unmappable: string[];
   /** Computed over the unfiltered set, so the readouts stay still as the user narrows. */
   stats: SituationStats;
   facets: FacetCounts;
