@@ -25,13 +25,11 @@ export const DrawerContent = ({
   mapViewOptions,
   setMapViewOptions,
 }: DrawerContentProps) => {
-  // Not yet used in the render body — Task 7 changes what the filter drawer
-  // holds per mode. Threaded now so the prop wiring lands in this task.
-  void mode;
   return (
     <>
       {activeContent === "filtering" && currentFilter && (
         <FilterBox
+          mode={mode}
           setCurrentFilter={setCurrentFilter}
           currentFilter={currentFilter}
         />
@@ -40,6 +38,7 @@ export const DrawerContent = ({
       {activeContent === "info" && currentFilter && <Legend />}
       {activeContent === "layers" && currentFilter && (
         <MapLayers
+          mode={mode}
           mapViewOptions={mapViewOptions}
           setMapViewOptions={setMapViewOptions}
         />

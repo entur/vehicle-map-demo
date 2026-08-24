@@ -1,7 +1,6 @@
 import { Box, Typography } from "@mui/material";
 import { memo, useCallback } from "react";
 import { useSituations } from "../../situations/SituationsContext.ts";
-import { SituationFilters } from "./SituationFilters.tsx";
 import { SituationRow } from "./SituationRow.tsx";
 import { SituationStatsTables } from "./SituationStatsTables.tsx";
 import { SituationDetail } from "./SituationDetail.tsx";
@@ -127,8 +126,6 @@ export const SituationsPanel = memo(function SituationsPanel() {
       >
         <StatusLine />
       </Typography>
-
-      <SituationFilters />
 
       <Box sx={{ maxHeight: "40vh", overflowY: "auto", marginBottom: 2 }}>
         {filtered.map((situation) => (
