@@ -95,7 +95,11 @@ export function MapView({
           }
           cancelled={tripCancelled}
         />
-        <SituationLayers visible={mapViewOptions.showSituations} />
+        <SituationLayers
+          visible={
+            mapViewOptions.showAffectedStops || mapViewOptions.showAffectedLines
+          }
+        />
         {selectedVehicle && (
           <VehiclePopup
             vehicle={selectedVehicle}

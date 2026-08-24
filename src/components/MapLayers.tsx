@@ -144,14 +144,26 @@ export function MapLayers({ mapViewOptions, setMapViewOptions }: Props) {
           <FormControlLabel
             control={
               <Switch
-                checked={mapViewOptions.showSituations}
-                onChange={handleToggleLayer("showSituations", [
-                  "situation-lines-layer",
+                checked={mapViewOptions.showAffectedStops}
+                onChange={handleToggleLayer(
+                  "showAffectedStops",
                   "situation-points-layer",
-                ])}
+                )}
               />
             }
-            label={getLabelWithIcon(situationMarker, "Situations", 22)}
+            label={getLabelWithIcon(situationMarker, "Affected stops", 22)}
+          />
+          <FormControlLabel
+            control={
+              <Switch
+                checked={mapViewOptions.showAffectedLines}
+                onChange={handleToggleLayer(
+                  "showAffectedLines",
+                  "situation-lines-layer",
+                )}
+              />
+            }
+            label={getLabelWithIcon(situationMarker, "Affected lines", 22)}
           />
         </FormGroup>
       </CardContent>
