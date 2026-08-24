@@ -1,4 +1,5 @@
 import { MapViewOptions } from "../types.ts";
+import { RightContentType } from "../components/RightMenu/types.ts";
 
 /**
  * The app is in exactly one mode at a time. Mode decides which subscription is
@@ -114,6 +115,17 @@ export const MODE_SOURCES: Record<AppMode, string[]> = {
 
 export const otherMode = (mode: AppMode): AppMode =>
   mode === "vehicles" ? "situations" : "vehicles";
+
+/** The right-rail tools available in each mode, in display order. */
+const RIGHT_RAIL_TOOLS: Record<AppMode, RightContentType[]> = {
+  vehicles: ["layers", "filtering", "info", "stoplight"],
+  situations: ["layers", "filtering", "situations"],
+};
+
+/** The right-rail tools available in `mode`, in the order they render. */
+export function rightRailTools(mode: AppMode): RightContentType[] {
+  return RIGHT_RAIL_TOOLS[mode];
+}
 
 export const isVehicleFeedEnabled = (mode: AppMode): boolean =>
   mode === "vehicles";

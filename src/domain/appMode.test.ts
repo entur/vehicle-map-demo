@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { mapStyle } from "../components/mapStyle.ts";
+import { RightContentType } from "../components/RightMenu/types.ts";
+import { MapViewOptions } from "../types.ts";
 import {
   APP_MODES,
   MODE_DEFAULT_VISIBLE_LAYERS,
@@ -11,6 +13,7 @@ import {
   isVehicleFeedEnabled,
   otherMode,
   parseAppMode,
+  rightRailTools,
 } from "./appMode.ts";
 
 /** The base map belongs to no mode and is never hidden or cleared. */
@@ -129,6 +132,64 @@ describe("feed predicates", () => {
   it("enables the vehicle feed only in vehicles mode", () => {
     expect(isVehicleFeedEnabled("vehicles")).toBe(true);
     expect(isVehicleFeedEnabled("situations")).toBe(false);
+  });
+});
+
+describe("rightRailTools", () => {
+  const KNOWN_CONTENT_TYPES: RightContentType[] = [
+    "filtering",
+    "info",
+    "layers",
+    "stoplight",
+    "situations",
+  ];
+
+  it("returns the expected tools per mode", () => {
+    expect(rightRailTools("vehicles")).toEqual([
+      "layers",
+      "filtering",
+      "info",
+      "stoplight",
+    ]);
+    expect(rightRailTools("situations")).toEqual([
+      "layers",
+      "filtering",
+      "situations",
+    ]);
+  });
+
+  it("returns only valid RightContentType values", () => {
+    for (const mode of APP_MODES) {
+      for (const tool of rightRailTools(mode)) {
+        expect(KNOWN_CONTENT_TYPES).toContain(tool);
+      }
+    }
+  });
+});
+
+describe("MapViewOptions completeness", () => {
+  // RightContentType (and MapViewOptions below) can't be reflected at
+  // runtime, so this list is kept explicit and must track
+  // `MapViewOptions` in ../types.ts — if a key is added there, add it here
+  // too, or this test cannot catch a switch added without a mode
+  // assignment.
+  const MAP_VIEW_OPTIONS_KEYS: (keyof MapViewOptions)[] = [
+    "showVehicleTraces",
+    "showVehicles",
+    "showDelay",
+    "showVehicleHeatmap",
+    "showUpdateFrequency",
+    "showDeadUpdateFrequency",
+    "showOccupancy",
+    "showAffectedStops",
+    "showAffectedLines",
+  ];
+
+  it("assigns every MapViewOptions key to exactly one mode's MODE_SWITCHED_LAYERS", () => {
+    const assignedKeys = APP_MODES.flatMap((mode) =>
+      Object.values(MODE_SWITCHED_LAYERS[mode]),
+    );
+    expect([...assignedKeys].sort()).toEqual([...MAP_VIEW_OPTIONS_KEYS].sort());
   });
 });
 

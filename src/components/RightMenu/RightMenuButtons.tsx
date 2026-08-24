@@ -3,7 +3,7 @@ import infoIcon from "../../static/images/info.png";
 import layersIcon from "../../static/images/layers.png";
 import orangeMarkerIcon from "../../static/images/orangeMarker.png";
 import stoplightIcon from "../../static/images/stoplight.png";
-import { AppMode } from "../../domain/appMode.ts";
+import { AppMode, rightRailTools } from "../../domain/appMode.ts";
 import { RightContentType } from "./types.ts";
 
 type Tool = {
@@ -31,11 +31,6 @@ const TOOLS: Record<RightContentType, Tool> = {
   },
 };
 
-const TOOLS_BY_MODE: Record<AppMode, RightContentType[]> = {
-  vehicles: ["layers", "filtering", "info", "stoplight"],
-  situations: ["layers", "filtering", "situations"],
-};
-
 /** Below the mode switch, then one button pitch apart. */
 const FIRST_BUTTON_TOP = 75;
 const BUTTON_PITCH = 55;
@@ -59,7 +54,7 @@ export const RightMenuButtons = ({
 
   return (
     <>
-      {TOOLS_BY_MODE[mode].map((content, index) => {
+      {rightRailTools(mode).map((content, index) => {
         const tool = TOOLS[content];
         return (
           <button

@@ -52,22 +52,23 @@ export function MapView({
     }
   }, [selectedVehicle]);
 
-  // A selection has no rendering in the other mode, and returning to a stale
-  // one — pointing at a journey whose vehicle expired while away — is worse
-  // than returning to none.
-  useEffect(() => {
-    setSelectedVehicle(null);
-  }, [mode]);
-
   const handleMapLoad = (event: any) => {
     mapRef.current = event.target;
   };
 
-  const { followedVehicle, handleFollowToggle } = useFollowedVehicle(
-    data,
-    selectedVehicle,
-    mapRef,
-  );
+  const { followedVehicle, handleFollowToggle, clearFollowedVehicle } =
+    useFollowedVehicle(data, selectedVehicle, mapRef);
+
+  // A selection has no rendering in the other mode, and returning to a stale
+  // one — pointing at a journey whose vehicle expired while away — is worse
+  // than returning to none. The followed vehicle is cleared alongside it:
+  // otherwise the first vehicle frame after returning to Vehicles mode would
+  // flyTo a follow target with no popup and no on-screen sign a follow is
+  // active.
+  useEffect(() => {
+    setSelectedVehicle(null);
+    clearFollowedVehicle();
+  }, [mode, clearFollowedVehicle]);
 
   return (
     <>

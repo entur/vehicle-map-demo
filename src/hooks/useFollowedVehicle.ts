@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { VehicleData } from "./useVehiclePositionsData.ts";
 import { SelectedVehicle } from "../components/Vehicle/VehicleMarkers.tsx";
 
@@ -52,5 +52,7 @@ export function useFollowedVehicle(
     }
   };
 
-  return { followedVehicle, handleFollowToggle };
+  const clearFollowedVehicle = useCallback(() => setFollowedVehicle(null), []);
+
+  return { followedVehicle, handleFollowToggle, clearFollowedVehicle };
 }

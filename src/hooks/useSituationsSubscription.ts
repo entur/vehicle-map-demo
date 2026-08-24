@@ -76,6 +76,11 @@ export function useSituationsSubscription(enabled: boolean): SituationsFeed {
 
     byNumber.current = new Map();
 
+    // A frame already resolved in the iterator's queue when `.return()` is
+    // called in the cleanup below can still run one more loop iteration;
+    // `cancelled` closes that hole so no data reaches state after disable.
+    let cancelled = false;
+
     const emptyTimer = setTimeout(() => {
       setFeed((previous) =>
         previous.status === "connecting"
@@ -91,6 +96,7 @@ export function useSituationsSubscription(enabled: boolean): SituationsFeed {
     const subscribe = async () => {
       if (!subscription.current) return;
       for await (const event of subscription.current) {
+        if (cancelled) break;
         const incoming = event?.data?.situations ?? [];
         if (incoming.length === 0) continue;
 
@@ -116,6 +122,7 @@ export function useSituationsSubscription(enabled: boolean): SituationsFeed {
     });
 
     return () => {
+      cancelled = true;
       clearTimeout(emptyTimer);
       subscription.current?.return?.();
     };

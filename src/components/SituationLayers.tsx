@@ -13,7 +13,7 @@ const EMPTY_FEATURE_COLLECTION: FeatureCollection = {
 /** Cap on how far a selection can zoom in, so a single point doesn't fly to max zoom. */
 const MAX_SELECTION_ZOOM = 15;
 
-/** The layers a click can land on. The halo layer is decoration, not a target. */
+/** The layers a click can land on. */
 const CLICKABLE_LAYERS = ["situation-points-layer", "situation-lines-layer"];
 
 type PopupState = {
