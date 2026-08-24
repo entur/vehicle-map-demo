@@ -12,10 +12,12 @@ export const APP_MODES: AppMode[] = ["vehicles", "situations"];
 /**
  * Every layer a mode owns — hidden wholesale when the mode is left.
  *
- * `vehicle-follow-layer` and `vehicle-update-interval-text-layer` are declared
- * `visibility: "none"` in mapStyle and referenced nowhere else in src/: nothing
- * currently turns them on. They are listed so the completeness test passes and
- * so they cannot be stranded visible by a future change — not revived.
+ * Every id here must be classified into exactly one of `MODE_SWITCHED_LAYERS`,
+ * `MODE_DEFAULT_VISIBLE_LAYERS` or `MODE_DORMANT_LAYERS` — see the total-
+ * partition test in appMode.test.ts. An id that is added here without being
+ * added to one of those three tables is hidden on the next mode exit and
+ * never restored; the test exists precisely to catch that omission before it
+ * reaches review.
  */
 export const MODE_LAYERS: Record<AppMode, string[]> = {
   vehicles: [
@@ -65,16 +67,42 @@ export const MODE_SWITCHED_LAYERS: Record<
 /**
  * Layers with no MapViewOptions switch that must be visible whenever their
  * mode is active. Their content is governed by whether their source has
- * features, not by a visibility toggle, so leaving them hidden after a mode
- * switch silently disables the feature that feeds them.
+ * features (or, for `vehicle-follow-layer`, by a feature filter) rather than
+ * by a visibility toggle, so leaving them hidden after a mode switch silently
+ * disables the feature that feeds them.
  *
- * Deliberately explicit rather than "everything in MODE_LAYERS that is not
- * switched": that rule would also reveal the dormant layers, and
- * `vehicle-follow-layer` reads the live `vehicles` source, so it would start
- * drawing.
+ * `vehicle-follow-layer` belongs here, not in `MODE_DORMANT_LAYERS`: in
+ * mapStyle it has no `visibility` key at all (so it defaults to visible) and
+ * is driven instead by `filter: ["==", ["get", "followed"], true]` — a
+ * feature-level filter, not a layout toggle. `VehicleMarkers` sets
+ * `followed` on every feature, `useFollowedVehicle` owns which vehicle id is
+ * followed, and `VehiclePopup` wires a follow button to it, so the layer is
+ * live and fed continuously; it just draws nothing until a vehicle is
+ * followed. Because it carries no visibility toggle, grepping for its layer
+ * id finds no reference outside mapStyle — that absence does NOT mean the
+ * layer is dormant, and this is exactly the mistake that stranded it hidden
+ * after a Situations round trip in an earlier version of this file (it was
+ * previously miscategorised as dormant). Deliberately explicit rather than
+ * "everything in MODE_LAYERS that is not switched": that rule would also
+ * reveal the genuinely dormant layers.
  */
 export const MODE_DEFAULT_VISIBLE_LAYERS: Record<AppMode, string[]> = {
-  vehicles: ["service-journey-route-layer"],
+  vehicles: ["service-journey-route-layer", "vehicle-follow-layer"],
+  situations: [],
+};
+
+/**
+ * Layers that must stay hidden: declared `visibility: "none"` in mapStyle and
+ * driven by nothing. Listed rather than inferred, so that "not classified"
+ * cannot silently mean "hidden forever" — which is how two real regressions
+ * reached review on this feature.
+ *
+ * `vehicle-update-interval-text-layer` is the only member: it has
+ * `visibility: "none"` in mapStyle.ts and is referenced nowhere else in
+ * src/, so nothing ever turns it on.
+ */
+export const MODE_DORMANT_LAYERS: Record<AppMode, string[]> = {
+  vehicles: ["vehicle-update-interval-text-layer"],
   situations: [],
 };
 

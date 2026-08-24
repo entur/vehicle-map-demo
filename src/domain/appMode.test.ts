@@ -3,6 +3,7 @@ import { mapStyle } from "../components/mapStyle.ts";
 import {
   APP_MODES,
   MODE_DEFAULT_VISIBLE_LAYERS,
+  MODE_DORMANT_LAYERS,
   MODE_LAYERS,
   MODE_SOURCES,
   MODE_SWITCHED_LAYERS,
@@ -11,17 +12,6 @@ import {
   otherMode,
   parseAppMode,
 } from "./appMode.ts";
-
-/**
- * `vehicle-follow-layer` and `vehicle-update-interval-text-layer` are declared
- * `visibility: "none"` in mapStyle and referenced nowhere else in src/ — they
- * must stay hidden and so must appear in neither the switch-owned nor the
- * always-visible table.
- */
-const DORMANT_LAYERS = [
-  "vehicle-follow-layer",
-  "vehicle-update-interval-text-layer",
-];
 
 /** The base map belongs to no mode and is never hidden or cleared. */
 const BASE_LAYER = "osm";
@@ -97,22 +87,34 @@ describe("MODE_DEFAULT_VISIBLE_LAYERS", () => {
 
   it("never contains a dormant layer", () => {
     for (const mode of APP_MODES) {
-      for (const id of DORMANT_LAYERS) {
+      for (const id of MODE_DORMANT_LAYERS[mode]) {
         expect(MODE_DEFAULT_VISIBLE_LAYERS[mode]).not.toContain(id);
       }
     }
   });
 });
 
-describe("dormant layers", () => {
-  it("appear in neither switch-owned nor always-visible tables", () => {
+describe("mode layer classification is a total partition", () => {
+  it("splits MODE_LAYERS[mode] into pairwise-disjoint switched/always-visible/dormant sets whose union is exact", () => {
     for (const mode of APP_MODES) {
       const switched = new Set(Object.keys(MODE_SWITCHED_LAYERS[mode]));
       const defaultVisible = new Set(MODE_DEFAULT_VISIBLE_LAYERS[mode]);
-      for (const id of DORMANT_LAYERS) {
+      const dormant = new Set(MODE_DORMANT_LAYERS[mode]);
+
+      // Pairwise disjoint.
+      for (const id of defaultVisible) {
+        expect(switched.has(id)).toBe(false);
+      }
+      for (const id of dormant) {
         expect(switched.has(id)).toBe(false);
         expect(defaultVisible.has(id)).toBe(false);
       }
+
+      // Union is exactly MODE_LAYERS[mode] — a layer added to MODE_LAYERS
+      // without being classified into one of the three tables fails here,
+      // rather than silently defaulting to "hidden forever".
+      const union = [...switched, ...defaultVisible, ...dormant];
+      expect(union.sort()).toEqual([...MODE_LAYERS[mode]].sort());
     }
   });
 });
