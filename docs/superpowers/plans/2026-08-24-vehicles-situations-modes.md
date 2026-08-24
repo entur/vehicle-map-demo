@@ -632,7 +632,10 @@ const TOOLS: Record<RightContentType, Tool> = {
   situations: {
     content: "situations",
     icon: orangeMarkerIcon,
-    label: "Situations",
+    // Deliberately not "Situations": that is the mode toggle's label, and the
+    // label drives both `alt` and `title`, so reusing it would give two
+    // controls the same accessible name.
+    label: "Situations panel",
   },
 };
 
@@ -1038,7 +1041,11 @@ In `src/hooks/useVehiclePositionsData.ts`, add `enabled: boolean` as a third par
 
 ```ts
     if (!enabled || !filter?.boundingBox) {
-      map.current.clear();
+      // A fresh instance rather than `.clear()`: CacheMap extends Map and
+      // overrides `delete` to cancel each entry's timeout, but does not
+      // override `clear`, so clearing would drop the entries and leave the
+      // timers pending. Mirrors how useSituationsSubscription resets.
+      map.current = new CacheMap();
       setData([]);
       return;
     }
@@ -1227,10 +1234,7 @@ test("switching to situations mode swaps the tool rail", async ({ page }) => {
   );
   await expect(page.getByRole("button", { name: "Info" })).toHaveCount(0);
 
-  await page
-    .getByRole("button", { name: "Situations", exact: true })
-    .nth(1)
-    .click();
+  await page.getByRole("button", { name: "Situations panel" }).click();
   await expect(page.getByRole("heading", { name: "Situations" })).toBeVisible();
 });
 
@@ -1243,7 +1247,7 @@ test("mode survives a reload", async ({ page }) => {
 });
 ```
 
-The `.nth(1)` is because "Situations" names both the mode toggle and the rail button. If that proves brittle, give the rail button a `title` that differs from the toggle label rather than loosening the selector.
+The two controls have deliberately distinct accessible names — "Situations" is the mode toggle, "Situations panel" is the rail button (Task 4). Without that, `getByRole` matches both and Playwright's strict mode throws on the click rather than picking one.
 
 - [ ] **Step 2: Run it**
 
