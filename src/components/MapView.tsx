@@ -20,6 +20,7 @@ import { SelectedVehiclePanel } from "./SelectedVehiclePanel";
 import { RouteLayer } from "./RouteLayer.tsx";
 import { SituationLayers } from "./SituationLayers.tsx";
 import { AppMode } from "../domain/appMode.ts";
+import { ModeLayers } from "./ModeLayers.tsx";
 
 type MapViewProps = {
   mode: AppMode;
@@ -95,6 +96,7 @@ export function MapView({
           setMapViewOptions={setMapViewOptions}
         />
         <RegisterIcons />
+        <ModeLayers mode={mode} mapViewOptions={mapViewOptions} />
         <CaptureBoundingBox setCurrentFilter={setCurrentFilter} />
         {mode === "vehicles" && (
           <>
