@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { useMap } from "react-map-gl/maplibre";
 import {
   AppMode,
+  MODE_DEFAULT_VISIBLE_LAYERS,
   MODE_LAYERS,
   MODE_SOURCES,
   MODE_SWITCHED_LAYERS,
@@ -20,9 +21,11 @@ const EMPTY_FEATURE_COLLECTION = {
  * removed, so leaving a mode does not unmount its layers — it just stops
  * feeding them. This is what actually hides them.
  *
- * Only switch-owned layers are revealed on entry. Layers owned by component
- * state (`service-journey-route-layer`) stay hidden until that state says
- * otherwise; selections are cleared on a mode switch, so hidden is correct.
+ * Switch-owned layers (`MODE_SWITCHED_LAYERS`) are revealed on entry according
+ * to the current MapViewOptions. Layers with no switch but that must always be
+ * visible within their mode (`MODE_DEFAULT_VISIBLE_LAYERS`) are unconditionally
+ * revealed on entry — their content is governed by whether their source has
+ * features, not by a visibility toggle.
  */
 export function ModeLayers({
   mode,
@@ -56,6 +59,12 @@ export function ModeLayers({
           "visibility",
           mapViewOptions[optionKey] ? "visible" : "none",
         );
+      }
+
+      for (const id of MODE_DEFAULT_VISIBLE_LAYERS[mode]) {
+        if (map.getLayer(id)) {
+          map.setLayoutProperty(id, "visibility", "visible");
+        }
       }
 
       for (const sourceId of MODE_SOURCES[leaving]) {

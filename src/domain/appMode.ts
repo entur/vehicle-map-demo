@@ -38,9 +38,10 @@ export const MODE_LAYERS: Record<AppMode, string[]> = {
  * and which is therefore reapplied when the mode is entered.
  *
  * `service-journey-route-layer` is deliberately absent: it is owned by
- * `RouteLayer` and driven by the selected service journey. Selections are
- * cleared on a mode switch, so hidden is its correct entry state, and looking
- * it up here would read a MapViewOptions key that does not exist.
+ * `RouteLayer` and driven by the selected service journey, not by a
+ * MapViewOptions key. It belongs in `MODE_DEFAULT_VISIBLE_LAYERS` instead —
+ * see that table for why leaving it hidden after a mode switch is a bug, not
+ * its correct entry state.
  */
 export const MODE_SWITCHED_LAYERS: Record<
   AppMode,
@@ -59,6 +60,22 @@ export const MODE_SWITCHED_LAYERS: Record<
     "situation-points-layer": "showAffectedStops",
     "situation-lines-layer": "showAffectedLines",
   },
+};
+
+/**
+ * Layers with no MapViewOptions switch that must be visible whenever their
+ * mode is active. Their content is governed by whether their source has
+ * features, not by a visibility toggle, so leaving them hidden after a mode
+ * switch silently disables the feature that feeds them.
+ *
+ * Deliberately explicit rather than "everything in MODE_LAYERS that is not
+ * switched": that rule would also reveal the dormant layers, and
+ * `vehicle-follow-layer` reads the live `vehicles` source, so it would start
+ * drawing.
+ */
+export const MODE_DEFAULT_VISIBLE_LAYERS: Record<AppMode, string[]> = {
+  vehicles: ["service-journey-route-layer"],
+  situations: [],
 };
 
 /** GeoJSON sources a mode writes into — emptied when the mode is left. */
