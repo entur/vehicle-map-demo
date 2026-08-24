@@ -25,14 +25,6 @@ type Props = {
   setMapViewOptions: (mapViewOptions: MapViewOptions) => void;
 };
 
-/**
- * The affected-vehicle halos are not toggled directly. They annotate a vehicle
- * marker, so a ring with nothing inside it is meaningless — they need both
- * Vehicles and Situations on, and are derived from the two rather than owned by
- * either switch.
- */
-const AFFECTED_VEHICLES_LAYER = "situation-affected-vehicles-layer";
-
 export function MapLayers({ mapViewOptions, setMapViewOptions }: Props) {
   const { current: mapRef } = useMap();
 
@@ -52,14 +44,6 @@ export function MapLayers({ mapViewOptions, setMapViewOptions }: Props) {
       }
 
       const next = { ...mapViewOptions, [optionKey]: isVisible };
-
-      // Reapplied on every toggle rather than only on the two that matter, so
-      // the rule has no chance to drift out of step with the switches.
-      map.setLayoutProperty(
-        AFFECTED_VEHICLES_LAYER,
-        "visibility",
-        next.showVehicles && next.showSituations ? "visible" : "none",
-      );
 
       setMapViewOptions(next);
     };

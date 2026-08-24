@@ -3,7 +3,6 @@ import { GeoJSONSource, LngLatBounds } from "maplibre-gl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMap } from "react-map-gl/maplibre";
 import { useSituations } from "../situations/SituationsContext.ts";
-import { VehicleUpdate } from "../types.ts";
 import { SituationPopup } from "./SituationsPanel/SituationPopup.tsx";
 
 const EMPTY_FEATURE_COLLECTION: FeatureCollection = {
@@ -34,10 +33,7 @@ function useSetSourceData(sourceId: string, data: FeatureCollection) {
 
   // Emptying the source belongs to unmount alone. Doing it in the cleanup of
   // the effect above ran it on every `data` change too — clear, then refill,
-  // with a repaint free to land in between. The affected-vehicle collection is
-  // rebuilt on every vehicle frame (~17/s), so those halos blinked constantly;
-  // the points and lines sources only change on a situations frame, which is
-  // why they looked fine.
+  // with a repaint free to land in between.
   useEffect(() => {
     return () => {
       const source = mapRef?.getMap().getSource(sourceId) as
@@ -48,28 +44,15 @@ function useSetSourceData(sourceId: string, data: FeatureCollection) {
 }
 
 /**
- * Draws whatever of the filtered situations can be placed, plus a halo around
- * the live vehicles a selected situation affects.
+ * Draws whatever of the filtered situations can be placed on the map.
  *
- * Vehicles are matched on lineRef only. VehicleUpdate does not carry a dated
- * service journey, and adding one to the streamed vehicle subscription would
- * cost bandwidth on every frame to match ten more situations — see the plan's
- * spec amendment.
- *
- * `visible` reflects the "Situations" toggle in MapLayers, which owns the
- * layers' `visibility` directly — including the affected-vehicle halos, which
- * it derives from Situations and Vehicles together. The sources are kept fed
- * either way — hiding the layers must not disturb the panel — but the map is
- * not flown to a selection the user cannot see.
+ * `visible` reflects the situations layer switches in MapLayers, which own the
+ * layers' `visibility` directly. The sources are kept fed either way — hiding
+ * the layers must not disturb the panel — but the map is not flown to a
+ * selection the user cannot see.
  */
-export function SituationLayers({
-  vehicles,
-  visible,
-}: {
-  vehicles: VehicleUpdate[];
-  visible: boolean;
-}) {
-  const { feed, features, selected, setSelected } = useSituations();
+export function SituationLayers({ visible }: { visible: boolean }) {
+  const { features, selected, setSelected } = useSituations();
   const { current: mapRef } = useMap();
   const [popup, setPopup] = useState<PopupState | null>(null);
 
@@ -88,43 +71,8 @@ export function SituationLayers({
     [features],
   );
 
-  const affectedVehicles: FeatureCollection = useMemo(() => {
-    if (!selected) return EMPTY_FEATURE_COLLECTION;
-
-    // Resolved against the unfiltered set, matching SituationsPanel's lookup
-    // of the selected situation: narrowing the filter after selecting must
-    // not make the halo vanish while the detail view stays open.
-    const situation = feed.situations.find(
-      (s) => s.situationNumber === selected,
-    );
-    const lineRefs = new Set(
-      (situation?.affects?.lines ?? [])
-        .map((line) => line.lineRef)
-        .filter((ref): ref is string => Boolean(ref)),
-    );
-    if (lineRefs.size === 0) return EMPTY_FEATURE_COLLECTION;
-
-    return {
-      type: "FeatureCollection",
-      features: vehicles
-        .filter((vehicle) => lineRefs.has(vehicle.line?.lineRef))
-        .map((vehicle) => ({
-          type: "Feature" as const,
-          geometry: {
-            type: "Point" as const,
-            coordinates: [
-              vehicle.location.longitude,
-              vehicle.location.latitude,
-            ],
-          },
-          properties: { vehicleId: vehicle.vehicleId },
-        })),
-    };
-  }, [selected, feed, vehicles]);
-
   useSetSourceData("situationPoints", points);
   useSetSourceData("situationLines", lines);
-  useSetSourceData("situationVehicles", affectedVehicles);
 
   // Focus the map on the selected situation's own features when the
   // selection changes. Deliberately depends only on `selected` (and the map

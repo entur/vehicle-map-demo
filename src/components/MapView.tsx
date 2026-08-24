@@ -95,10 +95,7 @@ export function MapView({
           }
           cancelled={tripCancelled}
         />
-        <SituationLayers
-          vehicles={data.map((vehicle) => vehicle.vehicleUpdate)}
-          visible={mapViewOptions.showSituations}
-        />
+        <SituationLayers visible={mapViewOptions.showSituations} />
         {selectedVehicle && (
           <VehiclePopup
             vehicle={selectedVehicle}

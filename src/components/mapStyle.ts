@@ -55,10 +55,6 @@ export const mapStyle: StyleSpecification = {
       type: "geojson",
       data: { type: "FeatureCollection", features: [] },
     },
-    situationVehicles: {
-      type: "geojson",
-      data: { type: "FeatureCollection", features: [] },
-    },
   },
 
   layers: [
@@ -89,11 +85,6 @@ export const mapStyle: StyleSpecification = {
       id: "situation-lines-layer",
       type: "line",
       source: "situationLines",
-      // All three situation layers start hidden. Lines and points are revealed
-      // together by the "Situations" toggle in MapLayers; the affected-vehicle
-      // halos need Vehicles on as well, so MapLayers derives their visibility
-      // from both. Hiding any of them does not stop the situations
-      // subscription or the panel — only the drawing.
       layout: {
         visibility: "none",
       },
@@ -101,21 +92,6 @@ export const mapStyle: StyleSpecification = {
         "line-color": severityColourExpression,
         "line-width": 4,
         "line-opacity": 0.7,
-      },
-    },
-    {
-      id: "situation-affected-vehicles-layer",
-      type: "circle",
-      source: "situationVehicles",
-      layout: {
-        visibility: "none",
-      },
-      paint: {
-        "circle-radius": 16,
-        "circle-color": "#1fcac2",
-        "circle-opacity": 0.2,
-        "circle-stroke-width": 2,
-        "circle-stroke-color": "#1fcac2",
       },
     },
     {
