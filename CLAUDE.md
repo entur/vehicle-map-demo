@@ -8,15 +8,8 @@ React + TypeScript + Vite SPA that visualizes Entur's realtime vehicle positions
 
 ## Commands
 
-- `npm run dev` — start Vite dev server on http://localhost:5173
-- `npm run build` — type-check (`tsc -b`) then production build
-- `npm run lint` — ESLint over the project
 - `npm run check` — Prettier check (one of the two CI gates alongside `npm test`; `lint` is not gated)
-- `npm run format` — Prettier write
-- `npm test` — Vitest unit tests (`vitest run`), currently covering the pure helpers in `src/components/SelectedVehiclePanel/`
 - `npx playwright test` — run Playwright smoke tests (auto-starts `npm run dev`)
-- `npx playwright test tests/smoketests.spec.ts -g "has map"` — run a single test by title
-- `npx playwright test --project=chromium` — run only one browser project
 
 CI (`.github/workflows/build.yml`) runs `npm test` in a `test` job, then `npm run check` and `npm run build` in a `build` job gated on it (`needs: test`) — it does **not** run `lint` or Playwright. A Husky pre-commit hook runs `lint-staged` → Prettier on staged files.
 
@@ -98,5 +91,4 @@ position would be worse than an honest absence in a data-QA tool.
 ## TypeScript / lint conventions
 
 - ESM only (`"type": "module"`). Local imports include the explicit `.ts`/`.tsx` extension — match the existing style when adding imports.
-- TS config is split: `tsconfig.app.json` for app source, `tsconfig.node.json` for Vite config. `tsc -b` is the build orchestrator.
-- ESLint config (`eslint.config.js`) uses the flat-config format with `typescript-eslint` and `react-hooks` recommended rules plus `react-refresh/only-export-components`. Don't add component files that also export non-component values.
+- Don't add component files that also export non-component values (`react-refresh/only-export-components`).
