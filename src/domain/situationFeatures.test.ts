@@ -4,6 +4,7 @@ import fixture from "../__fixtures__/situations.json";
 import { NationalSituation } from "../types.ts";
 import {
   buildSituationFeatures,
+  collectDatedServiceJourneyRefs,
   collectLineRefs,
 } from "./situationFeatures.ts";
 
@@ -271,5 +272,83 @@ describe("against the captured dev fixture", () => {
       expect(Number.isFinite(longitude)).toBe(true);
       expect(Number.isFinite(latitude)).toBe(true);
     }
+  });
+});
+
+describe("collectDatedServiceJourneyRefs", () => {
+  it("returns each affected dated service journey id once, in first-seen order", () => {
+    const affects = (ids: string[]) => ({
+      vehicleModes: null,
+      lines: null,
+      stopPoints: null,
+      stopPlaces: null,
+      serviceJourneys: null,
+      datedServiceJourneys: ids.map((id) => ({ id })),
+      operators: null,
+    });
+    const refs = collectDatedServiceJourneyRefs([
+      makeSituation({
+        affects: affects(["VYG:DatedServiceJourney:1", "ATB:ServiceJourney:2"]),
+      }),
+      makeSituation({ affects: affects(["ATB:ServiceJourney:2"]) }),
+      makeSituation({ affects: null }),
+    ]);
+    expect(refs).toEqual(["VYG:DatedServiceJourney:1", "ATB:ServiceJourney:2"]);
+  });
+});
+
+describe("dated service journey features", () => {
+  const situation = makeSituation({
+    affects: {
+      vehicleModes: null,
+      lines: null,
+      stopPoints: null,
+      stopPlaces: null,
+      serviceJourneys: null,
+      datedServiceJourneys: [
+        { id: "ATB:ServiceJourney:311_7010" },
+        { id: "ATB:ServiceJourney:311_7010" },
+      ],
+      operators: null,
+    },
+  });
+
+  it("builds one line feature from the journey's cached geometry", () => {
+    const journeyGeometry = new Map([
+      [
+        "ATB:ServiceJourney:311_7010",
+        [
+          [10, 63],
+          [10.5, 63.4],
+        ],
+      ],
+    ]);
+
+    const { lineFeatures, unmappable } = buildSituationFeatures(
+      [situation],
+      NO_GEOMETRY,
+      journeyGeometry,
+    );
+
+    expect(lineFeatures).toHaveLength(1);
+    expect(lineFeatures[0].properties.source).toBe("datedServiceJourney");
+    expect(lineFeatures[0].properties.entityId).toBe(
+      "ATB:ServiceJourney:311_7010",
+    );
+    expect(lineFeatures[0].geometry.coordinates).toEqual([
+      [10, 63],
+      [10.5, 63.4],
+    ]);
+    expect(unmappable).toEqual([]);
+  });
+
+  it("reports a journey with no cached geometry as unmappable", () => {
+    const { lineFeatures, unmappable } = buildSituationFeatures(
+      [situation],
+      NO_GEOMETRY,
+      NO_GEOMETRY,
+    );
+    expect(lineFeatures).toEqual([]);
+    expect(unmappable).toEqual(["TST:SituationNumber:1"]);
   });
 });

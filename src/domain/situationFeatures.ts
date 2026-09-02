@@ -11,7 +11,7 @@ export type SituationFeatureProperties = {
   reportType: string | null;
   codespaceId: string | null;
   /** Which affects member produced this feature. */
-  source: "stopPoint" | "stopPlace" | "line";
+  source: "stopPoint" | "stopPlace" | "line" | "datedServiceJourney";
   /** The stop id or line ref the feature was built from. */
   entityId: string;
   name: string | null;
@@ -23,8 +23,10 @@ export type SituationLineFeature = Feature<
   SituationFeatureProperties
 >;
 
-/** Line ref → decoded `[longitude, latitude]` pairs. An empty array means "looked up, none available". */
+/** Line ref or journey id → decoded `[longitude, latitude]` pairs. An empty array means "looked up, none available". */
 export type LineGeometryCache = ReadonlyMap<string, number[][]>;
+
+const EMPTY_GEOMETRY: LineGeometryCache = new Map();
 
 export type SituationFeatures = {
   pointFeatures: SituationPointFeature[];
@@ -33,6 +35,19 @@ export type SituationFeatures = {
   /** Situation numbers that produced no features at all, in input order. */
   unmappable: string[];
 };
+
+/** Every distinct dated service journey id mentioned by any of these situations, in first-seen order. */
+export function collectDatedServiceJourneyRefs(
+  situations: NationalSituation[],
+): string[] {
+  const refs = new Set<string>();
+  for (const situation of situations) {
+    for (const journey of situation.affects?.datedServiceJourneys ?? []) {
+      if (journey.id) refs.add(journey.id);
+    }
+  }
+  return [...refs];
+}
 
 /** Every distinct line ref mentioned by any of these situations, in first-seen order. */
 export function collectLineRefs(situations: NationalSituation[]): string[] {
@@ -76,6 +91,7 @@ function propertiesFor(
 export function buildSituationFeatures(
   situations: NationalSituation[],
   lineGeometry: LineGeometryCache,
+  journeyGeometry: LineGeometryCache = EMPTY_GEOMETRY,
 ): SituationFeatures {
   const pointFeatures: SituationPointFeature[] = [];
   const lineFeatures: SituationLineFeature[] = [];
@@ -135,6 +151,27 @@ export function buildSituationFeatures(
           "line",
           line.lineRef,
           line.lineName ?? null,
+        ),
+      });
+    }
+
+    for (const journey of situation.affects?.datedServiceJourneys ?? []) {
+      if (!journey.id) continue;
+      const key = `datedServiceJourney:${journey.id}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      const coordinates = journeyGeometry.get(journey.id);
+      if (!coordinates || coordinates.length < 2) continue;
+
+      lineFeatures.push({
+        type: "Feature",
+        geometry: { type: "LineString", coordinates },
+        properties: propertiesFor(
+          situation,
+          "datedServiceJourney",
+          journey.id,
+          null,
         ),
       });
     }

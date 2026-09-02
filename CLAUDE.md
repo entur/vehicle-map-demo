@@ -65,25 +65,37 @@ Key invariants worth preserving:
 ## Situations carry almost no geography
 
 `Affects.stopPoints` and `Affects.stopPlaces` are the only coordinate-bearing
-fields the situations feed exposes. `Line` has no geometry of any kind, and the
-service-journey IDs situations publish (`VYG:ServiceJourney:601_159720-R`,
-`NSB:DatedServiceJourney:…`) are in a different namespace from the realtime
-feed's, so they resolve to nothing — `serviceJourney(id:)` and `timetables` both
-return empty for them.
+fields the situations feed exposes. `Line` has no geometry of any kind. The
+rest is **borrowed** from the same API, by two different routes, both cached
+per ref for the session by `useBorrowedGeometry` (a ref that yields nothing is
+cached as an empty array and not retried). This cache is why
+`SituationsProvider` stays mounted (subscription merely paused) rather than
+unmounting in vehicles mode — unmounting would throw it away and force every
+ref to re-resolve on the next switch back.
 
-Affected lines are therefore drawn from geometry **borrowed** from a vehicle
-running that line right now, via `vehicles(lineRef:)` →
-`serviceJourney.pointsOnLink`, cached per line ref in `useSituationLineGeometry`.
-A ref that yields nothing is cached as an empty array and not retried for the
-session. This cache is why `SituationsProvider` stays mounted (subscription
-merely paused) rather than unmounting in vehicles mode — unmounting would
-throw the cache away and force every line to re-resolve on the next switch
-back to situations mode.
+- **Affected lines** come from a vehicle running that line right now:
+  `vehicles(lineRef:)` → `serviceJourney.pointsOnLink`, in
+  `useSituationLineGeometry`. Measured on dev, 31% of vehicles carry
+  `pointsOnLink` (87% on prod), so most line refs end up unavailable. The
+  `serviceJourneys(lineRef:)` root exists and could resolve lines statically
+  instead; not done yet.
+- **Affected dated service journeys** resolve statically through
+  `serviceJourney(id:)` → `pointsOnLink`, in `useSituationJourneyGeometry`. No
+  vehicle needs to be running. Both id forms the feed publishes resolve —
+  `ATB:ServiceJourney:311_260106098642683_7010` (no date; the digits are a
+  dataset version) and `VYG:DatedServiceJourney:1013_ASR-HAG_26-09-02` — but
+  only while the journey's day is today or later: planned data does not reach
+  back, and ids dated even a week earlier resolve to nothing. Measured on dev,
+  3,793 of the feed's 3,828 dated ids were past-dated, so `mayResolveJourney`
+  (`src/domain/journeyDate.ts`) drops them before they become requests: two
+  batches instead of about 150. `pointsOnLink` on `ServiceJourney` is hidden
+  from introspection, exactly like `situations`; do not conclude from an
+  introspection dump that it is gone. A `serviceJourneys(ids:)` root is on its
+  way on the API side; when it lands, `buildBatchQuery` and `resolveJourneys`
+  in the journey hook are the only two things to change.
 
-Measured on dev: 108 of 581 situations place on the map. 319 of the remainder
-reference only dated service journeys. Prod carries far better `pointsOnLink`
-coverage (87% of vehicles versus 31% on dev), so the same code would place
-roughly 223 there — but prod serves no situations at all today.
+The feed also populates `Affects.serviceJourneys` on some situations, which
+the `SituationQaFields` fragment does not select today.
 
 Do not "fix" the low coverage by inventing centroids or by falling back to
 Journey Planner. Staying on one API is a project constraint, and a synthetic

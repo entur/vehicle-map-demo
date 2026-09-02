@@ -1,9 +1,7 @@
 import { request } from "graphql-request";
-import { useEffect, useRef, useState } from "react";
-import { useConfig } from "../config/ConfigContext.ts";
 import { LineGeometryCache } from "../domain/situationFeatures.ts";
 import { decodePolyline } from "../utils/decodePolyline.ts";
-import { useRequestHeaders } from "./useRequestHeaders.ts";
+import { BatchResolver, useBorrowedGeometry } from "./useBorrowedGeometry.ts";
 
 /** Line refs per request. Aliases keep this to one round trip per batch. */
 const BATCH_SIZE = 10;
@@ -43,81 +41,44 @@ function longestPolyline(rows: VehicleRow[] | null): string | null {
   return best;
 }
 
+const resolveLines: BatchResolver = async (
+  refs,
+  { url, requestHeaders, signal },
+) => {
+  const variables = Object.fromEntries(
+    refs.map((ref, index) => [`l${index}`, ref]),
+  );
+  const response = await request<BatchResponse>({
+    url,
+    document: buildBatchQuery(refs),
+    variables,
+    requestHeaders,
+    signal,
+  });
+  return new Map(
+    refs.map((ref, index) => [
+      ref,
+      longestPolyline(response[`l${index}`] ?? null),
+    ]),
+  );
+};
+
 /**
  * Resolves each affected line to a shape by borrowing it from a journey running
- * on that line right now. The API exposes no geometry on `Line` itself and the
- * situations' own service-journey IDs resolve to nothing, so this is the only
- * route available within this API.
+ * on that line right now. The API exposes no geometry on `Line` itself, so this
+ * is the route available for lines within this API. (Journeys are different —
+ * see useSituationJourneyGeometry.)
  *
- * A ref that yields nothing is cached as an empty array — "asked, none
- * available" — and is not retried for the rest of the session. That trades a
- * line whose first vehicle appears later for not re-requesting 80-odd refs on
- * every frame; coverage on dev is 31% of vehicles, so most refs are in that
- * state and retrying them would dominate the request budget.
+ * Coverage on dev is 31% of vehicles, so most refs end up cached as "asked,
+ * none available"; see useBorrowedGeometry for why they are not retried.
  */
 export function useSituationLineGeometry(
   lineRefs: string[],
 ): LineGeometryCache {
-  const cache = useRef<Map<string, number[][]>>(new Map());
-  // eslint-disable-next-line react-hooks/refs
-  const [geometry, setGeometry] = useState<LineGeometryCache>(cache.current);
-
-  const config = useConfig();
-  const requestHeaders = useRequestHeaders();
-
-  // Depend on the content, not the array identity: the caller rebuilds this
-  // array on every frame and an identity dependency would refetch endlessly.
-  const key = lineRefs.join(",");
-
-  useEffect(() => {
-    const pending = lineRefs.filter((ref) => !cache.current.has(ref));
-    if (pending.length === 0) return;
-
-    const controller = new AbortController();
-
-    const fetchBatches = async () => {
-      for (let start = 0; start < pending.length; start += BATCH_SIZE) {
-        try {
-          const batch = pending.slice(start, start + BATCH_SIZE);
-          const variables = Object.fromEntries(
-            batch.map((ref, index) => [`l${index}`, ref]),
-          );
-
-          const response = await request<BatchResponse>({
-            url: config["vehicle-positions-graphql-endpoint"],
-            document: buildBatchQuery(batch),
-            variables,
-            requestHeaders,
-            signal: controller.signal,
-          });
-
-          if (controller.signal.aborted) return;
-
-          batch.forEach((ref, index) => {
-            const points = longestPolyline(response[`l${index}`] ?? null);
-            cache.current.set(ref, points ? decodePolyline(points) : []);
-          });
-
-          setGeometry(new Map(cache.current));
-        } catch (err) {
-          if (controller.signal.aborted) return;
-          console.error(
-            `Failed to fetch situation line geometry batch starting at index ${start}:`,
-            err,
-          );
-          continue;
-        }
-      }
-    };
-
-    fetchBatches().catch((err) => {
-      if (controller.signal.aborted) return;
-      console.error("Unexpected error in situation line geometry fetch:", err);
-    });
-
-    return () => controller.abort();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, config, requestHeaders]);
-
-  return geometry;
+  return useBorrowedGeometry(
+    lineRefs,
+    resolveLines,
+    BATCH_SIZE,
+    decodePolyline,
+  );
 }
