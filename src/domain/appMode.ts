@@ -33,7 +33,12 @@ export const MODE_LAYERS: Record<AppMode, string[]> = {
     "occupancy-layer",
     "service-journey-route-layer",
   ],
-  situations: ["situation-lines-layer", "situation-points-layer"],
+  situations: [
+    "situation-lines-layer",
+    "situation-points-layer",
+    "situation-lines-halo-layer",
+    "situation-points-halo-layer",
+  ],
 };
 
 /**
@@ -89,7 +94,12 @@ export const MODE_SWITCHED_LAYERS: Record<
  */
 export const MODE_DEFAULT_VISIBLE_LAYERS: Record<AppMode, string[]> = {
   vehicles: ["service-journey-route-layer", "vehicle-follow-layer"],
-  situations: [],
+  // The halo layers are the situations-mode counterpart of
+  // vehicle-follow-layer: filtered to the selected situation by
+  // SituationLayers, never toggled. They stay visible when the "Affected
+  // stops"/"Affected lines" switches are off, so a selection is still
+  // pointed out on a map the user has decluttered.
+  situations: ["situation-lines-halo-layer", "situation-points-halo-layer"],
 };
 
 /**

@@ -2,7 +2,12 @@ import type { FeatureCollection } from "geojson";
 import { GeoJSONSource, LngLatBounds } from "maplibre-gl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMap } from "react-map-gl/maplibre";
+import {
+  dimmedUnlessSelected,
+  selectedSituationFilter,
+} from "../domain/situationSelection.ts";
 import { useSituations } from "../situations/SituationsContext.ts";
+import { SITUATION_LAYER_OPACITY } from "./mapStyle.ts";
 import { SituationPopup } from "./SituationsPanel/SituationPopup.tsx";
 
 const EMPTY_FEATURE_COLLECTION: FeatureCollection = {
@@ -15,6 +20,15 @@ const MAX_SELECTION_ZOOM = 15;
 
 /** The layers a click can land on. */
 const CLICKABLE_LAYERS = ["situation-points-layer", "situation-lines-layer"];
+
+/** Filtered to the selected situation's features; see mapStyle.ts. */
+const HALO_LAYERS = [
+  "situation-points-halo-layer",
+  "situation-lines-halo-layer",
+];
+
+/** How far the other situations fade while one is selected. */
+const DIMMED_FACTOR = 0.3;
 
 type PopupState = {
   longitude: number;
@@ -137,6 +151,37 @@ export function SituationLayers({ visible }: { visible: boolean }) {
       leaveSubscriptions.forEach((s) => s.unsubscribe());
     };
   }, [mapRef]);
+
+  // Single the selection out on the map: halo layers show only its features,
+  // and everything else fades. Applied to the style rather than the data, so
+  // a selection never rebuilds the features. The cleanup restores the resting
+  // state, which is what makes leaving situations mode (or a layer that is
+  // toggled while a selection is held) safe: no situation stays dimmed.
+  useEffect(() => {
+    if (!mapRef) return;
+    const map = mapRef.getMap();
+
+    const apply = (selection: string | null) => {
+      for (const id of HALO_LAYERS) {
+        if (map.getLayer(id)) {
+          map.setFilter(id, selectedSituationFilter(selection));
+        }
+      }
+      for (const [id, paint] of Object.entries(SITUATION_LAYER_OPACITY)) {
+        if (!map.getLayer(id)) continue;
+        for (const [property, full] of Object.entries(paint)) {
+          map.setPaintProperty(
+            id,
+            property,
+            dimmedUnlessSelected(selection, full, full * DIMMED_FACTOR),
+          );
+        }
+      }
+    };
+
+    apply(selected);
+    return () => apply(null);
+  }, [selected, mapRef]);
 
   useEffect(() => {
     if (selectedFromMap.current) {

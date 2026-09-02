@@ -21,6 +21,22 @@ const severityColourExpression: ExpressionSpecification = [
   SEVERITY_NOTABLE,
 ];
 
+/** Ring and casing colour for the selected situation's features. */
+const SITUATION_SELECTION_HALO = "#2f6fed";
+
+/**
+ * Resting opacities of the ordinary situation layers. SituationLayers reads
+ * these when it dims everything but the selected situation, so the style and
+ * the dimming expression cannot disagree about what "undimmed" is.
+ */
+export const SITUATION_LAYER_OPACITY = {
+  "situation-lines-layer": { "line-opacity": 0.7 },
+  "situation-points-layer": {
+    "circle-opacity": 0.85,
+    "circle-stroke-opacity": 1,
+  },
+} as const;
+
 export const mapStyle: StyleSpecification = {
   version: 8,
   glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
@@ -81,6 +97,38 @@ export const mapStyle: StyleSpecification = {
         "line-opacity": 0.85,
       },
     },
+    // Halo layers sit under the ordinary situation layers and are filtered to
+    // the selected situation by SituationLayers, the way vehicle-follow-layer
+    // is filtered to the followed vehicle. The colour is neither a severity
+    // colour nor the INCIDENT stroke, so the feature on top still reads.
+    {
+      id: "situation-lines-halo-layer",
+      type: "line",
+      source: "situationLines",
+      layout: {
+        "line-cap": "round",
+        "line-join": "round",
+      },
+      paint: {
+        "line-color": SITUATION_SELECTION_HALO,
+        "line-width": 12,
+        "line-opacity": 0.6,
+      },
+      filter: ["boolean", false],
+    },
+    {
+      id: "situation-points-halo-layer",
+      type: "circle",
+      source: "situationPoints",
+      paint: {
+        "circle-radius": 13,
+        "circle-color": SITUATION_SELECTION_HALO,
+        "circle-opacity": 0.25,
+        "circle-stroke-width": 3,
+        "circle-stroke-color": SITUATION_SELECTION_HALO,
+      },
+      filter: ["boolean", false],
+    },
     {
       id: "situation-lines-layer",
       type: "line",
@@ -91,7 +139,7 @@ export const mapStyle: StyleSpecification = {
       paint: {
         "line-color": severityColourExpression,
         "line-width": 4,
-        "line-opacity": 0.7,
+        ...SITUATION_LAYER_OPACITY["situation-lines-layer"],
       },
     },
     {
@@ -104,7 +152,7 @@ export const mapStyle: StyleSpecification = {
       paint: {
         "circle-radius": 7,
         "circle-color": severityColourExpression,
-        "circle-opacity": 0.85,
+        ...SITUATION_LAYER_OPACITY["situation-points-layer"],
         // reportType is uppercase in this API. Stroke carries it so the fill
         // stays free for severity, avoiding an icon sprite pipeline.
         "circle-stroke-width": [
