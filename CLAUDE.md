@@ -79,20 +79,23 @@ ref to re-resolve on the next switch back.
   `pointsOnLink` (87% on prod), so most line refs end up unavailable. The
   `serviceJourneys(lineRef:)` root exists and could resolve lines statically
   instead; not done yet.
-- **Affected dated service journeys** resolve statically through
-  `serviceJourney(id:)` → `pointsOnLink`, in `useSituationJourneyGeometry`. No
-  vehicle needs to be running. Both id forms the feed publishes resolve —
-  `ATB:ServiceJourney:311_260106098642683_7010` (no date; the digits are a
-  dataset version) and `VYG:DatedServiceJourney:1013_ASR-HAG_26-09-02` — but
-  only while the journey's day is today or later: planned data does not reach
-  back, and ids dated even a week earlier resolve to nothing. Measured on dev,
-  3,793 of the feed's 3,828 dated ids were past-dated, so `mayResolveJourney`
-  (`src/domain/journeyDate.ts`) drops them before they become requests: two
-  batches instead of about 150. `pointsOnLink` on `ServiceJourney` is hidden
-  from introspection, exactly like `situations`; do not conclude from an
-  introspection dump that it is gone. A `serviceJourneys(ids:)` root is on its
-  way on the API side; when it lands, `buildBatchQuery` and `resolveJourneys`
-  in the journey hook are the only two things to change.
+- **Affected dated service journeys** resolve statically, in
+  `useSituationJourneyGeometry`. No vehicle needs to be running. Both id forms
+  the feed publishes resolve — `ATB:ServiceJourney:311_260106098642683_7010`
+  (no date; the digits are a dataset version) and
+  `VYG:DatedServiceJourney:1013_ASR-HAG_26-09-02` — but only while the
+  journey's day is today or later: planned data does not reach back, and ids
+  dated even a week earlier resolve to nothing. Measured on dev, 3,793 of the
+  feed's 3,828 dated ids were past-dated, so `mayResolveJourney`
+  (`src/domain/journeyDate.ts`) drops them before they become requests. The
+  rest go in one request with two roots: `datedServiceJourneys(ids:)` for the
+  dated form and `serviceJourneys(ids:)` for the undated form. The split is
+  forced, not stylistic — see `src/hooks/journeyBatch.ts`: `serviceJourneys`
+  resolves both forms but echoes the _service journey_ id and drops misses, so
+  a dated request cannot be matched back to its row; `datedServiceJourneys`
+  echoes the dated id but knows nothing of ATB's undated form. `pointsOnLink`
+  on `ServiceJourney` is hidden from introspection, exactly like `situations`;
+  do not conclude from an introspection dump that it is gone.
 
 The feed also populates `Affects.serviceJourneys` on some situations, which
 the `SituationQaFields` fragment does not select today.

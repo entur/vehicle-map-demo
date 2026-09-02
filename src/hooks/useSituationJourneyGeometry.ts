@@ -1,65 +1,51 @@
 import { request } from "graphql-request";
 import { LineGeometryCache } from "../domain/situationFeatures.ts";
 import { decodePolyline } from "../utils/decodePolyline.ts";
+import {
+  JourneyBatchResponse,
+  journeyPolylines,
+  splitJourneyIds,
+} from "./journeyBatch.ts";
 import { BatchResolver, useBorrowedGeometry } from "./useBorrowedGeometry.ts";
 
-/** Journey ids per request. Aliases keep this to one round trip per batch. */
-const BATCH_SIZE = 25;
-
-type JourneyRow = {
-  pointsOnLink: { points: string | null } | null;
-} | null;
-type BatchResponse = Record<string, JourneyRow>;
+/**
+ * Journey ids per request. Both roots take the whole batch as a list, so this
+ * is bounded by taste rather than by aliasing; the whole dev feed's resolvable
+ * ids (33) fit in one request today.
+ */
+const BATCH_SIZE = 100;
 
 /**
- * Ids contain colons, which are not valid in a GraphQL alias, so the aliases
- * are positional (`j0`, `j1`, …) and mapped back by index. This and
- * `resolveJourneys` are the only two places to change once the API gains a
- * `serviceJourneys(ids:)` root that takes the whole batch.
- *
+ * One request, two roots — see journeyBatch.ts for why the batch is split.
  * `pointsOnLink` is hidden from introspection on `ServiceJourney`, exactly
  * like the `situations` root; it validates and resolves normally.
  */
-function buildBatchQuery(ids: string[]): string {
-  const variables = ids.map((_, index) => `$j${index}: String!`).join(", ");
-  const fields = ids
-    .map(
-      (_, index) =>
-        `j${index}: serviceJourney(id: $j${index}) { pointsOnLink { points } }`,
-    )
-    .join("\n    ");
-  return `query(${variables}) {\n    ${fields}\n  }`;
-}
+const BATCH_QUERY = `query($dated: [String!]!, $undated: [String!]!) {
+  datedServiceJourneys(ids: $dated) { id serviceJourney { pointsOnLink { points } } }
+  serviceJourneys(ids: $undated) { id pointsOnLink { points } }
+}`;
 
 const resolveJourneys: BatchResolver = async (
   ids,
   { url, requestHeaders, signal },
 ) => {
-  const variables = Object.fromEntries(
-    ids.map((id, index) => [`j${index}`, id]),
-  );
-  const response = await request<BatchResponse>({
+  const response = await request<JourneyBatchResponse>({
     url,
-    document: buildBatchQuery(ids),
-    variables,
+    document: BATCH_QUERY,
+    variables: splitJourneyIds(ids),
     requestHeaders,
     signal,
   });
-  return new Map(
-    ids.map((id, index) => [
-      id,
-      response[`j${index}`]?.pointsOnLink?.points ?? null,
-    ]),
-  );
+  return journeyPolylines(response);
 };
 
 /**
- * Resolves each affected dated service journey to its planned shape via
- * `serviceJourney(id:)`. Unlike lines, this is static planned data: no vehicle
- * needs to be running the journey. Both id forms the feed publishes resolve —
- * `ATB:ServiceJourney:…` and `VYG:DatedServiceJourney:…_26-09-02` — as long
- * as the journey's day is not already past; callers pre-filter with
- * `mayResolveJourney` so the thousands of stale ids never become requests.
+ * Resolves each affected dated service journey to its planned shape. Unlike
+ * lines, this is static planned data: no vehicle needs to be running the
+ * journey. Both id forms the feed publishes resolve — `ATB:ServiceJourney:…`
+ * and `VYG:DatedServiceJourney:…_26-09-02` — as long as the journey's day is
+ * not already past; callers pre-filter with `mayResolveJourney` so the
+ * thousands of stale ids never become requests.
  */
 export function useSituationJourneyGeometry(
   journeyIds: string[],
