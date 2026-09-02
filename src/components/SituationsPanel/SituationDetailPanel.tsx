@@ -17,9 +17,11 @@ import { SituationDetail } from "./SituationDetail.tsx";
  * component in this panel tree, so `MapView` only has to decide whether the
  * mode is right to render it at all.
  *
- * Resolved against the **unfiltered** feed, matching how the map's popup
- * resolves it: narrowing the filter after selecting must not blank a detail
- * view the user still has open.
+ * Resolved against the unfiltered feed, matching how the map's popup resolves
+ * it. That lookup cannot miss in practice: SituationsProvider drops a
+ * selection the moment the filtered set stops containing it, so this drawer
+ * closes on a filter change rather than lingering over a situation the map no
+ * longer shows.
  */
 export function SituationDetailPanel() {
   const { feed, flagsBySituation, selected, setSelected } = useSituations();

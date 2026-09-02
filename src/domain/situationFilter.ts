@@ -130,3 +130,20 @@ export function facetCounts(
     })),
   };
 }
+
+/**
+ * The selection, or null once the filtered set no longer contains it.
+ *
+ * A selection that survives a filter change it is not part of would keep the
+ * detail drawer open on a situation the map no longer shows, and — since the
+ * map dims everything but the selection — dim every situation that *is* shown
+ * with nothing highlighted. Clearing it is what makes changing the codespace
+ * with a selection held read as "new set, nothing selected".
+ */
+export function selectionWithin(
+  selected: string | null,
+  filtered: NationalSituation[],
+): string | null {
+  if (selected === null) return null;
+  return filtered.some((s) => s.situationNumber === selected) ? selected : null;
+}

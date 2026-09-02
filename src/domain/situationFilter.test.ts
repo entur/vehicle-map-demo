@@ -6,6 +6,7 @@ import {
   applySituationFilter,
   facetCounts,
   matchesCodespace,
+  selectionWithin,
 } from "./situationFilter.ts";
 import { NONE } from "./situationStats.ts";
 
@@ -303,5 +304,19 @@ describe("facetCounts — ordering", () => {
       "GENERAL",
       "INCIDENT",
     ]);
+  });
+});
+
+describe("selectionWithin", () => {
+  it("keeps a selection that is still in the filtered set", () => {
+    expect(selectionWithin("A", [A, B])).toBe("A");
+  });
+
+  it("drops a selection the filter no longer includes", () => {
+    expect(selectionWithin("A", [B])).toBe(null);
+  });
+
+  it("passes through no selection", () => {
+    expect(selectionWithin(null, [A, B])).toBe(null);
   });
 });

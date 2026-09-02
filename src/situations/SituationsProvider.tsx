@@ -8,6 +8,7 @@ import {
   EMPTY_SITUATION_FILTER,
   SituationFilter,
   applySituationFilter,
+  selectionWithin,
   facetCounts,
   matchesCodespace,
 } from "../domain/situationFilter.ts";
@@ -95,6 +96,14 @@ export function SituationsProvider({
       ),
     [feed.situations, filter, flagsBySituation, codespaceId],
   );
+
+  // A selection that has left the filtered set is dropped, not kept hidden:
+  // the detail drawer closes and nothing stays dimmed. Reset during render,
+  // the React-sanctioned way to adjust state to a derived value — the
+  // condition is false again on the very next render, so this cannot loop.
+  if (selected !== null && selectionWithin(selected, filtered) === null) {
+    setSelected(null);
+  }
 
   // Built over the filtered set only. Both consumers want the same set: the
   // map layers draw these features, and the panel's "not on the map" list is
