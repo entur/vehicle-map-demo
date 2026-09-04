@@ -94,7 +94,7 @@ export const mapStyle: StyleSpecification = {
           "train-icon",
           "TRAM",
           "tram-icon",
-          "bus-red",
+          "ufo",
         ],
         "icon-size": [
           "interpolate",
