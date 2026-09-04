@@ -15,6 +15,7 @@
 - ESM only. **Local imports carry the explicit `.ts`/`.tsx` extension.** Match the surrounding style.
 - Do not add a component file that also exports a non-component value (`react-refresh/only-export-components`).
 - Testable logic lives in plain `.ts` modules — `vitest.config.ts` sets `include: ["src/**/*.test.ts"]`, so a `.tsx` test is never collected.
+- **Type-check with `npx tsc --noEmit -p tsconfig.app.json`, never bare `npx tsc --noEmit`.** The root `tsconfig.json` has `"files": []` and only project references, so the bare form exits 0 without checking anything — verified against a deliberately broken file.
 - The two CI gates are `npm test` and `npm run check` (Prettier). `lint` is not gated but should still pass. A Husky pre-commit hook runs Prettier on staged files, so a commit may reformat what you staged.
 - Deduplication of situation features is **within a situation only**. Two situations affecting one stop must still produce two coincident features.
 - Never invent geometry: no centroids, no averaging, no Journey Planner fallback. A situation that flattens to nothing belongs in `unmappable`.
@@ -112,7 +113,7 @@ Leave the doc comment above `Affects` alone for now — Task 5 rewrites it, once
 - [ ] **Step 2: Run the type check to see exactly what broke**
 
 ```bash
-npx tsc --noEmit
+npx tsc --noEmit -p tsconfig.app.json
 ```
 
 Expected: FAIL. Every object literal that builds a whole `Affects` is now missing two required properties, plus one reference to the old `AffectedStop` name in `src/domain/situationFeatures.ts`.
@@ -144,7 +145,7 @@ const EMPTY_AFFECTS = {
 - [ ] **Step 5: Verify the build and tests are green again**
 
 ```bash
-npx tsc --noEmit && npm test
+npx tsc --noEmit -p tsconfig.app.json && npm test
 ```
 
 Expected: PASS. This task changed no behaviour.
@@ -202,7 +203,7 @@ Expected: both greater than 0. If `affectedPointsOnLink` is 0, the shape-samplin
 - [ ] **Step 10: Run the full suite and commit**
 
 ```bash
-npx tsc --noEmit && npm test && npm run check
+npx tsc --noEmit -p tsconfig.app.json && npm test && npm run check
 ```
 
 Expected: PASS.
@@ -568,7 +569,7 @@ Expected: PASS, all tests including the pre-existing ones.
 - [ ] **Step 5: Run the full suite and commit**
 
 ```bash
-npx tsc --noEmit && npm test && npm run check
+npx tsc --noEmit -p tsconfig.app.json && npm test && npm run check
 ```
 
 Expected: PASS.
@@ -830,7 +831,7 @@ Expected: PASS.
 - [ ] **Step 5: Run the full suite and commit**
 
 ```bash
-npx tsc --noEmit && npm test && npm run check
+npx tsc --noEmit -p tsconfig.app.json && npm test && npm run check
 ```
 
 Expected: PASS.
@@ -932,7 +933,7 @@ Expected: no output.
 - [ ] **Step 6: Run the full suite**
 
 ```bash
-npx tsc --noEmit && npm test && npm run check && npm run lint
+npx tsc --noEmit -p tsconfig.app.json && npm test && npm run check && npm run lint
 ```
 
 Expected: PASS. If `lint` reports an unused import in `SituationsProvider.tsx`, remove it and rerun.
@@ -1101,7 +1102,7 @@ it("joins several populated kinds in a fixed order", () => {
 - [ ] **Step 5: Run the type check to catch every remaining reference**
 
 ```bash
-npx tsc --noEmit
+npx tsc --noEmit -p tsconfig.app.json
 ```
 
 Expected: FAIL, pointing at `SituationDetail.tsx`, which still reads `affects?.lines`, `affects?.serviceJourneys` and `affects?.datedServiceJourneys`. Step 6 fixes it.
@@ -1186,7 +1187,7 @@ Expected: the first is 0, the second is greater than 0.
 - [ ] **Step 8: Run the full suite**
 
 ```bash
-npx tsc --noEmit && npm test && npm run check && npm run lint
+npx tsc --noEmit -p tsconfig.app.json && npm test && npm run check && npm run lint
 ```
 
 Expected: PASS.
