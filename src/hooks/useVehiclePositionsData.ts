@@ -75,6 +75,7 @@ function getVehicleTtl(vehicle: VehicleUpdate, maxDataAge: number) {
 export const useVehiclePositionsData = (
   filter: Filter | null,
   mapViewOptions: MapViewOptions,
+  enabled: boolean,
 ) => {
   const map = useRef<CacheMap<string, VehicleData>>(new CacheMap());
   const [data, setData] = useState<VehicleData[]>([]);
@@ -89,16 +90,37 @@ export const useVehiclePositionsData = (
       subscription.current.return();
     }
 
-    let boundingBoxParams = {};
+    // A frame already resolved in the iterator's queue when `.return()` is
+    // called above can still run one more loop iteration; `cancelled` closes
+    // that hole so no data reaches state after this effect is torn down.
+    let cancelled = false;
 
-    if (filter?.boundingBox) {
-      boundingBoxParams = {
-        minLon: filter?.boundingBox[0][0],
-        minLat: filter?.boundingBox[0][1],
-        maxLon: filter?.boundingBox[1][0],
-        maxLat: filter?.boundingBox[1][1],
+    if (!enabled || !filter?.boundingBox) {
+      // Guarded so the disabled branch is idempotent: `CaptureBoundingBox`
+      // keeps writing bounding boxes (and therefore re-running this effect)
+      // while disabled, and resetting unconditionally would allocate a new
+      // CacheMap and call `setData([])` with a new array identity on every
+      // one of those re-runs, re-rendering the whole vehicles prop tree for
+      // nothing.
+      if (map.current.size > 0) {
+        // A fresh instance rather than `.clear()`: CacheMap extends Map and
+        // overrides `delete` to cancel each entry's timeout, but does not
+        // override `clear`, so clearing would drop the entries and leave the
+        // timers pending. Mirrors how useSituationsSubscription resets.
+        map.current = new CacheMap();
+        setData([]);
+      }
+      return () => {
+        cancelled = true;
       };
     }
+
+    const boundingBoxParams = {
+      minLon: filter.boundingBox[0][0],
+      minLat: filter.boundingBox[0][1],
+      maxLon: filter.boundingBox[1][0],
+      maxLat: filter.boundingBox[1][1],
+    };
 
     const maxDataAge = filter?.maxDataAge ? filter?.maxDataAge : 30; // default 30 seconds
 
@@ -113,6 +135,7 @@ export const useVehiclePositionsData = (
     });
     const subscribe = async () => {
       for await (const event of subscription.current!) {
+        if (cancelled) break;
         event?.data?.vehicles.forEach((vehicle) => {
           // `location` itself is nullable in the schema and everything
           // downstream dereferences it, so that check stays. The coordinates
@@ -156,9 +179,11 @@ export const useVehiclePositionsData = (
         setData(filterVehicles(filter, Array.from(map.current.values())));
       }
     };
-    if (filter && filter.boundingBox) {
-      subscribe();
-    }
-  }, [filter, subscriptionClient, mapViewOptions]);
+    subscribe();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [filter, subscriptionClient, mapViewOptions, enabled]);
   return data;
 };

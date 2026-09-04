@@ -5,6 +5,11 @@ import { CodespaceSelector } from "../CodespaceSelector.tsx";
 import { OperatorSelector } from "../OperatorSelector.tsx";
 import { DataDialog } from "./DataDialog.tsx";
 import { useVehiclePositionsSnapshotFetcher } from "../../hooks/useVehiclePositionsSnapshotFetcher.ts";
+import {
+  codespaceOptions,
+  withoutCounts,
+} from "../../domain/codespaceOptions.ts";
+import { useCodespaces } from "../../hooks/useCodespaces.ts";
 
 export const DataChecker = memo(function DataChecker() {
   const [selectedCodespace, setSelectedCodespace] = useState<
@@ -42,6 +47,9 @@ export const DataChecker = memo(function DataChecker() {
     setDialogOpen(false);
   };
 
+  // Vehicles-mode tool, so it offers the vehicle codespaces.
+  const codespaces = useCodespaces();
+
   return (
     <Card>
       <CardContent>
@@ -53,6 +61,10 @@ export const DataChecker = memo(function DataChecker() {
           <CodespaceSelector
             value={selectedCodespace}
             onChange={handleCodespaceChange}
+            options={codespaceOptions(
+              withoutCounts(codespaces),
+              selectedCodespace ?? null,
+            )}
           />
         </Box>
 

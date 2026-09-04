@@ -8,15 +8,8 @@ React + TypeScript + Vite SPA that visualizes Entur's realtime vehicle positions
 
 ## Commands
 
-- `npm run dev` — start Vite dev server on http://localhost:5173
-- `npm run build` — type-check (`tsc -b`) then production build
-- `npm run lint` — ESLint over the project
 - `npm run check` — Prettier check (one of the two CI gates alongside `npm test`; `lint` is not gated)
-- `npm run format` — Prettier write
-- `npm test` — Vitest unit tests (`vitest run`), currently covering the pure helpers in `src/components/SelectedVehiclePanel/`
 - `npx playwright test` — run Playwright smoke tests (auto-starts `npm run dev`)
-- `npx playwright test tests/smoketests.spec.ts -g "has map"` — run a single test by title
-- `npx playwright test --project=chromium` — run only one browser project
 
 CI (`.github/workflows/build.yml`) runs `npm test` in a `test` job, then `npm run check` and `npm run build` in a `build` job gated on it (`needs: test`) — it does **not** run `lint` or Playwright. A Husky pre-commit hook runs `lint-staged` → Prettier on staged files.
 
@@ -33,27 +26,95 @@ When introducing a new config key, update the `Config` interface in `ConfigConte
 
 ## Data flow
 
-1. `App` holds two pieces of state: `currentFilter: Filter | null` and `mapViewOptions`.
+1. `App` holds three pieces of state: `mode: AppMode`, `currentFilter: Filter | null` and `mapViewOptions`. Mode decides which of the two GraphQL subscriptions is open (see `src/domain/appMode.ts`) and is synced to the URL as `?mode=` by `useModeQueryParam`, independently of `useFilterQueryParams`.
 2. `CaptureBoundingBox` (rendered inside `<Map>`) listens to map `moveend` and writes the viewport bbox into `currentFilter.boundingBox` (throttled 500ms).
-3. `useFilterQueryParams` syncs `currentFilter` (minus `boundingBox`) to/from URL query params — so shareable links preserve codespace/operator/maxDataAge but not the viewport.
-4. `useVehiclePositionsData(filter, mapViewOptions)` opens a `graphql-ws` subscription via `useSubscriptionClient`. Incoming `VehicleUpdate`s are written into a `CacheMap` keyed by `vehicleId + "_" + serviceJourney.id`, with a per-entry TTL computed as `maxDataAge - (now - lastUpdated)` so stale vehicles auto-expire. The filter is also re-applied client-side before pushing to state.
+3. `useFilterQueryParams` syncs `currentFilter` (minus `boundingBox`) to/from URL query params — so shareable links preserve codespace/operator/maxDataAge but not the viewport. The codespace in such a link narrows situations as well as vehicles.
+4. `useVehiclePositionsData(filter, mapViewOptions, enabled)` opens a `graphql-ws` subscription via `useSubscriptionClient`, gated by `enabled` (`isVehicleFeedEnabled(mode)`) so it only runs in vehicles mode. Incoming `VehicleUpdate`s are written into a `CacheMap` keyed by `vehicleId + "_" + serviceJourney.id`, with a per-entry TTL computed as `maxDataAge - (now - lastUpdated)` so stale vehicles auto-expire. The filter is also re-applied client-side before pushing to state.
 5. `MapView` renders markers (`VehicleMarkers`), optional traces (`VehicleTraces`), popups (`VehiclePopup`), and the `LeftMenu`/`RightMenu` overlays. Selecting a vehicle in the popup can open `useVehicleUpdateCompleteSubscription` for richer per-vehicle details.
 6. Selecting a vehicle also opens `useTimetableSubscription(serviceJourneyId, date)`, whose `timetables` frames carry deviation messages as `Situation` objects in two places: `EstimatedTimetableUpdate.situations` (trip-wide) and `Call.situations` (one stop). Both render through the same `SituationList` component. Situations are shown exactly as delivered — no deduplication, no severity filtering — because the demo exists to expose what the feed actually contains; `situationNumber` and `version` are displayed so a version regression in the eventually-consistent stream stays visible.
+7. Separately from the vehicle pipeline, `SituationsProvider` (wrapping `<MapView>` in `App`) opens an **unfiltered** national `situations` subscription via `useSituationsSubscription`, keyed by `situationNumber` with latest-wins and no TTL. It stays mounted in both modes but only subscribes when `enabled` (`isSituationsFeedEnabled(mode)`) is true — the subscription pauses in vehicles mode rather than unmounting; unmounting is a separate change nobody has made. Everything derived from it is pure and lives in `src/domain/`: `situationFlags` (three lifecycle flags), `situationFeatures` (affects → GeoJSON plus the unmappable list), `situationStats` and `situationFilter`. Consumers read the context via `useSituations` and are spread across four surfaces, each with one job: the map layer (`SituationLayers` inside `<Map>`), the right-menu situations drawer (`SituationsPanel` — status line, filtered list, `UnmappableList`), the right-menu filter drawer (`SituationFilters`, beside the codespace dropdown), and the "Feed report" rail entry (`SituationStatsTables`). The selected situation's raw detail is a fifth: `SituationDetailPanel`, a left-anchored drawer over the map, mirroring what `SelectedVehiclePanel` is to a selected vehicle. Both share their geometry from `src/components/detailDrawer.ts` so the two cannot drift into looking like different kinds of surface. Keeping these apart is deliberate — one 250px column previously carried the live list, the raw dump, the unmappable list and the whole-feed statistics at once.
 
 Key invariants worth preserving:
 
 - The cache key combines `vehicleId` and `serviceJourneyId` so the same physical vehicle on different journeys is tracked separately, and traces don't bleed across journeys.
-- The subscription is re-opened whenever `filter` or `mapViewOptions` changes (the previous async iterator is `.return()`ed first). Adding new subscription variables means adding them to the dependency array as well.
+- The subscription is re-opened whenever `filter`, `mapViewOptions` or `enabled` changes (the previous async iterator is `.return()`ed first). Adding new subscription variables means adding them to the dependency array as well.
 - The `maxDataAge` is sent to the server as an ISO 8601 duration string (`PT{n}S`) and is also used locally to compute cache TTL — keep these two uses in sync.
 - The `situations` selection set is a single GraphQL fragment spread at both the timetable and the call level, so the two cannot drift apart.
+- The `situations` root query and subscription are **hidden from introspection**, exactly like `timetables`. They validate and stream normally; do not conclude from an introspection dump that they are gone.
+- `situations` is served with data only in **dev**. Staging and prod return an empty list, which the panel reports as "No situations published in this environment" — distinct from an error and from a filter matching nothing.
+- Situation **stats tables and facet counts** are both computed over the feed narrowed by the map's codespace filter, and by nothing else. That mirrors the vehicles-mode Data report, which fetches its snapshot for one codespace. With a codespace selected the `byCodespace` table is therefore a single row — kept rather than hidden, since a table that disappears reflows the grid and removes the confirmation of scope, and the cross-codespace view now lives in the codespace dropdown, which lists every codespace with its count. The report states its own scope in its subheading so a slice is never mistaken for the whole feed.
+- Situation **facet counts** are scoped to the map's codespace filter, but never to the panel's own facets. `facetCounts(all, withinCodespace, flags)` takes both: `all` supplies the set of values offered, so a chip never disappears as you narrow, and `withinCodespace` supplies the counts. Scoping to codespace is not circular — it is a separate control, so severity counts within it stay meaningful. Scoping to `filter` would be: selecting `severe` would recompute severity to `severe: N, everything else 0`, describing nothing but the click that produced it. Never pass a `filter`-narrowed set as the second argument.
+- Facet chips are ordered by a fixed rule, not by count, so they hold position as counts change: severities ascend by `SEVERITY_RANK` (exported from `situationSeverity.ts` — one table, shared with `worstSeverity`, so a chip order and a worst-of comparison cannot disagree), report types alphabetically, flags in `FILTERABLE_FLAGS` order, and `(none)` always last.
+- `FILTERABLE_FLAGS` is the subset of flags offered as facets. `notYetActive` is deliberately excluded: a situation that has not started yet is still relevant, so the panel should not invite you to slice it away. It stays in `FLAG_LEVEL` because rows and the detail view still badge it.
+- The codespace rule lives in one place, `matchesCodespace`, shared by `applySituationFilter` and the facet-count subset. If those two drifted, the counts would contradict the list they describe.
+- The right drawer has two widths. `isWideTool` (`src/domain/appMode.ts`) marks the tools whose content does not fit the default 250px — currently only the feed report, six count tables that stack into an unreadable scroll in a narrow column. The width lives in three CSS rules that must change together: `.right-menu-container.open.wide`, `.sidebar-button.right.open.wide` and `.mode-switch.open.wide`. Change one and the rail or the mode switch ends up sitting on top of the drawer.
+- **The two feeds publish different codespaces, so each mode offers its own list.** `useCodespaces()` queries the API's `codespaces` root; measured on dev it matches the vehicle feed exactly (20 for 20), but situations come from a partly different set of 16. Seven situation codespaces are absent from that root — including RUT and NSB, the two largest publishers, together about three quarters of the feed — while eleven of its entries carry no situations at all. Offering one list for both made most of the situations feed unreachable and most of the options empty. Situations therefore derive their options from `feedCodespaceCounts` — a tally over the **whole** feed, deliberately separate from `stats.byCodespace`, which is scoped to the selected codespace. Building the dropdown from the scoped tally collapses it to the codespace already selected and strands the user there with no way back. vehicles keep `useCodespaces()`. See `src/domain/codespaceOptions.ts`, which also drops the `(none)` bucket — `matchesCodespace` compares against a real id, so an option for it would match nothing — and injects a selected codespace the current mode's list lacks, since codespace survives a mode switch and the `Select` would otherwise hold a value with no matching item.
+- Codespace is filtered from **one** control: the map's `Filter.codespaceId`, passed into `SituationsProvider` as a prop and applied by `applySituationFilter` as a strict equality check. The panel deliberately has no codespace facet — do not add one back to `SituationFilter`, or the two controls will contradict each other. A situation carrying no codespace drops out whenever a codespace is selected; its count stays visible in `situationStats.byCodespace`, which is computed over the whole feed.
+- The selected situation is singled out on the **style, not the data**: `SituationLayers` sets the filter of the two `situation-*-halo-layer`s and the opacity of the ordinary layers from `selected`, using the pure expressions in `src/domain/situationSelection.ts`. Never rebuild features with a `selected` property — `features` would then change identity on every selection and the fitBounds effect deliberately does not depend on it. The halo layers are classified in `MODE_DEFAULT_VISIBLE_LAYERS`, like `vehicle-follow-layer`: filter-driven, never toggled, so a selection stays pointed out even with "Affected stops"/"Affected lines" switched off. Resting opacities come from `SITUATION_LAYER_OPACITY` in `mapStyle.ts`, which both the style and the dimming expression read. A selection is dropped the moment it leaves the filtered set (`selectionWithin`, applied during render in `SituationsProvider`): a hidden selection would keep the detail drawer open and dim every situation that is shown with nothing highlighted, so a codespace or facet change with a selection held reads as "new set, nothing selected".
+- Situation features are deduplicated **within** a situation only. Two situations affecting one stop deliberately produce two coincident features; collapsing them would hide the duplication this tool exists to expose.
+- Situation **point features deduplicate on stop id alone** within a situation,
+  across all four stop sources (`stopPoints`, `stopPlaces`,
+  `vehicleJourneys[].stops`, `affectedLines[].stops`). One situation, one stop,
+  one dot. Spans deduplicate separately, each kind on its own prefixed key
+  space — `journeySpan:<journeyId>` and `lineSpan:<lineRef>` — which cannot
+  collide with the bare stop ids the point sources use. Six sources in all.
+  Dedup remains **within**
+  a situation only — two situations affecting one stop still produce two
+  coincident features, which is the duplication this tool exists to expose.
+- `SituationFields` and `SituationQaFields` in `src/hooks/situationFragments.ts` both target the GraphQL `Situation` type. The timetable subscription spreads only the first, at two levels; the situations subscription spreads both. Adding a field to `SituationFields` therefore adds it to the timetable query as well.
+- The vehicle and situations feeds are mutually exclusive — only the active mode's subscription runs (`isVehicleFeedEnabled`/`isSituationsFeedEnabled` in `src/domain/appMode.ts`). Anything needing both live at once — the affected-vehicle halos, removed when modes were introduced — cannot work under this design.
+- Every layer and source declared in `mapStyle.ts` must be claimed by exactly one mode in `MODE_LAYERS`/`MODE_SOURCES` (`src/domain/appMode.ts`), and every mode-owned layer must fall into exactly one of `MODE_SWITCHED_LAYERS` (visibility driven by a `MapViewOptions` key), `MODE_DEFAULT_VISIBLE_LAYERS` (no switch, but must be visible whenever the mode is active because content is governed by the source's data or a feature filter, not a toggle — e.g. `service-journey-route-layer`, `vehicle-follow-layer`) or `MODE_DORMANT_LAYERS` (genuinely inert, `visibility: "none"` and driven by nothing). `appMode.test.ts` enforces both as total partitions — a layer added to `mapStyle.ts` without being classified fails the build rather than being silently hidden forever whenever its mode is left. You cannot classify a layer by grepping for its id: a filter-driven layer (like `vehicle-follow-layer`, gated by `["==", ["get", "followed"], true]`) is live with no reference to its id anywhere outside `mapStyle.ts`. Check whether it carries a `visibility` key and what feeds its source before assuming "unreferenced" means "dormant" — miscategorizing one this way is what stranded a layer hidden after a mode round trip twice during development.
+- `ModeLayers` reconciles layer visibility on MapLibre's `'idle'` event, not `'load'`. `'load'` fires once per Map instance, but `isStyleLoaded()` can go false again later, so a `once("load")` fallback can end up waiting forever and silently drop a mode switch; `'idle'` fires every time the map settles and so keeps firing on later effect runs too.
 
 ## Map / icons
 
 - `react-map-gl` uses the `maplibre` entry point (`react-map-gl/maplibre`), not Mapbox. The style is defined inline in `src/components/mapStyle.ts` and uses Entur's tile/style endpoints — no Mapbox token is needed.
 - SVG vehicle icons are loaded via `vite-svg-loader` (see `vite.config.ts` and `src/components/RegisterIcons.tsx`). New icons need to be registered there to be available as map symbols.
 
+## Situations carry their own geography
+
+The situations feed serves the coordinates it needs. `Affects.vehicleJourneys`
+and `Affects.affectedLines` pair each affected journey and line with the
+**located** stops it is affected at, and both a journey entry and a line entry
+may carry `affectedPointsOnLink`: the span of its route between the first and
+last affected stop, or — when the situation names no stops, meaning it is
+affected as a whole — the entire route. An empty `stops` list is what tells
+those two cases apart.
+
+A line's span carries a caveat a journey's does not: a line has many journey
+patterns, so `affectedLines[].affectedPointsOnLink` is **one representative
+pattern, not the line as a whole** — the API picks the first pattern the
+affected stops locate on, or the longest when the line is affected as a
+whole. Treat it as indicative of where the line is affected, never as the
+line's shape.
+
+Measured on dev (977 situations): 906 map, 71 do not. Spans stay rare on
+journeys — 45 of 9,053 journey entries — but line entries carry one far more
+often: 109 of 695. The API explains why rather than guessing: it withholds a
+span when the entry has no pattern geometry, when exactly one stop is
+affected — a point is not a span (217 line entries affect exactly one stop; 10
+have no stops and no pattern geometry), or when any affected stop cannot be
+located on the route. **Do not "fix" that by interpolating between stops or
+falling back to Journey Planner.** A synthetic line drawn over the wrong part
+of a route is worse than an honest absence in a data-QA tool, which is the
+same reason the API declines to draw it.
+
+`stopPoints` and `stopPlaces` are **not** superseded by the new fields and must
+stay selected: measured, every situation carrying them names no journey and no
+line at all, so dropping them silently unmaps 20 situations.
+
+There was formerly an apparatus that borrowed geometry per ref from elsewhere
+in the same API — a running vehicle's `pointsOnLink` for a line, the planned
+`datedServiceJourneys`/`serviceJourneys` roots for a journey — cached for the
+session. It is gone. It resolved 33 of 90 line refs and 78 of 4,591 journey
+ids, and what it drew for a line was that line's _whole_ shape regardless of
+how little of it was affected. Its removal cost 35 situations their geometry
+and is not a regression to restore.
+
+`pointsOnLink` on `ServiceJourney` is hidden from introspection, exactly like
+`situations`; do not conclude from an introspection dump that it is gone.
+
 ## TypeScript / lint conventions
 
 - ESM only (`"type": "module"`). Local imports include the explicit `.ts`/`.tsx` extension — match the existing style when adding imports.
-- TS config is split: `tsconfig.app.json` for app source, `tsconfig.node.json` for Vite config. `tsc -b` is the build orchestrator.
-- ESLint config (`eslint.config.js`) uses the flat-config format with `typescript-eslint` and `react-hooks` recommended rules plus `react-refresh/only-export-components`. Don't add component files that also export non-component values.
+- Don't add component files that also export non-component values (`react-refresh/only-export-components`).

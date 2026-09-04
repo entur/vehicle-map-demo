@@ -18,8 +18,14 @@ import { VehiclePopup } from "./Vehicle/VehiclePopup.tsx";
 import { useFollowedVehicle } from "../hooks/useFollowedVehicle"; // adjust path as needed
 import { SelectedVehiclePanel } from "./SelectedVehiclePanel";
 import { RouteLayer } from "./RouteLayer.tsx";
+import { SituationLayers } from "./SituationLayers.tsx";
+import { SituationDetailPanel } from "./SituationsPanel/SituationDetailPanel.tsx";
+import { AppMode } from "../domain/appMode.ts";
+import { ModeLayers } from "./ModeLayers.tsx";
 
 type MapViewProps = {
+  mode: AppMode;
+  setMode: (mode: AppMode) => void;
   data: VehicleData[];
   setCurrentFilter: React.Dispatch<React.SetStateAction<Filter | null>>;
   currentFilter: Filter | null;
@@ -28,6 +34,8 @@ type MapViewProps = {
 };
 
 export function MapView({
+  mode,
+  setMode,
   data,
   setCurrentFilter,
   currentFilter,
@@ -49,11 +57,19 @@ export function MapView({
     mapRef.current = event.target;
   };
 
-  const { followedVehicle, handleFollowToggle } = useFollowedVehicle(
-    data,
-    selectedVehicle,
-    mapRef,
-  );
+  const { followedVehicle, handleFollowToggle, clearFollowedVehicle } =
+    useFollowedVehicle(data, selectedVehicle, mapRef);
+
+  // A selection has no rendering in the other mode, and returning to a stale
+  // one — pointing at a journey whose vehicle expired while away — is worse
+  // than returning to none. The followed vehicle is cleared alongside it:
+  // otherwise the first vehicle frame after returning to Vehicles mode would
+  // flyTo a follow target with no popup and no on-screen sign a follow is
+  // active.
+  useEffect(() => {
+    setSelectedVehicle(null);
+    clearFollowedVehicle();
+  }, [mode, clearFollowedVehicle]);
 
   return (
     <>
@@ -65,6 +81,7 @@ export function MapView({
         <NavigationControl position="top-left" />
         <GeolocateControl position="top-left" />
         <LeftMenu
+          mode={mode}
           data={data.map((vehicle) => vehicle.vehicleUpdate)}
           setCurrentFilter={setCurrentFilter}
           currentFilter={currentFilter}
@@ -72,6 +89,8 @@ export function MapView({
           setMapViewOptions={setMapViewOptions}
         />
         <RightMenu
+          mode={mode}
+          setMode={setMode}
           data={data.map((vehicle) => vehicle.vehicleUpdate)}
           setCurrentFilter={setCurrentFilter}
           currentFilter={currentFilter}
@@ -79,35 +98,51 @@ export function MapView({
           setMapViewOptions={setMapViewOptions}
         />
         <RegisterIcons />
+        <ModeLayers mode={mode} mapViewOptions={mapViewOptions} />
         <CaptureBoundingBox setCurrentFilter={setCurrentFilter} />
-        <VehicleMarkers
-          data={data.map((vehicle) => vehicle.vehicleUpdate)}
-          setSelectedVehicle={setSelectedVehicle}
-          followedVehicleId={
-            followedVehicle ? followedVehicle.properties.id : null
-          }
-        />
-        {mapViewOptions.showVehicleTraces && <VehicleTraces data={data} />}
-        <RouteLayer
-          serviceJourneyId={
-            selectedVehicle?.properties.serviceJourneyId ?? null
-          }
-          cancelled={tripCancelled}
-        />
-        {selectedVehicle && (
-          <VehiclePopup
-            vehicle={selectedVehicle}
-            onClose={() => setSelectedVehicle(null)}
-            onFollow={handleFollowToggle}
-            followedVehicle={followedVehicle}
+        {mode === "vehicles" && (
+          <>
+            <VehicleMarkers
+              data={data.map((vehicle) => vehicle.vehicleUpdate)}
+              setSelectedVehicle={setSelectedVehicle}
+              followedVehicleId={
+                followedVehicle ? followedVehicle.properties.id : null
+              }
+            />
+            {mapViewOptions.showVehicleTraces && <VehicleTraces data={data} />}
+            <RouteLayer
+              serviceJourneyId={
+                selectedVehicle?.properties.serviceJourneyId ?? null
+              }
+              cancelled={tripCancelled}
+            />
+            {selectedVehicle && (
+              <VehiclePopup
+                vehicle={selectedVehicle}
+                onClose={() => setSelectedVehicle(null)}
+                onFollow={handleFollowToggle}
+                followedVehicle={followedVehicle}
+              />
+            )}
+          </>
+        )}
+        {mode === "situations" && (
+          <SituationLayers
+            visible={
+              mapViewOptions.showAffectedStops ||
+              mapViewOptions.showAffectedLines
+            }
           />
         )}
       </Map>
-      <SelectedVehiclePanel
-        selectedVehicle={selectedVehicle}
-        onClose={() => setSelectedVehicle(null)}
-        onCancellationChange={setTripCancelled}
-      />
+      {mode === "vehicles" && (
+        <SelectedVehiclePanel
+          selectedVehicle={selectedVehicle}
+          onClose={() => setSelectedVehicle(null)}
+          onCancellationChange={setTripCancelled}
+        />
+      )}
+      {mode === "situations" && <SituationDetailPanel />}
     </>
   );
 }

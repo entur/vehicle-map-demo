@@ -3,8 +3,10 @@ import { Filter, MapViewOptions, VehicleUpdate } from "../../types.ts";
 import { LeftMenuButtons } from "./LeftMenuButtons.tsx";
 import { DrawerContent } from "./DrawerContent.tsx";
 import { LeftContentType } from "./types.ts";
+import { AppMode } from "../../domain/appMode.ts";
 
 interface LeftMenuProps {
+  mode: AppMode;
   setCurrentFilter: (filter: Filter) => void;
   currentFilter: Filter | null | undefined;
   mapViewOptions: MapViewOptions;
@@ -13,6 +15,7 @@ interface LeftMenuProps {
 }
 
 export const LeftMenu = ({
+  mode,
   currentFilter,
   setCurrentFilter,
   mapViewOptions,
@@ -22,6 +25,9 @@ export const LeftMenu = ({
   const [activeContent, setActiveContent] = useState<LeftContentType | null>(
     null,
   );
+
+  // The left rail holds vehicle statistics only.
+  if (mode !== "vehicles") return null;
 
   return (
     <>
