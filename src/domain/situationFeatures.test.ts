@@ -315,6 +315,259 @@ describe("collectDatedServiceJourneyRefs", () => {
   });
 });
 
+const EMPTY = {
+  vehicleModes: null,
+  lines: null,
+  stopPoints: null,
+  stopPlaces: null,
+  serviceJourneys: null,
+  datedServiceJourneys: null,
+  operators: null,
+  vehicleJourneys: null,
+  affectedLines: null,
+};
+
+const affectedStop = (id: string, latitude: number, longitude: number) => ({
+  stop: { id, name: id, location: { latitude, longitude } },
+  stopConditions: [],
+});
+
+describe("stops carried by the new affects fields", () => {
+  it("builds a point per located stop of an affected journey", () => {
+    const { pointFeatures, unmappable } = buildSituationFeatures(
+      [
+        makeSituation({
+          affects: {
+            ...EMPTY,
+            vehicleJourneys: [
+              {
+                serviceJourney: null,
+                datedServiceJourney: { id: "VYG:DatedServiceJourney:1" },
+                line: null,
+                operator: null,
+                stops: [
+                  affectedStop("NSR:Quay:1", 59.9, 10.7),
+                  affectedStop("NSR:Quay:2", 60.1, 10.8),
+                ],
+                affectedPointsOnLink: null,
+              },
+            ],
+          },
+        }),
+      ],
+      NO_GEOMETRY,
+    );
+
+    expect(pointFeatures).toHaveLength(2);
+    expect(pointFeatures[0].properties.source).toBe("journeyStop");
+    expect(pointFeatures[0].properties.entityId).toBe("NSR:Quay:1");
+    expect(pointFeatures[0].geometry.coordinates).toEqual([10.7, 59.9]);
+    expect(unmappable).toEqual([]);
+  });
+
+  it("builds a point per located stop of an affected line", () => {
+    const { pointFeatures } = buildSituationFeatures(
+      [
+        makeSituation({
+          affects: {
+            ...EMPTY,
+            affectedLines: [
+              {
+                line: {
+                  lineRef: "RUT:Line:81",
+                  lineName: "81",
+                  publicCode: "81",
+                },
+                stops: [affectedStop("NSR:Quay:7169", 59.91, 10.75)],
+              },
+            ],
+          },
+        }),
+      ],
+      NO_GEOMETRY,
+    );
+
+    expect(pointFeatures).toHaveLength(1);
+    expect(pointFeatures[0].properties.source).toBe("lineStop");
+    expect(pointFeatures[0].properties.entityId).toBe("NSR:Quay:7169");
+  });
+
+  it("collapses a stop repeated across many journeys of one situation", () => {
+    const journey = (id: string) => ({
+      serviceJourney: null,
+      datedServiceJourney: { id },
+      line: null,
+      operator: null,
+      stops: [affectedStop("NSR:Quay:1", 59.9, 10.7)],
+      affectedPointsOnLink: null,
+    });
+
+    const { pointFeatures } = buildSituationFeatures(
+      [
+        makeSituation({
+          affects: {
+            ...EMPTY,
+            vehicleJourneys: [journey("A"), journey("B"), journey("C")],
+          },
+        }),
+      ],
+      NO_GEOMETRY,
+    );
+
+    expect(pointFeatures).toHaveLength(1);
+  });
+
+  it("draws one dot for a stop reached as both a journey stop and a line stop", () => {
+    const { pointFeatures } = buildSituationFeatures(
+      [
+        makeSituation({
+          affects: {
+            ...EMPTY,
+            vehicleJourneys: [
+              {
+                serviceJourney: null,
+                datedServiceJourney: { id: "A" },
+                line: null,
+                operator: null,
+                stops: [affectedStop("NSR:Quay:1", 59.9, 10.7)],
+                affectedPointsOnLink: null,
+              },
+            ],
+            affectedLines: [
+              { line: null, stops: [affectedStop("NSR:Quay:1", 59.9, 10.7)] },
+            ],
+          },
+        }),
+      ],
+      NO_GEOMETRY,
+    );
+
+    expect(pointFeatures).toHaveLength(1);
+    expect(pointFeatures[0].properties.source).toBe("journeyStop");
+  });
+
+  it("still draws two coincident dots when two situations share a stop", () => {
+    const one = (situationNumber: string) =>
+      makeSituation({
+        situationNumber,
+        affects: {
+          ...EMPTY,
+          affectedLines: [
+            { line: null, stops: [affectedStop("NSR:Quay:1", 59.9, 10.7)] },
+          ],
+        },
+      });
+
+    const { pointFeatures } = buildSituationFeatures(
+      [one("TST:SituationNumber:1"), one("TST:SituationNumber:2")],
+      NO_GEOMETRY,
+    );
+
+    expect(pointFeatures).toHaveLength(2);
+  });
+
+  it("draws a stop that is unlocated in one source and located in another", () => {
+    const { pointFeatures } = buildSituationFeatures(
+      [
+        makeSituation({
+          affects: {
+            ...EMPTY,
+            affectedLines: [
+              {
+                line: null,
+                stops: [
+                  {
+                    stop: { id: "NSR:Quay:1", name: null, location: null },
+                    stopConditions: [],
+                  },
+                ],
+              },
+            ],
+            vehicleJourneys: [
+              {
+                serviceJourney: null,
+                datedServiceJourney: { id: "A" },
+                line: null,
+                operator: null,
+                stops: [affectedStop("NSR:Quay:1", 59.9, 10.7)],
+                affectedPointsOnLink: null,
+              },
+            ],
+          },
+        }),
+      ],
+      NO_GEOMETRY,
+    );
+
+    expect(pointFeatures).toHaveLength(1);
+    expect(pointFeatures[0].properties.source).toBe("journeyStop");
+  });
+
+  it("draws a stop that is unlocated in one source and located in another", () => {
+    const { pointFeatures } = buildSituationFeatures(
+      [
+        makeSituation({
+          affects: {
+            ...EMPTY,
+            affectedLines: [
+              {
+                line: null,
+                stops: [
+                  {
+                    stop: { id: "NSR:Quay:1", name: null, location: null },
+                    stopConditions: [],
+                  },
+                ],
+              },
+            ],
+            vehicleJourneys: [
+              {
+                serviceJourney: null,
+                datedServiceJourney: { id: "A" },
+                line: null,
+                operator: null,
+                stops: [affectedStop("NSR:Quay:1", 59.9, 10.7)],
+                affectedPointsOnLink: null,
+              },
+            ],
+          },
+        }),
+      ],
+      NO_GEOMETRY,
+    );
+
+    expect(pointFeatures).toHaveLength(1);
+    expect(pointFeatures[0].properties.source).toBe("journeyStop");
+  });
+
+  it("skips a stop the API could not locate, and reports the situation unmappable", () => {
+    const { pointFeatures, unmappable } = buildSituationFeatures(
+      [
+        makeSituation({
+          affects: {
+            ...EMPTY,
+            affectedLines: [
+              {
+                line: null,
+                stops: [
+                  {
+                    stop: { id: "NSR:Quay:9", name: null, location: null },
+                    stopConditions: [],
+                  },
+                ],
+              },
+            ],
+          },
+        }),
+      ],
+      NO_GEOMETRY,
+    );
+
+    expect(pointFeatures).toEqual([]);
+    expect(unmappable).toEqual(["TST:SituationNumber:1"]);
+  });
+});
+
 describe("dated service journey features", () => {
   const situation = makeSituation({
     affects: {

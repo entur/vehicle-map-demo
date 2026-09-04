@@ -7,7 +7,13 @@ export type SituationFeatureProperties = {
   reportType: string | null;
   codespaceId: string | null;
   /** Which affects member produced this feature. */
-  source: "stopPoint" | "stopPlace" | "line" | "datedServiceJourney";
+  source:
+    | "stopPoint"
+    | "stopPlace"
+    | "line"
+    | "datedServiceJourney"
+    | "journeyStop"
+    | "lineStop";
   /** The stop id or line ref the feature was built from. */
   entityId: string;
   name: string | null;
@@ -98,34 +104,51 @@ export function buildSituationFeatures(
     const before = pointFeatures.length + lineFeatures.length;
     const seen = new Set<string>();
 
-    const addStops = (stops: StopRef[], source: "stopPoint" | "stopPlace") => {
-      for (const stop of stops) {
-        const key = `${source}:${stop.id}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
+    // Keyed on the stop id alone, not on source + id: the same stop reached as
+    // a journey stop and as a line stop is one stop, and two coincident markers
+    // for it would be noise. Measured on the dev feed, the four stop sources
+    // overlap on zero stops today, so this only guards against future data.
+    const addStop = (
+      entry: StopRef,
+      source: "stopPoint" | "stopPlace" | "journeyStop" | "lineStop",
+    ) => {
+      if (seen.has(entry.id)) return;
 
-        const latitude = stop.location?.latitude;
-        const longitude = stop.location?.longitude;
-        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) continue;
+      const latitude = entry.location?.latitude;
+      const longitude = entry.location?.longitude;
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
 
-        pointFeatures.push({
-          type: "Feature",
-          geometry: {
-            type: "Point",
-            coordinates: [longitude as number, latitude as number],
-          },
-          properties: propertiesFor(
-            situation,
-            source,
-            stop.id,
-            stop.name ?? null,
-          ),
-        });
-      }
+      // Marked seen only after the coordinate check, so a stop that arrives
+      // unlocated from one source and located from another is still drawn.
+      seen.add(entry.id);
+
+      pointFeatures.push({
+        type: "Feature",
+        geometry: {
+          type: "Point",
+          coordinates: [longitude as number, latitude as number],
+        },
+        properties: propertiesFor(
+          situation,
+          source,
+          entry.id,
+          entry.name ?? null,
+        ),
+      });
     };
 
-    addStops(situation.affects?.stopPoints ?? [], "stopPoint");
-    addStops(situation.affects?.stopPlaces ?? [], "stopPlace");
+    for (const stop of situation.affects?.stopPoints ?? [])
+      addStop(stop, "stopPoint");
+    for (const stop of situation.affects?.stopPlaces ?? [])
+      addStop(stop, "stopPlace");
+    for (const journey of situation.affects?.vehicleJourneys ?? []) {
+      for (const entry of journey.stops ?? [])
+        addStop(entry.stop, "journeyStop");
+    }
+    for (const affectedLine of situation.affects?.affectedLines ?? []) {
+      for (const entry of affectedLine.stops ?? [])
+        addStop(entry.stop, "lineStop");
+    }
 
     for (const line of situation.affects?.lines ?? []) {
       if (!line.lineRef) continue;
