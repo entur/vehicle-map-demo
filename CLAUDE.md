@@ -55,9 +55,10 @@ Key invariants worth preserving:
 - Situation **point features deduplicate on stop id alone** within a situation,
   across all four stop sources (`stopPoints`, `stopPlaces`,
   `vehicleJourneys[].stops`, `affectedLines[].stops`). One situation, one stop,
-  one dot. Spans deduplicate separately, on their own key space per kind:
-  `journeySpan:<journeyId>` and `lineSpan:<lineRef>` — bare stop ids for the
-  four point sources, so six sources total. Dedup remains **within**
+  one dot. Spans deduplicate separately, each kind on its own prefixed key
+  space — `journeySpan:<journeyId>` and `lineSpan:<lineRef>` — which cannot
+  collide with the bare stop ids the point sources use. Six sources in all.
+  Dedup remains **within**
   a situation only — two situations affecting one stop still produce two
   coincident features, which is the duplication this tool exists to expose.
 - `SituationFields` and `SituationQaFields` in `src/hooks/situationFragments.ts` both target the GraphQL `Situation` type. The timetable subscription spreads only the first, at two levels; the situations subscription spreads both. Adding a field to `SituationFields` therefore adds it to the timetable query as well.

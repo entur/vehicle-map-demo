@@ -254,12 +254,15 @@ export type AffectedLine = {
 /**
  * What a situation claims to affect.
  *
- * `vehicleJourneys` and `affectedLines` supersede the flat `lines`,
- * `serviceJourneys` and `datedServiceJourneys` the feed also publishes: they name
- * the same journeys and lines, but pair each with the located stops it is
- * affected at, and a journey with an `affectedPointsOnLink` carries the span of
- * its route. `stopPoints` and `stopPlaces` are **not** superseded — measured on
- * dev, every situation carrying them names no journey and no line at all.
+ * `vehicleJourneys` and `affectedLines` are the only places journeys and lines
+ * are published. They replaced flat `lines`, `serviceJourneys` and
+ * `datedServiceJourneys` lists, which the API has since removed entirely: each
+ * entry now pairs its journey or line with the located stops it is affected at,
+ * and either kind may carry an `affectedPointsOnLink` span — the journey's own
+ * route, or, for a line, one representative pattern of it.
+ *
+ * `stopPoints` and `stopPlaces` are **not** superseded by those two — measured
+ * on dev, every situation carrying them names no journey and no line at all.
  */
 export type Affects = {
   vehicleModes: VehicleModeEnumeration[] | null;
