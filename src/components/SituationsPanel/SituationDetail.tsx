@@ -3,6 +3,7 @@ import { NationalSituation, TranslatedString } from "../../types.ts";
 import { SituationFlag } from "../../domain/situationFlags.ts";
 import { affectsShape } from "../../domain/situationStats.ts";
 import { formatValidity } from "../SelectedVehiclePanel/situationValidity.ts";
+import { decodePolyline } from "../../utils/decodePolyline.ts";
 
 function Field({ label, value }: { label: string; value: string | null }) {
   return (
@@ -55,21 +56,37 @@ function Translations({
   );
 }
 
+// Mirrors situationFeatures.ts: the map only draws a line for a span that
+// decodes to at least two coordinates, so "span" here must mean the same
+// thing or the panel and the map disagree about what is on screen.
+function hasDrawableSpan(points: string | null | undefined): boolean {
+  if (!points) return false;
+  return decodePolyline(points).length >= 2;
+}
+
 function AffectsGroup({
   label,
   entries,
+  cap,
 }: {
   label: string;
   entries: string[];
+  /** Caps how many rows render; a fixture situation can carry 1,000+. The
+   * true count still shows in the heading and in the trailing summary row,
+   * so capping never quietly understates the total. */
+  cap?: number;
 }) {
   if (entries.length === 0) return null;
+
+  const truncated = cap !== undefined && entries.length > cap;
+  const shown = truncated ? entries.slice(0, cap) : entries;
 
   return (
     <Box sx={{ marginTop: 0.5 }}>
       <Typography component="div" sx={{ fontSize: 10, color: "#666" }}>
         {label} ({entries.length})
       </Typography>
-      {entries.map((entry, index) => (
+      {shown.map((entry, index) => (
         <Typography
           key={`${entry}-${index}`}
           component="div"
@@ -78,6 +95,19 @@ function AffectsGroup({
           {entry}
         </Typography>
       ))}
+      {truncated && (
+        <Typography
+          component="div"
+          sx={{
+            fontSize: 11,
+            paddingLeft: 1,
+            color: "#666",
+            fontStyle: "italic",
+          }}
+        >
+          … and {entries.length - cap} more ({entries.length} total)
+        </Typography>
+      )}
     </Box>
   );
 }
@@ -218,13 +248,16 @@ export function SituationDetail({
               parts.push(journey.operator.operatorRef);
             parts.push(`${journey.stops?.length ?? 0} stop(s)`);
             parts.push(
-              journey.affectedPointsOnLink?.points ? "span" : "no span",
+              hasDrawableSpan(journey.affectedPointsOnLink?.points)
+                ? "span"
+                : "no span",
             );
             return parts.join(" — ");
           })}
         />
         <AffectsGroup
           label="Affected stops"
+          cap={200}
           entries={[
             ...(affects?.vehicleJourneys ?? []).flatMap(
               (journey) => journey.stops ?? [],

@@ -181,7 +181,7 @@ export function MapLayers({ mode, mapViewOptions, setMapViewOptions }: Props) {
                     )}
                   />
                 }
-                label={getLabelWithIcon(situationMarker, "Affected lines", 22)}
+                label={getLabelWithIcon(situationMarker, "Affected spans", 22)}
               />
             </>
           )}

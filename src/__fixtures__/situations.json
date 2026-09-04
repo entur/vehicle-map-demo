@@ -55,7 +55,7 @@
       "lastUpdated": "2026-08-28T11:19:36.915955Z",
       "expiration": "2027-08-28T12:18:00Z",
       "openEnded": false,
-      "age": "PT168H20M52.693286844S",
+      "age": "PT168H37M33.984703818S",
       "affects": {
         "vehicleModes": [],
         "stopPoints": [],
@@ -141,7 +141,7 @@
       "lastUpdated": "2026-08-28T11:19:36.915955Z",
       "expiration": "2027-08-28T12:18:00Z",
       "openEnded": false,
-      "age": "PT168H20M52.693587248S",
+      "age": "PT168H37M33.984965059S",
       "affects": {
         "vehicleModes": [],
         "stopPoints": [],
@@ -227,7 +227,7 @@
       "lastUpdated": "2026-08-28T11:19:36.915955Z",
       "expiration": "2027-08-28T12:18:00Z",
       "openEnded": false,
-      "age": "PT168H20M52.695405784S",
+      "age": "PT168H37M33.986676593S",
       "affects": {
         "vehicleModes": [],
         "stopPoints": [],
@@ -304,7 +304,7 @@
       "lastUpdated": "2026-06-22T11:59:12.047119Z",
       "expiration": null,
       "openEnded": true,
-      "age": "PT2622H31M34.96761205S",
+      "age": "PT2622H48M16.259015685S",
       "affects": {
         "vehicleModes": [],
         "stopPoints": [],
@@ -2605,7 +2605,7 @@
       "lastUpdated": "2026-06-22T11:59:12.031988Z",
       "expiration": null,
       "openEnded": true,
-      "age": "PT4939H23M26.341529566S",
+      "age": "PT4939H40M7.632764452S",
       "affects": {
         "vehicleModes": [],
         "stopPoints": [],
@@ -7986,7 +7986,7 @@
       "lastUpdated": "2026-07-03T09:37:05.414219Z",
       "expiration": null,
       "openEnded": true,
-      "age": "PT1604H30M36.327014615S",
+      "age": "PT1604H47M17.617742369S",
       "affects": {
         "vehicleModes": [],
         "stopPoints": [],
@@ -8530,7 +8530,7 @@
       "lastUpdated": "2026-09-04T10:00:43.938673Z",
       "expiration": "2026-09-05T13:15:00Z",
       "openEnded": false,
-      "age": "PT1H39M45.690400121S",
+      "age": "PT1H56M26.980374437S",
       "affects": {
         "vehicleModes": [],
         "stopPoints": [],
@@ -8602,7 +8602,7 @@
       "lastUpdated": "2026-09-04T04:01:48.622246Z",
       "expiration": "2026-09-04T12:45:00Z",
       "openEnded": false,
-      "age": "PT7H38M41.069186314S",
+      "age": "PT7H55M22.344622151S",
       "affects": {
         "vehicleModes": [],
         "stopPoints": [],
@@ -8674,7 +8674,7 @@
       "lastUpdated": "2026-09-04T06:00:43.851692Z",
       "expiration": "2026-09-05T09:15:00Z",
       "openEnded": false,
-      "age": "PT5H39M45.859684876S",
+      "age": "PT5H56M27.133369505S",
       "affects": {
         "vehicleModes": [],
         "stopPoints": [],
@@ -8746,7 +8746,7 @@
       "lastUpdated": "2026-09-02T14:01:00.576261Z",
       "expiration": "2026-09-04T21:59:00Z",
       "openEnded": false,
-      "age": "PT45H39M29.064077987S",
+      "age": "PT45H56M10.352855727S",
       "affects": {
         "vehicleModes": [],
         "stopPoints": [
@@ -8803,7 +8803,7 @@
       "lastUpdated": "2026-09-02T14:01:00.482804Z",
       "expiration": "2026-09-04T21:59:00Z",
       "openEnded": false,
-      "age": "PT45H39M29.158226613S",
+      "age": "PT45H56M10.446739884S",
       "affects": {
         "vehicleModes": [],
         "stopPoints": [
@@ -8855,7 +8855,7 @@
       "lastUpdated": "2022-11-17T08:16:43.496Z",
       "expiration": null,
       "openEnded": true,
-      "age": "PT33291H23M46.239744972S",
+      "age": "PT33291H40M27.506053372S",
       "affects": {
         "vehicleModes": [],
         "stopPoints": [
@@ -8912,7 +8912,7 @@
       "lastUpdated": "2026-08-06T10:55:21.848666Z",
       "expiration": "2026-09-21T21:59:00Z",
       "openEnded": false,
-      "age": "PT696H45M7.845846866S",
+      "age": "PT697H1M49.120919069S",
       "affects": {
         "vehicleModes": [],
         "stopPoints": [],
@@ -8960,7 +8960,7 @@
       "lastUpdated": "2026-08-06T11:05:29.389246Z",
       "expiration": "2026-09-21T21:59:00Z",
       "openEnded": false,
-      "age": "PT696H35M0.310813605S",
+      "age": "PT696H51M41.586226729S",
       "affects": {
         "vehicleModes": [],
         "stopPoints": [],
@@ -9008,7 +9008,7 @@
       "lastUpdated": "2026-08-06T11:22:54.173196Z",
       "expiration": "2026-09-21T21:59:00Z",
       "openEnded": false,
-      "age": "PT696H17M35.534968968S",
+      "age": "PT696H34M16.80899595S",
       "affects": {
         "vehicleModes": [],
         "stopPoints": [],
@@ -9061,7 +9061,7 @@
       "lastUpdated": "2026-08-06T06:00:00Z",
       "expiration": "2026-09-20T03:00:00Z",
       "openEnded": false,
-      "age": "PT701H40M29.74146506S",
+      "age": "PT701H57M11.006431515S",
       "affects": {
         "vehicleModes": [],
         "stopPoints": [],
@@ -9126,7 +9126,7 @@
       "lastUpdated": "2026-06-22T11:59:11.938704Z",
       "expiration": null,
       "openEnded": true,
-      "age": "PT23738H50M39.849892475S",
+      "age": "PT23739H7M21.131459746S",
       "affects": {
         "vehicleModes": [],
         "stopPoints": [],
@@ -29660,6 +29660,76 @@
               }
             ],
             "affectedPointsOnLink": null
+          }
+        ],
+        "affectedLines": []
+      }
+    },
+    {
+      "situationNumber": "RUT:SituationNumber:SM-2e2f952c65864c4d8d365075bf979bf0",
+      "version": null,
+      "severity": "normal",
+      "reportType": "INCIDENT",
+      "summary": [
+        {
+          "value": "Innstilt",
+          "language": "NO"
+        },
+        {
+          "value": "Cancelled",
+          "language": "EN"
+        }
+      ],
+      "description": [
+        {
+          "value": "Avgangen er innstilt.",
+          "language": "NO"
+        },
+        {
+          "value": "The departure has been cancelled.",
+          "language": "EN"
+        }
+      ],
+      "advice": [],
+      "validityPeriods": [
+        {
+          "startTime": "2026-09-04T11:56:00Z",
+          "endTime": "2026-09-04T12:21:00Z"
+        }
+      ],
+      "infoLinks": [],
+      "participantRef": "RUT",
+      "codespace": {
+        "codespaceId": "RUT"
+      },
+      "sourceType": "DIRECT_REPORT",
+      "progress": "open",
+      "priority": null,
+      "planned": null,
+      "creationTime": null,
+      "versionedAtTime": null,
+      "lastUpdated": "2026-09-04T13:49:24.505496413+02:00",
+      "expiration": "2026-09-04T12:21:00Z",
+      "openEnded": false,
+      "age": null,
+      "affects": {
+        "vehicleModes": [],
+        "stopPoints": [],
+        "stopPlaces": [],
+        "operators": [],
+        "vehicleJourneys": [
+          {
+            "serviceJourney": {
+              "id": "RUT:ServiceJourney:0da6f8c6445891e96963aa116ff2a2ec"
+            },
+            "datedServiceJourney": null,
+            "line": null,
+            "operator": null,
+            "stops": [],
+            "affectedPointsOnLink": {
+              "points": "sntlJmu~aAGCICKAIAK?I@G@IBIBMFMF{@f@IFIDGBIBI@I?K?IAIAMCWGGAI@GBEBEFEFEHELIZENGHEFEBEBE?E@GAG?OAG?G@EBGDEDYZEFC@EDIDG@I?G?m@GQAMAE?GBEDGDCFCHCHALAL?F?H?J@HBL@LBJDRFRH^Ld@|@rDH\\FXBNBNBP?P?L?PANAPERCPENYlAEPCPANALAN?R@RBbA?N@L?RANICECMCKAK?K@KBM@IBEDCDQRH\\Jb@Hd@Jh@Jl@Hj@Fb@Dd@D\\Db@Df@B\\Df@Dr@?HBXBd@Bh@@d@B|@Bx@@p@@dA?rA@jB?fC?zE@vAAd@?L?L?L?PAXCXCVCREVCPGTEN?@ENKXUv@KZIZOj@CX?JCR?RARa@DwGl@G@w@Hi@FK@K@_@FK@MBGBCWAQASAQ?O@MBM@Or@}ENeADc@Fc@B]D]@[Ba@@]?Y@_@?c@Ak@Aq@As@Ck@Ae@Ca@Ee@YNWNWRYT]XQPQNYXON[^c@f@EDg@j@UXGFcEtEIJUVoBvBQRSTQVKPMPKRGLINEHc@dAKZIPSh@OZOZOVMTQVSVMPONa@^[XmAdAc@^KLMNKLKPIRGNGPGRGVEXCTCXCXAX?V?T?P?PAb@?N@P?\\m@HYB??QBYDSBcEd@w@HWBmALK@I@g@Fq@HI@]GYFi@Ba@DSBO@G@GG]AACAICGCECEECE?E?GBEHCDCJAJAL?L@JBJBHDFDD@R?N?RATCXC`@Gh@CVQ`Bi@jF[lCAHKbACREVERCBK?GAICGCMCCGEGEKEOEMIWGYGYEWGYE]Io@CKEg@a@uDCSScBCSMeAIk@AQQLC@KPEDIFgAx@eD~Bu@j@OJOLQPKHKLILQTsAlBo@~@ORMNKJGFKFIBKDMBI@O@Y?I?EAG?C?W@S@G?C?I@E@G?M@}ABQ?O@OBKBQFMFSHWLs@\\MFUJYNEBQH]PUJSHOFMDODIBG@OBO?O?Q?OCOCOEQGIEIGKEIGgBiAQIMGOEKCKAKAM?M@O@M@ODSFSJYJSHOFMFA?[NUHOFQJMJQJSPWVSRY\\]d@EBEDEDEDQRIJ]b@?@CDEHCDq@z@a@d@ILINGLGLEHGDEBG@I@KAICOEKEQIOKQMQQOSMOOSMSKUIQIQQc@EMEKGMEKCCESGSGOAGAEAECCCACAC@A?CDCDAF?H?H?F@D@X@X@P@ZATAf@G\\EREZA@C@EDCFCJAJAJ?L??E`@CTEREb@ENELGR_@hAc@nAWt@ENQh@GNIXEVEVCLATCTAXAHAZCt@?H?JCj@Cl@E`@C`@En@Cd@CRC\\Gb@G`@CJERGXGPIPGNc@x@?@g@`AKPKRGRIRENERGVGXE^QMCACAKEMEGCGAOAO?Q@M@C?E?UBc@B{ALO@i@DSBMDMBKDKDSHqAh@IDGDEBGBGBM@M?M@IBIBUFsAd@KDUHODSHUHOFKHMJIe@GYEQAAGOEKEGIIGEKEG?I?EBG@EBGHi@j@EDIDG@I@I?IAKAMEKCGCG?K?M@MBYJUJOF??OHOHGDQJQJMJUTWXONQRMRSTW^_@p@]p@SVOXUXSTUTYVs@j@IHiA~@WVQL?S@U@YLyAB_@Ba@Bc@@_@?_@@u@KBOBOFu@`@QJSPa@Zk@f@SPMPOPMTMTMVyA`Da@x@Yn@KXKTETA@EP]zAK^IVIPKPGJINMLiApAOPOPKNILMRINIPIRO`@GPa@fAEJUp@EHEHGHILTlAHf@Hh@VxADRJn@Hh@Nx@Lj@Nn@FVJ\\Pr@Ld@Qh@i@bBOb@Qh@ENO\\MZS\\Q`@OZOPEHADCJAJAJALAR?R@P?PBRFnA@P?T@d@ADADKHGDCBIFOPQHWFuA^O?GAI?G?EAKCCACCE?C@CBADCDADGHEDGDIDQFk@VSFQH",
+              "length": 835
+            }
           }
         ],
         "affectedLines": []

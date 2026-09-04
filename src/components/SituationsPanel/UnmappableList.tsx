@@ -4,9 +4,10 @@ import { pickTranslation } from "../SelectedVehiclePanel/situationText.ts";
 import { affectsShape } from "../../domain/situationStats.ts";
 
 /**
- * Situations that flatten to no map features at all — on this feed the
- * majority, dominated by the ones referencing only dated service journeys,
- * whose IDs resolve to nothing geographic in this API.
+ * Situations that flatten to no map features at all — a small minority on
+ * this feed (99 of 944 measured on dev), not the majority: affects that name
+ * only an operator, or stops/journeys/lines the API could not locate, or no
+ * affects at all.
  *
  * This is the map's complement over the *filtered* set: every situation the
  * current filter admits is either drawn on the map or listed here. Computing

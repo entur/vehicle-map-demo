@@ -131,10 +131,14 @@ export function buildSituationFeatures(
 
       const key = `affectedSpan:${journeyId}`;
       if (seen.has(key)) continue;
-      seen.add(key);
 
       const coordinates = decodePolyline(points);
       if (coordinates.length < 2) continue;
+
+      // Marked seen only after the polyline is confirmed decodable, mirroring
+      // addStop above: a journey listed twice whose first entry's polyline
+      // doesn't decode must not block its second, valid entry.
+      seen.add(key);
 
       lineFeatures.push({
         type: "Feature",

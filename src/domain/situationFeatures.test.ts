@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import { makeSituation } from "../__fixtures__/makeSituation.ts";
 import fixture from "../__fixtures__/situations.json";
 import { AffectedVehicleJourney, NationalSituation } from "../types.ts";
-import { buildSituationFeatures } from "./situationFeatures.ts";
+import {
+  buildSituationFeatures,
+  SituationFeatureProperties,
+} from "./situationFeatures.ts";
 
 const stop = (id: string, latitude: number, longitude: number) => ({
   id,
@@ -149,6 +152,52 @@ describe("against the captured dev fixture", () => {
     for (const [longitude, latitude] of coordinates) {
       expect(Number.isFinite(longitude)).toBe(true);
       expect(Number.isFinite(latitude)).toBe(true);
+    }
+  });
+
+  // The two tests above would both pass on a fixture that produced no
+  // features at all — that is exactly how a recapture silently dropped every
+  // affectedSpan (see capture-situations-fixture.mjs). Assert the fixture
+  // actually exercises every source it carries, so a future regression like
+  // that fails here instead of shipping unnoticed.
+  it("exercises every feature source the fixture carries, including affectedSpan", () => {
+    const { pointFeatures, lineFeatures } = buildSituationFeatures(situations);
+    const sourcesProduced = new Set([
+      ...pointFeatures.map((f) => f.properties.source),
+      ...lineFeatures.map((f) => f.properties.source),
+    ]);
+
+    const sourcesPresentInFixture = new Set<
+      SituationFeatureProperties["source"]
+    >();
+    for (const situation of situations) {
+      const affects = situation.affects;
+      if ((affects?.stopPoints ?? []).length > 0)
+        sourcesPresentInFixture.add("stopPoint");
+      if ((affects?.stopPlaces ?? []).length > 0)
+        sourcesPresentInFixture.add("stopPlace");
+      if (
+        (affects?.vehicleJourneys ?? []).some((j) => (j.stops ?? []).length > 0)
+      )
+        sourcesPresentInFixture.add("journeyStop");
+      if (
+        (affects?.affectedLines ?? []).some((l) => (l.stops ?? []).length > 0)
+      )
+        sourcesPresentInFixture.add("lineStop");
+      if (
+        (affects?.vehicleJourneys ?? []).some(
+          (j) => (j.affectedPointsOnLink?.points ?? "").length > 0,
+        )
+      )
+        sourcesPresentInFixture.add("affectedSpan");
+    }
+
+    // Sanity on the fixture itself: if this ever stops carrying a span, the
+    // capture script's must-include guarantee has regressed too.
+    expect(sourcesPresentInFixture.has("affectedSpan")).toBe(true);
+
+    for (const source of sourcesPresentInFixture) {
+      expect(sourcesProduced.has(source)).toBe(true);
     }
   });
 });
@@ -469,6 +518,34 @@ describe("affected spans", () => {
 
     expect(lineFeatures).toEqual([]);
     expect(unmappable).toEqual(["TST:SituationNumber:1"]);
+  });
+
+  it("recovers a journey's valid span when an earlier entry for the same journey doesn't decode", () => {
+    // "_uo_K_c`|@" decodes to a single coordinate (undecodable as a line);
+    // "_uo_K_c`|@_cmA_t`B" decodes to two. Marking `seen` before the decode
+    // check would let the first, bad entry block the second, valid one.
+    const { lineFeatures, unmappable } = buildSituationFeatures([
+      makeSituation({
+        affects: {
+          ...EMPTY,
+          vehicleJourneys: [
+            journeyWithSpan({
+              affectedPointsOnLink: { points: "_uo_K_c`|@", length: 0 },
+            }),
+            journeyWithSpan({
+              affectedPointsOnLink: {
+                points: "_uo_K_c`|@_cmA_t`B",
+                length: 119,
+              },
+            }),
+          ],
+        },
+      }),
+    ]);
+
+    expect(lineFeatures).toHaveLength(1);
+    expect(lineFeatures[0].geometry.coordinates).toHaveLength(2);
+    expect(unmappable).toEqual([]);
   });
 
   it("still emits the stops of a journey whose span is missing", () => {

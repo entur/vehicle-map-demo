@@ -58,6 +58,14 @@ const fanOutOf = (situation) => {
   return KINDS.reduce((total, kind) => total + (affects[kind] ?? []).length, 0);
 };
 
+// `shapeOf` counts affects *kinds*, not whether a journey carries a span, so
+// sampling by shape alone can drop every situation with an affectedSpan at
+// random. Always keep at least one, the same way `widest` is always kept.
+const hasSpan = (situation) =>
+  (situation.affects?.vehicleJourneys ?? []).some(
+    (journey) => (journey.affectedPointsOnLink?.points ?? "").length > 0,
+  );
+
 const response = await fetch(ENDPOINT, {
   method: "POST",
   headers: {
@@ -86,6 +94,14 @@ const picked = [...perShape.values()].flat();
 const widest = all.reduce((a, b) => (fanOutOf(a) >= fanOutOf(b) ? a : b));
 if (!picked.some((s) => s.situationNumber === widest.situationNumber)) {
   picked.push(widest);
+}
+
+const spanCarrier = all.find(hasSpan);
+if (
+  spanCarrier &&
+  !picked.some((s) => s.situationNumber === spanCarrier.situationNumber)
+) {
+  picked.push(spanCarrier);
 }
 
 writeFileSync(
