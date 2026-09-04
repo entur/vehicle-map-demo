@@ -25,6 +25,18 @@ const QUERY = `
         serviceJourneys { id date }
         datedServiceJourneys { id }
         operators { operatorRef name }
+        vehicleJourneys {
+          serviceJourney { id }
+          datedServiceJourney { id }
+          line { lineRef lineName publicCode }
+          operator { operatorRef name }
+          stops { stop { id name location { latitude longitude } } stopConditions }
+          affectedPointsOnLink { points length }
+        }
+        affectedLines {
+          line { lineRef lineName publicCode }
+          stops { stop { id name location { latitude longitude } } stopConditions }
+        }
       }
     }
   }

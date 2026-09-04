@@ -1,9 +1,5 @@
 import type { Feature, LineString, Point } from "geojson";
-import {
-  AffectedStop,
-  NationalSituation,
-  SeverityEnumeration,
-} from "../types.ts";
+import { NationalSituation, SeverityEnumeration, StopRef } from "../types.ts";
 
 export type SituationFeatureProperties = {
   situationNumber: string;
@@ -102,10 +98,7 @@ export function buildSituationFeatures(
     const before = pointFeatures.length + lineFeatures.length;
     const seen = new Set<string>();
 
-    const addStops = (
-      stops: AffectedStop[],
-      source: "stopPoint" | "stopPlace",
-    ) => {
+    const addStops = (stops: StopRef[], source: "stopPoint" | "stopPlace") => {
       for (const stop of stops) {
         const key = `${source}:${stop.id}`;
         if (seen.has(key)) continue;

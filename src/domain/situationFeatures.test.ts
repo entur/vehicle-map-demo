@@ -28,6 +28,8 @@ describe("buildSituationFeatures", () => {
           serviceJourneys: null,
           datedServiceJourneys: null,
           operators: null,
+          vehicleJourneys: null,
+          affectedLines: null,
         },
       }),
     ];
@@ -56,6 +58,8 @@ describe("buildSituationFeatures", () => {
           serviceJourneys: null,
           datedServiceJourneys: null,
           operators: null,
+          vehicleJourneys: null,
+          affectedLines: null,
         },
       }),
     ];
@@ -74,6 +78,8 @@ describe("buildSituationFeatures", () => {
       serviceJourneys: null,
       datedServiceJourneys: null,
       operators: null,
+      vehicleJourneys: null,
+      affectedLines: null,
     };
     const situations = [
       makeSituation({ situationNumber: "A", affects }),
@@ -99,6 +105,8 @@ describe("buildSituationFeatures", () => {
           serviceJourneys: null,
           datedServiceJourneys: null,
           operators: null,
+          vehicleJourneys: null,
+          affectedLines: null,
         },
       }),
     ];
@@ -124,6 +132,8 @@ describe("buildSituationFeatures", () => {
           serviceJourneys: null,
           datedServiceJourneys: null,
           operators: null,
+          vehicleJourneys: null,
+          affectedLines: null,
         },
       }),
     ];
@@ -164,6 +174,8 @@ describe("buildSituationFeatures", () => {
           serviceJourneys: null,
           datedServiceJourneys: null,
           operators: null,
+          vehicleJourneys: null,
+          affectedLines: null,
         },
       }),
     ];
@@ -196,6 +208,8 @@ describe("buildSituationFeatures", () => {
           serviceJourneys: null,
           datedServiceJourneys: null,
           operators: null,
+          vehicleJourneys: null,
+          affectedLines: null,
         },
       }),
       makeSituation({ situationNumber: "B", affects: null }),
@@ -225,6 +239,8 @@ describe("collectLineRefs", () => {
       serviceJourneys: null,
       datedServiceJourneys: null,
       operators: null,
+      vehicleJourneys: null,
+      affectedLines: null,
     });
 
     const refs = collectLineRefs([
@@ -285,6 +301,8 @@ describe("collectDatedServiceJourneyRefs", () => {
       serviceJourneys: null,
       datedServiceJourneys: ids.map((id) => ({ id })),
       operators: null,
+      vehicleJourneys: null,
+      affectedLines: null,
     });
     const refs = collectDatedServiceJourneyRefs([
       makeSituation({
@@ -310,6 +328,8 @@ describe("dated service journey features", () => {
         { id: "ATB:ServiceJourney:311_7010" },
       ],
       operators: null,
+      vehicleJourneys: null,
+      affectedLines: null,
     },
   });
 

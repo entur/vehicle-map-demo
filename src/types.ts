@@ -208,20 +208,58 @@ export type SituationProgress =
  * namespace from the realtime feed's, so they resolve to nothing. See the
  * design spec for the measurements behind that.
  */
-export type AffectedStop = {
+/** A stop as `affects` delivers it: id always, name and location only when the API resolved them. */
+export type StopRef = {
   id: string;
   name: string | null;
   location: { latitude: number; longitude: number } | null;
 };
 
+export type StopConditionEnumeration =
+  | "exceptionalStop"
+  | "destination"
+  | "notStopping"
+  | "requestStop"
+  | "startPoint";
+
+/** A stop within an affected journey or line, with the SIRI stop conditions that qualify it. */
+export type AffectedStop = {
+  stop: StopRef;
+  stopConditions: StopConditionEnumeration[];
+};
+
+/**
+ * One affected journey, with the stops it is affected at and — when the API can
+ * produce one — the span of its route between the first and last of them.
+ *
+ * `line` here is display context only. A journey entry is scoped to the journey
+ * it names, never to this line.
+ */
+export type AffectedVehicleJourney = {
+  serviceJourney: { id: string } | null;
+  datedServiceJourney: { id: string } | null;
+  line: Line | null;
+  operator: Operator | null;
+  stops: AffectedStop[] | null;
+  affectedPointsOnLink: { points: string | null; length: number | null } | null;
+};
+
+/** One affected line. A line has many journey patterns, so it carries no geometry — only stops. */
+export type AffectedLine = {
+  line: Line | null;
+  stops: AffectedStop[] | null;
+};
+
 export type Affects = {
   vehicleModes: VehicleModeEnumeration[] | null;
   lines: Line[] | null;
-  stopPoints: AffectedStop[] | null;
-  stopPlaces: AffectedStop[] | null;
+  stopPoints: StopRef[] | null;
+  stopPlaces: StopRef[] | null;
   serviceJourneys: ServiceJourney[] | null;
   datedServiceJourneys: { id: string }[] | null;
   operators: Operator[] | null;
+  vehicleJourneys: AffectedVehicleJourney[] | null;
+  affectedLines: AffectedLine[] | null;
 };
 
 /**

@@ -15,6 +15,8 @@ const EMPTY_AFFECTS = {
   serviceJourneys: null,
   datedServiceJourneys: null,
   operators: null,
+  vehicleJourneys: null,
+  affectedLines: null,
 };
 
 describe("countBy", () => {
