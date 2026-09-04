@@ -877,13 +877,7 @@ const features = useMemo(() => buildSituationFeatures(filtered), [filtered]);
 
 Leave the comment above that memo intact — it explains why the features are built over the filtered set, which is still true.
 
-Find the comment explaining why this provider stays mounted in vehicles mode (it cites the geometry cache) and correct it, without changing the behaviour:
-
-```tsx
-// Stays mounted in vehicles mode with the subscription merely paused. Nothing
-// here caches across a mode switch any more, so this is now only about keeping
-// the panel's state; unmounting would be a separate change.
-```
+There is **no** mount-rationale comment in this file to correct — verified against the file and its full git history. The claim that the provider stays mounted because of the geometry cache lives only in `CLAUDE.md` (data-flow item 7, and the geography section), and Task 6 rewrites both. Do not add a new comment here.
 
 - [ ] **Step 5: Verify nothing still references the deleted modules**
 
