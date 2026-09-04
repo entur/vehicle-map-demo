@@ -7,11 +7,10 @@ export const NONE = "(none)";
 
 /** Fixed order, so a shape string is comparable across situations. */
 const AFFECTS_KINDS = [
-  "lines",
+  "affectedLines",
+  "vehicleJourneys",
   "stopPoints",
   "stopPlaces",
-  "serviceJourneys",
-  "datedServiceJourneys",
   "operators",
 ] as const;
 

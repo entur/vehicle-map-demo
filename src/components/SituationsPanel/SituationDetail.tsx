@@ -197,9 +197,46 @@ export function SituationDetail({
         </Typography>
         <AffectsGroup
           label="Lines"
-          entries={(affects?.lines ?? []).map((line) =>
-            `${line.lineRef} ${line.lineName ?? ""}`.trim(),
-          )}
+          entries={(affects?.affectedLines ?? []).map((affectedLine) => {
+            const line = affectedLine.line;
+            const stops = affectedLine.stops?.length ?? 0;
+            const name =
+              `${line?.lineRef ?? "(no lineRef)"} ${line?.lineName ?? ""}`.trim();
+            return stops ? `${name} — ${stops} stop(s)` : name;
+          })}
+        />
+        <AffectsGroup
+          label="Journeys"
+          entries={(affects?.vehicleJourneys ?? []).map((journey) => {
+            const id =
+              journey.datedServiceJourney?.id ??
+              journey.serviceJourney?.id ??
+              "(no id)";
+            const parts = [id];
+            if (journey.line?.lineRef) parts.push(journey.line.lineRef);
+            if (journey.operator?.operatorRef)
+              parts.push(journey.operator.operatorRef);
+            parts.push(`${journey.stops?.length ?? 0} stop(s)`);
+            parts.push(
+              journey.affectedPointsOnLink?.points ? "span" : "no span",
+            );
+            return parts.join(" — ");
+          })}
+        />
+        <AffectsGroup
+          label="Affected stops"
+          entries={[
+            ...(affects?.vehicleJourneys ?? []).flatMap(
+              (journey) => journey.stops ?? [],
+            ),
+            ...(affects?.affectedLines ?? []).flatMap(
+              (affectedLine) => affectedLine.stops ?? [],
+            ),
+          ].map((entry) => {
+            const conditions = entry.stopConditions.join(", ");
+            const name = `${entry.stop.id} ${entry.stop.name ?? ""}`.trim();
+            return conditions ? `${name} [${conditions}]` : name;
+          })}
         />
         <AffectsGroup
           label="Stop points"
@@ -211,18 +248,6 @@ export function SituationDetail({
           label="Stop places"
           entries={(affects?.stopPlaces ?? []).map((stop) =>
             `${stop.id} ${stop.name ?? ""}`.trim(),
-          )}
-        />
-        <AffectsGroup
-          label="Service journeys"
-          entries={(affects?.serviceJourneys ?? []).map(
-            (journey) => journey.id,
-          )}
-        />
-        <AffectsGroup
-          label="Dated service journeys"
-          entries={(affects?.datedServiceJourneys ?? []).map(
-            (journey) => journey.id,
           )}
         />
         <AffectsGroup

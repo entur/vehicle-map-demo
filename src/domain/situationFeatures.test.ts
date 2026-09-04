@@ -16,11 +16,8 @@ describe("buildSituationFeatures", () => {
       makeSituation({
         affects: {
           vehicleModes: null,
-          lines: null,
           stopPoints: [stop("NSR:Quay:1", 60, 10), stop("NSR:Quay:2", 61, 11)],
           stopPlaces: null,
-          serviceJourneys: null,
-          datedServiceJourneys: null,
           operators: null,
           vehicleJourneys: null,
           affectedLines: null,
@@ -43,11 +40,8 @@ describe("buildSituationFeatures", () => {
       makeSituation({
         affects: {
           vehicleModes: null,
-          lines: null,
           stopPoints: [stop("NSR:Quay:1", 60, 10), stop("NSR:Quay:1", 60, 10)],
           stopPlaces: null,
-          serviceJourneys: null,
-          datedServiceJourneys: null,
           operators: null,
           vehicleJourneys: null,
           affectedLines: null,
@@ -61,11 +55,8 @@ describe("buildSituationFeatures", () => {
   it("keeps coincident features from different situations", () => {
     const affects = {
       vehicleModes: null,
-      lines: null,
       stopPoints: [stop("NSR:Quay:1", 60, 10)],
       stopPlaces: null,
-      serviceJourneys: null,
-      datedServiceJourneys: null,
       operators: null,
       vehicleJourneys: null,
       affectedLines: null,
@@ -88,11 +79,8 @@ describe("buildSituationFeatures", () => {
       makeSituation({
         affects: {
           vehicleModes: null,
-          lines: null,
           stopPoints: [{ id: "NSR:Quay:9", name: "Nowhere", location: null }],
           stopPlaces: null,
-          serviceJourneys: null,
-          datedServiceJourneys: null,
           operators: null,
           vehicleJourneys: null,
           affectedLines: null,
@@ -118,11 +106,8 @@ describe("buildSituationFeatures", () => {
         situationNumber: "A",
         affects: {
           vehicleModes: null,
-          lines: null,
           stopPoints: [stop("NSR:Quay:1", 60, 10), stop("NSR:Quay:2", 61, 11)],
           stopPlaces: null,
-          serviceJourneys: null,
-          datedServiceJourneys: null,
           operators: null,
           vehicleJourneys: null,
           affectedLines: null,
@@ -170,11 +155,8 @@ describe("against the captured dev fixture", () => {
 
 const EMPTY = {
   vehicleModes: null,
-  lines: null,
   stopPoints: null,
   stopPlaces: null,
-  serviceJourneys: null,
-  datedServiceJourneys: null,
   operators: null,
   vehicleJourneys: null,
   affectedLines: null,

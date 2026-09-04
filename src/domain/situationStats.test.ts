@@ -9,11 +9,8 @@ import {
 
 const EMPTY_AFFECTS = {
   vehicleModes: null,
-  lines: null,
   stopPoints: null,
   stopPlaces: null,
-  serviceJourneys: null,
-  datedServiceJourneys: null,
   operators: null,
   vehicleJourneys: null,
   affectedLines: null,
@@ -47,10 +44,22 @@ describe("affectsShape", () => {
     expect(
       affectsShape(
         makeSituation({
-          affects: { ...EMPTY_AFFECTS, datedServiceJourneys: [{ id: "x" }] },
+          affects: {
+            ...EMPTY_AFFECTS,
+            vehicleJourneys: [
+              {
+                serviceJourney: null,
+                datedServiceJourney: { id: "x" },
+                line: null,
+                operator: null,
+                stops: null,
+                affectedPointsOnLink: null,
+              },
+            ],
+          },
         }),
       ),
-    ).toBe("datedServiceJourneys");
+    ).toBe("vehicleJourneys");
   });
 
   it("joins several populated kinds in a fixed order", () => {
@@ -59,12 +68,17 @@ describe("affectsShape", () => {
         makeSituation({
           affects: {
             ...EMPTY_AFFECTS,
-            serviceJourneys: [{ id: "s", date: "2026-08-10" }],
-            lines: [{ lineRef: "L:1", lineName: "One", publicCode: "1" }],
+            operators: [{ operatorRef: "RUT:Operator:1", name: "Ruter" }],
+            affectedLines: [
+              {
+                line: { lineRef: "L:1", lineName: "One", publicCode: "1" },
+                stops: null,
+              },
+            ],
           },
         }),
       ),
-    ).toBe("lines+serviceJourneys");
+    ).toBe("affectedLines+operators");
   });
 
   it("calls a null affects (empty)", () => {

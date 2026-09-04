@@ -19,11 +19,8 @@ const QUERY = `
       planned creationTime versionedAtTime lastUpdated expiration openEnded age
       affects {
         vehicleModes
-        lines { lineRef lineName publicCode }
         stopPoints { id name location { latitude longitude } }
         stopPlaces { id name location { latitude longitude } }
-        serviceJourneys { id date }
-        datedServiceJourneys { id }
         operators { operatorRef name }
         vehicleJourneys {
           serviceJourney { id }
@@ -43,11 +40,10 @@ const QUERY = `
 `;
 
 const KINDS = [
-  "lines",
+  "affectedLines",
+  "vehicleJourneys",
   "stopPoints",
   "stopPlaces",
-  "serviceJourneys",
-  "datedServiceJourneys",
   "operators",
 ];
 

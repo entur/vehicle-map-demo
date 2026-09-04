@@ -200,14 +200,6 @@ export type SituationProgress =
   | "closing"
   | "closed";
 
-/**
- * What a situation claims to affect.
- *
- * Only `stopPoints` and `stopPlaces` carry coordinates — `Line` exposes no
- * geometry at all, and the service-journey IDs here are in a different
- * namespace from the realtime feed's, so they resolve to nothing. See the
- * design spec for the measurements behind that.
- */
 /** A stop as `affects` delivers it: id always, name and location only when the API resolved them. */
 export type StopRef = {
   id: string;
@@ -250,13 +242,20 @@ export type AffectedLine = {
   stops: AffectedStop[] | null;
 };
 
+/**
+ * What a situation claims to affect.
+ *
+ * `vehicleJourneys` and `affectedLines` supersede the flat `lines`,
+ * `serviceJourneys` and `datedServiceJourneys` the feed also publishes: they name
+ * the same journeys and lines, but pair each with the located stops it is
+ * affected at, and a journey with an `affectedPointsOnLink` carries the span of
+ * its route. `stopPoints` and `stopPlaces` are **not** superseded — measured on
+ * dev, every situation carrying them names no journey and no line at all.
+ */
 export type Affects = {
   vehicleModes: VehicleModeEnumeration[] | null;
-  lines: Line[] | null;
   stopPoints: StopRef[] | null;
   stopPlaces: StopRef[] | null;
-  serviceJourneys: ServiceJourney[] | null;
-  datedServiceJourneys: { id: string }[] | null;
   operators: Operator[] | null;
   vehicleJourneys: AffectedVehicleJourney[] | null;
   affectedLines: AffectedLine[] | null;
