@@ -33,6 +33,7 @@ const QUERY = `
         affectedLines {
           line { lineRef lineName publicCode }
           stops { stop { id name location { latitude longitude } } stopConditions }
+          affectedPointsOnLink { points length }
         }
       }
     }
@@ -58,12 +59,19 @@ const fanOutOf = (situation) => {
   return KINDS.reduce((total, kind) => total + (affects[kind] ?? []).length, 0);
 };
 
-// `shapeOf` counts affects *kinds*, not whether a journey carries a span, so
-// sampling by shape alone can drop every situation with an affectedSpan at
-// random. Always keep at least one, the same way `widest` is always kept.
-const hasSpan = (situation) =>
+// `shapeOf` counts affects *kinds*, not whether a journey or line carries a
+// span, so sampling by shape alone can drop every situation with a span at
+// random. Always keep at least one of each, the same way `widest` is always
+// kept — a journey-span carrier does not guarantee a line-span carrier, or
+// vice versa, so both are picked independently.
+const hasJourneySpan = (situation) =>
   (situation.affects?.vehicleJourneys ?? []).some(
     (journey) => (journey.affectedPointsOnLink?.points ?? "").length > 0,
+  );
+
+const hasLineSpan = (situation) =>
+  (situation.affects?.affectedLines ?? []).some(
+    (line) => (line.affectedPointsOnLink?.points ?? "").length > 0,
   );
 
 const response = await fetch(ENDPOINT, {
@@ -96,12 +104,20 @@ if (!picked.some((s) => s.situationNumber === widest.situationNumber)) {
   picked.push(widest);
 }
 
-const spanCarrier = all.find(hasSpan);
+const journeySpanCarrier = all.find(hasJourneySpan);
 if (
-  spanCarrier &&
-  !picked.some((s) => s.situationNumber === spanCarrier.situationNumber)
+  journeySpanCarrier &&
+  !picked.some((s) => s.situationNumber === journeySpanCarrier.situationNumber)
 ) {
-  picked.push(spanCarrier);
+  picked.push(journeySpanCarrier);
+}
+
+const lineSpanCarrier = all.find(hasLineSpan);
+if (
+  lineSpanCarrier &&
+  !picked.some((s) => s.situationNumber === lineSpanCarrier.situationNumber)
+) {
+  picked.push(lineSpanCarrier);
 }
 
 writeFileSync(

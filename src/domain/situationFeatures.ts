@@ -9,8 +9,16 @@ export type SituationFeatureProperties = {
   codespaceId: string | null;
   /** Which affects member produced this feature. */
   source:
-    "stopPoint" | "stopPlace" | "journeyStop" | "lineStop" | "affectedSpan";
-  /** The stop id the feature was built from, or the journey id for an affectedSpan. */
+    | "stopPoint"
+    | "stopPlace"
+    | "journeyStop"
+    | "lineStop"
+    | "journeySpan"
+    | "lineSpan";
+  /**
+   * The stop id for the four point sources, the journey id for a
+   * `journeySpan`, or the line ref for a `lineSpan`.
+   */
   entityId: string;
   name: string | null;
 };
@@ -51,9 +59,10 @@ function propertiesFor(
  * arrives with the feed, so no lookup, cache or network call is involved.
  *
  * Deduplication is **within** a situation only — points by stop id across all
- * four stop sources, spans by journey id. Two situations affecting the same stop
- * deliberately produce two coincident features; that overlap is the point of a
- * feed-debugging tool, and collapsing it would hide exactly the duplication
+ * four stop sources, journey spans by journey id, line spans by line ref. Two
+ * situations affecting the same stop deliberately produce two coincident
+ * features; that overlap is the point of a feed-debugging tool, and
+ * collapsing it would hide exactly the duplication
  * worth seeing.
  *
  * Nothing is averaged, invented, or given a synthetic centroid: a situation that
@@ -129,7 +138,7 @@ export function buildSituationFeatures(
         journey.datedServiceJourney?.id ?? journey.serviceJourney?.id;
       if (!journeyId) continue;
 
-      const key = `affectedSpan:${journeyId}`;
+      const key = `journeySpan:${journeyId}`;
       if (seen.has(key)) continue;
 
       const coordinates = decodePolyline(points);
@@ -145,9 +154,42 @@ export function buildSituationFeatures(
         geometry: { type: "LineString", coordinates },
         properties: propertiesFor(
           situation,
-          "affectedSpan",
+          "journeySpan",
           journeyId,
           journey.line?.lineName ?? null,
+        ),
+      });
+    }
+
+    // Lines carry geometry too, but with a caveat the journey span does not
+    // have: it is one representative pattern, not the line. The API picks the
+    // first pattern the affected stops locate on, or the longest when the line
+    // is affected as a whole, and withholds it entirely rather than guess.
+    for (const affectedLine of situation.affects?.affectedLines ?? []) {
+      const points = affectedLine.affectedPointsOnLink?.points;
+      if (!points) continue;
+
+      const lineRef = affectedLine.line?.lineRef;
+      if (!lineRef) continue;
+
+      const key = `lineSpan:${lineRef}`;
+      if (seen.has(key)) continue;
+
+      const coordinates = decodePolyline(points);
+      if (coordinates.length < 2) continue;
+
+      // Marked seen only after the polyline is confirmed decodable, mirroring
+      // addStop and the journey span loop above.
+      seen.add(key);
+
+      lineFeatures.push({
+        type: "Feature",
+        geometry: { type: "LineString", coordinates },
+        properties: propertiesFor(
+          situation,
+          "lineSpan",
+          lineRef,
+          affectedLine.line?.lineName ?? null,
         ),
       });
     }

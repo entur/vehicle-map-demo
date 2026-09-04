@@ -55,7 +55,7 @@
       "lastUpdated": "2026-08-28T11:19:36.915955Z",
       "expiration": "2027-08-28T12:18:00Z",
       "openEnded": false,
-      "age": "PT168H37M33.984703818S",
+      "age": "PT170H20M25.623292355S",
       "affects": {
         "vehicleModes": [],
         "stopPoints": [],
@@ -81,7 +81,8 @@
                 },
                 "stopConditions": []
               }
-            ]
+            ],
+            "affectedPointsOnLink": null
           }
         ]
       }
@@ -141,7 +142,7 @@
       "lastUpdated": "2026-08-28T11:19:36.915955Z",
       "expiration": "2027-08-28T12:18:00Z",
       "openEnded": false,
-      "age": "PT168H37M33.984965059S",
+      "age": "PT170H20M25.626286239S",
       "affects": {
         "vehicleModes": [],
         "stopPoints": [],
@@ -167,7 +168,8 @@
                 },
                 "stopConditions": []
               }
-            ]
+            ],
+            "affectedPointsOnLink": null
           }
         ]
       }
@@ -227,7 +229,7 @@
       "lastUpdated": "2026-08-28T11:19:36.915955Z",
       "expiration": "2027-08-28T12:18:00Z",
       "openEnded": false,
-      "age": "PT168H37M33.986676593S",
+      "age": "PT170H20M25.637178621S",
       "affects": {
         "vehicleModes": [],
         "stopPoints": [],
@@ -253,7 +255,8 @@
                 },
                 "stopConditions": []
               }
-            ]
+            ],
+            "affectedPointsOnLink": null
           }
         ]
       }
@@ -304,7 +307,7 @@
       "lastUpdated": "2026-06-22T11:59:12.047119Z",
       "expiration": null,
       "openEnded": true,
-      "age": "PT2622H48M16.259015685S",
+      "age": "PT2624H31M7.901276908S",
       "affects": {
         "vehicleModes": [],
         "stopPoints": [],
@@ -2605,7 +2608,7 @@
       "lastUpdated": "2026-06-22T11:59:12.031988Z",
       "expiration": null,
       "openEnded": true,
-      "age": "PT4939H40M7.632764452S",
+      "age": "PT4941H22M59.292269326S",
       "affects": {
         "vehicleModes": [],
         "stopPoints": [],
@@ -7941,52 +7944,44 @@
       }
     },
     {
-      "situationNumber": "NSB:SituationNumber:fcbd1e14-9581-43a7-b69a-db9a73d7bbac",
-      "version": 14,
-      "severity": "undefined",
+      "situationNumber": "ATB:SituationNumber:26691-vehicleJourney",
+      "version": null,
+      "severity": "noImpact",
       "reportType": "INCIDENT",
       "summary": [
         {
-          "value": "Ta andre tog som går på strekningen Stabekk og Lysaker.",
-          "language": "NO"
-        },
-        {
-          "value": "Use other trains serving Stabekk and Lysaker.",
-          "language": "EN"
+          "value": "Journey cancelled",
+          "language": null
         }
       ],
       "description": [
         {
-          "value": "Ta andre tog som går på strekningen Stabekk og Lysaker.",
-          "language": "NO"
-        },
-        {
-          "value": "Use other trains serving Stabekk and Lysaker.",
-          "language": "EN"
+          "value": "Journey cancelled",
+          "language": null
         }
       ],
       "advice": [],
       "validityPeriods": [
         {
-          "startTime": "2026-06-29T14:09:35.999Z",
-          "endTime": null
+          "startTime": "2026-09-04T12:15:00Z",
+          "endTime": "2026-09-04T21:59:00Z"
         }
       ],
       "infoLinks": [],
-      "participantRef": "NSB",
+      "participantRef": "ATB",
       "codespace": {
-        "codespaceId": "NSB"
+        "codespaceId": "ATB"
       },
       "sourceType": "DIRECT_REPORT",
       "progress": "open",
-      "priority": 3,
+      "priority": 5,
       "planned": null,
-      "creationTime": "2026-06-29T15:09:53.291Z",
-      "versionedAtTime": "2026-07-03T09:37:05.414219Z",
-      "lastUpdated": "2026-07-03T09:37:05.414219Z",
-      "expiration": null,
-      "openEnded": true,
-      "age": "PT1604H47M17.617742369S",
+      "creationTime": "2026-09-04T12:16:45.588363Z",
+      "versionedAtTime": null,
+      "lastUpdated": "2026-09-04T12:16:45.588363Z",
+      "expiration": "2026-09-04T21:59:00Z",
+      "openEnded": false,
+      "age": "PT1H23M17.041151378S",
       "affects": {
         "vehicleModes": [],
         "stopPoints": [],
@@ -7996,499 +7991,215 @@
           {
             "serviceJourney": null,
             "datedServiceJourney": {
-              "id": "VYG:DatedServiceJourney:1149_STB-MOS_26-06-29"
+              "id": "ATB:ServiceJourney:78_251215112544298_27"
             },
             "line": null,
             "operator": null,
-            "stops": [
-              {
-                "stop": {
-                  "id": "NSR:StopPlace:706",
-                  "name": "Stabekk stasjon",
-                  "location": {
-                    "latitude": 59.90803,
-                    "longitude": 10.607257
-                  }
-                },
-                "stopConditions": []
-              },
-              {
-                "stop": {
-                  "id": "NSR:StopPlace:157",
-                  "name": "Lysaker stasjon",
-                  "location": {
-                    "latitude": 59.913446,
-                    "longitude": 10.637247
-                  }
-                },
-                "stopConditions": ["destination"]
-              }
-            ],
+            "stops": [],
             "affectedPointsOnLink": null
           },
           {
             "serviceJourney": null,
             "datedServiceJourney": {
-              "id": "VYG:DatedServiceJourney:1151_STB-MOS_26-06-29"
+              "id": "ATB:ServiceJourney:78_251215112544301_33"
             },
             "line": null,
             "operator": null,
-            "stops": [
-              {
-                "stop": {
-                  "id": "NSR:StopPlace:706",
-                  "name": "Stabekk stasjon",
-                  "location": {
-                    "latitude": 59.90803,
-                    "longitude": 10.607257
-                  }
-                },
-                "stopConditions": []
-              },
-              {
-                "stop": {
-                  "id": "NSR:StopPlace:157",
-                  "name": "Lysaker stasjon",
-                  "location": {
-                    "latitude": 59.913446,
-                    "longitude": 10.637247
-                  }
-                },
-                "stopConditions": ["destination"]
-              }
-            ],
+            "stops": [],
             "affectedPointsOnLink": null
           },
           {
             "serviceJourney": null,
             "datedServiceJourney": {
-              "id": "VYG:DatedServiceJourney:1153_STB-MOS_26-06-29"
+              "id": "ATB:ServiceJourney:78_251215112544257_20"
             },
             "line": null,
             "operator": null,
-            "stops": [
-              {
-                "stop": {
-                  "id": "NSR:StopPlace:706",
-                  "name": "Stabekk stasjon",
-                  "location": {
-                    "latitude": 59.90803,
-                    "longitude": 10.607257
-                  }
-                },
-                "stopConditions": []
-              },
-              {
-                "stop": {
-                  "id": "NSR:StopPlace:157",
-                  "name": "Lysaker stasjon",
-                  "location": {
-                    "latitude": 59.913446,
-                    "longitude": 10.637247
-                  }
-                },
-                "stopConditions": ["destination"]
-              }
-            ],
+            "stops": [],
             "affectedPointsOnLink": null
           },
           {
             "serviceJourney": null,
             "datedServiceJourney": {
-              "id": "VYG:DatedServiceJourney:1155_STB-SKI_26-06-29"
+              "id": "ATB:ServiceJourney:78_251215112544260_28"
             },
             "line": null,
             "operator": null,
-            "stops": [
-              {
-                "stop": {
-                  "id": "NSR:StopPlace:706",
-                  "name": "Stabekk stasjon",
-                  "location": {
-                    "latitude": 59.90803,
-                    "longitude": 10.607257
-                  }
-                },
-                "stopConditions": []
-              },
-              {
-                "stop": {
-                  "id": "NSR:StopPlace:157",
-                  "name": "Lysaker stasjon",
-                  "location": {
-                    "latitude": 59.913446,
-                    "longitude": 10.637247
-                  }
-                },
-                "stopConditions": ["destination"]
-              }
-            ],
-            "affectedPointsOnLink": null
-          },
-          {
-            "serviceJourney": null,
-            "datedServiceJourney": {
-              "id": "VYG:DatedServiceJourney:1157_STB-MOS_26-06-29"
-            },
-            "line": null,
-            "operator": null,
-            "stops": [
-              {
-                "stop": {
-                  "id": "NSR:StopPlace:706",
-                  "name": "Stabekk stasjon",
-                  "location": {
-                    "latitude": 59.90803,
-                    "longitude": 10.607257
-                  }
-                },
-                "stopConditions": []
-              },
-              {
-                "stop": {
-                  "id": "NSR:StopPlace:157",
-                  "name": "Lysaker stasjon",
-                  "location": {
-                    "latitude": 59.913446,
-                    "longitude": 10.637247
-                  }
-                },
-                "stopConditions": ["destination"]
-              }
-            ],
-            "affectedPointsOnLink": null
-          },
-          {
-            "serviceJourney": null,
-            "datedServiceJourney": {
-              "id": "VYG:DatedServiceJourney:1159_STB-SKI_26-06-29"
-            },
-            "line": null,
-            "operator": null,
-            "stops": [
-              {
-                "stop": {
-                  "id": "NSR:StopPlace:706",
-                  "name": "Stabekk stasjon",
-                  "location": {
-                    "latitude": 59.90803,
-                    "longitude": 10.607257
-                  }
-                },
-                "stopConditions": []
-              },
-              {
-                "stop": {
-                  "id": "NSR:StopPlace:157",
-                  "name": "Lysaker stasjon",
-                  "location": {
-                    "latitude": 59.913446,
-                    "longitude": 10.637247
-                  }
-                },
-                "stopConditions": ["destination"]
-              }
-            ],
-            "affectedPointsOnLink": null
-          },
-          {
-            "serviceJourney": null,
-            "datedServiceJourney": {
-              "id": "VYG:DatedServiceJourney:1161_STB-MOS_26-06-29"
-            },
-            "line": null,
-            "operator": null,
-            "stops": [
-              {
-                "stop": {
-                  "id": "NSR:StopPlace:706",
-                  "name": "Stabekk stasjon",
-                  "location": {
-                    "latitude": 59.90803,
-                    "longitude": 10.607257
-                  }
-                },
-                "stopConditions": []
-              },
-              {
-                "stop": {
-                  "id": "NSR:StopPlace:157",
-                  "name": "Lysaker stasjon",
-                  "location": {
-                    "latitude": 59.913446,
-                    "longitude": 10.637247
-                  }
-                },
-                "stopConditions": ["destination"]
-              }
-            ],
-            "affectedPointsOnLink": null
-          },
-          {
-            "serviceJourney": null,
-            "datedServiceJourney": {
-              "id": "VYG:DatedServiceJourney:1163_STB-SKI_26-06-29"
-            },
-            "line": null,
-            "operator": null,
-            "stops": [
-              {
-                "stop": {
-                  "id": "NSR:StopPlace:706",
-                  "name": "Stabekk stasjon",
-                  "location": {
-                    "latitude": 59.90803,
-                    "longitude": 10.607257
-                  }
-                },
-                "stopConditions": []
-              },
-              {
-                "stop": {
-                  "id": "NSR:StopPlace:157",
-                  "name": "Lysaker stasjon",
-                  "location": {
-                    "latitude": 59.913446,
-                    "longitude": 10.637247
-                  }
-                },
-                "stopConditions": ["destination"]
-              }
-            ],
-            "affectedPointsOnLink": null
-          },
-          {
-            "serviceJourney": null,
-            "datedServiceJourney": {
-              "id": "VYG:DatedServiceJourney:1165_STB-MOS_26-06-29"
-            },
-            "line": null,
-            "operator": null,
-            "stops": [
-              {
-                "stop": {
-                  "id": "NSR:StopPlace:706",
-                  "name": "Stabekk stasjon",
-                  "location": {
-                    "latitude": 59.90803,
-                    "longitude": 10.607257
-                  }
-                },
-                "stopConditions": []
-              },
-              {
-                "stop": {
-                  "id": "NSR:StopPlace:157",
-                  "name": "Lysaker stasjon",
-                  "location": {
-                    "latitude": 59.913446,
-                    "longitude": 10.637247
-                  }
-                },
-                "stopConditions": ["destination"]
-              }
-            ],
-            "affectedPointsOnLink": null
-          },
-          {
-            "serviceJourney": null,
-            "datedServiceJourney": {
-              "id": "VYG:DatedServiceJourney:1167_STB-SKI_26-06-29"
-            },
-            "line": null,
-            "operator": null,
-            "stops": [
-              {
-                "stop": {
-                  "id": "NSR:StopPlace:706",
-                  "name": "Stabekk stasjon",
-                  "location": {
-                    "latitude": 59.90803,
-                    "longitude": 10.607257
-                  }
-                },
-                "stopConditions": []
-              },
-              {
-                "stop": {
-                  "id": "NSR:StopPlace:157",
-                  "name": "Lysaker stasjon",
-                  "location": {
-                    "latitude": 59.913446,
-                    "longitude": 10.637247
-                  }
-                },
-                "stopConditions": ["destination"]
-              }
-            ],
-            "affectedPointsOnLink": null
-          },
-          {
-            "serviceJourney": null,
-            "datedServiceJourney": {
-              "id": "VYG:DatedServiceJourney:1169_STB-MOS_26-06-29"
-            },
-            "line": null,
-            "operator": null,
-            "stops": [
-              {
-                "stop": {
-                  "id": "NSR:StopPlace:706",
-                  "name": "Stabekk stasjon",
-                  "location": {
-                    "latitude": 59.90803,
-                    "longitude": 10.607257
-                  }
-                },
-                "stopConditions": []
-              },
-              {
-                "stop": {
-                  "id": "NSR:StopPlace:157",
-                  "name": "Lysaker stasjon",
-                  "location": {
-                    "latitude": 59.913446,
-                    "longitude": 10.637247
-                  }
-                },
-                "stopConditions": ["destination"]
-              }
-            ],
-            "affectedPointsOnLink": null
-          },
-          {
-            "serviceJourney": null,
-            "datedServiceJourney": {
-              "id": "VYG:DatedServiceJourney:1171_STB-SKI_26-06-29"
-            },
-            "line": null,
-            "operator": null,
-            "stops": [
-              {
-                "stop": {
-                  "id": "NSR:StopPlace:706",
-                  "name": "Stabekk stasjon",
-                  "location": {
-                    "latitude": 59.90803,
-                    "longitude": 10.607257
-                  }
-                },
-                "stopConditions": []
-              },
-              {
-                "stop": {
-                  "id": "NSR:StopPlace:157",
-                  "name": "Lysaker stasjon",
-                  "location": {
-                    "latitude": 59.913446,
-                    "longitude": 10.637247
-                  }
-                },
-                "stopConditions": ["destination"]
-              }
-            ],
-            "affectedPointsOnLink": null
-          },
-          {
-            "serviceJourney": null,
-            "datedServiceJourney": {
-              "id": "VYG:DatedServiceJourney:1173_STB-MOS_26-06-29"
-            },
-            "line": null,
-            "operator": null,
-            "stops": [
-              {
-                "stop": {
-                  "id": "NSR:StopPlace:706",
-                  "name": "Stabekk stasjon",
-                  "location": {
-                    "latitude": 59.90803,
-                    "longitude": 10.607257
-                  }
-                },
-                "stopConditions": []
-              },
-              {
-                "stop": {
-                  "id": "NSR:StopPlace:157",
-                  "name": "Lysaker stasjon",
-                  "location": {
-                    "latitude": 59.913446,
-                    "longitude": 10.637247
-                  }
-                },
-                "stopConditions": ["destination"]
-              }
-            ],
-            "affectedPointsOnLink": null
-          },
-          {
-            "serviceJourney": null,
-            "datedServiceJourney": {
-              "id": "VYG:DatedServiceJourney:1175_STB-MOS_26-06-29"
-            },
-            "line": null,
-            "operator": null,
-            "stops": [
-              {
-                "stop": {
-                  "id": "NSR:StopPlace:706",
-                  "name": "Stabekk stasjon",
-                  "location": {
-                    "latitude": 59.90803,
-                    "longitude": 10.607257
-                  }
-                },
-                "stopConditions": []
-              },
-              {
-                "stop": {
-                  "id": "NSR:StopPlace:157",
-                  "name": "Lysaker stasjon",
-                  "location": {
-                    "latitude": 59.913446,
-                    "longitude": 10.637247
-                  }
-                },
-                "stopConditions": ["destination"]
-              }
-            ],
-            "affectedPointsOnLink": null
-          },
-          {
-            "serviceJourney": null,
-            "datedServiceJourney": {
-              "id": "VYG:DatedServiceJourney:1179_STB-MOS_26-06-30"
-            },
-            "line": null,
-            "operator": null,
-            "stops": [
-              {
-                "stop": {
-                  "id": "NSR:StopPlace:706",
-                  "name": "Stabekk stasjon",
-                  "location": {
-                    "latitude": 59.90803,
-                    "longitude": 10.607257
-                  }
-                },
-                "stopConditions": []
-              },
-              {
-                "stop": {
-                  "id": "NSR:StopPlace:157",
-                  "name": "Lysaker stasjon",
-                  "location": {
-                    "latitude": 59.913446,
-                    "longitude": 10.637247
-                  }
-                },
-                "stopConditions": ["destination"]
-              }
-            ],
+            "stops": [],
             "affectedPointsOnLink": null
           }
         ],
+        "affectedLines": []
+      }
+    },
+    {
+      "situationNumber": "ATB:SituationNumber:26714-stopPoint",
+      "version": null,
+      "severity": "noImpact",
+      "reportType": "INCIDENT",
+      "summary": [
+        {
+          "value": "Skjettmyrbakken - bussholdeplassen er stengt",
+          "language": null
+        }
+      ],
+      "description": [
+        {
+          "value": "Skjettmyrbakken - bussholdeplassen er stengt",
+          "language": null
+        }
+      ],
+      "advice": [],
+      "validityPeriods": [
+        {
+          "startTime": "2026-09-04T13:32:00Z",
+          "endTime": "2026-09-04T21:59:00Z"
+        }
+      ],
+      "infoLinks": [],
+      "participantRef": "ATB",
+      "codespace": {
+        "codespaceId": "ATB"
+      },
+      "sourceType": "DIRECT_REPORT",
+      "progress": "open",
+      "priority": 5,
+      "planned": null,
+      "creationTime": "2026-09-04T13:33:30.84338Z",
+      "versionedAtTime": null,
+      "lastUpdated": "2026-09-04T13:33:30.84338Z",
+      "expiration": "2026-09-04T21:59:00Z",
+      "openEnded": false,
+      "age": "PT6M31.774369254S",
+      "affects": {
+        "vehicleModes": [],
+        "stopPoints": [
+          {
+            "id": "NSR:Quay:72382",
+            "name": "Skjettmyrbakken",
+            "location": {
+              "latitude": 63.177184,
+              "longitude": 10.316666
+            }
+          }
+        ],
+        "stopPlaces": [],
+        "operators": [],
+        "vehicleJourneys": [],
+        "affectedLines": []
+      }
+    },
+    {
+      "situationNumber": "ATB:SituationNumber:26723-stopPoint",
+      "version": null,
+      "severity": "noImpact",
+      "reportType": "INCIDENT",
+      "summary": [
+        {
+          "value": "Lundabrua - bussholdeplassen er stengt",
+          "language": null
+        }
+      ],
+      "description": [
+        {
+          "value": "Lundabrua - bussholdeplassen er stengt",
+          "language": null
+        }
+      ],
+      "advice": [],
+      "validityPeriods": [
+        {
+          "startTime": "2026-09-04T13:32:00Z",
+          "endTime": "2026-09-04T21:59:00Z"
+        }
+      ],
+      "infoLinks": [],
+      "participantRef": "ATB",
+      "codespace": {
+        "codespaceId": "ATB"
+      },
+      "sourceType": "DIRECT_REPORT",
+      "progress": "open",
+      "priority": 5,
+      "planned": null,
+      "creationTime": "2026-09-04T13:33:31.40995Z",
+      "versionedAtTime": null,
+      "lastUpdated": "2026-09-04T13:33:31.40995Z",
+      "expiration": "2026-09-04T21:59:00Z",
+      "openEnded": false,
+      "age": "PT6M31.371985585S",
+      "affects": {
+        "vehicleModes": [],
+        "stopPoints": [
+          {
+            "id": "NSR:Quay:73626",
+            "name": "Lundabrua",
+            "location": {
+              "latitude": 63.15298,
+              "longitude": 10.289603
+            }
+          }
+        ],
+        "stopPlaces": [],
+        "operators": [],
+        "vehicleJourneys": [],
+        "affectedLines": []
+      }
+    },
+    {
+      "situationNumber": "ATB:SituationNumber:26709-stopPoint",
+      "version": null,
+      "severity": "noImpact",
+      "reportType": "INCIDENT",
+      "summary": [
+        {
+          "value": "Ler - bussholdeplassen er stengt",
+          "language": null
+        }
+      ],
+      "description": [
+        {
+          "value": "Ler - bussholdeplassen er stengt",
+          "language": null
+        }
+      ],
+      "advice": [],
+      "validityPeriods": [
+        {
+          "startTime": "2026-09-04T13:32:00Z",
+          "endTime": "2026-09-04T21:59:00Z"
+        }
+      ],
+      "infoLinks": [],
+      "participantRef": "ATB",
+      "codespace": {
+        "codespaceId": "ATB"
+      },
+      "sourceType": "DIRECT_REPORT",
+      "progress": "open",
+      "priority": 5,
+      "planned": null,
+      "creationTime": "2026-09-04T13:33:30.549701Z",
+      "versionedAtTime": null,
+      "lastUpdated": "2026-09-04T13:33:30.549701Z",
+      "expiration": "2026-09-04T21:59:00Z",
+      "openEnded": false,
+      "age": "PT6M32.333544336S",
+      "affects": {
+        "vehicleModes": [],
+        "stopPoints": [
+          {
+            "id": "NSR:Quay:73399",
+            "name": "Ler",
+            "location": {
+              "latitude": 63.19804,
+              "longitude": 10.301885
+            }
+          }
+        ],
+        "stopPlaces": [],
+        "operators": [],
+        "vehicleJourneys": [],
         "affectedLines": []
       }
     },
@@ -8530,7 +8241,7 @@
       "lastUpdated": "2026-09-04T10:00:43.938673Z",
       "expiration": "2026-09-05T13:15:00Z",
       "openEnded": false,
-      "age": "PT1H56M26.980374437S",
+      "age": "PT3H39M18.838363978S",
       "affects": {
         "vehicleModes": [],
         "stopPoints": [],
@@ -8559,79 +8270,8 @@
               "lineName": "A-rute Bodø - Værøy - Røst - Moskenes",
               "publicCode": "18-782"
             },
-            "stops": []
-          }
-        ]
-      }
-    },
-    {
-      "situationNumber": "GCO:SituationNumber:NOR-Line-12_8782-NOR-ServiceJourney-8782_260716084791093_7006-Cancelled",
-      "version": null,
-      "severity": "severe",
-      "reportType": "INCIDENT",
-      "summary": [
-        {
-          "value": "Innstilt",
-          "language": "no"
-        }
-      ],
-      "description": [
-        {
-          "value": "Innstilt grunnet teknisk feil.",
-          "language": "no"
-        }
-      ],
-      "advice": [],
-      "validityPeriods": [
-        {
-          "startTime": "2026-09-04T09:30:00Z",
-          "endTime": "2026-09-04T12:45:00Z"
-        }
-      ],
-      "infoLinks": [],
-      "participantRef": "GCO",
-      "codespace": {
-        "codespaceId": "GCO"
-      },
-      "sourceType": "DIRECT_REPORT",
-      "progress": "open",
-      "priority": null,
-      "planned": null,
-      "creationTime": "2026-09-04T04:01:48.622246Z",
-      "versionedAtTime": null,
-      "lastUpdated": "2026-09-04T04:01:48.622246Z",
-      "expiration": "2026-09-04T12:45:00Z",
-      "openEnded": false,
-      "age": "PT7H55M22.344622151S",
-      "affects": {
-        "vehicleModes": [],
-        "stopPoints": [],
-        "stopPlaces": [],
-        "operators": [],
-        "vehicleJourneys": [
-          {
-            "serviceJourney": {
-              "id": "NOR:ServiceJourney:8782_260716084791093_7006"
-            },
-            "datedServiceJourney": null,
-            "line": {
-              "lineRef": "NOR:Line:12_8782",
-              "lineName": "A-rute Bodø - Værøy - Røst - Moskenes",
-              "publicCode": "18-782"
-            },
-            "operator": null,
             "stops": [],
             "affectedPointsOnLink": null
-          }
-        ],
-        "affectedLines": [
-          {
-            "line": {
-              "lineRef": "NOR:Line:12_8782",
-              "lineName": "A-rute Bodø - Værøy - Røst - Moskenes",
-              "publicCode": "18-782"
-            },
-            "stops": []
           }
         ]
       }
@@ -8674,7 +8314,7 @@
       "lastUpdated": "2026-09-04T06:00:43.851692Z",
       "expiration": "2026-09-05T09:15:00Z",
       "openEnded": false,
-      "age": "PT5H56M27.133369505S",
+      "age": "PT7H39M19.630756082S",
       "affects": {
         "vehicleModes": [],
         "stopPoints": [],
@@ -8703,175 +8343,89 @@
               "lineName": "A-rute Bodø - Værøy - Røst - Moskenes",
               "publicCode": "18-782"
             },
-            "stops": []
+            "stops": [],
+            "affectedPointsOnLink": null
           }
         ]
       }
     },
     {
-      "situationNumber": "ATB:SituationNumber:26641-stopPoint",
-      "version": null,
-      "severity": "noImpact",
-      "reportType": "INCIDENT",
-      "summary": [
-        {
-          "value": "Clara Holsts veg - bussholdeplassen er stengt",
-          "language": null
-        }
-      ],
-      "description": [
-        {
-          "value": "Clara Holsts veg - bussholdeplassen er stengt",
-          "language": null
-        }
-      ],
-      "advice": [],
-      "validityPeriods": [
-        {
-          "startTime": "2026-09-02T14:00:00Z",
-          "endTime": "2026-09-04T21:59:00Z"
-        }
-      ],
-      "infoLinks": [],
-      "participantRef": "ATB",
-      "codespace": {
-        "codespaceId": "ATB"
-      },
-      "sourceType": "DIRECT_REPORT",
-      "progress": "open",
-      "priority": 5,
-      "planned": null,
-      "creationTime": "2026-09-02T14:01:00.576261Z",
-      "versionedAtTime": null,
-      "lastUpdated": "2026-09-02T14:01:00.576261Z",
-      "expiration": "2026-09-04T21:59:00Z",
-      "openEnded": false,
-      "age": "PT45H56M10.352855727S",
-      "affects": {
-        "vehicleModes": [],
-        "stopPoints": [
-          {
-            "id": "NSR:Quay:75616",
-            "name": "Clara Holsts veg",
-            "location": {
-              "latitude": 63.42901,
-              "longitude": 10.436278
-            }
-          }
-        ],
-        "stopPlaces": [],
-        "operators": [],
-        "vehicleJourneys": [],
-        "affectedLines": []
-      }
-    },
-    {
-      "situationNumber": "ATB:SituationNumber:26639-stopPoint",
-      "version": null,
-      "severity": "noImpact",
-      "reportType": "INCIDENT",
-      "summary": [
-        {
-          "value": "Persaunet leir - bussholdeplassen er stengt",
-          "language": null
-        }
-      ],
-      "description": [
-        {
-          "value": "Persaunet leir - bussholdeplassen er stengt",
-          "language": null
-        }
-      ],
-      "advice": [],
-      "validityPeriods": [
-        {
-          "startTime": "2026-09-02T14:00:00Z",
-          "endTime": "2026-09-04T21:59:00Z"
-        }
-      ],
-      "infoLinks": [],
-      "participantRef": "ATB",
-      "codespace": {
-        "codespaceId": "ATB"
-      },
-      "sourceType": "DIRECT_REPORT",
-      "progress": "open",
-      "priority": 5,
-      "planned": null,
-      "creationTime": "2026-09-02T14:01:00.482804Z",
-      "versionedAtTime": null,
-      "lastUpdated": "2026-09-02T14:01:00.482804Z",
-      "expiration": "2026-09-04T21:59:00Z",
-      "openEnded": false,
-      "age": "PT45H56M10.446739884S",
-      "affects": {
-        "vehicleModes": [],
-        "stopPoints": [
-          {
-            "id": "NSR:Quay:74991",
-            "name": "Persaunet leir",
-            "location": {
-              "latitude": 63.431515,
-              "longitude": 10.441475
-            }
-          }
-        ],
-        "stopPlaces": [],
-        "operators": [],
-        "vehicleJourneys": [],
-        "affectedLines": []
-      }
-    },
-    {
-      "situationNumber": "SJN:SituationNumber:10",
+      "situationNumber": "GCO:SituationNumber:KOL-Line-8_5200-KOL-ServiceJourney-5200_250903083242733_1016-StopCancelled-NSR-Quay-48240-6",
       "version": null,
       "severity": "normal",
       "reportType": "INCIDENT",
       "summary": [
         {
-          "value": "sfds",
-          "language": "NO"
+          "value": "Stopp innstilt: Tunsøy",
+          "language": "no"
         }
       ],
-      "description": [],
+      "description": [
+        {
+          "value": "Bestilling ikke mottatt.",
+          "language": "no"
+        }
+      ],
       "advice": [],
       "validityPeriods": [
         {
-          "startTime": "2022-11-17T08:16:43.496Z",
-          "endTime": null
+          "startTime": "2026-09-04T13:15:00Z",
+          "endTime": "2026-09-04T14:00:00Z"
         }
       ],
       "infoLinks": [],
-      "participantRef": "SJN",
+      "participantRef": "GCO",
       "codespace": {
-        "codespaceId": "SJN"
+        "codespaceId": "GCO"
       },
       "sourceType": "DIRECT_REPORT",
       "progress": "open",
       "priority": null,
       "planned": null,
-      "creationTime": "2022-11-17T08:16:43.496Z",
+      "creationTime": "2026-09-04T13:13:43.654213Z",
       "versionedAtTime": null,
-      "lastUpdated": "2022-11-17T08:16:43.496Z",
-      "expiration": null,
-      "openEnded": true,
-      "age": "PT33291H40M27.506053372S",
+      "lastUpdated": "2026-09-04T13:13:43.654213Z",
+      "expiration": "2026-09-04T14:00:00Z",
+      "openEnded": false,
+      "age": "PT26M20.130372027S",
       "affects": {
         "vehicleModes": [],
-        "stopPoints": [
+        "stopPoints": [],
+        "stopPlaces": [],
+        "operators": [],
+        "vehicleJourneys": [
           {
-            "id": "NSR:StopPlace:514",
-            "name": "Ålen stasjon",
-            "location": {
-              "latitude": 62.846365,
-              "longitude": 11.315089
+            "serviceJourney": {
+              "id": "KOL:ServiceJourney:5200_250903083242733_1016"
+            },
+            "datedServiceJourney": null,
+            "line": {
+              "lineRef": "KOL:Line:8_5200",
+              "lineName": "800",
+              "publicCode": "800"
+            },
+            "operator": null,
+            "stops": [],
+            "affectedPointsOnLink": {
+              "points": "}}|fJyx_b@gBiBcCyAy@{@a@gAQsByAg\\[uIQyCmAqLm@uD_GwU_Qs]wH_L{E}B_DF_B^uCzAeDhDkCvDaGbQ}BvHUtC?jCFdBTvAb@z@h@Zi@IUQ[o@SyAO}B@{BD_BTgBl@mBvBwH`EcMfAcGn@{G`AgTHyOg@gJiAiGkDaIqq@_LuCiBgDgDqCkEwCaFuAmDwAiEsA}F??PvADzA@jAUvC[jB]~@yC~EqNpM_BlCaAvDK~BAlBFrBUqBYoFQqNA_SQoFc@qGsAyFgJwVo@wEYoHPyHpAoHzBgGtJuSzWwSnVgK`KyE~DmEj@aB\\gBHkBCe@IW?@LLH^@pB?nCh@tEd@dCxBpE`GrE`DP`HuAlCcDfBmErAaKXeM[eb@FmPp@eOzAuNAB?A@AlCtW??f@eEf@}Bv@oBzAqBfc@_WdA_Bn@_BRaANgB?oBOgC????ZhBHdBCfBKvAY~C}@zHe@bGEf]r@bx@jLzbGt@rg@Nhh@EfRRxKPxCZtIXdG~@`TPrB`@fAx@z@bCxAfBhB",
+              "length": 151
             }
           }
         ],
-        "stopPlaces": [],
-        "operators": [],
-        "vehicleJourneys": [],
-        "affectedLines": []
+        "affectedLines": [
+          {
+            "line": {
+              "lineRef": "KOL:Line:8_5200",
+              "lineName": "800",
+              "publicCode": "800"
+            },
+            "stops": [],
+            "affectedPointsOnLink": {
+              "points": "s}|fJuz_b@qBm@cCyAy@{@a@gAQsByAg\\[uIQyCmAqLm@uD_GwU_Qs]wH_L{E}B_DF_B^uCzAeDhDkCvDaGbQ}BvHUtC?jCFdBTvAb@z@h@Zi@IUQ[o@SyAO}B@{BD_BTgBl@mBvBwH`EcMfAcGn@{G`AgTHyOg@gJiAiGkDaIqq@_LuCiBgDgDqCkEwCaFuAmDwAiEsA}F??PvADzA@jAUvC[jB]~@yC~EqNpM_BlCaAvDK~BAlBFrBUqBYoFQqNA_SQoFc@qGsAyFgJwVo@wEYoHPyHpAoHzBgGtJuSzWwSnVgK`KyE~DmEj@aB\\gBHkBCe@IW?@LLH^@pB?nCh@tEd@dCxBpE`GrE`DP`HuAlCcDfBmErAaKXeM[eb@FmPp@eOzAuNAB?A@AlCtW??f@eEf@}Bv@oBzAqBfc@_WdA_Bn@_BRaANgB?oBOgC????`@`Bb@vAf@`Al@l@rACzEq@nFqCfEgE|CcK`Mcx@jE{QfFcMvDmI~EiElDIzCj@vClDfAvBvBfFACQoAz@yFtAmF|AgCvFaEfGaCdF_AhEbAxQfQbK`KtElApGfAvIhAnLjB`G`DnFfGnBbIf@hEj@|J?AjAsEtNq^zEgJdG}HzD_E`JqGnEmAjCEhDn@iDo@kCDoElAaJpG{D~DeG|H{EfJuNp^kArE?@?Ak@{Jg@iEoBcIoFgGaGaDoLkBwIiAqGgAuEmAcKaKyQgQiEcAeF~@gG`CwF`E}AfCuAlF{@xFPnA@BACuBcFgAwBwCmD{Ck@mDH_FhEwDlIgFbMkEzQaMbx@}CbKgEfEoFpC{Ep@sABm@m@g@aAc@wAa@aB????NfC?nBOfBS`Ao@~AeA~Agc@~V{ApBw@nBg@|Bg@dE??mCuWA@?@@C{AtNq@dOGlPZdb@YdMsA`KgBlEmCbDaHtAaDQaGsEyBqEe@eCi@uE?oCAqBI_@MM?AHVBd@IjB]fBk@`B_ElEaKxEoVfK{WvSuJtS{BfGqAnHQxHXnHn@vEfJvVrAxFb@pGPnF@~RPpNXnFTpBGsB@mBJ_C`AwD~AmCpNqMxC_F\\_AZkBTwCAkAE{AQwA??rA|FvAhEtAlDvC`FpCjEfDfDtChBpq@~KhG`BrBbAnBfBfCpElCtGtc@h}A~FvUl@tDlApLPxCZtIXdG~@`TPrB`@fAx@z@bCxApBl@",
+              "length": 328
+            }
+          }
+        ]
       }
     },
     {
@@ -8912,7 +8466,7 @@
       "lastUpdated": "2026-08-06T10:55:21.848666Z",
       "expiration": "2026-09-21T21:59:00Z",
       "openEnded": false,
-      "age": "PT697H1M49.120919069S",
+      "age": "PT698H44M41.479897578S",
       "affects": {
         "vehicleModes": [],
         "stopPoints": [],
@@ -8960,7 +8514,7 @@
       "lastUpdated": "2026-08-06T11:05:29.389246Z",
       "expiration": "2026-09-21T21:59:00Z",
       "openEnded": false,
-      "age": "PT696H51M41.586226729S",
+      "age": "PT698H34M33.996916102S",
       "affects": {
         "vehicleModes": [],
         "stopPoints": [],
@@ -9008,7 +8562,7 @@
       "lastUpdated": "2026-08-06T11:22:54.173196Z",
       "expiration": "2026-09-21T21:59:00Z",
       "openEnded": false,
-      "age": "PT696H34M16.80899595S",
+      "age": "PT698H17M9.30477615S",
       "affects": {
         "vehicleModes": [],
         "stopPoints": [],
@@ -9061,7 +8615,7 @@
       "lastUpdated": "2026-08-06T06:00:00Z",
       "expiration": "2026-09-20T03:00:00Z",
       "openEnded": false,
-      "age": "PT701H57M11.006431515S",
+      "age": "PT703H40M3.600654574S",
       "affects": {
         "vehicleModes": [],
         "stopPoints": [],
@@ -9126,7 +8680,7 @@
       "lastUpdated": "2026-06-22T11:59:11.938704Z",
       "expiration": null,
       "openEnded": true,
-      "age": "PT23739H7M21.131459746S",
+      "age": "PT23740H50M13.470358037S",
       "affects": {
         "vehicleModes": [],
         "stopPoints": [],
@@ -29666,52 +29220,39 @@
       }
     },
     {
-      "situationNumber": "RUT:SituationNumber:SM-2e2f952c65864c4d8d365075bf979bf0",
+      "situationNumber": "NBU:SituationNumber:TX1047054",
       "version": null,
       "severity": "normal",
-      "reportType": "INCIDENT",
+      "reportType": "GENERAL",
       "summary": [
         {
-          "value": "Innstilt",
-          "language": "NO"
-        },
-        {
-          "value": "Cancelled",
-          "language": "EN"
+          "value": "FB1 mellom Sagene - Københavngata betjenes ikke grunnet Jente mila. Alternativ holdeplasser som kan benyttes Fayes gate/Carl Berners plass",
+          "language": null
         }
       ],
-      "description": [
-        {
-          "value": "Avgangen er innstilt.",
-          "language": "NO"
-        },
-        {
-          "value": "The departure has been cancelled.",
-          "language": "EN"
-        }
-      ],
+      "description": [],
       "advice": [],
       "validityPeriods": [
         {
-          "startTime": "2026-09-04T11:56:00Z",
-          "endTime": "2026-09-04T12:21:00Z"
+          "startTime": "2026-09-05T10:35:00Z",
+          "endTime": "2026-09-05T15:30:00Z"
         }
       ],
       "infoLinks": [],
-      "participantRef": "RUT",
+      "participantRef": "NBU",
       "codespace": {
-        "codespaceId": "RUT"
+        "codespaceId": "NBU"
       },
       "sourceType": "DIRECT_REPORT",
       "progress": "open",
       "priority": null,
       "planned": null,
-      "creationTime": null,
+      "creationTime": "2026-09-02T13:39:58.28Z",
       "versionedAtTime": null,
-      "lastUpdated": "2026-09-04T13:49:24.505496413+02:00",
-      "expiration": "2026-09-04T12:21:00Z",
+      "lastUpdated": "2026-09-02T13:39:58.28Z",
+      "expiration": "2026-09-05T15:30:00Z",
       "openEnded": false,
-      "age": null,
+      "age": "PT48H5.20262308S",
       "affects": {
         "vehicleModes": [],
         "stopPoints": [],
@@ -29720,19 +29261,392 @@
         "vehicleJourneys": [
           {
             "serviceJourney": {
-              "id": "RUT:ServiceJourney:0da6f8c6445891e96963aa116ff2a2ec"
+              "id": "NBU:ServiceJourney:449b862b-eae0-44a8-b093-ba03810e72ae"
             },
             "datedServiceJourney": null,
             "line": null,
             "operator": null,
-            "stops": [],
+            "stops": [
+              {
+                "stop": {
+                  "id": "NSR:Quay:11688",
+                  "name": "Sagene",
+                  "location": {
+                    "latitude": 59.93755,
+                    "longitude": 10.751396
+                  }
+                },
+                "stopConditions": []
+              },
+              {
+                "stop": {
+                  "id": "NSR:Quay:11712",
+                  "name": "Arendalsgata",
+                  "location": {
+                    "latitude": 59.937378,
+                    "longitude": 10.757812
+                  }
+                },
+                "stopConditions": []
+              },
+              {
+                "stop": {
+                  "id": "NSR:Quay:11733",
+                  "name": "Torshov",
+                  "location": {
+                    "latitude": 59.935039,
+                    "longitude": 10.76455
+                  }
+                },
+                "stopConditions": []
+              },
+              {
+                "stop": {
+                  "id": "NSR:Quay:11743",
+                  "name": "Torshovparken",
+                  "location": {
+                    "latitude": 59.933277,
+                    "longitude": 10.76878
+                  }
+                },
+                "stopConditions": []
+              },
+              {
+                "stop": {
+                  "id": "NSR:Quay:11861",
+                  "name": "Københavngata",
+                  "location": {
+                    "latitude": 59.929034,
+                    "longitude": 10.769456
+                  }
+                },
+                "stopConditions": []
+              }
+            ],
             "affectedPointsOnLink": {
-              "points": "sntlJmu~aAGCICKAIAK?I@G@IBIBMFMF{@f@IFIDGBIBI@I?K?IAIAMCWGGAI@GBEBEFEFEHELIZENGHEFEBEBE?E@GAG?OAG?G@EBGDEDYZEFC@EDIDG@I?G?m@GQAMAE?GBEDGDCFCHCHALAL?F?H?J@HBL@LBJDRFRH^Ld@|@rDH\\FXBNBNBP?P?L?PANAPERCPENYlAEPCPANALAN?R@RBbA?N@L?RANICECMCKAK?K@KBM@IBEDCDQRH\\Jb@Hd@Jh@Jl@Hj@Fb@Dd@D\\Db@Df@B\\Df@Dr@?HBXBd@Bh@@d@B|@Bx@@p@@dA?rA@jB?fC?zE@vAAd@?L?L?L?PAXCXCVCREVCPGTEN?@ENKXUv@KZIZOj@CX?JCR?RARa@DwGl@G@w@Hi@FK@K@_@FK@MBGBCWAQASAQ?O@MBM@Or@}ENeADc@Fc@B]D]@[Ba@@]?Y@_@?c@Ak@Aq@As@Ck@Ae@Ca@Ee@YNWNWRYT]XQPQNYXON[^c@f@EDg@j@UXGFcEtEIJUVoBvBQRSTQVKPMPKRGLINEHc@dAKZIPSh@OZOZOVMTQVSVMPONa@^[XmAdAc@^KLMNKLKPIRGNGPGRGVEXCTCXCXAX?V?T?P?PAb@?N@P?\\m@HYB??QBYDSBcEd@w@HWBmALK@I@g@Fq@HI@]GYFi@Ba@DSBO@G@GG]AACAICGCECEECE?E?GBEHCDCJAJAL?L@JBJBHDFDD@R?N?RATCXC`@Gh@CVQ`Bi@jF[lCAHKbACREVERCBK?GAICGCMCCGEGEKEOEMIWGYGYEWGYE]Io@CKEg@a@uDCSScBCSMeAIk@AQQLC@KPEDIFgAx@eD~Bu@j@OJOLQPKHKLILQTsAlBo@~@ORMNKJGFKFIBKDMBI@O@Y?I?EAG?C?W@S@G?C?I@E@G?M@}ABQ?O@OBKBQFMFSHWLs@\\MFUJYNEBQH]PUJSHOFMDODIBG@OBO?O?Q?OCOCOEQGIEIGKEIGgBiAQIMGOEKCKAKAM?M@O@M@ODSFSJYJSHOFMFA?[NUHOFQJMJQJSPWVSRY\\]d@EBEDEDEDQRIJ]b@?@CDEHCDq@z@a@d@ILINGLGLEHGDEBG@I@KAICOEKEQIOKQMQQOSMOOSMSKUIQIQQc@EMEKGMEKCCESGSGOAGAEAECCCACAC@A?CDCDAF?H?H?F@D@X@X@P@ZATAf@G\\EREZA@C@EDCFCJAJAJ?L??E`@CTEREb@ENELGR_@hAc@nAWt@ENQh@GNIXEVEVCLATCTAXAHAZCt@?H?JCj@Cl@E`@C`@En@Cd@CRC\\Gb@G`@CJERGXGPIPGNc@x@?@g@`AKPKRGRIRENERGVGXE^QMCACAKEMEGCGAOAO?Q@M@C?E?UBc@B{ALO@i@DSBMDMBKDKDSHqAh@IDGDEBGBGBM@M?M@IBIBUFsAd@KDUHODSHUHOFKHMJIe@GYEQAAGOEKEGIIGEKEG?I?EBG@EBGHi@j@EDIDG@I@I?IAKAMEKCGCG?K?M@MBYJUJOF??OHOHGDQJQJMJUTWXONQRMRSTW^_@p@]p@SVOXUXSTUTYVs@j@IHiA~@WVQL?S@U@YLyAB_@Ba@Bc@@_@?_@@u@KBOBOFu@`@QJSPa@Zk@f@SPMPOPMTMTMVyA`Da@x@Yn@KXKTETA@EP]zAK^IVIPKPGJINMLiApAOPOPKNILMRINIPIRO`@GPa@fAEJUp@EHEHGHILTlAHf@Hh@VxADRJn@Hh@Nx@Lj@Nn@FVJ\\Pr@Ld@Qh@i@bBOb@Qh@ENO\\MZS\\Q`@OZOPEHADCJAJAJALAR?R@P?PBRFnA@P?T@d@ADADKHGDCBIFOPQHWFuA^O?GAI?G?EAKCCACCE?C@CBADCDADGHEDGDIDQFk@VSFQH",
-              "length": 835
+              "points": "aqylJc{r`ACy@Bi@?OASCOCKKIGIo@iAFu@t@}HDe@Da@b@eF@I@K?Q?Q?M?wD?E?aA?Y?i@AeH?mB?I?O?G?KBk@HILKDCFGxAcBf@i@LMn@q@b@g@lAsABELMLO?C@M@KBOp@kF\\}B@KHe@BU@E?EBQd@eDBYDURyAF_@D@F?DEDI@I@O?MAKEIEGF_@j@cEBYDY^kCJs@RNlBvABBNRNRFDDBLBNHZVlA|@LJJJJNJLFFFHf@^FFt@j@FDHHDFDDDDx@l@`@XXT^XJHNPxBeGt@yBL_@Na@Vo@Na@To@BIFM@G",
+              "length": 119
+            }
+          },
+          {
+            "serviceJourney": {
+              "id": "NBU:ServiceJourney:51f3eb91-01ac-45c8-9188-7d3896a454f3"
+            },
+            "datedServiceJourney": null,
+            "line": null,
+            "operator": null,
+            "stops": [
+              {
+                "stop": {
+                  "id": "NSR:Quay:11688",
+                  "name": "Sagene",
+                  "location": {
+                    "latitude": 59.93755,
+                    "longitude": 10.751396
+                  }
+                },
+                "stopConditions": []
+              },
+              {
+                "stop": {
+                  "id": "NSR:Quay:11712",
+                  "name": "Arendalsgata",
+                  "location": {
+                    "latitude": 59.937378,
+                    "longitude": 10.757812
+                  }
+                },
+                "stopConditions": []
+              },
+              {
+                "stop": {
+                  "id": "NSR:Quay:11733",
+                  "name": "Torshov",
+                  "location": {
+                    "latitude": 59.935039,
+                    "longitude": 10.76455
+                  }
+                },
+                "stopConditions": []
+              },
+              {
+                "stop": {
+                  "id": "NSR:Quay:11743",
+                  "name": "Torshovparken",
+                  "location": {
+                    "latitude": 59.933277,
+                    "longitude": 10.76878
+                  }
+                },
+                "stopConditions": []
+              }
+            ],
+            "affectedPointsOnLink": {
+              "points": "aqylJc{r`ACy@Bi@?OASCOCKKIGIo@iAFu@t@}HDe@Da@b@eF@I@K?Q?Q?M?wD?E?aA?Y?i@AeH?mB?I?O?G?KBk@HILKDCFGxAcBf@i@LMn@q@b@g@lAsABELMLO?C@M@KBOp@kF\\}B@KHe@BU@E?EBQd@eDBYDURyAF_@D@F?DEDI@I@O?MAK",
+              "length": 70
+            }
+          },
+          {
+            "serviceJourney": {
+              "id": "NBU:ServiceJourney:c370b39f-e184-4938-8c33-5beb745913b6"
+            },
+            "datedServiceJourney": null,
+            "line": null,
+            "operator": null,
+            "stops": [
+              {
+                "stop": {
+                  "id": "NSR:Quay:11688",
+                  "name": "Sagene",
+                  "location": {
+                    "latitude": 59.93755,
+                    "longitude": 10.751396
+                  }
+                },
+                "stopConditions": []
+              },
+              {
+                "stop": {
+                  "id": "NSR:Quay:11712",
+                  "name": "Arendalsgata",
+                  "location": {
+                    "latitude": 59.937378,
+                    "longitude": 10.757812
+                  }
+                },
+                "stopConditions": []
+              },
+              {
+                "stop": {
+                  "id": "NSR:Quay:11733",
+                  "name": "Torshov",
+                  "location": {
+                    "latitude": 59.935039,
+                    "longitude": 10.76455
+                  }
+                },
+                "stopConditions": []
+              },
+              {
+                "stop": {
+                  "id": "NSR:Quay:11743",
+                  "name": "Torshovparken",
+                  "location": {
+                    "latitude": 59.933277,
+                    "longitude": 10.76878
+                  }
+                },
+                "stopConditions": []
+              }
+            ],
+            "affectedPointsOnLink": {
+              "points": "aqylJc{r`ACy@Bi@?OASCOCKKIGIo@iAFu@t@}HDe@Da@b@eF@I@K?Q?Q?M?wD?E?aA?Y?i@AeH?mB?I?O?G?KBk@HILKDCFGxAcBf@i@LMn@q@b@g@lAsABELMLO?C@M@KBOp@kF\\}B@KHe@BU@E?EBQd@eDBYDURyAF_@D@F?DEDI@I@O?MAK",
+              "length": 70
+            }
+          },
+          {
+            "serviceJourney": {
+              "id": "NBU:ServiceJourney:4415ae9a-e393-493b-820e-2824fc1ae5ae"
+            },
+            "datedServiceJourney": null,
+            "line": null,
+            "operator": null,
+            "stops": [
+              {
+                "stop": {
+                  "id": "NSR:Quay:11688",
+                  "name": "Sagene",
+                  "location": {
+                    "latitude": 59.93755,
+                    "longitude": 10.751396
+                  }
+                },
+                "stopConditions": []
+              },
+              {
+                "stop": {
+                  "id": "NSR:Quay:11712",
+                  "name": "Arendalsgata",
+                  "location": {
+                    "latitude": 59.937378,
+                    "longitude": 10.757812
+                  }
+                },
+                "stopConditions": []
+              },
+              {
+                "stop": {
+                  "id": "NSR:Quay:11733",
+                  "name": "Torshov",
+                  "location": {
+                    "latitude": 59.935039,
+                    "longitude": 10.76455
+                  }
+                },
+                "stopConditions": []
+              },
+              {
+                "stop": {
+                  "id": "NSR:Quay:11743",
+                  "name": "Torshovparken",
+                  "location": {
+                    "latitude": 59.933277,
+                    "longitude": 10.76878
+                  }
+                },
+                "stopConditions": []
+              }
+            ],
+            "affectedPointsOnLink": {
+              "points": "aqylJc{r`ACy@Bi@?OASCOCKKIGIo@iAFu@t@}HDe@Da@b@eF@I@K?Q?Q?M?wD?E?aA?Y?i@AeH?mB?I?O?G?KBk@HILKDCFGxAcBf@i@LMn@q@b@g@lAsABELMLO?C@M@KBOp@kF\\}B@KHe@BU@E?EBQd@eDBYDURyAF_@D@F?DEDI@I@O?MAK",
+              "length": 70
+            }
+          },
+          {
+            "serviceJourney": {
+              "id": "NBU:ServiceJourney:5c68badd-4941-4cb1-a381-71484ac8f92b"
+            },
+            "datedServiceJourney": null,
+            "line": null,
+            "operator": null,
+            "stops": [
+              {
+                "stop": {
+                  "id": "NSR:Quay:11688",
+                  "name": "Sagene",
+                  "location": {
+                    "latitude": 59.93755,
+                    "longitude": 10.751396
+                  }
+                },
+                "stopConditions": []
+              },
+              {
+                "stop": {
+                  "id": "NSR:Quay:11712",
+                  "name": "Arendalsgata",
+                  "location": {
+                    "latitude": 59.937378,
+                    "longitude": 10.757812
+                  }
+                },
+                "stopConditions": []
+              },
+              {
+                "stop": {
+                  "id": "NSR:Quay:11733",
+                  "name": "Torshov",
+                  "location": {
+                    "latitude": 59.935039,
+                    "longitude": 10.76455
+                  }
+                },
+                "stopConditions": []
+              },
+              {
+                "stop": {
+                  "id": "NSR:Quay:11743",
+                  "name": "Torshovparken",
+                  "location": {
+                    "latitude": 59.933277,
+                    "longitude": 10.76878
+                  }
+                },
+                "stopConditions": []
+              }
+            ],
+            "affectedPointsOnLink": {
+              "points": "aqylJc{r`ACy@Bi@?OASCOCKKIGIo@iAFu@t@}HDe@Da@b@eF@I@K?Q?Q?M?wD?E?aA?Y?i@AeH?mB?I?O?G?KBk@HILKDCFGxAcBf@i@LMn@q@b@g@lAsABELMLO?C@M@KBOp@kF\\}B@KHe@BU@E?EBQd@eDBYDURyAF_@D@F?DEDI@I@O?MAK",
+              "length": 70
             }
           }
         ],
         "affectedLines": []
+      }
+    },
+    {
+      "situationNumber": "ATB:SituationNumber:26689-line",
+      "version": null,
+      "severity": "normal",
+      "reportType": "GENERAL",
+      "summary": [
+        {
+          "value": "E6 stengt ved Lundamo",
+          "language": null
+        }
+      ],
+      "description": [
+        {
+          "value": "E6 er stengt ved Lundamo grunnet en trafikkulykke. Avganger med linje 340 og 440 vil inntil videre kjøre via Hølonda. Holdeplasser mellom Hofstadsanden og Fosskrysset blir inntil videre ikke betjent.",
+          "language": null
+        }
+      ],
+      "advice": [],
+      "validityPeriods": [
+        {
+          "startTime": "2026-09-04T12:05:00Z",
+          "endTime": "2026-09-05T12:05:00Z"
+        }
+      ],
+      "infoLinks": [],
+      "participantRef": "ATB",
+      "codespace": {
+        "codespaceId": "ATB"
+      },
+      "sourceType": "DIRECT_REPORT",
+      "progress": "open",
+      "priority": 5,
+      "planned": null,
+      "creationTime": "2026-09-04T12:07:44.175823Z",
+      "versionedAtTime": null,
+      "lastUpdated": "2026-09-04T12:07:44.175823Z",
+      "expiration": "2026-09-05T12:05:00Z",
+      "openEnded": false,
+      "age": "PT1H32M18.500437186S",
+      "affects": {
+        "vehicleModes": [],
+        "stopPoints": [],
+        "stopPlaces": [],
+        "operators": [],
+        "vehicleJourneys": [],
+        "affectedLines": [
+          {
+            "line": {
+              "lineRef": "ATB:Line:2_440",
+              "lineName": "Støren - Røros",
+              "publicCode": "440"
+            },
+            "stops": [],
+            "affectedPointsOnLink": {
+              "points": "yydbKmtn~@BpJFt@H@pDUt@OrG@vG@AhI??Gze@?zAfBW\\NnBWPUb@UnQyCFJdG_AjA_@JSfGqArHuAd@JLCzAk@RYvCoAb@|HATBVDHbArRP`DNt@D?HSAaA[sF{@sO@YCSEKa@uHTI`@Hb@OLe@~Ag@tK{ElGaCfC[nEmBn@O~DiBrD_A`DW|D@lAFdDZdDf@dBd@lEvA`Q`G`@RhFhBtT~HfBz@fC|AxD|CbCdCr@v@LVrCxDbEzGbR~]tGpLdCvDfCbDjDtDpGfGrEzDzFbEjGnDtFfCxBl@lCb@fEJxBKbDi@jBi@nB{@~CiBxD{CbEsD~BkBt@s@zD{BrCeAzBe@jCSbB@dBNbCj@pC`ApE`ClCvBpHvGvOdN|CpDN`@tAzAl@\\`@x@D^JNN?JSr@?jAN|NjC^OdD^tG`@bc@vBPThBP`AX`B`AbBhA^V^f@BNJRNAHWz@WjCShANpAn@REjDnCxC~CjClDvKnPfErFrNpOJ`@zCbDZb@bAfBvA`BTXN^Lx@DbAAf@EVITCh@Hb@DFNBJMFSLMNCb@ZhAzBRhANRJ?JMREn@Xd@HlAMn@Dh@Jp@Zv@p@`An@vIhJ~AlBvAtBpA~BfAbCj@~AvA`F`@hB~@hFl@zE^fEPnCPxEJtF?|I]rd@?dHDjFJfFNnEPzDVzDh@pGd@hEjAxInA`H`AdE~DfPbBjI~AhKl@pEDtAPrB^vFHzKCrCIzCMtCUpCWtBSzAe@bCk@bCOd@QDEHG\\?^Jd@LHLG\\TnBhBjAhAFRPFFGFQRKV?nCRlAX`@Vd@b@^d@`BzCtAlDhAdCpAdCjAjBpCpDhAlAxBfBnVtOnYdQpCjAlCv@rHlB`DrAh@`@jD`DVh@@ZHRNDNYnJdGxBfA~Bd@x@ATI^I^c@PA\\ZLBLGXBp@G`A@~@\\^VnAvA~KrOhDhExG|H\\h@Nj@D`@CfCDbAP|APt@`@hAx@fBtDtG^d@b@ZtAXtHd@r@W`@c@rBeEtJmRr@|CtBmDj@_Au@yDxDuHX[PAp@[LFJKHU@SFa@L]Ho@l@cCRi@|Wwh@b@u@lAuBpAeBnBcCrByBhAaAdCoBvFoD`CqArAi@lA[xB_@pAItCH^@fCf@~B~@xBtA~BdBrCfCx@`AfAzAb@`AxAhEb@|@p@lAn@`An@p@B^VTFDNI@AdChB`G|DbEhCnHzDz@VtAL`EMp@AlAFjAZrAt@lAfAv@~@x@nA^t@h@pAd@vAzAhGRp@l@fAj@j@~DnAbAn@h@b@vAdBrCxE~@vA^Zj@BFHNDNh@LFLTPLdCVdAXv@b@rEjDp@^`EdB~DbArB|@XFpA?l@FTVH?LQBS?UCSGMKq@CoCFaADOZGFG|Gb@tNVjCEpZsBbBMpCEtAPpBj@ZBv@EZKp@c@|@qAvFoLdA}B~A}Dz@eCx@gCb@gBpAiGZkAp@_Bp@eAfA_Az@g@rFiCrA}@t@y@Vg@Zu@b@kB^oCL_@FIRCRLHTJdBCZDVHDFEBK@Qh@w@FStFmH`AwAhBeDv@}Ar@aBnAeD`AgDh@eCp@kEXwC`BoSd@uEd@}C`@oB^}AdBwFnAkD~@aBlAyAx@m@nAi@dBa@zEu@bBE~@DvCz@dAd@l@b@dAhAr\\x^jA|@`@P`@Dn@C`Ag@vCgCfAs@l@WfAUdD?`_@|@nA?p@C^D`BSzB}@j@_@X_@l@c@jE}DpMgMxp@yn@nAmAlA{@|TwLtAe@hBObRaApCAjLRt@HfA\\vWhL`ClAxBpAdBjAhC|BjBjBh@t@l@rAjDjK|BpG`KrXzMv^~BlGd@z@`AxAnBxBfQnPhAbAbBnAbDvB^^Xh@`ApCvBvGf@lB`@pBb@|CRvBT`CLjCH~DJ~HD~APxBzApIrD~SdChOn@hDhAxEt@~BbBhEtFzMvAdDv@|Ax@|A`EnHxVzb@`Rr[hAxAf@f@h@^l@\\dDpAv@`@dAv@nAfAp@x@fRfWvBdClHhHhDxC|HhEtItE`AZv@L`A?`@ErA]tA{@|CqC|@q@lAs@pBk@z@KdB@hB\\|Ap@pFfDlB~@lC~@zGfB|Ap@zBnAlCvBbAdAv@fAj@bAx@tBr@|B|AnGrAnE`AdChAxBf@x@pA~AfAv@n@X~@PZNt@@x@EtBy@\\W@c@Gw@Sq@IMMG]G@s@MAKJAl@Cn@Hb@ND@_A^FPNLf@Dr@JXlCwB^c@zA}@l@Wn@S~@OpAItAJlAVvAn@dBpAdE|EfAhA~@p@dBz@tA\\l@DpBCz@OzAe@nDoBbHiEdAw@r@q@zAiBhB{C|@oBrAgD`DeJvA}EdBoG|AqGfDcPr@sC^oAfAcCl@cArB}BnAcAvA}@jAi@rA[fCITJdH@xBQnBi@~@c@~@m@vAoAxAgBn@aArGoLdDeGdBkCjBuB|OsO|BeCjC{Cb]kb@n@}@r@iAj@sAN]t@cCh@_CTmA\\aC\\}D|Dss@FqBh@{HPgBb@uDn@kDXgAr@aCz@}BTCfAgBnCkDJMX]VGPN~AvDXTfCqB|A{@zFoBxB_@tCWfC?~Fr@bAT|@\\l@^nC|Bz@f@nAd@|I~BjM`D`GbBBg@Dg@BMJIh@LRFJRDTDbAdB?pBSh@BZT`AdArKdFlAZj@X|ArAlAbCV`@r@v@v@j@z@^x@HZCj@WxAeAtC}CfA}@b@SdD{@hAm@t@_Av@_B`@s@`ByB`DsCZIb@AXDZZl@qB\\{@jB_FlEqKt@iAl@c@l@AtAZLAz@_Al@]JAZLz@p@H}BUQQc@Km@I{@h@i@z@_Br@uBlCkKZ_Ab@_Ad@i@^YjBi@`Ai@~@_Aj@aAj@oANe@v@iC\\yAz@cEn@oBv@oBv@aBhEmI^y@r@oBv@oCnBwI\\qA|@gCxDuJd@q@\\]`@SjBa@fDuAfCmA~DkCjCqBvAqAx@aAv@uAtDyIh@_BVeATmAHo@NgBFgB@w@?uBOiDOgBQ{Am@mDkAoEe@wBQwACo@C{ABuANeBTsAfAgDXqAJo@J}A`@eONqCXaCz@mFvFsUNXvUymCE?@}@PuFRiDzAcPPoDJuD?qCI{IWcHSyC}@mKUcDw@wRM{CQsGy@s^Q}FSwC_AmIGiAAi@@mBZqHBgAAoBF?yPmmDEA`@gWh@}]LcCLqAV{BZaBZqAfCmIn@kB`@{@h@_A~DkGd@iALm@Jo@F{@Bk@AoAK_Ba@}CIy@Cc@AsABiALyAd@_DZyB`@cBjAyDvByGfBcDl@wAjI_UdAgCzAeDdB}C|A_CxAoBpBwCjJqM`AmA|@k@lHoC|A{@rAeAzAyA`BmBt@kAxAoChCaF|@wBXgARkAR_BfAeMRoATaATs@Xk@d@o@l@o@pB{A`EeCpAaAtAkAjDaFlCcDn@yA`AmDX{@rAwC\\aAR{@XoCTiFNkBRsALi@rAuCVw@N_ALsABkACiBo@}Ly@{PwAcUYgFGyAAmAD_CXiDfAcI~@mGFm@HgA?kACi@Go@w@mFK}@G_AAo@JcERkFA]a@eCa@mE[mD?wADg@Jk@J]tAgCXs@Tw@XyAPaBXgGtAm^VmEp@wFLiBD}BGqI@qAF}CV_FN_BRsAnAkHNgAF{@@eAAiAIsB}A_POmBCkA@mB`Cak@NoBd@uEn@sEjBcLp@cD^sAr@mB~AsDj@kA`ByDfAsCvCkIh@cB~AoGlBwIx@yCTq@dIcPz@uAb@e@n@]xBWpA[dEqBnHsEnFaF~LoHjCeBX]bAcBv@mBrE}LxTil@nCaIZcA|@aEd@eDlA}L^}Cl@cEh@oC`@iBv@mCn@mBl@kBhMiZbAyBf@aA`@q@t@}@\\Y|@i@`A_@h@M`Fe@dDy@xDoA|@e@nG}DpAkA|@cAnFoIdAwApAkApC_Bh@c@vAaBhAkBtAaD`@kA|@qDt@_EXyBPeB\\}EdAiQX{GhB}t@zCgoAJaDJoATuAVaAb@aAj@s@vCwC|HsHxAeBrCiEbA{Bn@yBx@sDvGm]X_Bd@oDXaCh@uGPuDB_BA_KCcIOoKE{AWgEe@}GUqEGiDDgDDyA^mGhA_Tb@mNL_KD}ICyGO}GYyGc@sGo@kGy@_Ga@{B}@mEaAkDe@qAwAcDmAcCyEuGoLkNqCiDwDaFmDyDsCeEu@y@gA_A{@iAqBoDcAsBaEiK_EcJ_@mAa@iB_@iCkAsLu@sIQsEYuQK}E[eGq@oLCo@GyF?eDNu_@AmKUeQc@w`@ImH?eBDwAH_BtA}QZ{CPJNCDSTeA\\eCII??WWl@qDfAaGd@kBxBaHd@kB^oBpHme@dI{g@jEsYt@cGn@yGv@uJPcEFsEEcEOoDeAsQKcEKuPWwHg@aLQyDYwD_@_Do@qDy@}Cq@qBmB}EqAqCy@mAoHyHiB_Cu@sA{BeGi@aBy@_DYuAcAqG]cCY_Dc@kGEsBEcJMcFOiDQmCqCm`@WeFMmDqAcp@IoDS_EUcD}@mJaCmTm@mEw@aEqBeIm@oC_@wBa@oCSwBoEwm@DKBJqHoeFCDkKcd@e@cC_@cBmGq_@_AaFoBkIiCaJJSfs@ikQMWrAqFtAoJrMocAdAyIT}FC{Gk@gLaAoPk@wKAwIVsE|A_OzAoMBBrTigDKO`@sB`AmDtAsC`CmCpEyD~IoFjAgAx@qApAiD~CgMzEqL|AoEhCsKPy@fAgHdD{[|Hqh@xEcX^iEJkEHcLD?hBikA?@CCt@yKt@mERy@vGyQ`O{^zCgIrJe]rE_P|FeTnE}Sd@}CRqCDoCMkTAqDDsDP_FNoCXcDTeCj@sErCoSnEg\\RgBPkBz@mNXoC\\}Bh@eC~BuIb@gCZoCLsBH_CBuCA{LBqIFgEPqENwBViDdAqInAmJn@oFh@mFvDqa@VyBf@cDReAh@{BvAsEnHiTOa@Eg@DMH_@VARd@jB{E`AiBnG{H`FwJvBsCxF}F~E{JlBeChN}IpCeCzBoD`FmMQs@IVHWPr@lBgDpAuAtNiJ`@OdDo@xCNtCbAzChCxB~CpFdK~JtNvCrCtBdAvBj@`EEhGVlBc@jEoD\\m@`AgDbAyAxE_Ez@_@~@Gx@\\bA~@tEvHnEfE~BdEbArAhCvBjBpAnBz@nJ~CrC\\rAM`Ae@hD}CdAaCtAgEjA}FrAuFz@eBjAuA@FAG~CiBvC]tEQpB}@jAgAj@w@rAqCfAoDt@iEd@}EPgF?{Cc@_P?kFZqHt@}GjCySn@}CpDoLl@qD|AcMd@kBp@eCvFkNp@aA`Am@~IcBzGy@p@PxE|CfC@pCWvBJtEbAEHDIpCf@dBEl@InCgAjAgAbA{A~GwOjAyCVw@dCuHdDgRlDySn@gCt@qB`AiBnAwAhGkD~@wAp@kB\\uAN}@FHVqyAGG`CoTx@}EdA_FhBiGz@wCd@qBh@}Dr@_KhAeQbHkhAx@qNNyFBgC\\mcANqJ|Bq^|Cgf@`@oIWSVRDsBRoCj@wD|@_FbCeKvAgFjBkGhBoFhEeHpFqI`Sa[pBsBbFyBjMqFnA}@lCkE^u@rCcG`NqXnAuAfE{BtOiNlDsCbCcAzB]?JEJDK?KzJoAfHC~SxAhFJhSiDjCFtDh@vBNhCIdEy@hE_Brk@cV|`Ai`@|`@iPpImEbBa@zABhF~A~WjKnDbCpDhEfGxI|CpDvOpNpAr@tAPzA[hAuBp@kBpAaER_@d@c@\\Af@\\lArAzE|FvCtC?J?KlDdDfCv@nAAbIiBbBOn@Ad@Fz@ZrD~BlFbCdFrAdGj@lFNjBRh@Ln@XrAjAjA`BnEjJjCzCbL|KfEnDbFnD|BfAtEzAjBf@nAHxTXnA?`AE~@U`EkBlMmG~DsBdB}AxF{GdA}AhYuh@zAiDvAyDnA}DhCgHbHkRrHwRv@kBp@uA|B{Dn@wA`DaJd@aAzA{BpKmOtA}Bd@cA`AiCnCiIzEiM~D_KrAwCAV@WZs@pA{BxJoMpBsChAgBxBwDzAeDvAkDbMw\\?L?Ml@{AR[JGZDJHf@~@`@f@PJb@JfEL~A?p@Mp@UlAs@nn@cg@jE}CnAi@fA]zEq@nCe@z@Ur@UfB_AxBcBvDoErF_I`AcBR\\RAFSFi@Kg@pHsNz@uB\\iAfHo^fB{Jh@qBt@sBr@gA`@_@zA}@fCcAxAu@l@e@jDaDpBoAhFuBAWBk@r@aDHw@Ay@Og@USQEsDWO@u@VIAQSCOAg@BWdAwFL_@NYv@mAJWDWBs@C}@y@}GGk@IgBAaABcAReDb@iEVgBX_BvF{ZVaAf@}AFa@D}@IqAGLFMCkCHuB|@mIXwANe@tB_EPg@b@{Bp@uEV_DN}CBoDA}Dz@NzC|@pAHj@?r@IxB_@nAHpIvAfBh@p@l@\\h@`@x@nHjSx@nBfApAfAj@nCjAt^|NzAZrAH`H]vBNjHfA|@XvEjBhEjBdExBzJbHrGfF~DnFjYf`@`FjHpAnAxC~D~Cf@xBx@lCrE~@xBlA~D~L~k@xGnZf@hCCj@UjAn@pA|@bCj@jBfA~DjCbLhA|DlBjF`ArBrA~BrAnBI`@Bn@JRFJPETc@xDtFjAjAzBtAv^nQ`Aj@lBzApHtGzCtBzTfLvKpHzCfBvI|CAX^^_@_@@Y|UpIpAv@lA~@tCvCpB`Cd@d@nAv@~q@jJvCl@zDP|E?hF[zE{@n@Q`@M|GkE`DeC^Sx@}@n@_A~@kB~A{C\\y@d@q@vAyAtUeUvDyDT]`@s@h@kAx@yBx@iBhAgBhNgQlFeHpA}BTo@`@}A^PJyA",
+              "length": 1897
+            }
+          },
+          {
+            "line": {
+              "lineRef": "ATB:Line:2_480",
+              "lineName": "(Trondheim) - Støren - Berkåk",
+              "publicCode": "480"
+            },
+            "stops": [],
+            "affectedPointsOnLink": {
+              "points": "yydbKmtn~@BpJFt@H@pDUt@OrG@vG@AhI??Gze@?zAfBW\\NnBWPUb@UnQyCFJdG_AjA_@JSfGqArHuAd@JLCzAk@RYvCoAb@|HATBVDHbArRP`DNt@D?HSAaA[sF{@sO@YCSEKa@uHTI`@Hb@OLe@~Ag@tK{ElGaCfC[nEmBn@O~DiBrD_A`DW|D@lAFdDZdDf@dBd@lEvA`Q`G`@RhFhBtT~HfBz@fC|AxD|CbCdCr@v@LVrCxDbEzGbR~]tGpLdCvDfCbDjDtDpGfGrEzDzFbEjGnDtFfCxBl@lCb@fEJxBKbDi@jBi@nB{@~CiBxD{CbEsD~BkBt@s@zD{BrCeAzBe@jCSbB@dBNbCj@pC`ApE`ClCvBpHvGvOdN|CpDN`@tAzAl@\\`@x@D^JNN?JSr@?jAN|NjC^OdD^tG`@bc@vBPThBP`AX`B`AbBhA^V^f@BNJRNAHWz@WjCShANpAn@REjDnCxC~CjClDvKnPfErFrNpOJ`@zCbDZb@bAfBvA`BTXN^Lx@DbAAf@EVITCh@Hb@DFNBJMFSLMNCb@ZhAzBRhANRJ?JMREn@Xd@HlAMn@Dh@Jp@Zv@p@`An@vIhJ~AlBvAtBpA~BfAbCj@~AvA`F`@hB~@hFl@zE^fEPnCPxEJtF?|I]rd@?dHDjFJfFNnEPzDVzDh@pGd@hEjAxInA`H`AdE~DfPbBjI~AhKl@pEDtAPrB^vFHzKCrCIzCMtCUpCWtBSzAe@bCk@bCOd@QDEHG\\?^Jd@LHLG\\TnBhBjAhAFRPFFGFQRKV?nCRlAX`@Vd@b@^d@`BzCtAlDhAdCpAdCjAjBpCpDhAlAxBfBnVtOnYdQpCjAlCv@rHlB`DrAh@`@jD`DVh@@ZHRNDNYnJdGxBfA~Bd@x@ATI^I^c@PA\\ZLBLGXBp@G`A@~@\\^VnAvA~KrOhDhExG|H\\h@Nj@D`@CfCDbAP|APt@`@hAx@fBtDtG^d@b@ZtAXtHd@r@W`@c@rBeEtJmRr@|CtBmDDN`lEoE|bBdM?[bBMpCEtAPpBj@ZBv@EZKp@c@|@qAvFoLdA}B~A}Dz@eCx@gCb@gBpAiGZkAp@_Bp@eAfA_Az@g@rFiCrA}@t@y@Vg@Zu@b@kB^oCL_@FIRCRLHTJdBCZDVHDFEBK@Qh@w@FStFmH`AwAhBeDv@}Ar@aBnAeD`AgDh@eCp@kEXwC`BoSd@uEd@}C`@oB^}AdBwFnAkD~@aBlAyAx@m@nAi@dBa@zEu@bBE~@DvCz@dAd@l@b@dAhAr\\x^jA|@`@P`@Dn@C`Ag@vCgCfAs@l@WfAUdD?`_@|@nA?p@C^D`BSzB}@j@_@X_@l@c@jE}DpMgMxp@yn@nAmAlA{@|TwLtAe@hBObRaApCAjLRt@HfA\\vWhL`ClAxBpAdBjAhC|BjBjBh@t@l@rAjDjK|BpG`KrXzMv^~BlGd@z@`AxAnBxBfQnPhAbAbBnAbDvB^^Xh@`ApCvBvGf@lB`@pBb@|CRvBT`CLjCH~DJ~HD~APxBzApIrD~SdChOn@hDhAxEt@~BbBhEtFzMvAdDv@|Ax@|A`EnHxVzb@`Rr[hAxAf@f@h@^l@\\dDpAv@`@dAv@nAfAp@x@fRfWvBdClHhHhDxC|HhEtItE`AZv@L`A?`@ErA]tA{@|CqC|@q@lAs@pBk@z@KdB@hB\\|Ap@pFfDlB~@lC~@zGfB|Ap@zBnAlCvBbAdAv@fAj@bAx@tBr@|B|AnGrAnE`AdChAxBf@x@pA~AfAv@n@X~@PZNt@@x@EtBy@\\W@c@Gw@Sq@IMMG]G@s@MAKJAl@Cn@Hb@ND@_A^FPNLf@Dr@JXlCwB^c@zA}@l@Wn@S~@OpAItAJlAVvAn@dBpAdE|EfAhA~@p@dBz@tA\\l@DpBCz@OzAe@nDoBbHiEdAw@r@q@zAiBhB{C|@oBrAgD`DeJvA}EdBoG|AqGfDcPr@sC^oAfAcCl@cArB}BnAcAvA}@jAi@rA[fCITJdH@xBQnBi@~@c@~@m@vAoAxAgBn@aArGoLdDeGdBkCjBuB|OsO|BeCjC{Cb]kb@n@}@r@iAj@sAN]t@cCh@_CTmA\\aC\\}D|Dss@FqBh@{HPgBb@uDn@kDXgAr@aCz@}BTCfAgBzCyD[e@g@e@U?STMVKk@QTAH@IPUJj@LWRUT?f@d@Zd@X]VGPN~AvDXTfCqB|A{@zFoBxB_@tCWfC?~Fr@bAT|@\\l@^nC|Bz@f@nAd@|I~BjM`D`GbBBg@Dg@BMJIh@LRFJRDTDbAdB?pBSh@BZT`AdArKdFlAZj@X|ArAlAbCV`@r@v@v@j@z@^x@HZCj@WxAeAtC}CfA}@b@SdD{@hAm@t@_Av@_B`@s@`ByB`DsCZIb@AXDZZvBrCbDjEnArBbDtGz@vBX~@n@zCZxC\\~E`@bDx@~D\\fAjClH`BtFJj@^xGF^HTJHRIj@m@f@Ex@b@lDbDx@xAr@hBh@hChDlVhBjKzD|TvAxIPt@jDhNXj@X`@VV^Lb@D\\CXINKPYXc@j@_@FOdChHp@~A|DvHnAtBrBrCdDvDtKdKfBzAhB`AlBj@pBPbEEpBKnBSnCa@tEu@r@EbBDbB^n@V~AbAbBbBdYf]pCvCrAfAjChBvCxAxCbA|Ch@zCP|CEvC_@tAYpPyE`E_B~AiApAuAhAkBbA_Cz@qCjCsL~@kDd@wA`A{B`@u@jA{AnAcAr@_@rA]tACtARrAj@f@^vAxAbE`GhB~BrAjAnB`Ax@VnChAfA|@dAtA|@fBx@|B^vAdGtVf@bBx@tBv@vAj@x@xAhBx@x@dCpBtCjCnAtAxClEpC~EfAvB~AnDhBvE~@hCz@nCjFpQtF~P|BvG`CpGhGpOpGxNlCrF~GtMpC`FlHlLrHrKxHvJpFfG`DfDbD~CvF~EnIrGhD~BjDtBvIvEzYxNf@b@nFlCj@l@dCtBnAx@n@Zx@VH@ZKPVFlCFTkAZAyACa@m@G@]bkClaGDSzCdEt@z@fAdAxZd`@bCvBdGhExEpDlDfDdDzDjD|EbAbBtAfD|@zC|@fEpDnS\\|AlDdLbApCpBrDh@lAh@bBrAhGv@jCp@hBrDxI|@tCdBfI\\fAzErKvCjGh@|@lA`BnFpFr@~@bCfEx@jAdElDzBbClNrRt@lAxC~Fj@z@dGrH`A|@`AZdC\\zDdAbFtAlAXv@F|AKpFgAfAI^DTHf@b@j@|@hAdCT\\l@l@t@\\xCb@v@Pj@d@h@~@Nf@VjAXdCb@|GNtAd@hCd@~A~@|BlCxFlAlBpApAfJjG~BvBhIbJdAzAtDfGdAzAt@t@z@b@j@DtBE`@BzFnBlAh@fAp@~A|AlGhHzArBxAdCt@|AlJhVf@pBPrAL|AnAhWDpBErBGx@SvA[|AcBnGYnAWxBGhAKPJQAnBFtG?`EI~CSnEWzC[xCeFja@gFn`@o@`GO~DI`OMxVAvH@hL@tBJvDX|EXrCp@fEn@~C`FvTv@jDZjAr@nBz@zA~BbCtAhA|A~@fGvCj@`@j@l@d@n@zCxE`AdApAt@hItBdBXrBDrCCnNk@fFH`CP`C^tBj@bDzAAH@I|CzAj@LlHdAxBj@xCrArJrFvGnD`DnA~EpAnGx@lBLnFFrCPhCZlCh@`JzBzFnBt@`@pA~@zE~DtA`AbB|@fTnJhAb@LTjBlAhDbDJ?dA|@hAb@j@DhAOl@]x@{@bA_BnA_CzHgRlAcCpAyB`BeCdTyYnBiDfEsIv@uBj@}BRoATeBTcDJgDAwCKsF?oDDaHAwAE{Ac@gICgB@cADgAJqARmAT}@f@mAn@}@t@i@z@ShACZDx@Zz@bAd@nAjBxK^vA`@~@pAtAvA`@vAMxIsAvAa@f@UnBiApFkD~@_AlBiDn@q@t@Wt@Db@PhIxFl@x@b@fAhAxDx@bBjExGr@bBl@`CzB|Lh@zBn@hBp@~A`A`Bv@~@z@v@`GfDtAdAfAdBp@dB\\pA^zBvAzMZ|BZrAVx@rCrHx@jCj@`Cf@fCt@hFj@|EN`Bh@xHb@hEj@bDp@tC|@dCbApBhA|AvAtAdBdA|LxFdA~@f@t@l@lAv@hBdPhb@n@zA~@dB|@tAr@t@nEvCn@n@`CxDjAxBjAlAdCdAv@t@Zj@b@fA|@lCXp@Tb@^h@r@\\d@F^Ab@MnEcCn@Wf@On@Eh@?lAVb@NnCdBx@Zl@Nb@Bn@El@OtFgCvAe@f@?jDv@bADvAGnD[tA]zAOzA@rAGtAa@nImFrAeA`AeAhHaJh@k@d@]fDoBhF{DxASvBp@xAXvAI`C]f@A`@Hp@\\lE`Dh@d@d@l@^t@d@jAtA|EpAvD`FzLt@~BrAdF|@bCDX`AxBd@`At@hArAdBv@x@`Ar@vAz@lHzBrCx@jDbB`GhDxDbCfI~Fh@XpA\\n@DvAIrEkApAOnBTbA`@rLbI~@h@n@R~@Fv@M`Ac@dBgAfA]|@Cl@Nj@Xd@`@h@v@jBpDt@fAp@`@v@NjCIjAL`Af@tAlAL^fGnGpAdBf@~@f@nAfBzFd@pAr@tAt@~@d@`@d@TxC`Az@d@z@~@bA`Bh@p@h@j@f@\\dAh@bIvCRGrBr@jATf@B`FAlAJzA`@`EzAbBv@`BpAx@x@n@x@|@~AfDdHfBnCpBvBpBzA~MlIxApAt@z@fArAb@x@R^pA~D\\v@v@fAxAvAdBzAxAfAdBdA|M~GzCdBt@h@bA`AlI`JnBfCrCzEvF`KrGlLrB|E^t@jAjBvC~DrBtDpR|_@f@|@^d@f@`@r@Z`FdAv@Vz@\\zBpA@ZA[nFfD|@v@|E~EhAv@fObI`BdAtDrC~AtAz@bAz@jA|@~AbDdH`BrDd@jAzBxHt@jBd@x@~DxFxAhCt@`BtApDpCbJh@rATj@bH~MbAzAxG~HnApB|IjOh@vAZjAXfBPbBHnBFnEPtC`@rC^xAj@bBhIrT`ArBl@|@h@p@dDlCbAdAn@`AzJxQz@~@vBnAb@^\\d@rAdC~I~PjBnEdDvKj@`CdAxGj@nCtEzOdEtNjBnHvBdJ`AlFv@fFj@rEjDt_@j@jF^`Cx@rDnH|Wd@dBdArEvClNh@zC`@hDXpCd@fGzH~kA^lFTdCf@bEr@fEl@dC`EhMt@vCj@~C`@pDPxBHhBp@~XJxCJtBHlAb@zEd@vDjStlAn@fDXhAb@lBx@lCh@~Az@xBfJ|SvAvD`AtCzMrc@l@~BlCjLh@pBr@|B|@lCjKvXfKfXrArDh@jBh@hCf@dD~A`RR~A`@vBb@~A`A|BnP`YxB`E~AvDrDvLtAzDhA`CnHdNlAjClDjIzAnCdIrLIJHK~AhChKnTCNBOhN~YdBlEd@zAt@nCn@zCfBbKfCvN`@jBp@fCxNvc@|X`{@rGlSn@zCzDtVbBvJZ|C?b@B`APnCVzCJt@H^b@jGn@`I`DfY\\tBrAhFT`BCV@`@FTJNPANYB_@A[J_@Pa@TETJT\\J^bArGDf@?lABj@|BfM",
+              "length": 1536
+            }
+          },
+          {
+            "line": {
+              "lineRef": "ATB:Line:2_340",
+              "lineName": "Trondheim - Støren",
+              "publicCode": "340"
+            },
+            "stops": [],
+            "affectedPointsOnLink": {
+              "points": "yydbKmtn~@BpJFt@H@pDUt@OrG@vG@AhI??Gze@?zAfBW\\NnBWPUb@UnQyCFJdG_AjA_@JSfGqArHuAd@JLCzAk@RYjEeBZFAZdx@eXjs@`R`N|D?CvEbBfBz@fC|AxD|CbCdCr@v@LVrCxDbEzGbR~]tGpLdCvDfCbDjDtDpGfGrEzDzFbEjGnDtFfCxBl@lCb@fEJxBKbDi@jBi@nB{@~CiBxD{CbEsD~BkBt@s@zD{BrCeAzBe@jCSbB@dBNbCj@pC`ApE`ClCvBpHvGvOdN|CpDN`@tAzAl@\\`@x@D^JNN?JSr@?jAN|NjC^OdD^tG`@bc@vBPThBP`AX`B`AbBhA^V^f@BNJRNAHWz@WjCShANpAn@REjDnCxC~CjClDvKnPfErFrNpOJ`@zCbDZb@bAfBvA`BTXN^Lx@DbAAf@EVITCh@Hb@DFNBJMFSLMNCb@ZhAzBRhANRJ?JMREn@Xd@HlAMn@Dh@Jp@Zv@p@`An@vIhJ~AlBvAtBpA~BfAbCj@~AvA`F`@hB~@hFl@zE^fEPnCPxEJtF?|I]rd@?dHDjFJfFNnEPzDVzDh@pGd@hEjAxInA`H`AdE~DfPbBjI~AhKl@pEDtAPrB^vFHzKCrCIzCMtCUpCWtBSzAe@bCk@bCOd@QDEHG\\?^Jd@LHLG\\TnBhBjAhAFRPFFGFQRKV?nCRlAX`@Vd@b@^d@`BzCtAlDhAdCpAdCjAjBpCpDhAlAxBfBnVtOnYdQpCjAlCv@rHlB`DrAh@`@jD`DVh@@ZHRNDNYnJdGxBfA~Bd@x@ATI^I^c@PA\\ZLBLGXBp@G`A@~@\\^VnAvA~KrOhDhExG|H\\h@Nj@D`@CfCDbAP|APt@`@hAx@fBtDtG^d@b@ZtAXtHd@r@W`@c@rBeEtJmRr@|CtBmDj@_Au@yDxDuHX[PAp@[LFJKHU@SFa@L]Ho@l@cCRi@|Wwh@b@u@lAuBpAeBnBcCrByBhAaAdCoBvFoD`CqArAi@lA[xB_@pAItCH^@fCf@~B~@xBtA~BdBrCfCx@`AfAzAb@`AxAhEb@|@p@lAn@`An@p@B^VTFDNI@AdChB`G|DbEhCnHzDz@VtAL`EMp@AlAFjAZrAt@lAfAv@~@x@nA^t@h@pAd@vAzAhGRp@l@fAj@j@~DnAbAn@h@b@vAdBrCxE~@vA^Zj@BFHNDNh@LFLTPLdCVdAXv@b@rEjDp@^`EdB~DbArB|@XFpA?l@FTVH?LQBS?UCSGMKq@CoCFaADOZGFG|Gb@tNVjCEpZsBbBMpCEtAPpBj@ZBv@EZKp@c@|@qAvFoLdA}B~A}Dz@eCx@gCb@gBpAiGZkAp@_Bp@eAfA_Az@g@rFiCrA}@t@y@Vg@Zu@b@kB^oCL_@FIRCRLHTJdBCZDVHDFEBK@Qh@w@FStFmH`AwAhBeDv@}Ar@aBnAeD`AgDh@eCp@kEXwC`BoSd@uEd@}C`@oB^}AdBwFnAkD~@aBlAyAx@m@nAi@dBa@zEu@bBE~@DvCz@dAd@l@b@dAhAr\\x^jA|@`@P`@Dn@C`Ag@vCgCfAs@l@WfAUdD?`_@|@nA?p@C^D`BSzB}@j@_@X_@l@c@jE}DpMgMxp@yn@nAmAlA{@|TwLtAe@hBObRaApCAjLRt@HfA\\vWhL`ClAxBpAdBjAhC|BjBjBh@t@l@rAjDjK|BpG`KrXzMv^~BlGd@z@`AxAnBxBfQnPhAbAbBnAbDvB^^Xh@`ApCvBvGf@lB`@pBb@|CRvBT`CLjCH~DJ~HD~APxBzApIrD~SdChOn@hDhAxEt@~BbBhEtFzMvAdDv@|Ax@|A`EnHxVzb@`Rr[hAxAf@f@h@^l@\\dDpAv@`@dAv@nAfAp@x@fRfWvBdClHhHhDxC|HhEtItE`AZv@L`A?`@ErA]tA{@|CqC|@q@lAs@pBk@z@KdB@hB\\|Ap@pFfDlB~@lC~@zGfB|Ap@zBnAlCvBbAdAv@fAj@bAx@tBr@|B|AnGrAnE`AdChAxBf@x@pA~AfAv@n@X~@PZNt@@x@EtBy@\\W@c@Gw@Sq@IMMG]G@s@MAKJAl@Cn@Hb@ND@_A^FPNLf@Dr@JXlCwB^c@zA}@l@Wn@S~@OpAItAJlAVvAn@dBpAdE|EfAhA~@p@dBz@tA\\l@DpBCz@OzAe@nDoBbHiEdAw@r@q@zAiBhB{C|@oBrAgD`DeJvA}EdBoG|AqGfDcPr@sC^oAfAcCl@cArB}BnAcAvA}@jAi@rA[fCITJdH@xBQnBi@~@c@~@m@vAoAxAgBn@aArGoLdDeGdBkCjBuB|OsO|BeCjC{Cb]kb@n@}@r@iAj@sAN]t@cCh@_CTmA\\aC\\}D|Dss@FqBh@{HPgBb@uDn@kDXgAr@aCz@}BTCfAgBnCkDJMX]VGPN~AvDXTfCqB|A{@zFoBxB_@tCWfC?~Fr@bAT|@\\l@^nC|Bz@f@nAd@|I~BjM`D`GbBBg@Dg@BMJIh@LRFJRDTDbAdB?pBSh@BZT`AdArKdFlAZj@X|ArAlAbCV`@r@v@v@j@z@^x@HZCj@WxAeAtC}CfA}@b@SdD{@hAm@t@_Av@_B`@s@`ByB`DsCZIb@AXDZZl@qB\\{@rEoLtBjGTc@D?HFJZK[IGE?Ub@uBkGdBaEt@iA^[LGl@AtAZLAz@_Al@]JAZLz@p@NJXBTIr@q@VEJ?^PTXHNl@rCr@hE`@fDj@zFR~DSJk@l@",
+              "length": 800
+            }
+          }
+        ]
       }
     }
   ]

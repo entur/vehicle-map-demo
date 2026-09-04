@@ -73,6 +73,7 @@ describe("affectsShape", () => {
               {
                 line: { lineRef: "L:1", lineName: "One", publicCode: "1" },
                 stops: null,
+                affectedPointsOnLink: null,
               },
             ],
           },

@@ -236,10 +236,19 @@ export type AffectedVehicleJourney = {
   affectedPointsOnLink: { points: string | null; length: number | null } | null;
 };
 
-/** One affected line. A line has many journey patterns, so it carries no geometry — only stops. */
+/**
+ * One affected line, with the stops it is affected at and - when the API can
+ * produce one - a span of its geometry.
+ *
+ * That span is **one representative pattern**, not the line as a whole: a line
+ * has many journey patterns, and the API picks the first the affected stops
+ * locate on, or the longest when the line is affected as a whole. Treat it as
+ * indicative of where the line is affected, not as the line's shape.
+ */
 export type AffectedLine = {
   line: Line | null;
   stops: AffectedStop[] | null;
+  affectedPointsOnLink: { points: string | null; length: number | null } | null;
 };
 
 /**

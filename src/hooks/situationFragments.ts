@@ -53,6 +53,7 @@ export const SITUATION_QA_FIELDS_FRAGMENT = `
       affectedLines {
         line { lineRef lineName publicCode }
         stops { stop { id name location { latitude longitude } } stopConditions }
+        affectedPointsOnLink { points length }
       }
     }
   }

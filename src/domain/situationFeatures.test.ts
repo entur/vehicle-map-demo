@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { makeSituation } from "../__fixtures__/makeSituation.ts";
 import fixture from "../__fixtures__/situations.json";
-import { AffectedVehicleJourney, NationalSituation } from "../types.ts";
+import {
+  AffectedLine,
+  AffectedVehicleJourney,
+  NationalSituation,
+} from "../types.ts";
 import {
   buildSituationFeatures,
   SituationFeatureProperties,
@@ -157,10 +161,10 @@ describe("against the captured dev fixture", () => {
 
   // The two tests above would both pass on a fixture that produced no
   // features at all — that is exactly how a recapture silently dropped every
-  // affectedSpan (see capture-situations-fixture.mjs). Assert the fixture
+  // journeySpan (see capture-situations-fixture.mjs). Assert the fixture
   // actually exercises every source it carries, so a future regression like
   // that fails here instead of shipping unnoticed.
-  it("exercises every feature source the fixture carries, including affectedSpan", () => {
+  it("exercises every feature source the fixture carries, including journeySpan and lineSpan", () => {
     const { pointFeatures, lineFeatures } = buildSituationFeatures(situations);
     const sourcesProduced = new Set([
       ...pointFeatures.map((f) => f.properties.source),
@@ -189,12 +193,19 @@ describe("against the captured dev fixture", () => {
           (j) => (j.affectedPointsOnLink?.points ?? "").length > 0,
         )
       )
-        sourcesPresentInFixture.add("affectedSpan");
+        sourcesPresentInFixture.add("journeySpan");
+      if (
+        (affects?.affectedLines ?? []).some(
+          (l) => (l.affectedPointsOnLink?.points ?? "").length > 0,
+        )
+      )
+        sourcesPresentInFixture.add("lineSpan");
     }
 
     // Sanity on the fixture itself: if this ever stops carrying a span, the
     // capture script's must-include guarantee has regressed too.
-    expect(sourcesPresentInFixture.has("affectedSpan")).toBe(true);
+    expect(sourcesPresentInFixture.has("journeySpan")).toBe(true);
+    expect(sourcesPresentInFixture.has("lineSpan")).toBe(true);
 
     for (const source of sourcesPresentInFixture) {
       expect(sourcesProduced.has(source)).toBe(true);
@@ -259,6 +270,7 @@ describe("stops carried by the new affects fields", () => {
                 publicCode: "81",
               },
               stops: [affectedStop("NSR:Quay:7169", 59.91, 10.75)],
+              affectedPointsOnLink: null,
             },
           ],
         },
@@ -308,7 +320,11 @@ describe("stops carried by the new affects fields", () => {
             },
           ],
           affectedLines: [
-            { line: null, stops: [affectedStop("NSR:Quay:1", 59.9, 10.7)] },
+            {
+              line: null,
+              stops: [affectedStop("NSR:Quay:1", 59.9, 10.7)],
+              affectedPointsOnLink: null,
+            },
           ],
         },
       }),
@@ -325,7 +341,11 @@ describe("stops carried by the new affects fields", () => {
         affects: {
           ...EMPTY,
           affectedLines: [
-            { line: null, stops: [affectedStop("NSR:Quay:1", 59.9, 10.7)] },
+            {
+              line: null,
+              stops: [affectedStop("NSR:Quay:1", 59.9, 10.7)],
+              affectedPointsOnLink: null,
+            },
           ],
         },
       });
@@ -352,6 +372,7 @@ describe("stops carried by the new affects fields", () => {
                   stopConditions: [],
                 },
               ],
+              affectedPointsOnLink: null,
             },
           ],
           vehicleJourneys: [
@@ -386,6 +407,7 @@ describe("stops carried by the new affects fields", () => {
                   stopConditions: [],
                 },
               ],
+              affectedPointsOnLink: null,
             },
           ],
         },
@@ -397,7 +419,7 @@ describe("stops carried by the new affects fields", () => {
   });
 });
 
-describe("affected spans", () => {
+describe("journey spans", () => {
   // Verified against src/utils/decodePolyline.ts: decodes to
   // [[10, 63.00000000000001], [10.5, 63.400000000000006]] as
   // [longitude, latitude]. Assert on length, not on exact coordinates —
@@ -426,7 +448,7 @@ describe("affected spans", () => {
     ]);
 
     expect(lineFeatures).toHaveLength(1);
-    expect(lineFeatures[0].properties.source).toBe("affectedSpan");
+    expect(lineFeatures[0].properties.source).toBe("journeySpan");
     expect(lineFeatures[0].properties.entityId).toBe(
       "VYG:DatedServiceJourney:1013_ASR-HAG_26-09-02",
     );
@@ -565,5 +587,158 @@ describe("affected spans", () => {
 
     expect(lineFeatures).toEqual([]);
     expect(pointFeatures).toHaveLength(1);
+  });
+});
+
+describe("line spans", () => {
+  // Same verified polylines as the journey spans above: "_uo_K_c`|@_cmA_t`B"
+  // decodes to two coordinates, "_uo_K_c`|@" to one.
+  const POLYLINE = "_uo_K_c`|@_cmA_t`B";
+  const ONE_COORDINATE_POLYLINE = "_uo_K_c`|@";
+
+  const lineWithSpan = (
+    overrides: Partial<AffectedLine> = {},
+  ): AffectedLine => ({
+    line: { lineRef: "RUT:Line:81", lineName: "Grorud", publicCode: "81" },
+    stops: null,
+    affectedPointsOnLink: { points: POLYLINE, length: 119 },
+    ...overrides,
+  });
+
+  it("builds one line feature from the line's own geometry", () => {
+    const { lineFeatures, unmappable } = buildSituationFeatures([
+      makeSituation({
+        affects: { ...EMPTY, affectedLines: [lineWithSpan()] },
+      }),
+    ]);
+
+    expect(lineFeatures).toHaveLength(1);
+    expect(lineFeatures[0].properties.source).toBe("lineSpan");
+    expect(lineFeatures[0].properties.entityId).toBe("RUT:Line:81");
+    expect(lineFeatures[0].properties.name).toBe("Grorud");
+    expect(lineFeatures[0].geometry.coordinates).toHaveLength(2);
+    expect(unmappable).toEqual([]);
+  });
+
+  it("emits no line for a line entry the API gave no span, and reports the situation unmappable when it's the only content", () => {
+    const { lineFeatures, unmappable } = buildSituationFeatures([
+      makeSituation({
+        affects: {
+          ...EMPTY,
+          affectedLines: [lineWithSpan({ affectedPointsOnLink: null })],
+        },
+      }),
+    ]);
+
+    expect(lineFeatures).toEqual([]);
+    expect(unmappable).toEqual(["TST:SituationNumber:1"]);
+  });
+
+  it("emits no line for a span that decodes to fewer than two points", () => {
+    const { lineFeatures } = buildSituationFeatures([
+      makeSituation({
+        affects: {
+          ...EMPTY,
+          affectedLines: [
+            lineWithSpan({
+              affectedPointsOnLink: {
+                points: ONE_COORDINATE_POLYLINE,
+                length: 0,
+              },
+            }),
+          ],
+        },
+      }),
+    ]);
+
+    expect(lineFeatures).toEqual([]);
+  });
+
+  it("emits one feature for the same line ref listed twice in one situation", () => {
+    const { lineFeatures } = buildSituationFeatures([
+      makeSituation({
+        affects: {
+          ...EMPTY,
+          affectedLines: [lineWithSpan(), lineWithSpan()],
+        },
+      }),
+    ]);
+
+    expect(lineFeatures).toHaveLength(1);
+  });
+
+  it("recovers a line's valid span when an earlier entry for the same line ref doesn't decode", () => {
+    // Marking `seen` before the decode check would let the first, bad entry
+    // block the second, valid one — this test must fail if `seen.add` moves
+    // above the length check.
+    const { lineFeatures, unmappable } = buildSituationFeatures([
+      makeSituation({
+        affects: {
+          ...EMPTY,
+          affectedLines: [
+            lineWithSpan({
+              affectedPointsOnLink: {
+                points: ONE_COORDINATE_POLYLINE,
+                length: 0,
+              },
+            }),
+            lineWithSpan({
+              affectedPointsOnLink: { points: POLYLINE, length: 119 },
+            }),
+          ],
+        },
+      }),
+    ]);
+
+    expect(lineFeatures).toHaveLength(1);
+    expect(lineFeatures[0].geometry.coordinates).toHaveLength(2);
+    expect(unmappable).toEqual([]);
+  });
+
+  it("emits both the lineStop points and the lineSpan line for a line entry carrying both", () => {
+    const { pointFeatures, lineFeatures } = buildSituationFeatures([
+      makeSituation({
+        affects: {
+          ...EMPTY,
+          affectedLines: [
+            lineWithSpan({
+              stops: [affectedStop("NSR:Quay:1", 59.9, 10.7)],
+            }),
+          ],
+        },
+      }),
+    ]);
+
+    expect(pointFeatures).toHaveLength(1);
+    expect(pointFeatures[0].properties.source).toBe("lineStop");
+    expect(lineFeatures).toHaveLength(1);
+    expect(lineFeatures[0].properties.source).toBe("lineSpan");
+  });
+
+  it("keeps a journey span and a line span in one situation as two distinct-source features", () => {
+    const { lineFeatures } = buildSituationFeatures([
+      makeSituation({
+        affects: {
+          ...EMPTY,
+          vehicleJourneys: [
+            {
+              serviceJourney: null,
+              datedServiceJourney: { id: "VYG:DatedServiceJourney:1" },
+              line: null,
+              operator: null,
+              stops: null,
+              affectedPointsOnLink: { points: POLYLINE, length: 119 },
+            },
+          ],
+          affectedLines: [lineWithSpan()],
+        },
+      }),
+    ]);
+
+    expect(lineFeatures).toHaveLength(2);
+    expect(lineFeatures.map((f) => f.properties.source).sort()).toEqual([
+      "journeySpan",
+      "lineSpan",
+    ]);
   });
 });

@@ -55,7 +55,9 @@ Key invariants worth preserving:
 - Situation **point features deduplicate on stop id alone** within a situation,
   across all four stop sources (`stopPoints`, `stopPlaces`,
   `vehicleJourneys[].stops`, `affectedLines[].stops`). One situation, one stop,
-  one dot. Spans deduplicate separately, on journey id. Dedup remains **within**
+  one dot. Spans deduplicate separately, on their own key space per kind:
+  `journeySpan:<journeyId>` and `lineSpan:<lineRef>` — bare stop ids for the
+  four point sources, so six sources total. Dedup remains **within**
   a situation only — two situations affecting one stop still produce two
   coincident features, which is the duplication this tool exists to expose.
 - `SituationFields` and `SituationQaFields` in `src/hooks/situationFragments.ts` both target the GraphQL `Situation` type. The timetable subscription spreads only the first, at two levels; the situations subscription spreads both. Adding a field to `SituationFields` therefore adds it to the timetable query as well.
@@ -72,20 +74,29 @@ Key invariants worth preserving:
 
 The situations feed serves the coordinates it needs. `Affects.vehicleJourneys`
 and `Affects.affectedLines` pair each affected journey and line with the
-**located** stops it is affected at, and a journey may carry
-`affectedPointsOnLink`: the span of its route between the first and last
-affected stop, or — when the situation names no stops, meaning the journey is
+**located** stops it is affected at, and both a journey entry and a line entry
+may carry `affectedPointsOnLink`: the span of its route between the first and
+last affected stop, or — when the situation names no stops, meaning it is
 affected as a whole — the entire route. An empty `stops` list is what tells
 those two cases apart.
 
-Measured on dev (944 situations): 845 map, 99 do not. Spans stay rare, 46 of
-9,232 journey entries, and the API explains why rather than guessing: it
-withholds a span when the journey has no pattern geometry (718 entries), when
-exactly one stop is affected — a point is not a span (3,610 entries), or when
-any affected stop cannot be located on the route. **Do not "fix" that by
-interpolating between stops or falling back to Journey Planner.** A synthetic
-line drawn over the wrong part of a route is worse than an honest absence in a
-data-QA tool, which is the same reason the API declines to draw it.
+A line's span carries a caveat a journey's does not: a line has many journey
+patterns, so `affectedLines[].affectedPointsOnLink` is **one representative
+pattern, not the line as a whole** — the API picks the first pattern the
+affected stops locate on, or the longest when the line is affected as a
+whole. Treat it as indicative of where the line is affected, never as the
+line's shape.
+
+Measured on dev (977 situations): 906 map, 71 do not. Spans stay rare on
+journeys — 45 of 9,053 journey entries — but line entries carry one far more
+often: 109 of 695. The API explains why rather than guessing: it withholds a
+span when the entry has no pattern geometry, when exactly one stop is
+affected — a point is not a span (217 line entries affect exactly one stop; 10
+have no stops and no pattern geometry), or when any affected stop cannot be
+located on the route. **Do not "fix" that by interpolating between stops or
+falling back to Journey Planner.** A synthetic line drawn over the wrong part
+of a route is worse than an honest absence in a data-QA tool, which is the
+same reason the API declines to draw it.
 
 `stopPoints` and `stopPlaces` are **not** superseded by the new fields and must
 stay selected: measured, every situation carrying them names no journey and no

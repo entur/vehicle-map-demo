@@ -232,7 +232,13 @@ export function SituationDetail({
             const stops = affectedLine.stops?.length ?? 0;
             const name =
               `${line?.lineRef ?? "(no lineRef)"} ${line?.lineName ?? ""}`.trim();
-            return stops ? `${name} — ${stops} stop(s)` : name;
+            const parts = stops ? [`${name} — ${stops} stop(s)`] : [name];
+            parts.push(
+              hasDrawableSpan(affectedLine.affectedPointsOnLink?.points)
+                ? "span"
+                : "no span",
+            );
+            return parts.join(" — ");
           })}
         />
         <AffectsGroup
