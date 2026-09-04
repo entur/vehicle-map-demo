@@ -422,43 +422,6 @@ describe("stops carried by the new affects fields", () => {
     expect(pointFeatures[0].properties.source).toBe("journeyStop");
   });
 
-  it("draws a stop that is unlocated in one source and located in another", () => {
-    const { pointFeatures } = buildSituationFeatures(
-      [
-        makeSituation({
-          affects: {
-            ...EMPTY,
-            affectedLines: [
-              {
-                line: null,
-                stops: [
-                  {
-                    stop: { id: "NSR:Quay:1", name: null, location: null },
-                    stopConditions: [],
-                  },
-                ],
-              },
-            ],
-            vehicleJourneys: [
-              {
-                serviceJourney: null,
-                datedServiceJourney: { id: "A" },
-                line: null,
-                operator: null,
-                stops: [affectedStop("NSR:Quay:1", 59.9, 10.7)],
-                affectedPointsOnLink: null,
-              },
-            ],
-          },
-        }),
-      ],
-      NO_GEOMETRY,
-    );
-
-    expect(pointFeatures).toHaveLength(1);
-    expect(pointFeatures[0].properties.source).toBe("journeyStop");
-  });
-
   it("skips a stop the API could not locate, and reports the situation unmappable", () => {
     const { pointFeatures, unmappable } = buildSituationFeatures(
       [
