@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { makeSituation } from "../__fixtures__/makeSituation.ts";
 import fixture from "../__fixtures__/situations.json";
-import { NationalSituation } from "../types.ts";
+import { AffectedVehicleJourney, NationalSituation } from "../types.ts";
 import {
   buildSituationFeatures,
   collectDatedServiceJourneyRefs,
@@ -623,5 +623,169 @@ describe("dated service journey features", () => {
     );
     expect(lineFeatures).toEqual([]);
     expect(unmappable).toEqual(["TST:SituationNumber:1"]);
+  });
+});
+
+describe("affected spans", () => {
+  // Verified against src/utils/decodePolyline.ts: decodes to
+  // [[10, 63.00000000000001], [10.5, 63.400000000000006]] as
+  // [longitude, latitude]. Assert on length, not on exact coordinates —
+  // the encoding round-trips through 1e5 integers and loses the last bit.
+  const POLYLINE = "_uo_K_c`|@_cmA_t`B";
+
+  const journeyWithSpan = (
+    overrides: Partial<AffectedVehicleJourney> = {},
+  ): AffectedVehicleJourney => ({
+    serviceJourney: null,
+    datedServiceJourney: {
+      id: "VYG:DatedServiceJourney:1013_ASR-HAG_26-09-02",
+    },
+    line: null,
+    operator: null,
+    stops: null,
+    affectedPointsOnLink: { points: POLYLINE, length: 119 },
+    ...overrides,
+  });
+
+  it("builds one line feature from the journey's own geometry", () => {
+    const { lineFeatures, unmappable } = buildSituationFeatures(
+      [
+        makeSituation({
+          affects: { ...EMPTY, vehicleJourneys: [journeyWithSpan()] },
+        }),
+      ],
+      NO_GEOMETRY,
+    );
+
+    expect(lineFeatures).toHaveLength(1);
+    expect(lineFeatures[0].properties.source).toBe("affectedSpan");
+    expect(lineFeatures[0].properties.entityId).toBe(
+      "VYG:DatedServiceJourney:1013_ASR-HAG_26-09-02",
+    );
+    expect(lineFeatures[0].geometry.coordinates).toHaveLength(2);
+    expect(unmappable).toEqual([]);
+  });
+
+  it("falls back to the service journey id when there is no dated id", () => {
+    const { lineFeatures } = buildSituationFeatures(
+      [
+        makeSituation({
+          affects: {
+            ...EMPTY,
+            vehicleJourneys: [
+              journeyWithSpan({
+                datedServiceJourney: null,
+                serviceJourney: { id: "ATB:ServiceJourney:311_7010" },
+              }),
+            ],
+          },
+        }),
+      ],
+      NO_GEOMETRY,
+    );
+
+    expect(lineFeatures[0].properties.entityId).toBe(
+      "ATB:ServiceJourney:311_7010",
+    );
+  });
+
+  it("names the span after its line when the feed supplies one", () => {
+    const { lineFeatures } = buildSituationFeatures(
+      [
+        makeSituation({
+          affects: {
+            ...EMPTY,
+            vehicleJourneys: [
+              journeyWithSpan({
+                line: {
+                  lineRef: "RUT:Line:81",
+                  lineName: "Grorud",
+                  publicCode: "81",
+                },
+              }),
+            ],
+          },
+        }),
+      ],
+      NO_GEOMETRY,
+    );
+
+    expect(lineFeatures[0].properties.name).toBe("Grorud");
+  });
+
+  it("emits one feature for a journey listed twice in one situation", () => {
+    const { lineFeatures } = buildSituationFeatures(
+      [
+        makeSituation({
+          affects: {
+            ...EMPTY,
+            vehicleJourneys: [journeyWithSpan(), journeyWithSpan()],
+          },
+        }),
+      ],
+      NO_GEOMETRY,
+    );
+
+    expect(lineFeatures).toHaveLength(1);
+  });
+
+  it("emits no line for a journey the API gave no span", () => {
+    const { lineFeatures, unmappable } = buildSituationFeatures(
+      [
+        makeSituation({
+          affects: {
+            ...EMPTY,
+            vehicleJourneys: [journeyWithSpan({ affectedPointsOnLink: null })],
+          },
+        }),
+      ],
+      NO_GEOMETRY,
+    );
+
+    expect(lineFeatures).toEqual([]);
+    expect(unmappable).toEqual(["TST:SituationNumber:1"]);
+  });
+
+  it("emits no line for a span that decodes to fewer than two points", () => {
+    const { lineFeatures, unmappable } = buildSituationFeatures(
+      [
+        makeSituation({
+          affects: {
+            ...EMPTY,
+            vehicleJourneys: [
+              journeyWithSpan({
+                affectedPointsOnLink: { points: "_ic~Fdvca@", length: 0 },
+              }),
+            ],
+          },
+        }),
+      ],
+      NO_GEOMETRY,
+    );
+
+    expect(lineFeatures).toEqual([]);
+    expect(unmappable).toEqual(["TST:SituationNumber:1"]);
+  });
+
+  it("still emits the stops of a journey whose span is missing", () => {
+    const { pointFeatures, lineFeatures } = buildSituationFeatures(
+      [
+        makeSituation({
+          affects: {
+            ...EMPTY,
+            vehicleJourneys: [
+              journeyWithSpan({
+                affectedPointsOnLink: null,
+                stops: [affectedStop("NSR:Quay:1", 59.9, 10.7)],
+              }),
+            ],
+          },
+        }),
+      ],
+      NO_GEOMETRY,
+    );
+
+    expect(lineFeatures).toEqual([]);
+    expect(pointFeatures).toHaveLength(1);
   });
 });

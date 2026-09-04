@@ -1,5 +1,6 @@
 import type { Feature, LineString, Point } from "geojson";
 import { NationalSituation, SeverityEnumeration, StopRef } from "../types.ts";
+import { decodePolyline } from "../utils/decodePolyline.ts";
 
 export type SituationFeatureProperties = {
   situationNumber: string;
@@ -13,7 +14,8 @@ export type SituationFeatureProperties = {
     | "line"
     | "datedServiceJourney"
     | "journeyStop"
-    | "lineStop";
+    | "lineStop"
+    | "affectedSpan";
   /** The stop id or line ref the feature was built from. */
   entityId: string;
   name: string | null;
@@ -188,6 +190,37 @@ export function buildSituationFeatures(
           "datedServiceJourney",
           journey.id,
           null,
+        ),
+      });
+    }
+
+    // The feed's own geometry: the span between the first and last affected
+    // stop, or the whole route when the situation names no stops at all. The
+    // API withholds it rather than guess — one affected stop is a point, not a
+    // span — so a journey with no span here is not a gap to fill in.
+    for (const journey of situation.affects?.vehicleJourneys ?? []) {
+      const points = journey.affectedPointsOnLink?.points;
+      if (!points) continue;
+
+      const journeyId =
+        journey.datedServiceJourney?.id ?? journey.serviceJourney?.id;
+      if (!journeyId) continue;
+
+      const key = `affectedSpan:${journeyId}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      const coordinates = decodePolyline(points);
+      if (coordinates.length < 2) continue;
+
+      lineFeatures.push({
+        type: "Feature",
+        geometry: { type: "LineString", coordinates },
+        properties: propertiesFor(
+          situation,
+          "affectedSpan",
+          journeyId,
+          journey.line?.lineName ?? null,
         ),
       });
     }
