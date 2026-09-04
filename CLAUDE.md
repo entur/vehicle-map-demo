@@ -32,7 +32,7 @@ When introducing a new config key, update the `Config` interface in `ConfigConte
 4. `useVehiclePositionsData(filter, mapViewOptions, enabled)` opens a `graphql-ws` subscription via `useSubscriptionClient`, gated by `enabled` (`isVehicleFeedEnabled(mode)`) so it only runs in vehicles mode. Incoming `VehicleUpdate`s are written into a `CacheMap` keyed by `vehicleId + "_" + serviceJourney.id`, with a per-entry TTL computed as `maxDataAge - (now - lastUpdated)` so stale vehicles auto-expire. The filter is also re-applied client-side before pushing to state.
 5. `MapView` renders markers (`VehicleMarkers`), optional traces (`VehicleTraces`), popups (`VehiclePopup`), and the `LeftMenu`/`RightMenu` overlays. Selecting a vehicle in the popup can open `useVehicleUpdateCompleteSubscription` for richer per-vehicle details.
 6. Selecting a vehicle also opens `useTimetableSubscription(serviceJourneyId, date)`, whose `timetables` frames carry deviation messages as `Situation` objects in two places: `EstimatedTimetableUpdate.situations` (trip-wide) and `Call.situations` (one stop). Both render through the same `SituationList` component. Situations are shown exactly as delivered — no deduplication, no severity filtering — because the demo exists to expose what the feed actually contains; `situationNumber` and `version` are displayed so a version regression in the eventually-consistent stream stays visible.
-7. Separately from the vehicle pipeline, `SituationsProvider` (wrapping `<MapView>` in `App`) opens an **unfiltered** national `situations` subscription via `useSituationsSubscription`, keyed by `situationNumber` with latest-wins and no TTL. It stays mounted in both modes but only subscribes when `enabled` (`isSituationsFeedEnabled(mode)`) is true — see the geography section below for why it doesn't unmount in vehicles mode. Everything derived from it is pure and lives in `src/domain/`: `situationFlags` (three lifecycle flags), `situationFeatures` (affects → GeoJSON plus the unmappable list), `situationStats` and `situationFilter`. Consumers read the context via `useSituations` and are spread across four surfaces, each with one job: the map layer (`SituationLayers` inside `<Map>`), the right-menu situations drawer (`SituationsPanel` — status line, filtered list, `UnmappableList`), the right-menu filter drawer (`SituationFilters`, beside the codespace dropdown), and the "Feed report" rail entry (`SituationStatsTables`). The selected situation's raw detail is a fifth: `SituationDetailPanel`, a left-anchored drawer over the map, mirroring what `SelectedVehiclePanel` is to a selected vehicle. Both share their geometry from `src/components/detailDrawer.ts` so the two cannot drift into looking like different kinds of surface. Keeping these apart is deliberate — one 250px column previously carried the live list, the raw dump, the unmappable list and the whole-feed statistics at once.
+7. Separately from the vehicle pipeline, `SituationsProvider` (wrapping `<MapView>` in `App`) opens an **unfiltered** national `situations` subscription via `useSituationsSubscription`, keyed by `situationNumber` with latest-wins and no TTL. It stays mounted in both modes but only subscribes when `enabled` (`isSituationsFeedEnabled(mode)`) is true — the subscription pauses in vehicles mode rather than unmounting; unmounting is a separate change nobody has made. Everything derived from it is pure and lives in `src/domain/`: `situationFlags` (three lifecycle flags), `situationFeatures` (affects → GeoJSON plus the unmappable list), `situationStats` and `situationFilter`. Consumers read the context via `useSituations` and are spread across four surfaces, each with one job: the map layer (`SituationLayers` inside `<Map>`), the right-menu situations drawer (`SituationsPanel` — status line, filtered list, `UnmappableList`), the right-menu filter drawer (`SituationFilters`, beside the codespace dropdown), and the "Feed report" rail entry (`SituationStatsTables`). The selected situation's raw detail is a fifth: `SituationDetailPanel`, a left-anchored drawer over the map, mirroring what `SelectedVehiclePanel` is to a selected vehicle. Both share their geometry from `src/components/detailDrawer.ts` so the two cannot drift into looking like different kinds of surface. Keeping these apart is deliberate — one 250px column previously carried the live list, the raw dump, the unmappable list and the whole-feed statistics at once.
 
 Key invariants worth preserving:
 
@@ -52,6 +52,12 @@ Key invariants worth preserving:
 - Codespace is filtered from **one** control: the map's `Filter.codespaceId`, passed into `SituationsProvider` as a prop and applied by `applySituationFilter` as a strict equality check. The panel deliberately has no codespace facet — do not add one back to `SituationFilter`, or the two controls will contradict each other. A situation carrying no codespace drops out whenever a codespace is selected; its count stays visible in `situationStats.byCodespace`, which is computed over the whole feed.
 - The selected situation is singled out on the **style, not the data**: `SituationLayers` sets the filter of the two `situation-*-halo-layer`s and the opacity of the ordinary layers from `selected`, using the pure expressions in `src/domain/situationSelection.ts`. Never rebuild features with a `selected` property — `features` would then change identity on every selection and the fitBounds effect deliberately does not depend on it. The halo layers are classified in `MODE_DEFAULT_VISIBLE_LAYERS`, like `vehicle-follow-layer`: filter-driven, never toggled, so a selection stays pointed out even with "Affected stops"/"Affected lines" switched off. Resting opacities come from `SITUATION_LAYER_OPACITY` in `mapStyle.ts`, which both the style and the dimming expression read. A selection is dropped the moment it leaves the filtered set (`selectionWithin`, applied during render in `SituationsProvider`): a hidden selection would keep the detail drawer open and dim every situation that is shown with nothing highlighted, so a codespace or facet change with a selection held reads as "new set, nothing selected".
 - Situation features are deduplicated **within** a situation only. Two situations affecting one stop deliberately produce two coincident features; collapsing them would hide the duplication this tool exists to expose.
+- Situation **point features deduplicate on stop id alone** within a situation,
+  across all four stop sources (`stopPoints`, `stopPlaces`,
+  `vehicleJourneys[].stops`, `affectedLines[].stops`). One situation, one stop,
+  one dot. Spans deduplicate separately, on journey id. Dedup remains **within**
+  a situation only — two situations affecting one stop still produce two
+  coincident features, which is the duplication this tool exists to expose.
 - `SituationFields` and `SituationQaFields` in `src/hooks/situationFragments.ts` both target the GraphQL `Situation` type. The timetable subscription spreads only the first, at two levels; the situations subscription spreads both. Adding a field to `SituationFields` therefore adds it to the timetable query as well.
 - The vehicle and situations feeds are mutually exclusive — only the active mode's subscription runs (`isVehicleFeedEnabled`/`isSituationsFeedEnabled` in `src/domain/appMode.ts`). Anything needing both live at once — the affected-vehicle halos, removed when modes were introduced — cannot work under this design.
 - Every layer and source declared in `mapStyle.ts` must be claimed by exactly one mode in `MODE_LAYERS`/`MODE_SOURCES` (`src/domain/appMode.ts`), and every mode-owned layer must fall into exactly one of `MODE_SWITCHED_LAYERS` (visibility driven by a `MapViewOptions` key), `MODE_DEFAULT_VISIBLE_LAYERS` (no switch, but must be visible whenever the mode is active because content is governed by the source's data or a feature filter, not a toggle — e.g. `service-journey-route-layer`, `vehicle-follow-layer`) or `MODE_DORMANT_LAYERS` (genuinely inert, `visibility: "none"` and driven by nothing). `appMode.test.ts` enforces both as total partitions — a layer added to `mapStyle.ts` without being classified fails the build rather than being silently hidden forever whenever its mode is left. You cannot classify a layer by grepping for its id: a filter-driven layer (like `vehicle-follow-layer`, gated by `["==", ["get", "followed"], true]`) is live with no reference to its id anywhere outside `mapStyle.ts`. Check whether it carries a `visibility` key and what feeds its source before assuming "unreferenced" means "dormant" — miscategorizing one this way is what stranded a layer hidden after a mode round trip twice during development.
@@ -62,47 +68,39 @@ Key invariants worth preserving:
 - `react-map-gl` uses the `maplibre` entry point (`react-map-gl/maplibre`), not Mapbox. The style is defined inline in `src/components/mapStyle.ts` and uses Entur's tile/style endpoints — no Mapbox token is needed.
 - SVG vehicle icons are loaded via `vite-svg-loader` (see `vite.config.ts` and `src/components/RegisterIcons.tsx`). New icons need to be registered there to be available as map symbols.
 
-## Situations carry almost no geography
+## Situations carry their own geography
 
-`Affects.stopPoints` and `Affects.stopPlaces` are the only coordinate-bearing
-fields the situations feed exposes. `Line` has no geometry of any kind. The
-rest is **borrowed** from the same API, by two different routes, both cached
-per ref for the session by `useBorrowedGeometry` (a ref that yields nothing is
-cached as an empty array and not retried). This cache is why
-`SituationsProvider` stays mounted (subscription merely paused) rather than
-unmounting in vehicles mode — unmounting would throw it away and force every
-ref to re-resolve on the next switch back.
+The situations feed serves the coordinates it needs. `Affects.vehicleJourneys`
+and `Affects.affectedLines` pair each affected journey and line with the
+**located** stops it is affected at, and a journey may carry
+`affectedPointsOnLink`: the span of its route between the first and last
+affected stop, or — when the situation names no stops, meaning the journey is
+affected as a whole — the entire route. An empty `stops` list is what tells
+those two cases apart.
 
-- **Affected lines** come from a vehicle running that line right now:
-  `vehicles(lineRef:)` → `serviceJourney.pointsOnLink`, in
-  `useSituationLineGeometry`. Measured on dev, 31% of vehicles carry
-  `pointsOnLink` (87% on prod), so most line refs end up unavailable. The
-  `serviceJourneys(lineRef:)` root exists and could resolve lines statically
-  instead; not done yet.
-- **Affected dated service journeys** resolve statically, in
-  `useSituationJourneyGeometry`. No vehicle needs to be running. Both id forms
-  the feed publishes resolve — `ATB:ServiceJourney:311_260106098642683_7010`
-  (no date; the digits are a dataset version) and
-  `VYG:DatedServiceJourney:1013_ASR-HAG_26-09-02` — but only while the
-  journey's day is today or later: planned data does not reach back, and ids
-  dated even a week earlier resolve to nothing. Measured on dev, 3,793 of the
-  feed's 3,828 dated ids were past-dated, so `mayResolveJourney`
-  (`src/domain/journeyDate.ts`) drops them before they become requests. The
-  rest go in one request with two roots: `datedServiceJourneys(ids:)` for the
-  dated form and `serviceJourneys(ids:)` for the undated form. The split is
-  forced, not stylistic — see `src/hooks/journeyBatch.ts`: `serviceJourneys`
-  resolves both forms but echoes the _service journey_ id and drops misses, so
-  a dated request cannot be matched back to its row; `datedServiceJourneys`
-  echoes the dated id but knows nothing of ATB's undated form. `pointsOnLink`
-  on `ServiceJourney` is hidden from introspection, exactly like `situations`;
-  do not conclude from an introspection dump that it is gone.
+Measured on dev (944 situations): 845 map, 99 do not. Spans stay rare, 46 of
+9,232 journey entries, and the API explains why rather than guessing: it
+withholds a span when the journey has no pattern geometry (718 entries), when
+exactly one stop is affected — a point is not a span (3,610 entries), or when
+any affected stop cannot be located on the route. **Do not "fix" that by
+interpolating between stops or falling back to Journey Planner.** A synthetic
+line drawn over the wrong part of a route is worse than an honest absence in a
+data-QA tool, which is the same reason the API declines to draw it.
 
-The feed also populates `Affects.serviceJourneys` on some situations, which
-the `SituationQaFields` fragment does not select today.
+`stopPoints` and `stopPlaces` are **not** superseded by the new fields and must
+stay selected: measured, every situation carrying them names no journey and no
+line at all, so dropping them silently unmaps 20 situations.
 
-Do not "fix" the low coverage by inventing centroids or by falling back to
-Journey Planner. Staying on one API is a project constraint, and a synthetic
-position would be worse than an honest absence in a data-QA tool.
+There was formerly an apparatus that borrowed geometry per ref from elsewhere
+in the same API — a running vehicle's `pointsOnLink` for a line, the planned
+`datedServiceJourneys`/`serviceJourneys` roots for a journey — cached for the
+session. It is gone. It resolved 33 of 90 line refs and 78 of 4,591 journey
+ids, and what it drew for a line was that line's _whole_ shape regardless of
+how little of it was affected. Its removal cost 35 situations their geometry
+and is not a regression to restore.
+
+`pointsOnLink` on `ServiceJourney` is hidden from introspection, exactly like
+`situations`; do not conclude from an introspection dump that it is gone.
 
 ## TypeScript / lint conventions
 

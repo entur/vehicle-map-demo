@@ -10,7 +10,7 @@ export type SituationFeatureProperties = {
   /** Which affects member produced this feature. */
   source:
     "stopPoint" | "stopPlace" | "journeyStop" | "lineStop" | "affectedSpan";
-  /** The stop id or line ref the feature was built from. */
+  /** The stop id the feature was built from, or the journey id for an affectedSpan. */
   entityId: string;
   name: string | null;
 };

@@ -68,7 +68,7 @@ export function countByWithin<T>(
     });
 }
 
-/** Which affects kinds a situation populates, e.g. `lines+serviceJourneys`. */
+/** Which affects kinds a situation populates, e.g. `affectedLines+vehicleJourneys`. */
 export function affectsShape(situation: NationalSituation): string {
   const affects = situation.affects;
   if (!affects) return "(empty)";

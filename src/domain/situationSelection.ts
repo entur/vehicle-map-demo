@@ -7,7 +7,7 @@ import type {
  * How the map singles out the selected situation.
  *
  * Both expressions key on the `situationNumber` feature property, so every
- * feature a situation flattens to — each affected stop, each borrowed line —
+ * feature a situation flattens to — each affected stop, each affected span —
  * responds together. Nothing here rebuilds the features: selection is applied
  * to the style, not the data, which keeps `situationFeatures` pure and avoids
  * re-flying the map on every subscription frame.
