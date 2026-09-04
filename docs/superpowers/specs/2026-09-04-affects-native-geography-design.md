@@ -221,9 +221,9 @@ Everything else about the feature contract is unchanged and stays deliberate:
 - **`situationStats`** — `AFFECTS_KINDS` becomes `["affectedLines", "vehicleJourneys",
 "stopPoints", "stopPlaces", "operators"]`. The `byAffectsShape` table's vocabulary changes
   completely; reporting the feed's actual shape is what that table is for.
-- **`SituationDetail`** — the six `AffectsGroup`s become five: Lines (from `affectedLines`,
+- **`SituationDetail`** — the six `AffectsGroup`s become six: Lines (from `affectedLines`,
   with affected-stop count), Journeys (id, line, operator, stop count, whether a span
-  resolved), Stop points, Stop places, Operators. `stopConditions` is surfaced here; it is
+  resolved), Affected stops, Stop points, Stop places, Operators. `stopConditions` is surfaced here; it is
   new information the feed carries and this is the raw-dump panel.
 - **`SituationLayers`, `mapStyle`** — untouched. Both sources and all four layers already
   exist and are fed by point and line features. `source` and `entityId` are carried in feature

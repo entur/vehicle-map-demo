@@ -1066,7 +1066,7 @@ Expected: FAIL, pointing at `SituationDetail.tsx`, which still reads `affects?.l
 
 - [ ] **Step 6: Rewrite the affects groups in the detail panel**
 
-In `src/components/SituationsPanel/SituationDetail.tsx`, replace the six `AffectsGroup` elements with these five. `AffectsGroup` takes `label: string` and `entries: string[]` and renders nothing when `entries` is empty, so no conditionals are needed.
+In `src/components/SituationsPanel/SituationDetail.tsx`, replace the six `AffectsGroup` elements with these six. `AffectsGroup` takes `label: string` and `entries: string[]` and renders nothing when `entries` is empty, so no conditionals are needed.
 
 ```tsx
         <AffectsGroup
