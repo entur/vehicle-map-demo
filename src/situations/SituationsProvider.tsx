@@ -1,9 +1,5 @@
 import { ReactNode, useEffect, useMemo, useState } from "react";
-import {
-  buildSituationFeatures,
-  collectDatedServiceJourneyRefs,
-  collectLineRefs,
-} from "../domain/situationFeatures.ts";
+import { buildSituationFeatures } from "../domain/situationFeatures.ts";
 import {
   EMPTY_SITUATION_FILTER,
   SituationFilter,
@@ -14,9 +10,6 @@ import {
 } from "../domain/situationFilter.ts";
 import { SituationFlag, situationFlags } from "../domain/situationFlags.ts";
 import { countBy, situationStats } from "../domain/situationStats.ts";
-import { useSituationJourneyGeometry } from "../hooks/useSituationJourneyGeometry.ts";
-import { useSituationLineGeometry } from "../hooks/useSituationLineGeometry.ts";
-import { mayResolveJourney } from "../domain/journeyDate.ts";
 import { useSituationsSubscription } from "../hooks/useSituationsSubscription.ts";
 import { SituationsContext } from "./SituationsContext.ts";
 
@@ -68,24 +61,6 @@ export function SituationsProvider({
     );
   }, [feed.situations]);
 
-  const lineRefs = useMemo(
-    () => collectLineRefs(feed.situations),
-    [feed.situations],
-  );
-  const lineGeometry = useSituationLineGeometry(lineRefs);
-
-  // Only the journeys the API can still resolve. "Today" is the UTC date: at
-  // worst that runs a little behind local time, which keeps an id rather than
-  // dropping one, and a journey the API turns out not to know is cached as
-  // unavailable like any other miss.
-  const journeyIds = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10);
-    return collectDatedServiceJourneyRefs(feed.situations).filter((id) =>
-      mayResolveJourney(id, today),
-    );
-  }, [feed.situations]);
-  const journeyGeometry = useSituationJourneyGeometry(journeyIds);
-
   const filtered = useMemo(
     () =>
       applySituationFilter(
@@ -111,10 +86,7 @@ export function SituationsProvider({
   // map cannot show. Deriving that list from the whole feed instead would let
   // it contradict every other control in the panel, listing situations from
   // codespaces the map filter has excluded.
-  const features = useMemo(
-    () => buildSituationFeatures(filtered, lineGeometry, journeyGeometry),
-    [filtered, lineGeometry, journeyGeometry],
-  );
+  const features = useMemo(() => buildSituationFeatures(filtered), [filtered]);
 
   // The map's codespace filter alone — deliberately not `filtered`, which also
   // carries the panel's own facets. Counting within the codespace keeps the

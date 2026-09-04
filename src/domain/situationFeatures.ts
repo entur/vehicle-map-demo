@@ -9,13 +9,7 @@ export type SituationFeatureProperties = {
   codespaceId: string | null;
   /** Which affects member produced this feature. */
   source:
-    | "stopPoint"
-    | "stopPlace"
-    | "line"
-    | "datedServiceJourney"
-    | "journeyStop"
-    | "lineStop"
-    | "affectedSpan";
+    "stopPoint" | "stopPlace" | "journeyStop" | "lineStop" | "affectedSpan";
   /** The stop id or line ref the feature was built from. */
   entityId: string;
   name: string | null;
@@ -27,11 +21,6 @@ export type SituationLineFeature = Feature<
   SituationFeatureProperties
 >;
 
-/** Line ref or journey id → decoded `[longitude, latitude]` pairs. An empty array means "looked up, none available". */
-export type LineGeometryCache = ReadonlyMap<string, number[][]>;
-
-const EMPTY_GEOMETRY: LineGeometryCache = new Map();
-
 export type SituationFeatures = {
   pointFeatures: SituationPointFeature[];
   lineFeatures: SituationLineFeature[];
@@ -39,30 +28,6 @@ export type SituationFeatures = {
   /** Situation numbers that produced no features at all, in input order. */
   unmappable: string[];
 };
-
-/** Every distinct dated service journey id mentioned by any of these situations, in first-seen order. */
-export function collectDatedServiceJourneyRefs(
-  situations: NationalSituation[],
-): string[] {
-  const refs = new Set<string>();
-  for (const situation of situations) {
-    for (const journey of situation.affects?.datedServiceJourneys ?? []) {
-      if (journey.id) refs.add(journey.id);
-    }
-  }
-  return [...refs];
-}
-
-/** Every distinct line ref mentioned by any of these situations, in first-seen order. */
-export function collectLineRefs(situations: NationalSituation[]): string[] {
-  const refs = new Set<string>();
-  for (const situation of situations) {
-    for (const line of situation.affects?.lines ?? []) {
-      if (line.lineRef) refs.add(line.lineRef);
-    }
-  }
-  return [...refs];
-}
 
 function propertiesFor(
   situation: NationalSituation,
@@ -82,20 +47,20 @@ function propertiesFor(
 }
 
 /**
- * Flattens each situation's `affects` into GeoJSON.
+ * Flattens each situation's `affects` into GeoJSON. Pure: every coordinate here
+ * arrives with the feed, so no lookup, cache or network call is involved.
  *
- * Deduplication is **within** a situation only, keyed by stop id and line ref.
- * Two situations affecting the same stop deliberately produce two coincident
- * features — that overlap is the point of a feed-debugging tool, and collapsing
- * it would hide exactly the duplication worth seeing.
+ * Deduplication is **within** a situation only — points by stop id across all
+ * four stop sources, spans by journey id. Two situations affecting the same stop
+ * deliberately produce two coincident features; that overlap is the point of a
+ * feed-debugging tool, and collapsing it would hide exactly the duplication
+ * worth seeing.
  *
  * Nothing is averaged, invented, or given a synthetic centroid: a situation that
  * flattens to no features is reported in `unmappable` instead.
  */
 export function buildSituationFeatures(
   situations: NationalSituation[],
-  lineGeometry: LineGeometryCache,
-  journeyGeometry: LineGeometryCache = EMPTY_GEOMETRY,
 ): SituationFeatures {
   const pointFeatures: SituationPointFeature[] = [];
   const lineFeatures: SituationLineFeature[] = [];
@@ -150,48 +115,6 @@ export function buildSituationFeatures(
     for (const affectedLine of situation.affects?.affectedLines ?? []) {
       for (const entry of affectedLine.stops ?? [])
         addStop(entry.stop, "lineStop");
-    }
-
-    for (const line of situation.affects?.lines ?? []) {
-      if (!line.lineRef) continue;
-      const key = `line:${line.lineRef}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-
-      const coordinates = lineGeometry.get(line.lineRef);
-      if (!coordinates || coordinates.length < 2) continue;
-
-      lineFeatures.push({
-        type: "Feature",
-        geometry: { type: "LineString", coordinates },
-        properties: propertiesFor(
-          situation,
-          "line",
-          line.lineRef,
-          line.lineName ?? null,
-        ),
-      });
-    }
-
-    for (const journey of situation.affects?.datedServiceJourneys ?? []) {
-      if (!journey.id) continue;
-      const key = `datedServiceJourney:${journey.id}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-
-      const coordinates = journeyGeometry.get(journey.id);
-      if (!coordinates || coordinates.length < 2) continue;
-
-      lineFeatures.push({
-        type: "Feature",
-        geometry: { type: "LineString", coordinates },
-        properties: propertiesFor(
-          situation,
-          "datedServiceJourney",
-          journey.id,
-          null,
-        ),
-      });
     }
 
     // The feed's own geometry: the span between the first and last affected
