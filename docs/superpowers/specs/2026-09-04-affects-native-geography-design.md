@@ -48,7 +48,7 @@ AffectedLine
                                           carries no geometry."
 
 AffectedStop
-  stop                  Stop             (id, name, location)
+  stop                  Stop             (id, name, location — the latter two nullable)
   stopConditions        [StopConditionEnumeration]
 ```
 
@@ -130,8 +130,11 @@ comment is corrected; unmounting is a separate behavioral change that nothing he
 ## Types
 
 `Affects` goes from seven fields to six. The API's `AffectedStop` collides with our existing
-`AffectedStop` (`{id, name, location}`); ours is deleted and `stopPoints`/`stopPlaces` are
-typed as `Stop[]`, which is already exactly the API's `Stop`.
+`AffectedStop` (`{id, name, location}`), so ours is **renamed to `StopRef`** and reused: the
+new `AffectedStop` wraps it. It cannot become the existing `Stop`, whose `name` and `location`
+are non-null — `affects` delivers stops whose name and location the API could not resolve
+(measured: 3,080 `affectedLines[].stops` came back id-only under a selection that asked for
+neither), so the nullability is load-bearing.
 
 ```ts
 export type StopConditionEnumeration =
@@ -141,8 +144,15 @@ export type StopConditionEnumeration =
   | "requestStop"
   | "startPoint";
 
+/** A stop as `affects` delivers it: id always, name and location only when resolved. */
+export type StopRef = {
+  id: string;
+  name: string | null;
+  location: { latitude: number; longitude: number } | null;
+};
+
 export type AffectedStop = {
-  stop: Stop;
+  stop: StopRef;
   stopConditions: StopConditionEnumeration[];
 };
 
@@ -160,8 +170,8 @@ export type AffectedLine = { line: Line | null; stops: AffectedStop[] | null };
 export type Affects = {
   vehicleModes: VehicleModeEnumeration[] | null;
   operators: Operator[] | null;
-  stopPoints: Stop[] | null;
-  stopPlaces: Stop[] | null;
+  stopPoints: StopRef[] | null;
+  stopPlaces: StopRef[] | null;
   vehicleJourneys: AffectedVehicleJourney[] | null;
   affectedLines: AffectedLine[] | null;
 };
@@ -186,7 +196,8 @@ Five feature sources. The two stop sources are unchanged; the two borrowed ones 
 | `lineStop` (new)     | `affectedLines[].stops[].stop.location`         | Point      |
 | `affectedSpan` (new) | `vehicleJourneys[].affectedPointsOnLink.points` | LineString |
 
-`entityId` for a span is the dated service journey id, falling back to the service journey id.
+`entityId` for a span is the dated service journey id, falling back to the service journey id;
+measured, every one of the 9,232 journey entries carries one or the other, so no third case.
 `name` on a stop feature is the stop name; on a span it is the journey's `line.lineName`
 where present.
 
