@@ -200,6 +200,7 @@ describe("facetCounts", () => {
     expect(counts.flags).toEqual([
       { value: "noEndTime", count: 1 },
       { value: "staleOpenEnded", count: 1 },
+      { value: "mistypedJourneyRef", count: 0 },
     ]);
   });
 });
@@ -215,11 +216,12 @@ describe("facetCounts — filterable flags", () => {
     );
   });
 
-  it("still offers the two quality flags, in order", () => {
+  it("still offers the other quality flags, in order", () => {
     const facets = facetCounts([A, B], [A, B], FLAGS);
     expect(facets.flags.map((entry) => entry.value)).toEqual([
       "noEndTime",
       "staleOpenEnded",
+      "mistypedJourneyRef",
     ]);
   });
 });
@@ -261,6 +263,9 @@ describe("facetCounts — scoped to a codespace", () => {
     expect(facets.flags).toEqual([
       { value: "noEndTime", count: 1 },
       { value: "staleOpenEnded", count: 1 },
+      // Listed at zero rather than omitted: a flag that should stay at zero is
+      // only useful as a regression detector while it remains visible.
+      { value: "mistypedJourneyRef", count: 0 },
     ]);
   });
 });

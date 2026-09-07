@@ -32,7 +32,7 @@ When introducing a new config key, update the `Config` interface in `ConfigConte
 4. `useVehiclePositionsData(filter, mapViewOptions, enabled)` opens a `graphql-ws` subscription via `useSubscriptionClient`, gated by `enabled` (`isVehicleFeedEnabled(mode)`) so it only runs in vehicles mode. Incoming `VehicleUpdate`s are written into a `CacheMap` keyed by `vehicleId + "_" + serviceJourney.id`, with a per-entry TTL computed as `maxDataAge - (now - lastUpdated)` so stale vehicles auto-expire. The filter is also re-applied client-side before pushing to state.
 5. `MapView` renders markers (`VehicleMarkers`), optional traces (`VehicleTraces`), popups (`VehiclePopup`), and the `LeftMenu`/`RightMenu` overlays. Selecting a vehicle in the popup can open `useVehicleUpdateCompleteSubscription` for richer per-vehicle details.
 6. Selecting a vehicle also opens `useTimetableSubscription(serviceJourneyId, date)`, whose `timetables` frames carry deviation messages as `Situation` objects in two places: `EstimatedTimetableUpdate.situations` (trip-wide) and `Call.situations` (one stop). Both render through the same `SituationList` component. Situations are shown exactly as delivered — no deduplication, no severity filtering — because the demo exists to expose what the feed actually contains; `situationNumber` and `version` are displayed so a version regression in the eventually-consistent stream stays visible.
-7. Separately from the vehicle pipeline, `SituationsProvider` (wrapping `<MapView>` in `App`) opens an **unfiltered** national `situations` subscription via `useSituationsSubscription`, keyed by `situationNumber` with latest-wins and no TTL. It stays mounted in both modes but only subscribes when `enabled` (`isSituationsFeedEnabled(mode)`) is true — the subscription pauses in vehicles mode rather than unmounting; unmounting is a separate change nobody has made. Everything derived from it is pure and lives in `src/domain/`: `situationFlags` (three lifecycle flags), `situationFeatures` (affects → GeoJSON plus the unmappable list), `situationStats` and `situationFilter`. Consumers read the context via `useSituations` and are spread across four surfaces, each with one job: the map layer (`SituationLayers` inside `<Map>`), the right-menu situations drawer (`SituationsPanel` — status line, then the two halves of the filtered set: an "On the map" list and `UnmappableList`), the right-menu filter drawer (`SituationFilters`, beside the codespace dropdown), and the "Feed report" rail entry (`SituationStatsTables`). The selected situation's raw detail is a fifth: `SituationDetailPanel`, a left-anchored drawer over the map, mirroring what `SelectedVehiclePanel` is to a selected vehicle. Both share their geometry from `src/components/detailDrawer.ts` so the two cannot drift into looking like different kinds of surface. Keeping these apart is deliberate — one 250px column previously carried the live list, the raw dump, the unmappable list and the whole-feed statistics at once.
+7. Separately from the vehicle pipeline, `SituationsProvider` (wrapping `<MapView>` in `App`) opens an **unfiltered** national `situations` subscription via `useSituationsSubscription`, keyed by `situationNumber` with latest-wins and no TTL. It stays mounted in both modes but only subscribes when `enabled` (`isSituationsFeedEnabled(mode)`) is true — the subscription pauses in vehicles mode rather than unmounting; unmounting is a separate change nobody has made. Everything derived from it is pure and lives in `src/domain/`: `situationFlags` (three lifecycle flags plus the structural `mistypedJourneyRef`, via `journeyRef`), `situationFeatures` (affects → GeoJSON plus the unmappable list), `situationStats` and `situationFilter`. Consumers read the context via `useSituations` and are spread across four surfaces, each with one job: the map layer (`SituationLayers` inside `<Map>`), the right-menu situations drawer (`SituationsPanel` — status line, then the two halves of the filtered set: an "On the map" list and `UnmappableList`), the right-menu filter drawer (`SituationFilters`, beside the codespace dropdown), and the "Feed report" rail entry (`SituationStatsTables`). The selected situation's raw detail is a fifth: `SituationDetailPanel`, a left-anchored drawer over the map, mirroring what `SelectedVehiclePanel` is to a selected vehicle. Both share their geometry from `src/components/detailDrawer.ts` so the two cannot drift into looking like different kinds of surface. Keeping these apart is deliberate — one 250px column previously carried the live list, the raw dump, the unmappable list and the whole-feed statistics at once.
 
 Key invariants worth preserving:
 
@@ -46,6 +46,7 @@ Key invariants worth preserving:
 - Situation **facet counts** are scoped to the map's codespace filter, but never to the panel's own facets. `facetCounts(all, withinCodespace, flags)` takes both: `all` supplies the set of values offered, so a chip never disappears as you narrow, and `withinCodespace` supplies the counts. Scoping to codespace is not circular — it is a separate control, so severity counts within it stay meaningful. Scoping to `filter` would be: selecting `severe` would recompute severity to `severe: N, everything else 0`, describing nothing but the click that produced it. Never pass a `filter`-narrowed set as the second argument.
 - Facet chips are ordered by a fixed rule, not by count, so they hold position as counts change: severities ascend by `SEVERITY_RANK` (exported from `situationSeverity.ts` — one table, shared with `worstSeverity`, so a chip order and a worst-of comparison cannot disagree), report types alphabetically, flags in `FILTERABLE_FLAGS` order, and `(none)` always last.
 - `FILTERABLE_FLAGS` is the subset of flags offered as facets. `notYetActive` is deliberately excluded: a situation that has not started yet is still relevant, so the panel should not invite you to slice it away. It stays in `FLAG_LEVEL` because rows and the detail view still badge it.
+- `situationFlags` composes two kinds of flag and the split is load-bearing. `timeFlags` returns nothing when a situation has no validity period — correct for flags defined relative to "now", fatal for one that is not. `mistypedJourneyRef` is therefore computed outside that guard: the situations carrying a bad ref are disproportionately thin elsewhere too, so folding it back inside would hide exactly the rows it exists to surface. Any future flag that does not depend on `now` goes beside it, not inside `timeFlags`.
 - The codespace rule lives in one place, `matchesCodespace`, shared by `applySituationFilter` and the facet-count subset. If those two drifted, the counts would contradict the list they describe.
 - The right drawer has two widths. `isWideTool` (`src/domain/appMode.ts`) marks the tools whose content does not fit the default 250px — currently only the feed report, six count tables that stack into an unreadable scroll in a narrow column. The width lives in three CSS rules that must change together: `.right-menu-container.open.wide`, `.sidebar-button.right.open.wide` and `.mode-switch.open.wide`. Change one and the rail or the mode switch ends up sitting on top of the drawer.
 - **The two feeds publish different codespaces, so each mode offers its own list.** `useCodespaces()` queries the API's `codespaces` root; measured on dev it matches the vehicle feed exactly (20 for 20), but situations come from a partly different set of 16. Seven situation codespaces are absent from that root — including RUT and NSB, the two largest publishers, together about three quarters of the feed — while eleven of its entries carry no situations at all. Offering one list for both made most of the situations feed unreachable and most of the options empty. Situations therefore derive their options from `feedCodespaceCounts` — a tally over the **whole** feed, deliberately separate from `stats.byCodespace`, which is scoped to the selected codespace. Building the dropdown from the scoped tally collapses it to the codespace already selected and strands the user there with no way back. vehicles keep `useCodespaces()`. See `src/domain/codespaceOptions.ts`, which also drops the `(none)` bucket — `matchesCodespace` compares against a real id, so an option for it would match nothing — and injects a selected codespace the current mode's list lacks, since codespace survives a mode switch and the `Select` would otherwise hold a value with no matching item.
@@ -115,6 +116,36 @@ and is not a regression to restore.
 
 `pointsOnLink` on `ServiceJourney` is hidden from introspection, exactly like
 `situations`; do not conclude from an introspection dump that it is gone.
+
+### Mistyped journey refs
+
+Some publishers put an id of the wrong NeTEx type in a journey slot, and it
+costs those situations their geometry. `src/domain/journeyRef.ts` detects it
+from the id alone — `<codespace>:<Type>:<value>`, so the slot's expected type is
+readable without any lookup — and raises the `mistypedJourneyRef` warning flag.
+
+Measured on dev (928 situations, 9,310 journey entries): 18 situations carry
+one, and **all 18 are unmappable** — 18 of the 67 unmappable situations in the
+whole feed, over a quarter of them, undrawable for this one reason. Two distinct
+defects, from two publishers:
+
+- **ATB, 16 situations, 28 refs.** A `ServiceJourney` id in the
+  `datedServiceJourney` slot. The API resolves that slot against planned data,
+  misses, and so publishes no `affectedPointsOnLink` — even though the id itself
+  resolves perfectly under the `serviceJourney` root. Every one of these entries
+  names no stops, so the whole route is the correct span by the API's own rule.
+  Recoverable, but **in the backend, not here** — see
+  `docs/backend/mistyped-journey-refs.md`.
+- **SKY, 2 situations, 2 refs.** A bare `15139934_167845` in the
+  `serviceJourney` slot — not a NeTEx id at all, so `actualType` is null and it
+  names nothing any lookup could resolve. Only the publisher can fix it.
+
+The flag is deliberately _all_ this repo does about it. Resolving the ATB ids
+client-side would rebuild the borrowed-geometry apparatus retired above, and the
+API's own `affectedPointsOnLink` doc comment names client-side fallback to
+`serviceJourney { pointsOnLink }` as the thing that resolver exists to prevent.
+The flag is the evidence for the backend fix, and afterwards the way to watch it
+land: the facet count should fall to 16 → 2 without this repo changing.
 
 ## TypeScript / lint conventions
 

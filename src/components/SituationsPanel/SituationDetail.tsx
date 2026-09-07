@@ -1,6 +1,7 @@
 import { Box, Typography } from "@mui/material";
 import { NationalSituation, TranslatedString } from "../../types.ts";
 import { SituationFlag } from "../../domain/situationFlags.ts";
+import { describeMistype, mistypedRefsOf } from "../../domain/journeyRef.ts";
 import { affectsShape } from "../../domain/situationStats.ts";
 import { formatValidity } from "../SelectedVehiclePanel/situationValidity.ts";
 import { decodePolyline } from "../../utils/decodePolyline.ts";
@@ -258,6 +259,11 @@ export function SituationDetail({
                 ? "span"
                 : "no span",
             );
+            // Last, so the diagnosis reads as a note on the entry rather than
+            // as another of its fields.
+            for (const ref of mistypedRefsOf(journey)) {
+              parts.push(describeMistype(ref));
+            }
             return parts.join(" — ");
           })}
         />

@@ -1,6 +1,8 @@
 import { NationalSituation } from "../types.ts";
+import { mistypedJourneyRefs } from "./journeyRef.ts";
 
-export type SituationFlag = "noEndTime" | "staleOpenEnded" | "notYetActive";
+export type SituationFlag =
+  "noEndTime" | "staleOpenEnded" | "notYetActive" | "mistypedJourneyRef";
 
 export type FlagLevel = "info" | "warning";
 
@@ -14,6 +16,7 @@ export const FLAG_LEVEL: Record<SituationFlag, FlagLevel> = {
   noEndTime: "info",
   staleOpenEnded: "warning",
   notYetActive: "info",
+  mistypedJourneyRef: "warning",
 };
 
 /**
@@ -26,6 +29,7 @@ export const FLAG_LEVEL: Record<SituationFlag, FlagLevel> = {
 export const FILTERABLE_FLAGS: SituationFlag[] = [
   "noEndTime",
   "staleOpenEnded",
+  "mistypedJourneyRef",
 ];
 
 export const STALE_OPEN_ENDED_DAYS = 90;
@@ -46,11 +50,12 @@ function timestamp(iso: string | null): number | null {
  * situation carries more than one period, so this currently coincides exactly
  * with the server's own `openEnded` field — but the two are computed
  * independently and a multi-period situation would separate them.
+ *
+ * All three are undefined without a validity period, hence the early return —
+ * which is exactly why this is a separate function. A flag that does not depend
+ * on time must not be computed behind that guard; see `situationFlags`.
  */
-export function situationFlags(
-  situation: NationalSituation,
-  now: number,
-): SituationFlag[] {
+function timeFlags(situation: NationalSituation, now: number): SituationFlag[] {
   const periods = situation.validityPeriods ?? [];
   if (periods.length === 0) return [];
 
@@ -73,5 +78,27 @@ export function situationFlags(
     flags.push("notYetActive");
   }
 
+  return flags;
+}
+
+/**
+ * Every flag for one situation: the time-relative lifecycle ones, plus the
+ * structural `mistypedJourneyRef`.
+ *
+ * The two kinds are computed separately on purpose. `timeFlags` returns nothing
+ * for a situation with no validity period, which is right for flags defined
+ * relative to "now" but would silently suppress a structural one — and a
+ * situation whose journey refs are malformed is disproportionately likely to be
+ * thin elsewhere too, so that suppression would hide the very rows this flag
+ * exists to surface.
+ */
+export function situationFlags(
+  situation: NationalSituation,
+  now: number,
+): SituationFlag[] {
+  const flags = timeFlags(situation, now);
+  if (mistypedJourneyRefs(situation).length > 0) {
+    flags.push("mistypedJourneyRef");
+  }
   return flags;
 }
