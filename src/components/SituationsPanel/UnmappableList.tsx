@@ -1,4 +1,5 @@
 import { Box, Typography } from "@mui/material";
+import { NationalSituation } from "../../types.ts";
 import { useSituations } from "../../situations/SituationsContext.ts";
 import { pickTranslation } from "../SelectedVehiclePanel/situationText.ts";
 import { affectsShape } from "../../domain/situationStats.ts";
@@ -9,16 +10,20 @@ import { affectsShape } from "../../domain/situationStats.ts";
  * only an operator, or stops/journeys/lines the API could not locate, or no
  * affects at all.
  *
- * This is the map's complement over the *filtered* set: every situation the
- * current filter admits is either drawn on the map or listed here. Computing
- * it over the whole feed instead would leave it contradicting the controls
- * above it — listing ATB situations while the map filter is narrowed to AKT.
+ * The half `partitionByMappability` did not give the list above, passed in
+ * rather than re-derived here so the two lists cannot overlap: these
+ * situations appear in this list and nowhere else, which is why the meta line
+ * carries severity and reportType as well as the affects shape. The panel
+ * partitions the *filtered* set, so this stays the map's complement under
+ * whatever the controls above admit — computed over the whole feed it would
+ * list ATB situations while the map filter is narrowed to AKT.
  */
-export function UnmappableList() {
-  const { features, filtered, setSelected, selected } = useSituations();
-  const unmappable = features.unmappable;
-
-  const byNumber = new Map(filtered.map((s) => [s.situationNumber, s]));
+export function UnmappableList({
+  unmappable,
+}: {
+  unmappable: NationalSituation[];
+}) {
+  const { filtered, setSelected, selected } = useSituations();
 
   return (
     <Box sx={{ marginBottom: 2 }}>
@@ -34,9 +39,8 @@ export function UnmappableList() {
         Not on the map ({unmappable.length} of {filtered.length})
       </Typography>
       <Box sx={{ maxHeight: "25vh", overflowY: "auto" }}>
-        {unmappable.map((situationNumber) => {
-          const situation = byNumber.get(situationNumber);
-          if (!situation) return null;
+        {unmappable.map((situation) => {
+          const situationNumber = situation.situationNumber;
           return (
             <Box
               key={situationNumber}
@@ -64,6 +68,8 @@ export function UnmappableList() {
               </Typography>
               <Typography component="div" sx={{ fontSize: 10, color: "#999" }}>
                 {situation.codespace?.codespaceId ?? "(no codespace)"} ·{" "}
+                {situation.severity ?? "(no severity)"} ·{" "}
+                {situation.reportType ?? "(no type)"} ·{" "}
                 {affectsShape(situation)}
               </Typography>
             </Box>

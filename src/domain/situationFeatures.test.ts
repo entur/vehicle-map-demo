@@ -8,6 +8,7 @@ import {
 } from "../types.ts";
 import {
   buildSituationFeatures,
+  partitionByMappability,
   SituationFeatureProperties,
 } from "./situationFeatures.ts";
 
@@ -740,5 +741,69 @@ describe("line spans", () => {
       "journeySpan",
       "lineSpan",
     ]);
+  });
+});
+
+describe("partitionByMappability", () => {
+  const withStop = (situationNumber: string) =>
+    makeSituation({
+      situationNumber,
+      affects: {
+        ...EMPTY,
+        stopPoints: [stop("NSR:Quay:1", 60, 10)],
+      },
+    });
+
+  const withNothing = (situationNumber: string) =>
+    makeSituation({ situationNumber, affects: null });
+
+  it("splits the situations into those the map draws and those it cannot", () => {
+    const situations = [withStop("A"), withNothing("B"), withStop("C")];
+
+    const { mapped, unmappable } = partitionByMappability(
+      situations,
+      buildSituationFeatures(situations),
+    );
+
+    expect(mapped.map((s) => s.situationNumber)).toEqual(["A", "C"]);
+    expect(unmappable.map((s) => s.situationNumber)).toEqual(["B"]);
+  });
+
+  it("puts every situation in exactly one half", () => {
+    // The two lists in the panel are rendered from these two halves, so an
+    // overlap would show a situation twice and a gap would hide it entirely.
+    const situations = [
+      withStop("A"),
+      withNothing("B"),
+      withNothing("C"),
+      withStop("D"),
+    ];
+
+    const { mapped, unmappable } = partitionByMappability(
+      situations,
+      buildSituationFeatures(situations),
+    );
+
+    expect([...mapped, ...unmappable]).toHaveLength(situations.length);
+    expect(mapped.filter((m) => unmappable.some((u) => u === m))).toHaveLength(
+      0,
+    );
+  });
+
+  it("preserves input order within each half", () => {
+    const situations = [
+      withNothing("B"),
+      withStop("A"),
+      withNothing("D"),
+      withStop("C"),
+    ];
+
+    const { mapped, unmappable } = partitionByMappability(
+      situations,
+      buildSituationFeatures(situations),
+    );
+
+    expect(mapped.map((s) => s.situationNumber)).toEqual(["A", "C"]);
+    expect(unmappable.map((s) => s.situationNumber)).toEqual(["B", "D"]);
   });
 });

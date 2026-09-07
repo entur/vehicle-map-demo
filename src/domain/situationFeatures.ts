@@ -37,6 +37,34 @@ export type SituationFeatures = {
   unmappable: string[];
 };
 
+/**
+ * Splits situations into the half the map draws and the half it cannot.
+ *
+ * The panel renders one list from each half, so this is the single place the
+ * split is decided: deriving the two lists independently is what previously
+ * let every unmappable situation appear in both of them, once badged "not on
+ * map" and once under "Not on the map".
+ *
+ * `features` must have been built from `situations` — the same filtered set
+ * the lists show. Built from a wider set it would still partition correctly,
+ * but the lists would then describe a scope the controls above them do not.
+ */
+export function partitionByMappability(
+  situations: NationalSituation[],
+  features: SituationFeatures,
+): { mapped: NationalSituation[]; unmappable: NationalSituation[] } {
+  const mapped: NationalSituation[] = [];
+  const unmappable: NationalSituation[] = [];
+
+  for (const situation of situations) {
+    const count =
+      features.featureCountBySituation.get(situation.situationNumber) ?? 0;
+    (count > 0 ? mapped : unmappable).push(situation);
+  }
+
+  return { mapped, unmappable };
+}
+
 function propertiesFor(
   situation: NationalSituation,
   source: SituationFeatureProperties["source"],

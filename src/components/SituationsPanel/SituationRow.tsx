@@ -8,7 +8,6 @@ import { pickTranslation } from "../SelectedVehiclePanel/situationText.ts";
 type SituationRowProps = {
   situation: NationalSituation;
   flags: SituationFlag[];
-  featureCount: number;
   selected: boolean;
   onSelect: (situationNumber: string) => void;
 };
@@ -24,7 +23,6 @@ function propsAreEqual(a: SituationRowProps, b: SituationRowProps): boolean {
     // Situations that were not in the incoming frame keep their object
     // identity in the feed's Map, so this is a real early-out.
     a.situation === b.situation &&
-    a.featureCount === b.featureCount &&
     a.selected === b.selected &&
     a.onSelect === b.onSelect &&
     a.flags.length === b.flags.length &&
@@ -35,7 +33,6 @@ function propsAreEqual(a: SituationRowProps, b: SituationRowProps): boolean {
 function SituationRowImpl({
   situation,
   flags,
-  featureCount,
   selected,
   onSelect,
 }: SituationRowProps) {
@@ -69,11 +66,6 @@ function SituationRowImpl({
           {situation.severity ?? "(no severity)"} ·{" "}
           {situation.reportType ?? "(no type)"}
         </Typography>
-        {featureCount === 0 && (
-          <Typography component="span" sx={{ fontSize: 10, color: "#999" }}>
-            not on map
-          </Typography>
-        )}
         {flags.map((flag) => (
           <Typography
             key={flag}

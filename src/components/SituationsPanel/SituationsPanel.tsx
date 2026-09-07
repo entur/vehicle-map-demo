@@ -1,6 +1,7 @@
 import { Box, Typography } from "@mui/material";
-import { memo, useCallback } from "react";
+import { memo, useCallback, useMemo } from "react";
 import { useSituations } from "../../situations/SituationsContext.ts";
+import { partitionByMappability } from "../../domain/situationFeatures.ts";
 import { SituationRow } from "./SituationRow.tsx";
 import { UnmappableList } from "./UnmappableList.tsx";
 
@@ -75,6 +76,14 @@ export const SituationsPanel = memo(function SituationsPanel() {
   const { feed, filtered, flagsBySituation, features, selected, setSelected } =
     useSituations();
 
+  // One split, two lists. Rendering `filtered` here and the map's complement
+  // below it showed every unmappable situation twice — once badged, once under
+  // "Not on the map". Each situation now belongs to exactly one of the halves.
+  const { mapped, unmappable } = useMemo(
+    () => partitionByMappability(filtered, features),
+    [filtered, features],
+  );
+
   // Functional update rather than a read of `selected`, so this keeps one
   // identity for the life of the panel and the memoized rows can skip on it.
   const handleSelect = useCallback(
@@ -120,23 +129,30 @@ export const SituationsPanel = memo(function SituationsPanel() {
         <StatusLine />
       </Typography>
 
+      <Typography
+        component="div"
+        sx={{
+          fontSize: 11,
+          fontWeight: 700,
+          textTransform: "uppercase",
+          color: "#666",
+        }}
+      >
+        On the map ({mapped.length} of {filtered.length})
+      </Typography>
       <Box sx={{ maxHeight: "40vh", overflowY: "auto", marginBottom: 2 }}>
-        {filtered.map((situation) => (
+        {mapped.map((situation) => (
           <SituationRow
             key={situation.situationNumber}
             situation={situation}
             flags={flagsBySituation.get(situation.situationNumber) ?? []}
-            featureCount={
-              features.featureCountBySituation.get(situation.situationNumber) ??
-              0
-            }
             selected={selected === situation.situationNumber}
             onSelect={handleSelect}
           />
         ))}
       </Box>
 
-      <UnmappableList />
+      <UnmappableList unmappable={unmappable} />
     </Box>
   );
 });
