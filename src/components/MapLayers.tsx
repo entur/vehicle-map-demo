@@ -175,10 +175,10 @@ export function MapLayers({ mode, mapViewOptions, setMapViewOptions }: Props) {
                 control={
                   <Switch
                     checked={mapViewOptions.showAffectedLines}
-                    onChange={handleToggleLayer(
-                      "showAffectedLines",
+                    onChange={handleToggleLayer("showAffectedLines", [
+                      "situation-lines-casing-layer",
                       "situation-lines-layer",
-                    )}
+                    ])}
                   />
                 }
                 label={getLabelWithIcon(situationMarker, "Affected spans", 22)}

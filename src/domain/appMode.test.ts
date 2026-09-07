@@ -3,6 +3,7 @@ import { mapStyle } from "../components/mapStyle.ts";
 import { RightContentType } from "../components/RightMenu/types.ts";
 import { MapViewOptions } from "../types.ts";
 import {
+  AppMode,
   APP_MODES,
   MODE_DEFAULT_VISIBLE_LAYERS,
   MODE_DORMANT_LAYERS,
@@ -62,11 +63,27 @@ describe("MODE_SWITCHED_LAYERS", () => {
     }
   });
 
-  it("maps each MapViewOptions key to exactly one layer", () => {
-    const keys = APP_MODES.flatMap((mode) =>
-      Object.values(MODE_SWITCHED_LAYERS[mode]),
-    );
-    expect(new Set(keys).size).toBe(keys.length);
+  // A key may own several layers within its mode — "Affected spans" drives
+  // both `situation-lines-layer` and the casing drawn under it, which have to
+  // reveal and hide together. What it may not do is span modes: the switch
+  // lives in one mode's layer panel, so a key claimed by two would leave the
+  // other mode's layer stuck at whatever the switch was last set to.
+  it("claims each MapViewOptions key in exactly one mode", () => {
+    const modesByKey = new Map<keyof MapViewOptions, Set<AppMode>>();
+    for (const mode of APP_MODES) {
+      for (const key of Object.values(MODE_SWITCHED_LAYERS[mode])) {
+        const modes = modesByKey.get(key) ?? new Set<AppMode>();
+        modes.add(mode);
+        modesByKey.set(key, modes);
+      }
+    }
+
+    for (const [key, modes] of modesByKey) {
+      expect(
+        [...modes],
+        `${key} is claimed by more than one mode`,
+      ).toHaveLength(1);
+    }
   });
 });
 
@@ -204,9 +221,11 @@ describe("MapViewOptions completeness", () => {
     "showAffectedLines",
   ];
 
-  it("assigns every MapViewOptions key to exactly one mode's MODE_SWITCHED_LAYERS", () => {
-    const assignedKeys = APP_MODES.flatMap((mode) =>
-      Object.values(MODE_SWITCHED_LAYERS[mode]),
+  it("assigns every MapViewOptions key to some mode's MODE_SWITCHED_LAYERS", () => {
+    // Deduplicated because one key may drive more than one layer; the
+    // one-mode-per-key half of the rule is asserted above.
+    const assignedKeys = new Set(
+      APP_MODES.flatMap((mode) => Object.values(MODE_SWITCHED_LAYERS[mode])),
     );
     expect([...assignedKeys].sort()).toEqual([...MAP_VIEW_OPTIONS_KEYS].sort());
   });

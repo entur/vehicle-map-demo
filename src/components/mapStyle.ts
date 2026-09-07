@@ -30,6 +30,7 @@ const SITUATION_SELECTION_HALO = "#2f6fed";
  * the dimming expression cannot disagree about what "undimmed" is.
  */
 export const SITUATION_LAYER_OPACITY = {
+  "situation-lines-casing-layer": { "line-opacity": 0.9 },
   "situation-lines-layer": { "line-opacity": 0.7 },
   "situation-points-layer": {
     "circle-opacity": 0.85,
@@ -111,7 +112,9 @@ export const mapStyle: StyleSpecification = {
       },
       paint: {
         "line-color": SITUATION_SELECTION_HALO,
-        "line-width": 12,
+        // Wide enough to ring the casing below the coloured line rather than
+        // being swallowed by it.
+        "line-width": 16,
         "line-opacity": 0.6,
       },
       filter: ["boolean", false],
@@ -128,6 +131,28 @@ export const mapStyle: StyleSpecification = {
         "circle-stroke-color": SITUATION_SELECTION_HALO,
       },
       filter: ["boolean", false],
+    },
+    // A dark casing under the coloured line, the same figure/ground trick the
+    // point layer gets from its circle-stroke. Without it a span is a 4px
+    // stroke in the severity palette — #e07a1f orange, #c0392b red, #999999
+    // grey — over an OSM raster that paints its secondary roads, motorways and
+    // residential casings in those same three families, so in a city the line
+    // reads as one more road. Unlike the points' stroke this carries no
+    // meaning: reportType stays theirs alone, and this is only separation.
+    {
+      id: "situation-lines-casing-layer",
+      type: "line",
+      source: "situationLines",
+      layout: {
+        "line-cap": "round",
+        "line-join": "round",
+        visibility: "none",
+      },
+      paint: {
+        "line-color": "#2b2b2b",
+        "line-width": 8,
+        ...SITUATION_LAYER_OPACITY["situation-lines-casing-layer"],
+      },
     },
     {
       id: "situation-lines-layer",

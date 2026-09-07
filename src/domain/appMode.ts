@@ -34,6 +34,7 @@ export const MODE_LAYERS: Record<AppMode, string[]> = {
     "service-journey-route-layer",
   ],
   situations: [
+    "situation-lines-casing-layer",
     "situation-lines-layer",
     "situation-points-layer",
     "situation-lines-halo-layer",
@@ -66,7 +67,10 @@ export const MODE_SWITCHED_LAYERS: Record<
   },
   situations: {
     "situation-points-layer": "showAffectedStops",
+    // One switch, two layers: the casing is the line's own outline and must
+    // never be left drawn over a map with no line on it.
     "situation-lines-layer": "showAffectedLines",
+    "situation-lines-casing-layer": "showAffectedLines",
   },
 };
 
