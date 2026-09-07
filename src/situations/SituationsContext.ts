@@ -28,6 +28,12 @@ export type SituationsContextValue = {
    * each table describe only the click that produced it.
    */
   stats: SituationStats;
+  /**
+   * The map's codespace filter, the one control that narrows both the map and
+   * the panel. Exposed in its own right — `statsScope` carries the same value,
+   * but that object is about what the feed report covers.
+   */
+  codespaceId: string | null;
   /** What `stats` covers, for the report to state its own scope. */
   statsScope: { codespaceId: string | null; count: number; total: number };
   /**

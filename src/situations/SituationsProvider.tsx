@@ -133,6 +133,7 @@ export function SituationsProvider({
       features,
       stats,
       feedCodespaceCounts,
+      codespaceId: codespaceId ?? null,
       statsScope: {
         codespaceId: codespaceId ?? null,
         count: withinCodespace.length,

@@ -6,6 +6,7 @@ import {
   dimmedUnlessSelected,
   selectedSituationFilter,
 } from "../domain/situationSelection.ts";
+import type { SituationFeatures } from "../domain/situationFeatures.ts";
 import { useSituations } from "../situations/SituationsContext.ts";
 import { SITUATION_LAYER_OPACITY } from "./mapStyle.ts";
 import { SituationPopup } from "./SituationsPanel/SituationPopup.tsx";
@@ -17,6 +18,50 @@ const EMPTY_FEATURE_COLLECTION: FeatureCollection = {
 
 /** Cap on how far a selection can zoom in, so a single point doesn't fly to max zoom. */
 const MAX_SELECTION_ZOOM = 15;
+
+/** Shared by both fits, so the view arrives the same way however it was asked for. */
+const FIT_OPTIONS = {
+  padding: 60,
+  maxZoom: MAX_SELECTION_ZOOM,
+  duration: 800,
+} as const;
+
+/**
+ * The extent of one situation's features, or of every feature when
+ * `situationNumber` is null. Returns null when nothing matched — a situation
+ * the map cannot draw (the common case on dev) or a codespace with nothing
+ * mappable in it — so callers leave the view where it is rather than flying to
+ * a default or to null island.
+ *
+ * Shared by the two effects that move the view, so a selection and a codespace
+ * change frame their subject the same way.
+ */
+function boundsFor(
+  features: SituationFeatures,
+  situationNumber: string | null,
+): LngLatBounds | null {
+  const bounds = new LngLatBounds();
+  let hasCoordinates = false;
+
+  const wanted = (feature: { properties: { situationNumber: string } }) =>
+    situationNumber === null ||
+    feature.properties.situationNumber === situationNumber;
+
+  for (const feature of features.pointFeatures) {
+    if (!wanted(feature)) continue;
+    bounds.extend(feature.geometry.coordinates as [number, number]);
+    hasCoordinates = true;
+  }
+  for (const feature of features.lineFeatures) {
+    if (!wanted(feature)) continue;
+    for (const coordinate of feature.geometry.coordinates) {
+      bounds.extend(coordinate as [number, number]);
+      hasCoordinates = true;
+    }
+  }
+
+  return hasCoordinates ? bounds : null;
+}
 
 /** The layers a click can land on. */
 const CLICKABLE_LAYERS = ["situation-points-layer", "situation-lines-layer"];
@@ -66,7 +111,7 @@ function useSetSourceData(sourceId: string, data: FeatureCollection) {
  * selection the user cannot see.
  */
 export function SituationLayers({ visible }: { visible: boolean }) {
-  const { features, selected, setSelected } = useSituations();
+  const { features, selected, setSelected, codespaceId } = useSituations();
   const { current: mapRef } = useMap();
   const [popup, setPopup] = useState<PopupState | null>(null);
 
@@ -186,34 +231,40 @@ export function SituationLayers({ visible }: { visible: boolean }) {
   useEffect(() => {
     if (!mapRef || !selected || !visible) return;
 
-    const bounds = new LngLatBounds();
-    let hasCoordinates = false;
+    const bounds = boundsFor(features, selected);
+    if (!bounds) return;
 
-    for (const feature of features.pointFeatures) {
-      if (feature.properties.situationNumber !== selected) continue;
-      bounds.extend(feature.geometry.coordinates as [number, number]);
-      hasCoordinates = true;
-    }
-    for (const feature of features.lineFeatures) {
-      if (feature.properties.situationNumber !== selected) continue;
-      for (const coordinate of feature.geometry.coordinates) {
-        bounds.extend(coordinate as [number, number]);
-        hasCoordinates = true;
-      }
-    }
-
-    // No features for this situation (the common case on dev): leave the
-    // view exactly where it is rather than jumping to a default or to null
-    // island.
-    if (!hasCoordinates) return;
-
-    mapRef.getMap().fitBounds(bounds, {
-      padding: 60,
-      maxZoom: MAX_SELECTION_ZOOM,
-      duration: 800,
-    });
+    mapRef.getMap().fitBounds(bounds, FIT_OPTIONS);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected, mapRef, visible]);
+
+  // Frame the whole codespace when the user picks a different one: the set on
+  // the map has just been replaced, and its situations are usually nowhere
+  // near the view the previous codespace left behind.
+  //
+  // Fires on a codespace change and nothing else — `visible`, `features` and
+  // `selected` are read from the closure rather than depended on, so toggling
+  // the layers back on doesn't fly the view to the whole codespace. It is a
+  // change, not a state to reconcile.
+  //
+  // A held selection wins: one that survives the change keeps its own framing,
+  // and running both fits would leave them fighting over the view. When the
+  // change drops the selection instead (`selectionWithin`, applied during
+  // render), `selected` is already null here and this runs.
+  //
+  // Fits on change, not on mount: the mount run happens while `features` is
+  // still empty — the feed has delivered nothing yet — so a codespace restored
+  // from a shared link, or carried in from vehicles mode, leaves the view
+  // alone.
+  useEffect(() => {
+    if (!mapRef || !visible || selected) return;
+
+    const bounds = boundsFor(features, null);
+    if (!bounds) return;
+
+    mapRef.getMap().fitBounds(bounds, FIT_OPTIONS);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [codespaceId, mapRef]);
 
   // Derived rather than synced: hiding the layers hides anything opened from
   // them, without an effect that clears state. The popup can only have been
