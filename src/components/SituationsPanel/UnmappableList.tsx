@@ -7,7 +7,7 @@ import { FLAG_LEVEL } from "../../domain/situationFlags.ts";
 
 /**
  * Situations that flatten to no map features at all — a small minority on
- * this feed (99 of 944 measured on dev), not the majority: affects that name
+ * this feed (50 of 949 measured on dev), not the majority: affects that name
  * only an operator, or stops/journeys/lines the API could not locate, or no
  * affects at all.
  *
@@ -15,9 +15,10 @@ import { FLAG_LEVEL } from "../../domain/situationFlags.ts";
  * rather than re-derived here so the two lists cannot overlap: these
  * situations appear in this list and nowhere else, which is why the meta line
  * carries severity, reportType and the quality flags as well as the affects
- * shape. The flags matter here in particular: every situation carrying
- * `mistypedJourneyRef` is unmappable, so this list is the only place that badge
- * is ever seen.
+ * shape. The flags earn their place here because a row in this list is a row
+ * the map could not draw, and a flag is often why — the two SKY situations
+ * whose journey ref is not a NeTEx id at all are unmappable for exactly the
+ * reason their `mistypedJourneyRef` badge names.
  *
  * The panel partitions the *filtered* set, so this stays the map's complement under
  * whatever the controls above admit — computed over the whole feed it would

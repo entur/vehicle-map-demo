@@ -124,28 +124,38 @@ costs those situations their geometry. `src/domain/journeyRef.ts` detects it
 from the id alone — `<codespace>:<Type>:<value>`, so the slot's expected type is
 readable without any lookup — and raises the `mistypedJourneyRef` warning flag.
 
-Measured on dev (928 situations, 9,310 journey entries): 18 situations carry
-one, and **all 18 are unmappable** — 18 of the 67 unmappable situations in the
-whole feed, over a quarter of them, undrawable for this one reason. Two distinct
-defects, from two publishers:
+Two distinct defects, from two publishers. Measured on dev, 949 situations /
+9,537 journey entries:
 
-- **ATB, 16 situations, 28 refs.** A `ServiceJourney` id in the
-  `datedServiceJourney` slot. The API resolves that slot against planned data,
-  misses, and so publishes no `affectedPointsOnLink` — even though the id itself
-  resolves perfectly under the `serviceJourney` root. Every one of these entries
-  names no stops, so the whole route is the correct span by the API's own rule.
-  Recoverable, but **in the backend, not here** — see
-  `docs/backend/mistyped-journey-refs.md`.
+- **ATB, 17 situations, 29 refs.** A `ServiceJourney` id in the
+  `datedServiceJourney` slot. These **do** map: the API resolves the id despite
+  the slot it arrived in, and since none of these entries names a stop, the span
+  is the journey's whole route by the API's own rule. They map only because the
+  API was fixed — see below.
 - **SKY, 2 situations, 2 refs.** A bare `15139934_167845` in the
   `serviceJourney` slot — not a NeTEx id at all, so `actualType` is null and it
-  names nothing any lookup could resolve. Only the publisher can fix it.
+  names nothing any lookup could resolve. These do not map, and no API change
+  can reach them; only the publisher can fix it.
+
+So a flagged situation is **not** necessarily unmappable, and the flag is not a
+proxy for one. It reports a producer defect, which is a separate thing from
+whether the map can draw the result.
 
 The flag is deliberately _all_ this repo does about it. Resolving the ATB ids
 client-side would rebuild the borrowed-geometry apparatus retired above, and the
 API's own `affectedPointsOnLink` doc comment names client-side fallback to
 `serviceJourney { pointsOnLink }` as the thing that resolver exists to prevent.
-The flag is the evidence for the backend fix, and afterwards the way to watch it
-land: the facet count should fall to 16 → 2 without this repo changing.
+
+That was the right call, and it is worth recording why the flag stayed useful.
+Before the API fix, all 18 flagged situations were unmappable — 18 of the 67
+unmappable situations in the feed, over a quarter of them, undrawable for this
+one reason. The fix was made in `AffectedGeometryController.serviceJourneyIdOf`,
+which accepts the mistyped ref, rather than in `SituationMapper.mapAffects`,
+which would have re-routed it into the correct slot. That distinction is what
+keeps this flag alive: the ref is still published in the wrong slot, still
+visible, and still reportable to ATB. Had the mapper been changed instead, the
+geometry would work and the producer's defect would have become invisible to
+every consumer. Feed-wide unmappable fell 67 → 50 as a result.
 
 ## TypeScript / lint conventions
 
