@@ -1,6 +1,6 @@
 import type { FeatureCollection } from "geojson";
 import { GeoJSONSource, LngLatBounds } from "maplibre-gl";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMap } from "react-map-gl/maplibre";
 import {
   dimmedUnlessSelected,
@@ -70,11 +70,6 @@ export function SituationLayers({ visible }: { visible: boolean }) {
   const { current: mapRef } = useMap();
   const [popup, setPopup] = useState<PopupState | null>(null);
 
-  // Set when a selection originates from a map click, so the fitBounds effect
-  // below can skip that one run. Flying the view to something the user just
-  // clicked on — and could therefore already see — is disorienting.
-  const selectedFromMap = useRef(false);
-
   const points: FeatureCollection = useMemo(
     () => ({ type: "FeatureCollection", features: features.pointFeatures }),
     [features],
@@ -88,16 +83,6 @@ export function SituationLayers({ visible }: { visible: boolean }) {
   useSetSourceData("situationPoints", points);
   useSetSourceData("situationLines", lines);
 
-  // Focus the map on the selected situation's own features when the
-  // selection changes. Deliberately depends only on `selected` (and the map
-  // instance) rather than on `features`: `features` gets a new array
-  // identity on every subscription frame regardless of content (it's
-  // rebuilt from a freshly-sorted `feed.situations` array each time), and
-  // depending on it here would re-fly the map on every frame while a
-  // selection is held, fighting anything the user does with the view.
-  // Each time this *does* run, it reads `features` from the same render's
-  // closure, which is already current — `features` does not itself depend
-  // on `selected`, so there is no staleness to worry about.
   // Clicking a situation feature opens a popup listing everything under the
   // pointer. Hidden layers render nothing, so `queryRenderedFeatures` returns
   // nothing while the Situations toggle is off and no popup can open.
@@ -183,11 +168,22 @@ export function SituationLayers({ visible }: { visible: boolean }) {
     return () => apply(null);
   }, [selected, mapRef]);
 
+  // Focus the map on the selected situation's own features when the
+  // selection changes, wherever the selection came from: a row in the
+  // situations list and a row in the map popup are the same act, so they get
+  // the same view. A popup selection can therefore zoom out — the situation
+  // whose dot was clicked may also carry a line span reaching well past it —
+  // which is the point: the fitted view is what shows the whole extent of what
+  // was picked.
+  // Deliberately depends only on `selected` (and the map instance) rather than
+  // on `features`: `features` gets a new array identity on every subscription
+  // frame regardless of content (it's rebuilt from a freshly-sorted
+  // `feed.situations` array each time), and depending on it here would re-fly
+  // the map on every frame while a selection is held, fighting anything the
+  // user does with the view. Each time this *does* run, it reads `features`
+  // from the same render's closure, which is already current — `features` does
+  // not itself depend on `selected`, so there is no staleness to worry about.
   useEffect(() => {
-    if (selectedFromMap.current) {
-      selectedFromMap.current = false;
-      return;
-    }
     if (!mapRef || !selected || !visible) return;
 
     const bounds = new LngLatBounds();
@@ -230,10 +226,7 @@ export function SituationLayers({ visible }: { visible: boolean }) {
       longitude={popup.longitude}
       latitude={popup.latitude}
       situationNumbers={popup.situationNumbers}
-      onSelect={(situationNumber) => {
-        selectedFromMap.current = true;
-        setSelected(situationNumber);
-      }}
+      onSelect={(situationNumber) => setSelected(situationNumber)}
       onClose={() => setPopup(null)}
     />
   );
