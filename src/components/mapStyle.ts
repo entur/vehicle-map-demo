@@ -1,4 +1,42 @@
-import { StyleSpecification } from "@maplibre/maplibre-gl-style-spec";
+import {
+  ExpressionSpecification,
+  StyleSpecification,
+} from "@maplibre/maplibre-gl-style-spec";
+import {
+  SEVERITY_MUTED,
+  SEVERITY_NOTABLE,
+  SEVERITY_SEVERE,
+} from "./SelectedVehiclePanel/situationSeverity.ts";
+
+// Same mapping as severityColour(): only noImpact is greyed, and the literal
+// string "undefined" — 48% of the live feed — stays in the notable colour
+// because those are real incident messages.
+const severityColourExpression: ExpressionSpecification = [
+  "match",
+  ["get", "severity"],
+  ["severe", "verySevere"],
+  SEVERITY_SEVERE,
+  "noImpact",
+  SEVERITY_MUTED,
+  SEVERITY_NOTABLE,
+];
+
+/** Ring and casing colour for the selected situation's features. */
+const SITUATION_SELECTION_HALO = "#2f6fed";
+
+/**
+ * Resting opacities of the ordinary situation layers. SituationLayers reads
+ * these when it dims everything but the selected situation, so the style and
+ * the dimming expression cannot disagree about what "undimmed" is.
+ */
+export const SITUATION_LAYER_OPACITY = {
+  "situation-lines-casing-layer": { "line-opacity": 0.9 },
+  "situation-lines-layer": { "line-opacity": 0.7 },
+  "situation-points-layer": {
+    "circle-opacity": 0.85,
+    "circle-stroke-opacity": 1,
+  },
+} as const;
 
 export const mapStyle: StyleSpecification = {
   version: 8,
@@ -26,6 +64,14 @@ export const mapStyle: StyleSpecification = {
       type: "geojson",
       data: { type: "FeatureCollection", features: [] },
     },
+    situationLines: {
+      type: "geojson",
+      data: { type: "FeatureCollection", features: [] },
+    },
+    situationPoints: {
+      type: "geojson",
+      data: { type: "FeatureCollection", features: [] },
+    },
   },
 
   layers: [
@@ -50,6 +96,102 @@ export const mapStyle: StyleSpecification = {
         "line-color": "#1fcac2",
         "line-width": 4,
         "line-opacity": 0.85,
+      },
+    },
+    // Halo layers sit under the ordinary situation layers and are filtered to
+    // the selected situation by SituationLayers, the way vehicle-follow-layer
+    // is filtered to the followed vehicle. The colour is neither a severity
+    // colour nor the INCIDENT stroke, so the feature on top still reads.
+    {
+      id: "situation-lines-halo-layer",
+      type: "line",
+      source: "situationLines",
+      layout: {
+        "line-cap": "round",
+        "line-join": "round",
+      },
+      paint: {
+        "line-color": SITUATION_SELECTION_HALO,
+        // Wide enough to ring the casing below the coloured line rather than
+        // being swallowed by it.
+        "line-width": 16,
+        "line-opacity": 0.6,
+      },
+      filter: ["boolean", false],
+    },
+    {
+      id: "situation-points-halo-layer",
+      type: "circle",
+      source: "situationPoints",
+      paint: {
+        "circle-radius": 13,
+        "circle-color": SITUATION_SELECTION_HALO,
+        "circle-opacity": 0.25,
+        "circle-stroke-width": 3,
+        "circle-stroke-color": SITUATION_SELECTION_HALO,
+      },
+      filter: ["boolean", false],
+    },
+    // A dark casing under the coloured line, the same figure/ground trick the
+    // point layer gets from its circle-stroke. Without it a span is a 4px
+    // stroke in the severity palette — #e07a1f orange, #c0392b red, #999999
+    // grey — over an OSM raster that paints its secondary roads, motorways and
+    // residential casings in those same three families, so in a city the line
+    // reads as one more road. Unlike the points' stroke this carries no
+    // meaning: reportType stays theirs alone, and this is only separation.
+    {
+      id: "situation-lines-casing-layer",
+      type: "line",
+      source: "situationLines",
+      layout: {
+        "line-cap": "round",
+        "line-join": "round",
+        visibility: "none",
+      },
+      paint: {
+        "line-color": "#2b2b2b",
+        "line-width": 8,
+        ...SITUATION_LAYER_OPACITY["situation-lines-casing-layer"],
+      },
+    },
+    {
+      id: "situation-lines-layer",
+      type: "line",
+      source: "situationLines",
+      layout: {
+        visibility: "none",
+      },
+      paint: {
+        "line-color": severityColourExpression,
+        "line-width": 4,
+        ...SITUATION_LAYER_OPACITY["situation-lines-layer"],
+      },
+    },
+    {
+      id: "situation-points-layer",
+      type: "circle",
+      source: "situationPoints",
+      layout: {
+        visibility: "none",
+      },
+      paint: {
+        "circle-radius": 7,
+        "circle-color": severityColourExpression,
+        ...SITUATION_LAYER_OPACITY["situation-points-layer"],
+        // reportType is uppercase in this API. Stroke carries it so the fill
+        // stays free for severity, avoiding an icon sprite pipeline.
+        "circle-stroke-width": [
+          "case",
+          ["==", ["get", "reportType"], "INCIDENT"],
+          2,
+          1,
+        ],
+        "circle-stroke-color": [
+          "case",
+          ["==", ["get", "reportType"], "INCIDENT"],
+          "#2b2b2b",
+          "#ffffff",
+        ],
       },
     },
     {

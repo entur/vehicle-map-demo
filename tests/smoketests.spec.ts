@@ -57,3 +57,28 @@ test("selecting a vehicle shows the timetable panel", async ({ page }) => {
     timeout: 8000,
   });
 });
+
+test("switching to situations mode swaps the tool rail", async ({ page }) => {
+  await page.goto("/");
+
+  await expect(page.getByRole("button", { name: "Data report" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Situations", exact: true }).click();
+
+  await expect(page).toHaveURL(/mode=situations/);
+  await expect(page.getByRole("button", { name: "Data report" })).toHaveCount(
+    0,
+  );
+  await expect(page.getByRole("button", { name: "Info" })).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Situations panel" }).click();
+  await expect(page.getByRole("heading", { name: "Situations" })).toBeVisible();
+});
+
+test("mode survives a reload", async ({ page }) => {
+  await page.goto("/?mode=situations");
+
+  await expect(page.getByRole("button", { name: "Data report" })).toHaveCount(
+    0,
+  );
+});

@@ -1,28 +1,15 @@
 import { FormattedExecutionResult } from "graphql-ws";
 import { useEffect, useRef, useState } from "react";
 import { EstimatedTimetableUpdate } from "../types.ts";
+import { SITUATION_FIELDS_FRAGMENT } from "./situationFragments.ts";
 import { useSubscriptionClient } from "./useSubscriptionClient.ts";
 
 type SubscriptionData = {
   timetables: EstimatedTimetableUpdate[];
 };
 
-const situationFieldsFragment = `
-  fragment SituationFields on Situation {
-    situationNumber
-    version
-    severity
-    reportType
-    summary { value language }
-    description { value language }
-    advice { value language }
-    validityPeriods { startTime endTime }
-    infoLinks { uri labels { value language } }
-  }
-`;
-
 const subscriptionQuery = `
-  ${situationFieldsFragment}
+  ${SITUATION_FIELDS_FRAGMENT}
 
   subscription($serviceJourneyId: String!, $date: String!) {
     timetables(serviceJourneyIdAndDates: [{ id: $serviceJourneyId, date: $date }]) {
