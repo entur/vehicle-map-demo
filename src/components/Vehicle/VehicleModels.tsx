@@ -9,21 +9,14 @@ import {
   normaliseBearing,
 } from "../../domain/vehicleFootprint.ts";
 import {
-  bodyColourFor,
   modelFor,
   unknownHeadingMeshUnit,
 } from "../../domain/vehicleMeshes.ts";
+import { paintFor } from "../../domain/vehiclePaint.ts";
 import { VEHICLE_MODEL_MIN_ZOOM } from "../mapStyle.ts";
 
 /** Models draw under the icon layer, so line labels and delay lights stay on top. */
 const BEFORE_LAYER = "vehicle-layer";
-
-/**
- * The colour a vehicle's body is painted. The one place that decides it: a
- * line colour from the vehicles API slots in here once the field exists.
- */
-const paintFor = (vehicle: VehicleUpdate): [number, number, number] =>
-  bodyColourFor(vehicle.mode);
 
 /** Untinted: deck.gl multiplies this into the vertex colours, and its default is black. */
 const UNTINTED: [number, number, number] = [255, 255, 255];
