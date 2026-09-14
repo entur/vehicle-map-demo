@@ -22,10 +22,15 @@ import { SituationLayers } from "./SituationLayers.tsx";
 import { SituationDetailPanel } from "./SituationsPanel/SituationDetailPanel.tsx";
 import { AppMode } from "../domain/appMode.ts";
 import { ModeLayers } from "./ModeLayers.tsx";
+import { ViewDimension } from "../domain/viewDimension.ts";
+import { ViewDimensionControl } from "./ViewDimensionControl.tsx";
+import { ViewDimensionLayers } from "./ViewDimensionLayers.tsx";
 
 type MapViewProps = {
   mode: AppMode;
   setMode: (mode: AppMode) => void;
+  viewDimension: ViewDimension;
+  setViewDimension: (viewDimension: ViewDimension) => void;
   data: VehicleData[];
   setCurrentFilter: React.Dispatch<React.SetStateAction<Filter | null>>;
   currentFilter: Filter | null;
@@ -36,6 +41,8 @@ type MapViewProps = {
 export function MapView({
   mode,
   setMode,
+  viewDimension,
+  setViewDimension,
   data,
   setCurrentFilter,
   currentFilter,
@@ -80,6 +87,11 @@ export function MapView({
       >
         <NavigationControl position="top-left" />
         <GeolocateControl position="top-left" />
+        <ViewDimensionControl
+          dimension={viewDimension}
+          setDimension={setViewDimension}
+        />
+        <ViewDimensionLayers dimension={viewDimension} />
         <LeftMenu
           mode={mode}
           data={data.map((vehicle) => vehicle.vehicleUpdate)}

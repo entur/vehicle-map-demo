@@ -27,7 +27,8 @@ export const LeftMenuButtons = ({
           activeContent ? "open" : ""
         }`}
         style={{
-          top: "145px",
+          // Below the top-left control stack: zoom, geolocate, 2D/3D.
+          top: "185px",
         }}
       >
         <img
