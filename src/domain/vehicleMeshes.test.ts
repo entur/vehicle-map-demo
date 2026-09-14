@@ -4,8 +4,9 @@ import { dimensionsFor } from "./vehicleFootprint.ts";
 import {
   MESH_COLOURS,
   VehicleMesh,
+  VehicleModel,
   bodyColourFor,
-  meshFor,
+  modelFor,
   unknownHeadingMeshUnit,
 } from "./vehicleMeshes.ts";
 
@@ -28,6 +29,27 @@ function vertices(mesh: VehicleMesh): [number, number, number][] {
   ]);
 }
 
+/** Body and details as one mesh, for checks about the model as a whole. */
+function whole({ body, details }: VehicleModel): VehicleMesh {
+  const join = (a: Float32Array, b: Float32Array) => {
+    const out = new Float32Array(a.length + b.length);
+    out.set(a);
+    out.set(b, a.length);
+    return out;
+  };
+  return {
+    positions: {
+      value: join(body.positions.value, details.positions.value),
+      size: 3,
+    },
+    normals: {
+      value: join(body.normals.value, details.normals.value),
+      size: 3,
+    },
+    colors: { value: join(body.colors.value, details.colors.value), size: 3 },
+  };
+}
+
 function extent(mesh: VehicleMesh) {
   const vs = vertices(mesh);
   const axis = (i: number) => {
@@ -44,17 +66,37 @@ function verticesColoured(mesh: VehicleMesh, colour: readonly number[]) {
   );
 }
 
-describe("meshFor", () => {
+describe("modelFor", () => {
   for (const mode of MODES) {
     describe(mode, () => {
-      const mesh = meshFor(mode);
+      const model = modelFor(mode);
+      const mesh = whole(model);
 
-      it("has one normal and one colour per vertex, in whole triangles", () => {
-        const n = mesh.positions.value.length;
-        expect(n).toBeGreaterThan(0);
-        expect(n % 9).toBe(0);
-        expect(mesh.normals.value.length).toBe(n);
-        expect(mesh.colors.value.length).toBe(n);
+      it("has one normal and one colour per vertex, in whole triangles, in both meshes", () => {
+        for (const part of [model.body, model.details]) {
+          const n = part.positions.value.length;
+          expect(n).toBeGreaterThan(0);
+          expect(n % 9).toBe(0);
+          expect(part.normals.value.length).toBe(n);
+          expect(part.colors.value.length).toBe(n);
+        }
+      });
+
+      // The renderer multiplies getColor into the vertex colours. Pure white is
+      // what lets a per-vehicle colour land on the body exactly.
+      it("has a pure white body, so getColor alone decides its colour", () => {
+        expect(model.body.colors.value.every((channel) => channel === 1)).toBe(
+          true,
+        );
+      });
+
+      // A detail in pure white would be indistinguishable from paint — and is
+      // only drawn untinted because it lives in the details mesh.
+      it("keeps every detail off pure white", () => {
+        const c = model.details.colors.value;
+        for (let i = 0; i < c.length; i += 3) {
+          expect(c[i] === 1 && c[i + 1] === 1 && c[i + 2] === 1).toBe(false);
+        }
       });
 
       it("has unit normals and finite positions", () => {
@@ -92,7 +134,10 @@ describe("meshFor", () => {
   // the model by -bearing on the assumption that +y is forward.
   it("puts every road and rail vehicle's headlights at the +y end", () => {
     for (const mode of MODES.filter((m) => m !== "FERRY")) {
-      const lights = verticesColoured(meshFor(mode), MESH_COLOURS.headlight);
+      const lights = verticesColoured(
+        modelFor(mode).details,
+        MESH_COLOURS.headlight,
+      );
       expect(lights.length, mode).toBeGreaterThan(0);
       for (const [, y] of lights) expect(y, mode).toBeGreaterThan(0);
     }
@@ -100,7 +145,7 @@ describe("meshFor", () => {
 
   it("points the ferry's bow along +y", () => {
     const { length } = dimensionsFor("FERRY");
-    const bow = vertices(meshFor("FERRY")).filter(
+    const bow = vertices(whole(modelFor("FERRY"))).filter(
       ([, y]) => Math.abs(y - length / 2) < 1e-4,
     );
     expect(bow.length).toBeGreaterThan(0);
@@ -108,13 +153,14 @@ describe("meshFor", () => {
   });
 
   it("builds each mode once", () => {
-    expect(meshFor("BUS")).toBe(meshFor("BUS"));
+    expect(modelFor("BUS")).toBe(modelFor("BUS"));
   });
 });
 
 describe("unknownHeadingMeshUnit", () => {
-  it("is a unit column with no front", () => {
+  it("is a white unit column with no front", () => {
     const mesh = unknownHeadingMeshUnit();
+    expect(mesh.colors.value.every((channel) => channel === 1)).toBe(true);
     const { x, y, z } = extent(mesh);
     expect(z.min).toBeCloseTo(0, 5);
     expect(z.max).toBeCloseTo(1, 5);

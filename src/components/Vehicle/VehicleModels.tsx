@@ -10,13 +10,23 @@ import {
 } from "../../domain/vehicleFootprint.ts";
 import {
   bodyColourFor,
-  meshFor,
+  modelFor,
   unknownHeadingMeshUnit,
 } from "../../domain/vehicleMeshes.ts";
 import { VEHICLE_MODEL_MIN_ZOOM } from "../mapStyle.ts";
 
 /** Models draw under the icon layer, so line labels and delay lights stay on top. */
 const BEFORE_LAYER = "vehicle-layer";
+
+/**
+ * The colour a vehicle's body is painted. The one place that decides it: a
+ * line colour from the vehicles API slots in here once the field exists.
+ */
+const paintFor = (vehicle: VehicleUpdate): [number, number, number] =>
+  bodyColourFor(vehicle.mode);
+
+/** Untinted: deck.gl multiplies this into the vertex colours, and its default is black. */
+const UNTINTED: [number, number, number] = [255, 255, 255];
 
 /** Fades the models in over the same half zoom level the icons fade out. */
 function modelOpacity(zoom: number) {
@@ -91,24 +101,38 @@ export function VehicleModels({ data, viewDimension }: Props) {
       updateTriggers: { getPosition: viewDimension },
     };
 
-    const layers = [...groups.byMode].map(
-      ([mode, vehicles]) =>
+    // deck.gl yaw turns counter-clockwise; bearing is clockwise from north.
+    const getOrientation = (
+      vehicle: VehicleUpdate,
+    ): [number, number, number] => [
+      0,
+      -(normaliseBearing(vehicle.bearing) ?? 0),
+      0,
+    ];
+
+    // Two layers per mode, sharing data and transforms: the white body painted
+    // per vehicle, and the details drawn in their own fixed colours.
+    const layers = [...groups.byMode].flatMap(([mode, vehicles]) => {
+      const { body, details } = modelFor(mode);
+      return [
         new SimpleMeshLayer<VehicleUpdate>({
           ...shared,
-          id: `vehicle-models-${mode}`,
+          id: `vehicle-models-${mode}-body`,
           data: vehicles,
-          mesh: meshFor(mode),
-          // deck.gl yaw turns counter-clockwise; bearing is clockwise from north.
-          getOrientation: (vehicle) => [
-            0,
-            -(normaliseBearing(vehicle.bearing) ?? 0),
-            0,
-          ],
-          // Vertex colours carry the model's paint; white leaves them as-is
-          // (the layer's default is black, which would multiply to black).
-          getColor: [255, 255, 255],
+          mesh: body,
+          getOrientation,
+          getColor: paintFor,
         }),
-    );
+        new SimpleMeshLayer<VehicleUpdate>({
+          ...shared,
+          id: `vehicle-models-${mode}-details`,
+          data: vehicles,
+          mesh: details,
+          getOrientation,
+          getColor: UNTINTED,
+        }),
+      ];
+    });
 
     layers.push(
       new SimpleMeshLayer<VehicleUpdate>({
@@ -120,7 +144,7 @@ export function VehicleModels({ data, viewDimension }: Props) {
           const { width, height } = dimensionsFor(vehicle.mode);
           return [width * 0.75, width * 0.75, height];
         },
-        getColor: (vehicle) => bodyColourFor(vehicle.mode),
+        getColor: paintFor,
       }),
     );
 

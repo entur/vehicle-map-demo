@@ -10,6 +10,13 @@ import { dimensionsFor } from "./vehicleFootprint.ts";
  * pack covers the Norwegian fleet — metro, coach and ferry in particular — and
  * code makes every model true to `VEHICLE_DIMENSIONS` by construction.
  *
+ * Each model is two meshes. The **body** is pure white, so the renderer's
+ * per-vehicle `getColor` sets its colour exactly — today the mode colour, and
+ * a line colour once the vehicles API publishes one. The **details** — glass,
+ * lights, sign, wheels, underframe — carry fixed vertex colours and are drawn
+ * with a white `getColor`, since deck.gl multiplies the two and would tint a
+ * headlight as readily as a body panel.
+ *
  * Model space: origin at the vehicle's reported position on the ground,
  * +y forward, +x to the vehicle's right, +z up.
  */
@@ -17,6 +24,13 @@ export type VehicleMesh = {
   positions: { value: Float32Array; size: 3 };
   normals: { value: Float32Array; size: 3 };
   colors: { value: Float32Array; size: 3 };
+};
+
+export type VehicleModel = {
+  /** White; coloured per vehicle by the renderer. */
+  body: VehicleMesh;
+  /** Fixed colours; drawn untinted. */
+  details: VehicleMesh;
 };
 
 type Vec3 = [number, number, number];
@@ -41,7 +55,14 @@ export const MESH_COLOURS = {
   white: rgb(0xf4f4f2),
 } as const;
 
-/** Body colour per mode, baked into the mesh. */
+/**
+ * Marks a primitive as body paint rather than a detail. Compared by identity,
+ * so no real colour can be mistaken for it.
+ */
+const PAINT: RGB = Object.freeze([1, 1, 1] as const);
+const WHITE: RGB = [1, 1, 1];
+
+/** Default body colour per mode, applied by the renderer through `getColor`. */
 const BODY_COLOURS: Partial<Record<VehicleModeEnumeration, RGB>> = {
   BUS: rgb(0xd9322b),
   COACH: rgb(0x8a2c8f),
@@ -54,10 +75,12 @@ const DEFAULT_BODY = rgb(0x6b6b6b);
 
 const sub = (a: Vec3, b: Vec3): Vec3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
 
+type Arrays = { positions: number[]; normals: number[]; colors: number[] };
+const emptyArrays = (): Arrays => ({ positions: [], normals: [], colors: [] });
+
 class MeshBuilder {
-  private positions: number[] = [];
-  private normals: number[] = [];
-  private colors: number[] = [];
+  private body = emptyArrays();
+  private details = emptyArrays();
 
   /**
    * One triangle, wound so its normal points away from `inside`. Taking an
@@ -87,10 +110,12 @@ class MeshBuilder {
       n = [-n[0], -n[1], -n[2]];
       vertices = [a, c, b];
     }
+    const target = colour === PAINT ? this.body : this.details;
+    const stored = colour === PAINT ? WHITE : colour;
     for (const vertex of vertices) {
-      this.positions.push(...vertex);
-      this.normals.push(...n);
-      this.colors.push(...colour);
+      target.positions.push(...vertex);
+      target.normals.push(...n);
+      target.colors.push(...stored);
     }
   }
 
@@ -223,12 +248,13 @@ class MeshBuilder {
     }
   }
 
-  build(): VehicleMesh {
-    return {
-      positions: { value: new Float32Array(this.positions), size: 3 },
-      normals: { value: new Float32Array(this.normals), size: 3 },
-      colors: { value: new Float32Array(this.colors), size: 3 },
-    };
+  build(): VehicleModel {
+    const mesh = ({ positions, normals, colors }: Arrays): VehicleMesh => ({
+      positions: { value: new Float32Array(positions), size: 3 },
+      normals: { value: new Float32Array(normals), size: 3 },
+      colors: { value: new Float32Array(colors), size: 3 },
+    });
+    return { body: mesh(this.body), details: mesh(this.details) };
   }
 }
 
@@ -236,15 +262,15 @@ type RoadVehicleSpec = {
   length: number;
   width: number;
   height: number;
-  body: RGB;
   windowBottom: number;
   windowTop: number;
   /** Axle positions along y, measured from the vehicle's centre. */
   axles: number[];
 };
 
-function roadVehicle(spec: RoadVehicleSpec): VehicleMesh {
-  const { length: L, width: W, height: H, body } = spec;
+function roadVehicle(spec: RoadVehicleSpec): VehicleModel {
+  const { length: L, width: W, height: H } = spec;
+  const body = PAINT;
   const m = new MeshBuilder();
   const wheelRadius = 0.5;
   const roofTop = H - 0.15;
@@ -325,7 +351,6 @@ type RailVehicleSpec = {
   length: number;
   width: number;
   height: number;
-  body: RGB;
   floor: number;
   windowBottom: number;
   windowTop: number;
@@ -333,8 +358,9 @@ type RailVehicleSpec = {
 };
 
 /** Cars of equal length separated by dark gangways, on bogies. */
-function railVehicle(spec: RailVehicleSpec): VehicleMesh {
-  const { length: L, width: W, height: H, body, cars } = spec;
+function railVehicle(spec: RailVehicleSpec): VehicleModel {
+  const { length: L, width: W, height: H, cars } = spec;
+  const body = PAINT;
   const m = new MeshBuilder();
   const gap = 0.5;
   const carLength = (L - gap * (cars - 1)) / cars;
@@ -450,12 +476,8 @@ function railVehicle(spec: RailVehicleSpec): VehicleMesh {
   return m.build();
 }
 
-function ferry(
-  length: number,
-  width: number,
-  height: number,
-  hull: RGB,
-): VehicleMesh {
+function ferry(length: number, width: number, height: number): VehicleModel {
+  const hull = PAINT;
   const L = length;
   const W = width;
   const m = new MeshBuilder();
@@ -489,16 +511,14 @@ function ferry(
   return m.build();
 }
 
-function buildMeshFor(mode: VehicleModeEnumeration): VehicleMesh {
+function buildModelFor(mode: VehicleModeEnumeration): VehicleModel {
   const { length, width, height } = dimensionsFor(mode);
-  const body = BODY_COLOURS[mode] ?? DEFAULT_BODY;
   switch (mode) {
     case "BUS":
       return roadVehicle({
         length,
         width,
         height,
-        body,
         windowBottom: 1.4,
         windowTop: 2.7,
         axles: [length / 2 - 2.7, -length / 2 + 3.3],
@@ -508,7 +528,6 @@ function buildMeshFor(mode: VehicleModeEnumeration): VehicleMesh {
         length,
         width,
         height,
-        body,
         windowBottom: 1.9,
         windowTop: 3.05,
         axles: [length / 2 - 2.8, -length / 2 + 3.6, -length / 2 + 2.3],
@@ -519,7 +538,6 @@ function buildMeshFor(mode: VehicleModeEnumeration): VehicleMesh {
         length,
         width,
         height,
-        body,
         floor: 0.55,
         windowBottom: 1.1,
         windowTop: 2.6,
@@ -531,7 +549,6 @@ function buildMeshFor(mode: VehicleModeEnumeration): VehicleMesh {
         length,
         width,
         height,
-        body,
         floor: 1.0,
         windowBottom: 1.8,
         windowTop: 2.85,
@@ -542,20 +559,18 @@ function buildMeshFor(mode: VehicleModeEnumeration): VehicleMesh {
         length,
         width,
         height,
-        body,
         floor: 1.1,
         windowBottom: 1.95,
         windowTop: 3.0,
         pantographOnCar: 1,
       });
     case "FERRY":
-      return ferry(length, width, height, body);
+      return ferry(length, width, height);
     default:
       return roadVehicle({
         length,
         width,
         height,
-        body,
         windowBottom: 1.2,
         windowTop: 2.2,
         axles: [length / 2 - 1.6, -length / 2 + 1.6],
@@ -563,16 +578,16 @@ function buildMeshFor(mode: VehicleModeEnumeration): VehicleMesh {
   }
 }
 
-const meshCache = new Map<VehicleModeEnumeration, VehicleMesh>();
+const modelCache = new Map<VehicleModeEnumeration, VehicleModel>();
 
 /** The model for a mode, built once and shared by every vehicle of that mode. */
-export function meshFor(mode: VehicleModeEnumeration): VehicleMesh {
-  let mesh = meshCache.get(mode);
-  if (!mesh) {
-    mesh = buildMeshFor(mode);
-    meshCache.set(mode, mesh);
+export function modelFor(mode: VehicleModeEnumeration): VehicleModel {
+  let model = modelCache.get(mode);
+  if (!model) {
+    model = buildModelFor(mode);
+    modelCache.set(mode, model);
   }
-  return mesh;
+  return model;
 }
 
 let unknownHeadingMesh: VehicleMesh | null = null;
@@ -589,13 +604,13 @@ export function unknownHeadingMeshUnit(): VehicleMesh {
       const angle = (i * Math.PI) / 4 + Math.PI / 8;
       return [Math.sin(angle), Math.cos(angle)];
     });
-    m.prism(outline, 0, 1, MESH_COLOURS.white, MESH_COLOURS.white);
-    unknownHeadingMesh = m.build();
+    m.prism(outline, 0, 1, PAINT, PAINT);
+    unknownHeadingMesh = m.build().body;
   }
   return unknownHeadingMesh;
 }
 
-/** A mode's body colour as 0–255 RGB, for tinting the unknown-heading column. */
+/** A mode's default body colour as 0–255 RGB, for the renderer's `getColor`. */
 export function bodyColourFor(
   mode: VehicleModeEnumeration,
 ): [number, number, number] {
