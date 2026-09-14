@@ -368,8 +368,10 @@ export const mapStyle: StyleSpecification = {
           VEHICLE_MODEL_MIN_ZOOM + 0.5,
           0,
         ],
-        "text-color": "#000",
-        "text-halo-color": "#FFF",
+        // The line's published text and line colour, as a pair or not at all
+        // — see `labelColoursFor`.
+        "text-color": ["coalesce", ["get", "lineTextColour"], "#000"],
+        "text-halo-color": ["coalesce", ["get", "lineHaloColour"], "#FFF"],
         "text-halo-width": 6,
         "text-opacity": ["interpolate", ["linear"], ["zoom"], 13, 0, 13.01, 1],
       },

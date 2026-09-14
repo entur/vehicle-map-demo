@@ -7,6 +7,7 @@ import {
   dimensionsFor,
   vehicleFootprint,
 } from "../../domain/vehicleFootprint.ts";
+import { labelColoursFor } from "../../domain/vehiclePaint.ts";
 
 /** Layers a click can select a vehicle from: its icon and, zoomed in, its model. */
 const CLICKABLE_VEHICLE_LAYERS = ["vehicle-layer", "vehicle-model-layer"];
@@ -22,6 +23,9 @@ type SelectedVehicleProperties = {
   serviceJourneyId: string;
   date: string;
   occupancyStatus: string;
+  /** The line's published label colours as CSS, or null for the default. */
+  lineTextColour: string | null;
+  lineHaloColour: string | null;
 };
 
 export type SelectedVehicle = {
@@ -35,6 +39,7 @@ const createFeature = (
 ): Feature<Point, SelectedVehicleProperties & { followed: boolean }> => {
   const lastUpdateTimestamp = Date.parse(vehicle.lastUpdated);
   const updateInterval = Date.now() - lastUpdateTimestamp;
+  const labelColours = labelColoursFor(vehicle.line);
   return {
     type: "Feature",
     geometry: {
@@ -52,6 +57,8 @@ const createFeature = (
       serviceJourneyId: vehicle.serviceJourney.id,
       date: vehicle.serviceJourney.date,
       occupancyStatus: vehicle.occupancyStatus,
+      lineTextColour: labelColours?.text ?? null,
+      lineHaloColour: labelColours?.halo ?? null,
     },
   };
 };

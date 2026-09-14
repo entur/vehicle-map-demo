@@ -12,7 +12,7 @@ import {
   modelFor,
   unknownHeadingMeshUnit,
 } from "../../domain/vehicleMeshes.ts";
-import { paintFor } from "../../domain/vehiclePaint.ts";
+import { paintFor, signColourFor } from "../../domain/vehiclePaint.ts";
 import { VEHICLE_MODEL_MIN_ZOOM } from "../mapStyle.ts";
 
 /** Models draw under the icon layer, so line labels and delay lights stay on top. */
@@ -103,10 +103,11 @@ export function VehicleModels({ data, viewDimension }: Props) {
       0,
     ];
 
-    // Two layers per mode, sharing data and transforms: the white body painted
-    // per vehicle, and the details drawn in their own fixed colours.
+    // Up to three layers per mode, sharing data and transforms: the white body
+    // and signs, each coloured per vehicle, and the details drawn in their own
+    // fixed colours. A ferry has no sign, so no sign layer.
     const layers = [...groups.byMode].flatMap(([mode, vehicles]) => {
-      const { body, details } = modelFor(mode);
+      const { body, sign, details } = modelFor(mode);
       return [
         new SimpleMeshLayer<VehicleUpdate>({
           ...shared,
@@ -116,6 +117,18 @@ export function VehicleModels({ data, viewDimension }: Props) {
           getOrientation,
           getColor: paintFor,
         }),
+        ...(sign.positions.value.length > 0
+          ? [
+              new SimpleMeshLayer<VehicleUpdate>({
+                ...shared,
+                id: `vehicle-models-${mode}-sign`,
+                data: vehicles,
+                mesh: sign,
+                getOrientation,
+                getColor: signColourFor,
+              }),
+            ]
+          : []),
         new SimpleMeshLayer<VehicleUpdate>({
           ...shared,
           id: `vehicle-models-${mode}-details`,

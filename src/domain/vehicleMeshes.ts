@@ -10,12 +10,12 @@ import { dimensionsFor } from "./vehicleFootprint.ts";
  * pack covers the Norwegian fleet — metro, coach and ferry in particular — and
  * code makes every model true to `VEHICLE_DIMENSIONS` by construction.
  *
- * Each model is two meshes. The **body** is pure white, so the renderer's
- * per-vehicle `getColor` sets its colour exactly — today the mode colour, and
- * a line colour once the vehicles API publishes one. The **details** — glass,
- * lights, sign, wheels, underframe — carry fixed vertex colours and are drawn
- * with a white `getColor`, since deck.gl multiplies the two and would tint a
- * headlight as readily as a body panel.
+ * Each model is three meshes. The **body** and the destination **sign** are
+ * pure white, so the renderer's per-vehicle `getColor` sets each colour exactly
+ * — the line's published colour and text colour, or the mode colour and a
+ * default amber. The **details** — glass, lights, wheels, underframe — carry
+ * fixed vertex colours and are drawn with a white `getColor`, since deck.gl
+ * multiplies the two and would tint a headlight as readily as a body panel.
  *
  * Model space: origin at the vehicle's reported position on the ground,
  * +y forward, +x to the vehicle's right, +z up.
@@ -29,6 +29,8 @@ export type VehicleMesh = {
 export type VehicleModel = {
   /** White; coloured per vehicle by the renderer. */
   body: VehicleMesh;
+  /** White; coloured per vehicle by the renderer. Empty for a ferry. */
+  sign: VehicleMesh;
   /** Fixed colours; drawn untinted. */
   details: VehicleMesh;
 };
@@ -50,7 +52,6 @@ export const MESH_COLOURS = {
   roofUnit: rgb(0xd5d8dc),
   headlight: rgb(0xfff4c2),
   taillight: rgb(0x9c2020),
-  sign: rgb(0xf0a830),
   deck: rgb(0xdedad2),
   white: rgb(0xf4f4f2),
 } as const;
@@ -60,6 +61,8 @@ export const MESH_COLOURS = {
  * so no real colour can be mistaken for it.
  */
 const PAINT: RGB = Object.freeze([1, 1, 1] as const);
+/** Marks a primitive as a destination sign. Compared by identity, like `PAINT`. */
+const SIGN: RGB = Object.freeze([1, 1, 1] as const);
 const WHITE: RGB = [1, 1, 1];
 
 /** Default body colour per mode, applied by the renderer through `getColor`. */
@@ -72,6 +75,14 @@ const BODY_COLOURS: Partial<Record<VehicleModeEnumeration, RGB>> = {
   FERRY: rgb(0x1d3f6e),
 };
 const DEFAULT_BODY = rgb(0x6b6b6b);
+const to255 = ([r, g, b]: RGB): [number, number, number] => [
+  Math.round(r * 255),
+  Math.round(g * 255),
+  Math.round(b * 255),
+];
+
+/** A sign's colour, as 0–255 RGB, when the line publishes no text colour. */
+export const DEFAULT_SIGN_COLOUR = to255(rgb(0xf0a830));
 
 const sub = (a: Vec3, b: Vec3): Vec3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
 
@@ -80,6 +91,7 @@ const emptyArrays = (): Arrays => ({ positions: [], normals: [], colors: [] });
 
 class MeshBuilder {
   private body = emptyArrays();
+  private sign = emptyArrays();
   private details = emptyArrays();
 
   /**
@@ -110,8 +122,9 @@ class MeshBuilder {
       n = [-n[0], -n[1], -n[2]];
       vertices = [a, c, b];
     }
-    const target = colour === PAINT ? this.body : this.details;
-    const stored = colour === PAINT ? WHITE : colour;
+    const target =
+      colour === PAINT ? this.body : colour === SIGN ? this.sign : this.details;
+    const stored = colour === PAINT || colour === SIGN ? WHITE : colour;
     for (const vertex of vertices) {
       target.positions.push(...vertex);
       target.normals.push(...n);
@@ -254,7 +267,11 @@ class MeshBuilder {
       normals: { value: new Float32Array(normals), size: 3 },
       colors: { value: new Float32Array(colors), size: 3 },
     });
-    return { body: mesh(this.body), details: mesh(this.details) };
+    return {
+      body: mesh(this.body),
+      sign: mesh(this.sign),
+      details: mesh(this.details),
+    };
   }
 }
 
@@ -306,17 +323,33 @@ function roadVehicle(spec: RoadVehicleSpec): VehicleModel {
     }
   }
 
-  // Front: windscreen, destination sign, headlights. Rear: tail lights.
+  // Front: windscreen, headlights. Rear: tail lights. Destination signs above
+  // the windscreen, above the rear window, and at the top of the glass behind
+  // the front door on each side — so one is in view from any angle.
   m.box(0, L / 2, 0.9, W * 0.9, 0.04, spec.windowTop - 0.9, MESH_COLOURS.glass);
-  m.box(
-    0,
-    L / 2 + 0.03,
-    spec.windowTop + 0.05,
-    W * 0.7,
-    0.03,
-    0.25,
-    MESH_COLOURS.sign,
-  );
+  for (const end of [-1, 1]) {
+    m.box(
+      0,
+      end * (L / 2 + 0.03),
+      spec.windowTop + 0.05,
+      W * 0.7,
+      0.03,
+      0.25,
+      SIGN,
+    );
+  }
+  for (const side of [-1, 1]) {
+    // Flush with the body panels; the glass it sits on is inset behind them.
+    m.box(
+      side * (W / 2 - 0.01),
+      L / 2 - 1.8,
+      spec.windowTop - 0.35,
+      0.02,
+      Math.min(1.6, L * 0.2),
+      0.3,
+      SIGN,
+    );
+  }
   for (const side of [-1, 1]) {
     m.box(
       side * W * 0.35,
@@ -450,8 +483,29 @@ function railVehicle(spec: RailVehicleSpec): VehicleModel {
     }
   }
 
-  // Cab ends: windscreens both ends, headlights in front, tail lights behind.
+  // Cab ends: windscreens and destination signs both ends, a side sign on the
+  // cab car each side, headlights in front, tail lights behind.
   for (const end of [-1, 1]) {
+    m.box(
+      0,
+      end * (L / 2 + 0.03),
+      spec.windowTop + 0.05,
+      W * 0.6,
+      0.03,
+      0.25,
+      SIGN,
+    );
+    for (const side of [-1, 1]) {
+      m.box(
+        side * (W / 2 - 0.01),
+        end * (L / 2 - 3),
+        spec.windowTop - 0.35,
+        0.02,
+        2,
+        0.3,
+        SIGN,
+      );
+    }
     m.box(
       0,
       end * (L / 2),
@@ -614,6 +668,5 @@ export function unknownHeadingMeshUnit(): VehicleMesh {
 export function bodyColourFor(
   mode: VehicleModeEnumeration,
 ): [number, number, number] {
-  const [r, g, b] = BODY_COLOURS[mode] ?? DEFAULT_BODY;
-  return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+  return to255(BODY_COLOURS[mode] ?? DEFAULT_BODY);
 }

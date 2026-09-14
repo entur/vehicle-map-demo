@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { VehicleUpdate } from "../types.ts";
-import { bodyColourFor } from "./vehicleMeshes.ts";
-import { hexToRgb, paintFor } from "./vehiclePaint.ts";
+import { DEFAULT_SIGN_COLOUR, bodyColourFor } from "./vehicleMeshes.ts";
+import {
+  hexToRgb,
+  labelColoursFor,
+  paintFor,
+  signColourFor,
+} from "./vehiclePaint.ts";
 
 function vehicle(
   mode: VehicleUpdate["mode"],
@@ -57,5 +62,52 @@ describe("paintFor", () => {
     expect(
       paintFor(vehicle("FERRY", { colour: "blue", textColour: null })),
     ).toEqual(bodyColourFor("FERRY"));
+  });
+});
+
+describe("signColourFor", () => {
+  it("lights a sign in the line's published text colour", () => {
+    expect(
+      signColourFor(vehicle("BUS", { colour: "000000", textColour: "FFFF00" })),
+    ).toEqual([0xff, 0xff, 0x00]);
+  });
+
+  it("falls back to the default sign colour when the line has no text colour", () => {
+    expect(signColourFor(vehicle("BUS", null))).toEqual(DEFAULT_SIGN_COLOUR);
+    expect(
+      signColourFor(vehicle("BUS", { colour: "000000", textColour: "yellow" })),
+    ).toEqual(DEFAULT_SIGN_COLOUR);
+  });
+});
+
+describe("labelColoursFor", () => {
+  it("sets the line code in the text colour over the line colour", () => {
+    expect(
+      labelColoursFor(
+        vehicle("BUS", { colour: "000000", textColour: "FFFF00" }).line,
+      ),
+    ).toEqual({ text: "#ffff00", halo: "#000000" });
+  });
+
+  it("normalises a leading # and letter case", () => {
+    expect(
+      labelColoursFor(
+        vehicle("RAIL", { colour: "#DF2027", textColour: "#FFFFFF" }).line,
+      ),
+    ).toEqual({ text: "#ffffff", halo: "#df2027" });
+  });
+
+  // The two are published as a pair — text colour is only legible against its
+  // own background — so half a pair would put, say, black text on a dark halo.
+  it("uses neither colour unless both are usable", () => {
+    for (const presentation of [
+      null,
+      undefined,
+      { colour: "000000", textColour: null },
+      { colour: null, textColour: "FFFF00" },
+      { colour: "000000", textColour: "yellow" },
+    ]) {
+      expect(labelColoursFor(vehicle("BUS", presentation).line)).toBeNull();
+    }
   });
 });

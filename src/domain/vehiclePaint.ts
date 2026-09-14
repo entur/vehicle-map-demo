@@ -1,5 +1,5 @@
-import { VehicleUpdate } from "../types.ts";
-import { bodyColourFor } from "./vehicleMeshes.ts";
+import { Line, VehicleUpdate } from "../types.ts";
+import { DEFAULT_SIGN_COLOUR, bodyColourFor } from "./vehicleMeshes.ts";
 
 type RGB = [number, number, number];
 
@@ -30,4 +30,35 @@ export function paintFor(vehicle: Pick<VehicleUpdate, "mode" | "line">): RGB {
   return (
     hexToRgb(vehicle.line.presentation?.colour) ?? bodyColourFor(vehicle.mode)
   );
+}
+
+/**
+ * The colour a vehicle model's destination signs are lit in: its line's
+ * published text colour, or a default amber when the line publishes none.
+ * Like `paintFor`, as delivered — AKT's yellow on black included.
+ */
+export function signColourFor(vehicle: Pick<VehicleUpdate, "line">): RGB {
+  return hexToRgb(vehicle.line.presentation?.textColour) ?? DEFAULT_SIGN_COLOUR;
+}
+
+/** CSS colours for the map's line-code label, or null to keep the default. */
+export type LabelColours = { text: string; halo: string };
+
+const toCss = (rgb: RGB) =>
+  "#" + rgb.map((channel) => channel.toString(16).padStart(2, "0")).join("");
+
+/**
+ * The line code set in the line's text colour on a halo of its line colour.
+ *
+ * The two are used only as a pair. A text colour is chosen to be legible
+ * against its own line colour, not against the default white halo, and half a
+ * pair could put yellow text on white or black text on a dark halo. Measured
+ * on dev, every line that publishes one publishes both.
+ */
+export function labelColoursFor(
+  line: Pick<Line, "presentation">,
+): LabelColours | null {
+  const halo = hexToRgb(line.presentation?.colour);
+  const text = hexToRgb(line.presentation?.textColour);
+  return halo && text ? { text: toCss(text), halo: toCss(halo) } : null;
 }

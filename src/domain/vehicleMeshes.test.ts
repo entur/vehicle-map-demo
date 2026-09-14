@@ -29,24 +29,23 @@ function vertices(mesh: VehicleMesh): [number, number, number][] {
   ]);
 }
 
-/** Body and details as one mesh, for checks about the model as a whole. */
-function whole({ body, details }: VehicleModel): VehicleMesh {
-  const join = (a: Float32Array, b: Float32Array) => {
-    const out = new Float32Array(a.length + b.length);
-    out.set(a);
-    out.set(b, a.length);
+/** Every part as one mesh, for checks about the model as a whole. */
+function whole({ body, sign, details }: VehicleModel): VehicleMesh {
+  const parts = [body, sign, details];
+  const join = (pick: (mesh: VehicleMesh) => Float32Array) => {
+    const arrays = parts.map(pick);
+    const out = new Float32Array(arrays.reduce((n, a) => n + a.length, 0));
+    let offset = 0;
+    for (const a of arrays) {
+      out.set(a, offset);
+      offset += a.length;
+    }
     return out;
   };
   return {
-    positions: {
-      value: join(body.positions.value, details.positions.value),
-      size: 3,
-    },
-    normals: {
-      value: join(body.normals.value, details.normals.value),
-      size: 3,
-    },
-    colors: { value: join(body.colors.value, details.colors.value), size: 3 },
+    positions: { value: join((m) => m.positions.value), size: 3 },
+    normals: { value: join((m) => m.normals.value), size: 3 },
+    colors: { value: join((m) => m.colors.value), size: 3 },
   };
 }
 
@@ -72,10 +71,12 @@ describe("modelFor", () => {
       const model = modelFor(mode);
       const mesh = whole(model);
 
-      it("has one normal and one colour per vertex, in whole triangles, in both meshes", () => {
+      it("has one normal and one colour per vertex, in whole triangles, in every mesh", () => {
         for (const part of [model.body, model.details]) {
+          expect(part.positions.value.length).toBeGreaterThan(0);
+        }
+        for (const part of [model.body, model.sign, model.details]) {
           const n = part.positions.value.length;
-          expect(n).toBeGreaterThan(0);
           expect(n % 9).toBe(0);
           expect(part.normals.value.length).toBe(n);
           expect(part.colors.value.length).toBe(n);
@@ -84,10 +85,12 @@ describe("modelFor", () => {
 
       // The renderer multiplies getColor into the vertex colours. Pure white is
       // what lets a per-vehicle colour land on the body exactly.
-      it("has a pure white body, so getColor alone decides its colour", () => {
-        expect(model.body.colors.value.every((channel) => channel === 1)).toBe(
-          true,
-        );
+      it("has a pure white body and sign, so getColor alone decides their colours", () => {
+        for (const part of [model.body, model.sign]) {
+          expect(part.colors.value.every((channel) => channel === 1)).toBe(
+            true,
+          );
+        }
       });
 
       // A detail in pure white would be indistinguishable from paint — and is
@@ -141,6 +144,35 @@ describe("modelFor", () => {
       expect(lights.length, mode).toBeGreaterThan(0);
       for (const [, y] of lights) expect(y, mode).toBeGreaterThan(0);
     }
+  });
+
+  // A sign that faces only one way is invisible from most angles, and the
+  // side view is the one a pitched map shows most.
+  it("gives every road and rail vehicle a sign at both ends and on both sides", () => {
+    for (const mode of MODES.filter((m) => m !== "FERRY")) {
+      const { width } = dimensionsFor(mode);
+      const signs = vertices(modelFor(mode).sign);
+      expect(
+        signs.some(([, y]) => y > 0),
+        mode,
+      ).toBe(true);
+      expect(
+        signs.some(([, y]) => y < 0),
+        mode,
+      ).toBe(true);
+      expect(
+        signs.some(([x]) => x > width * 0.45),
+        mode,
+      ).toBe(true);
+      expect(
+        signs.some(([x]) => x < -width * 0.45),
+        mode,
+      ).toBe(true);
+    }
+  });
+
+  it("gives the ferry no sign", () => {
+    expect(modelFor("FERRY").sign.positions.value).toHaveLength(0);
   });
 
   it("points the ferry's bow along +y", () => {
