@@ -5,8 +5,10 @@ import {
   BASE_LAYERS,
   BASE_SOURCES,
   VIEW_3D_LAYERS,
+  ROTATION_STEP,
   cameraFor,
   parseViewDimension,
+  rotatedBearing,
   terrainFor,
 } from "./viewDimension.ts";
 
@@ -63,5 +65,34 @@ describe("cameraFor", () => {
     expect(cameraFor("2d").pitch).toBe(0);
     expect(cameraFor("3d").pitch).toBeGreaterThan(0);
     expect(cameraFor("3d").pitch).toBeLessThanOrEqual(60);
+  });
+});
+
+describe("rotatedBearing", () => {
+  it("turns a north-up map by one step either way", () => {
+    expect(rotatedBearing(0, "clockwise")).toBe(ROTATION_STEP);
+    expect(rotatedBearing(0, "counterclockwise")).toBe(-ROTATION_STEP);
+  });
+
+  // Snapping means repeated clicks settle on round headings even after the
+  // map has been rotated freely by dragging.
+  it("snaps to the next step in the direction of turn", () => {
+    expect(rotatedBearing(30, "clockwise")).toBe(45);
+    expect(rotatedBearing(30, "counterclockwise")).toBe(0);
+    expect(rotatedBearing(-30, "clockwise")).toBe(0);
+    expect(rotatedBearing(-30, "counterclockwise")).toBe(-45);
+  });
+
+  // A bearing a hair off a step, as easing leaves it, must not count as short
+  // of that step — or a click would appear to do nothing.
+  it("treats a bearing within half a degree of a step as on it", () => {
+    expect(rotatedBearing(44.9999, "clockwise")).toBe(90);
+    expect(rotatedBearing(45.2, "counterclockwise")).toBe(0);
+  });
+
+  it("stays within MapLibre's (-180, 180] range", () => {
+    expect(rotatedBearing(180, "clockwise")).toBe(-135);
+    expect(rotatedBearing(-135, "counterclockwise")).toBe(180);
+    expect(rotatedBearing(170, "clockwise")).toBe(180);
   });
 });

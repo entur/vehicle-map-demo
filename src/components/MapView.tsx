@@ -24,6 +24,7 @@ import { SituationDetailPanel } from "./SituationsPanel/SituationDetailPanel.tsx
 import { AppMode } from "../domain/appMode.ts";
 import { ModeLayers } from "./ModeLayers.tsx";
 import { ViewDimension } from "../domain/viewDimension.ts";
+import { RotateControl } from "./RotateControl.tsx";
 import { ViewDimensionControl } from "./ViewDimensionControl.tsx";
 import { ViewDimensionLayers } from "./ViewDimensionLayers.tsx";
 
@@ -92,9 +93,11 @@ export function MapView({
           dimension={viewDimension}
           setDimension={setViewDimension}
         />
+        {viewDimension === "3d" && <RotateControl />}
         <ViewDimensionLayers dimension={viewDimension} />
         <LeftMenu
           mode={mode}
+          viewDimension={viewDimension}
           data={data.map((vehicle) => vehicle.vehicleUpdate)}
           setCurrentFilter={setCurrentFilter}
           currentFilter={currentFilter}

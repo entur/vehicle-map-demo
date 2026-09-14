@@ -1,28 +1,8 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { ControlPosition, IControl, useControl } from "react-map-gl/maplibre";
+import { ControlPosition, useControl } from "react-map-gl/maplibre";
 import { ViewDimension } from "../domain/viewDimension.ts";
-
-/**
- * An empty MapLibre control container. The button is rendered into it with a
- * portal so it stays an ordinary React component and sits in the control
- * stack with the zoom and geolocate buttons, styled like them.
- */
-class PortalControl implements IControl {
-  readonly container = document.createElement("div");
-
-  constructor() {
-    this.container.className = "maplibregl-ctrl maplibregl-ctrl-group";
-  }
-
-  onAdd() {
-    return this.container;
-  }
-
-  onRemove() {
-    this.container.remove();
-  }
-}
+import { PortalControl } from "./portalControl.ts";
 
 type Props = {
   dimension: ViewDimension;

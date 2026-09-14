@@ -45,3 +45,28 @@ export function terrainFor(
 export function cameraFor(dimension: ViewDimension): { pitch: number } {
   return { pitch: dimension === "3d" ? 55 : 0 };
 }
+
+/** Degrees one click of the 3D view's rotate buttons turns the map. */
+export const ROTATION_STEP = 45;
+
+export type RotationDirection = "clockwise" | "counterclockwise";
+
+/** Within this of a step, a bearing counts as on it; easing lands a hair off. */
+const STEP_TOLERANCE = 0.5;
+
+/**
+ * The bearing one rotate click turns to: the next multiple of `ROTATION_STEP`
+ * in the direction of turn, so repeated clicks settle on round headings even
+ * after a free drag. Normalised to MapLibre's (-180, 180].
+ */
+export function rotatedBearing(
+  bearing: number,
+  direction: RotationDirection,
+): number {
+  const steps =
+    direction === "clockwise"
+      ? Math.floor((bearing + STEP_TOLERANCE) / ROTATION_STEP) + 1
+      : Math.ceil((bearing - STEP_TOLERANCE) / ROTATION_STEP) - 1;
+  const normalised = (((steps * ROTATION_STEP) % 360) + 360) % 360;
+  return normalised > 180 ? normalised - 360 : normalised;
+}
