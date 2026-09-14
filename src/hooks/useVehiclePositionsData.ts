@@ -32,6 +32,7 @@ const subscriptionQuery = `
         date
       }
       occupancyStatus
+      bearing
     }
   }
 `;

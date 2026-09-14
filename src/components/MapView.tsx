@@ -14,6 +14,7 @@ import { RightMenu } from "./RightMenu";
 import { LeftMenu } from "./LeftMenu";
 import { VehicleData } from "../hooks/useVehiclePositionsData.ts";
 import { VehicleTraces } from "./Vehicle/VehicleTraces.tsx";
+import { VehicleModels } from "./Vehicle/VehicleModels.tsx";
 import { VehiclePopup } from "./Vehicle/VehiclePopup.tsx";
 import { useFollowedVehicle } from "../hooks/useFollowedVehicle"; // adjust path as needed
 import { SelectedVehiclePanel } from "./SelectedVehiclePanel";
@@ -121,6 +122,12 @@ export function MapView({
                 followedVehicle ? followedVehicle.properties.id : null
               }
             />
+            {mapViewOptions.showVehicles && (
+              <VehicleModels
+                data={data.map((vehicle) => vehicle.vehicleUpdate)}
+                viewDimension={viewDimension}
+              />
+            )}
             {mapViewOptions.showVehicleTraces && <VehicleTraces data={data} />}
             <RouteLayer
               serviceJourneyId={

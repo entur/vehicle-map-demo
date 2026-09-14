@@ -37,6 +37,9 @@ export type VehicleUpdate = {
   serviceJourney: ServiceJourney;
   lastUpdated: string;
   occupancyStatus: OccupancyStatus;
+  /** Degrees clockwise from north. Measured on dev, some producers send
+   * negative values and some send nothing — see vehicleFootprint.ts. */
+  bearing: number | null;
 };
 
 export type ServiceJourney = {

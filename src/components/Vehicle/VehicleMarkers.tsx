@@ -2,7 +2,14 @@ import { useEffect } from "react";
 import { useMap } from "react-map-gl/maplibre";
 import { VehicleModeEnumeration, VehicleUpdate } from "../../types.ts";
 import { GeoJSONSource } from "maplibre-gl";
-import type { Feature, Point } from "geojson";
+import type { Feature, Point, Polygon } from "geojson";
+import {
+  dimensionsFor,
+  vehicleFootprint,
+} from "../../domain/vehicleFootprint.ts";
+
+/** Layers a click can select a vehicle from: its icon and, zoomed in, its model. */
+const CLICKABLE_VEHICLE_LAYERS = ["vehicle-layer", "vehicle-model-layer"];
 
 type SelectedVehicleProperties = {
   id: string;
@@ -49,6 +56,30 @@ const createFeature = (
   };
 };
 
+/**
+ * The model carries the icon's properties plus the reported position, because
+ * a click on a polygon has no point geometry to anchor the popup to.
+ */
+const createModelFeature = (
+  point: Feature<Point, SelectedVehicleProperties>,
+  vehicle: VehicleUpdate,
+): Feature<
+  Polygon,
+  SelectedVehicleProperties & { height: number; lon: number; lat: number }
+> => {
+  const [lon, lat] = point.geometry.coordinates;
+  return {
+    type: "Feature",
+    geometry: vehicleFootprint([lon, lat], vehicle.bearing, vehicle.mode),
+    properties: {
+      ...point.properties,
+      height: dimensionsFor(vehicle.mode).height,
+      lon,
+      lat,
+    },
+  };
+};
+
 export function VehicleMarkers({
   data,
   setSelectedVehicle,
@@ -79,15 +110,25 @@ export function VehicleMarkers({
       type: "FeatureCollection",
       features,
     });
+    const modelSource = map.getSource("vehicleModels") as
+      GeoJSONSource | undefined;
+    modelSource?.setData({
+      type: "FeatureCollection",
+      features: features.map((feature, i) =>
+        createModelFeature(feature, data[i]),
+      ),
+    });
 
-    const clickSubscription = map.on("click", "vehicle-layer", (e) => {
+    const clickSubscription = map.on("click", CLICKABLE_VEHICLE_LAYERS, (e) => {
       const features = map.queryRenderedFeatures(e.point, {
-        layers: ["vehicle-layer"],
+        layers: CLICKABLE_VEHICLE_LAYERS,
       });
       if (features.length) {
         const feature = features[0];
-        const point = feature.geometry as Point;
-        const coordinates = point.coordinates.slice();
+        const coordinates =
+          feature.geometry.type === "Point"
+            ? feature.geometry.coordinates.slice()
+            : [feature.properties.lon, feature.properties.lat];
         setSelectedVehicle({
           coordinates,
           properties: feature.properties as SelectedVehicleProperties,
@@ -97,7 +138,7 @@ export function VehicleMarkers({
 
     const clearSelectionOnClick = map.on("click", (e) => {
       const features = map.queryRenderedFeatures(e.point, {
-        layers: ["vehicle-layer"],
+        layers: CLICKABLE_VEHICLE_LAYERS,
       });
       if (!features.length) {
         setSelectedVehicle(null);

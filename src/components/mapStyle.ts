@@ -21,6 +21,9 @@ const severityColourExpression: ExpressionSpecification = [
   SEVERITY_NOTABLE,
 ];
 
+/** Zoom at which vehicle icons start cross-fading into 3D models. */
+export const VEHICLE_MODEL_MIN_ZOOM = 16;
+
 /** Ring and casing colour for the selected situation's features. */
 const SITUATION_SELECTION_HALO = "#2f6fed";
 
@@ -86,6 +89,12 @@ export const mapStyle: StyleSpecification = {
       cluster: false,
       clusterMaxZoom: 14,
       clusterRadius: 5,
+    },
+    // Box-with-a-nose outlines, one per vehicle, extruded by
+    // vehicle-model-layer. Written alongside `vehicles` by VehicleMarkers.
+    vehicleModels: {
+      type: "geojson",
+      data: { type: "FeatureCollection", features: [] },
     },
     vehicleTraces: {
       type: "geojson",
@@ -293,6 +302,21 @@ export const mapStyle: StyleSpecification = {
         "line-blur": 0.5,
       },
     },
+    // Click target for the 3D vehicle models, which deck.gl draws (see
+    // VehicleModels). Never visible: at opacity 0 MapLibre skips drawing it but
+    // still hit-tests the extruded footprint, so a click on a model selects the
+    // vehicle through the same queryRenderedFeatures path as the icon.
+    {
+      id: "vehicle-model-layer",
+      type: "fill-extrusion",
+      source: "vehicleModels",
+      minzoom: VEHICLE_MODEL_MIN_ZOOM,
+      paint: {
+        "fill-extrusion-height": ["get", "height"],
+        "fill-extrusion-base": 0,
+        "fill-extrusion-opacity": 0,
+      },
+    },
     {
       id: "vehicle-layer",
       type: "symbol",
@@ -335,6 +359,15 @@ export const mapStyle: StyleSpecification = {
         "text-allow-overlap": true,
       },
       paint: {
+        "icon-opacity": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          VEHICLE_MODEL_MIN_ZOOM,
+          1,
+          VEHICLE_MODEL_MIN_ZOOM + 0.5,
+          0,
+        ],
         "text-color": "#000",
         "text-halo-color": "#FFF",
         "text-halo-width": 6,
