@@ -6,6 +6,7 @@ import {
   cameraFor,
   terrainFor,
 } from "../domain/viewDimension.ts";
+import { whenLayerExists } from "../utils/whenLayerExists.ts";
 
 /**
  * Turns terrain on or off, reveals the 3D-only base layers and tilts the
@@ -40,15 +41,9 @@ export function ViewDimensionLayers({
       }
     };
 
-    // Same style-loaded guard as ModeLayers, for the same reason.
-    if (map.isStyleLoaded()) {
-      apply();
-      return;
-    }
-    map.once("idle", apply);
-    return () => {
-      map.off("idle", apply);
-    };
+    // Only the style needs to be parsed; see whenLayerExists for why this is
+    // not map.isStyleLoaded().
+    return whenLayerExists(map, VIEW_3D_LAYERS[0], apply);
   }, [dimension, mapRef]);
 
   return null;

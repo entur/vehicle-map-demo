@@ -10,6 +10,7 @@ import {
   otherMode,
 } from "../domain/appMode.ts";
 import { MapViewOptions } from "../types.ts";
+import { whenLayerExists } from "../utils/whenLayerExists.ts";
 
 const EMPTY_FEATURE_COLLECTION = {
   type: "FeatureCollection" as const,
@@ -73,23 +74,12 @@ export function ModeLayers({
       }
     };
 
-    // getLayer/getSource return undefined until the style has loaded, and this
-    // effect can run first. Same hazard the vehicle and situation source
-    // writers already guard against. Unlike "load", "idle" fires every time
-    // the map settles after rendering rather than once per Map instance, so
-    // the fallback below can still fire on a later effect run even if an
-    // earlier run already consumed a "load"/"idle" event — isStyleLoaded()
-    // can go transiently false again well after the initial load.
-    if (map.isStyleLoaded()) {
-      apply();
-      return;
-    }
-    map.once("idle", apply);
-    // If the effect re-runs before "idle" fires, drop the pending handler —
-    // otherwise each run stacks another one and they all fire at once.
-    return () => {
-      map.off("idle", apply);
-    };
+    // getLayer/getSource return undefined until the style has been parsed,
+    // and this effect can run first. Wait for that and nothing more: an
+    // isStyleLoaded()/"idle" guard waits for every source to finish loading,
+    // which streaming vehicle frames can postpone indefinitely, dropping the
+    // mode switch. The cleanup cancels a pending run if the effect re-runs.
+    return whenLayerExists(map, MODE_LAYERS[mode][0], apply);
   }, [mode, mapRef, mapViewOptions]);
 
   return null;
