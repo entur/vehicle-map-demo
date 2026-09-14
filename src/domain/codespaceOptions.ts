@@ -3,22 +3,17 @@ import { NONE } from "./situationStats.ts";
 /** A codespace the dropdown can offer. `count` is null when none is known. */
 export type CodespaceOption = { value: string; count: number | null };
 
-/** Bare codespace ids as options, for a source that carries no counts. */
-export function withoutCounts(ids: string[]): CodespaceOption[] {
-  return ids.map((value) => ({ value, count: null }));
-}
-
 /**
  * The options for a codespace dropdown, given what the current mode's data
  * actually contains.
  *
- * The two modes draw from different sources and they do not agree. Vehicles use
- * the API's `codespaces` root, which on dev matches the vehicle feed exactly;
- * situations are published by a partly different set — measured on dev, seven
- * situation codespaces are absent from that root, including the two largest
- * publishers (RUT and NSB, together about three quarters of the feed), while
- * eleven of its entries carry no situations at all. Offering one list for both
- * makes most of the situations feed unreachable and most of the options empty.
+ * Each mode's list is a tally of its own feed, because no catalogue matches
+ * either. The two feeds are published by partly different sets of codespaces —
+ * RUT and NSB, together about three quarters of the situations feed, publish no
+ * vehicles on dev — and the API's `codespaces` root lists every codespace in
+ * the planned data, most of which publish neither, while still missing some
+ * that publish vehicles. Offering a list that is not the feed's own makes part
+ * of the feed unreachable and fills the rest with empty options.
  *
  * Two rules beyond "list what the mode has":
  *
