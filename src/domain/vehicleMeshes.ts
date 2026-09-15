@@ -337,6 +337,48 @@ class MeshBuilder {
     }
   }
 
+  /** A bar of square section `size` from a to b, at any angle. */
+  beam(a: Vec3, b: Vec3, size: number, colour: RGB) {
+    const d = sub(b, a);
+    const length = Math.hypot(...d);
+    if (length < 1e-9) return;
+    const dir: Vec3 = [d[0] / length, d[1] / length, d[2] / length];
+    const cross = (p: Vec3, q: Vec3): Vec3 => [
+      p[1] * q[2] - p[2] * q[1],
+      p[2] * q[0] - p[0] * q[2],
+      p[0] * q[1] - p[1] * q[0],
+    ];
+    const reference: Vec3 = Math.abs(dir[2]) < 0.9 ? [0, 0, 1] : [1, 0, 0];
+    const c = cross(dir, reference);
+    const cl = Math.hypot(...c);
+    const u: Vec3 = [c[0] / cl, c[1] / cl, c[2] / cl];
+    const v = cross(dir, u);
+    const h = size / 2;
+    const ring = (p: Vec3): Vec3[] =>
+      [
+        [1, 1],
+        [-1, 1],
+        [-1, -1],
+        [1, -1],
+      ].map(([s, t]): Vec3 => [
+        p[0] + (u[0] * s + v[0] * t) * h,
+        p[1] + (u[1] * s + v[1] * t) * h,
+        p[2] + (u[2] * s + v[2] * t) * h,
+      ]);
+    const inside: Vec3 = [
+      (a[0] + b[0]) / 2,
+      (a[1] + b[1]) / 2,
+      (a[2] + b[2]) / 2,
+    ];
+    const [ra, rb] = [ring(a), ring(b)];
+    for (let i = 0; i < 4; i++) {
+      const j = (i + 1) % 4;
+      this.quad(ra[i], ra[j], rb[j], rb[i], colour, inside);
+    }
+    this.quad(ra[0], ra[1], ra[2], ra[3], colour, inside);
+    this.quad(rb[0], rb[1], rb[2], rb[3], colour, inside);
+  }
+
   /** A wheel on an axle along x, touching the ground, with a grey hub. */
   wheel(cx: number, cy: number, radius: number, width: number, segments = 12) {
     const centre: Vec3 = [cx, cy, radius];
@@ -946,6 +988,272 @@ type RailVehicleSpec = {
   pantographOnCar?: number;
 };
 
+/**
+ * An articulated electric multiple unit of the kind most Norwegian regional
+ * and local trains are: cars on shared (Jacobs) bogies at each joint, a cab at
+ * both ends whose nose narrows and whose roof slopes down into a wrapped
+ * windscreen, sliding doors on both sides, underfloor equipment, roof units
+ * and a diamond pantograph. The front cab shows headlights and the rear cab
+ * tail lights, so heading reads from either end.
+ */
+function train(L: number, W: number, H: number): VehicleModel {
+  const m = new MeshBuilder();
+  const { dark, glass, hub, headlight, taillight, roofUnit, doorFrame } =
+    MESH_COLOURS;
+  const half = W / 2;
+  const cars = 4;
+  const gap = 0.5;
+  const carLength = (L - gap * (cars - 1)) / cars;
+  const bottom = 0.9;
+  const skirtTop = 1.15;
+  const windscreenBottom = 1.9;
+  const windowBottom = 1.95;
+  const windowTop = 3.0;
+  const roofTop = H - 0.75;
+  const roofRadius = 0.4;
+  const noseLength = 3;
+  const noseInset = 0.55;
+  /** Height kept above the windscreen's foot at the very tip, as a fraction. */
+  const tipScale = 0.4;
+  const tipTop = windscreenBottom + (roofTop - windscreenBottom) * tipScale;
+  const cab = noseLength + 1.4;
+
+  // A cross-section `theta` of the way along a nose (0 where it starts): the
+  // plan narrows and everything above the windscreen's foot is lowered, both
+  // along a quarter circle.
+  const section = (theta: number): HalfPoint[] => {
+    const inset = noseInset * (1 - Math.cos(theta));
+    const scale = 1 - (1 - tipScale) * (1 - Math.cos(theta));
+    const lower = (z: number) =>
+      z <= windscreenBottom
+        ? z
+        : windscreenBottom + (z - windscreenBottom) * scale;
+    const points: [number, number][] = [
+      bottom,
+      skirtTop,
+      windscreenBottom,
+      windowBottom,
+      windowTop,
+    ].map((z) => [half, z]);
+    for (let i = 0; i <= 4; i++) {
+      const phi = (i / 4) * (Math.PI / 2);
+      points.push([
+        half - roofRadius + roofRadius * Math.cos(phi),
+        roofTop - roofRadius + roofRadius * Math.sin(phi),
+      ]);
+    }
+    points.push([0, roofTop]);
+    return points.map(([x, z]) => [x === 0 ? 0 : x - inset, lower(z)]);
+  };
+  const angles = [0, 1, 2, 3, 4, 5].map((i) => (i / 5) * (Math.PI / 2));
+  const rect = (
+    y: number,
+    length: number,
+    z0: number,
+    z1: number,
+  ): [number, number][] => [
+    [y - length / 2, z0],
+    [y + length / 2, z0],
+    [y + length / 2, z1],
+    [y - length / 2, z1],
+  ];
+
+  const doors: { y: number; width: number }[] = [];
+  for (let car = 0; car < cars; car++) {
+    const y0 = -L / 2 + car * (carLength + gap);
+    const y1 = y0 + carLength;
+    const cy = (y0 + y1) / 2;
+    const rearCab = car === 0;
+    const frontCab = car === cars - 1;
+
+    const stations = [
+      ...(rearCab
+        ? [...angles].reverse().map((theta) => ({
+            y: y0 + noseLength - noseLength * Math.sin(theta),
+            half: section(theta),
+          }))
+        : [{ y: y0, half: section(0) }]),
+      ...(frontCab
+        ? angles.map((theta) => ({
+            y: y1 - noseLength + noseLength * Math.sin(theta),
+            half: section(theta),
+          }))
+        : [{ y: y1, half: section(0) }]),
+    ];
+    m.hull(
+      stations,
+      (y, z) => {
+        if (z < skirtTop) return dark;
+        const fromEnd = L / 2 - Math.abs(y);
+        if (fromEnd < noseLength) {
+          // The windscreen: all of the nose's upper half, and the upper
+          // nose's shoulders below the roof crown further back.
+          const along = 1 - fromEnd / noseLength;
+          if (z > windscreenBottom && (along > 0.5 || z < roofTop - 0.35)) {
+            return glass;
+          }
+          if (along > 0.5) return PAINT;
+        } else if (Math.abs(Math.abs(y - cy) - carLength / 2) < 1e-6) {
+          // The inner end faces, mostly hidden by the gangway.
+          return PAINT;
+        }
+        return z > windowBottom && z < windowTop ? glass : PAINT;
+      },
+      dark,
+    );
+
+    // Passenger doors, measured from the tip in a cab car.
+    if (rearCab || frontCab) {
+      const end = frontCab ? 1 : -1;
+      for (const fromTip of [9.5, 15]) {
+        doors.push({ y: end * (L / 2 - fromTip), width: 1.3 });
+      }
+      doors.push({ y: end * (L / 2 - (noseLength + 0.9)), width: 0.7 });
+    } else {
+      for (const offset of [-1, 1]) {
+        doors.push({ y: cy + offset * carLength * 0.25, width: 1.3 });
+      }
+    }
+
+    // Underfloor equipment and a roof unit; the pantograph car's unit moves
+    // aside for it.
+    m.box(
+      0,
+      rearCab ? cy + 1 : frontCab ? cy - 1 : cy,
+      bottom - 0.45,
+      W * 0.72,
+      carLength * (rearCab || frontCab ? 0.4 : 0.5),
+      0.45,
+      dark,
+    );
+    m.box(0, car === 1 ? cy + 4.5 : cy, roofTop, 1.5, 3.2, 0.28, roofUnit);
+
+    // Gangway bellows to the next car, over the shared bogie.
+    if (car < cars - 1) {
+      m.box(
+        0,
+        y1 + gap / 2,
+        bottom + 0.1,
+        W * 0.85,
+        gap + 0.1,
+        roofTop - 0.15 - (bottom + 0.1),
+        dark,
+      );
+    }
+
+    // Window pillars, clear of the cabs and the doors.
+    const pillars = Math.round((carLength - 0.8) / 2.3);
+    for (let i = 0; i <= pillars; i++) {
+      const y = y0 + 0.4 + (i * (carLength - 0.8)) / pillars;
+      if (L / 2 - Math.abs(y) < cab) continue;
+      if (doors.some((door) => Math.abs(y - door.y) < door.width / 2 + 0.15)) {
+        continue;
+      }
+      for (const side of [-1, 1]) {
+        m.sidePanel(
+          side * (half + 0.004),
+          rect(y, 0.14, windowBottom, windowTop),
+          PAINT,
+        );
+      }
+    }
+  }
+
+  // Doors: a light panel, glazed above, split down the middle when double.
+  for (const { y, width } of doors) {
+    for (const side of [-1, 1]) {
+      const x = side * half;
+      m.sidePanel(
+        x + side * 0.006,
+        rect(y, width, bottom + 0.05, windowTop + 0.05),
+        doorFrame,
+      );
+      if (width > 1) {
+        for (const leaf of [-1, 1]) {
+          m.sidePanel(
+            x + side * 0.01,
+            rect(
+              y + (leaf * width) / 4,
+              width / 2 - 0.16,
+              1.55,
+              windowTop - 0.12,
+            ),
+            glass,
+          );
+        }
+        m.sidePanel(
+          x + side * 0.012,
+          rect(y, 0.03, bottom + 0.05, windowTop + 0.05),
+          dark,
+        );
+      } else {
+        m.sidePanel(
+          x + side * 0.01,
+          rect(y, width - 0.2, windowBottom, windowTop - 0.12),
+          glass,
+        );
+      }
+    }
+  }
+
+  // Bogies: one under each cab, and one shared at every joint.
+  const bogies = [-L / 2 + 3.4, L / 2 - 3.4];
+  for (let car = 0; car < cars - 1; car++) {
+    bogies.push(-L / 2 + car * (carLength + gap) + carLength + gap / 2);
+  }
+  for (const y of bogies) {
+    m.box(0, y, 0.62, 1.8, 0.5, 0.2, dark);
+    for (const side of [-1, 1]) {
+      m.box(side * 0.98, y, 0.32, 0.14, 3.4, 0.4, dark);
+      for (const axle of [-1.35, 1.35]) {
+        m.wheel(side * 0.75, y + axle, 0.43, 0.14, 12);
+        m.box(side * 1.08, y + axle, 0.3, 0.1, 0.35, 0.26, hub);
+      }
+    }
+  }
+
+  // Each end: lamps in an A (head at the front, tail at the rear), a
+  // coupler, an obstacle deflector, and destination signs on the end and
+  // on both sides of the cab car.
+  for (const end of [-1, 1]) {
+    const lamp = end === 1 ? headlight : taillight;
+    const face = end * (L / 2 + 0.015);
+    for (const side of [-1, 1]) {
+      m.box(side * 0.68, face, 1.28, 0.42, 0.03, 0.2, lamp);
+      m.box(
+        side * (half + 0.01),
+        end * (L / 2 - 6.2),
+        windowTop - 0.35,
+        0.02,
+        2,
+        0.3,
+        SIGN,
+      );
+    }
+    m.box(0, face, 1.62, 0.3, 0.03, 0.14, lamp);
+    m.box(0, end * (L / 2 + 0.175), 0.85, 0.35, 0.35, 0.3, dark);
+    m.box(0, end * (L / 2 - 0.55), 0.4, 1.9, 0.5, 0.5, dark);
+    m.box(0, face, tipTop - 0.32, 1.2, 0.03, 0.25, SIGN);
+  }
+
+  // A diamond pantograph on the second car, standing on two insulators.
+  const py = -L / 2 + (carLength + gap) + carLength / 2 - 2;
+  for (const dy of [-0.5, 0.5]) {
+    m.box(0, py + dy, roofTop, 0.22, 0.22, 0.2, MESH_COLOURS.hatch);
+  }
+  m.box(0, py, roofTop + 0.2, 0.9, 1.3, 0.06, dark);
+  const base = roofTop + 0.26;
+  const head = H - 0.07;
+  const knee: [number, number] = [py + 0.7, (base + head) / 2];
+  for (const x of [-0.28, 0.28]) {
+    m.beam([x, py - 0.6, base], [x, knee[0], knee[1]], 0.08, dark);
+    m.beam([x, knee[0], knee[1]], [x, py - 0.3, head - 0.03], 0.06, dark);
+  }
+  m.box(0, py - 0.3, head, 1.8, 0.14, 0.07, hub);
+
+  return m.build();
+}
+
 /** Cars of equal length separated by dark gangways, on bogies. */
 function railVehicle(spec: RailVehicleSpec): VehicleModel {
   const { length: L, width: W, height: H, cars } = spec;
@@ -1150,16 +1458,7 @@ function buildModelFor(mode: VehicleModeEnumeration): VehicleModel {
         windowTop: 2.85,
       });
     case "RAIL":
-      return railVehicle({
-        cars: 4,
-        length,
-        width,
-        height,
-        floor: 1.1,
-        windowBottom: 1.95,
-        windowTop: 3.0,
-        pantographOnCar: 1,
-      });
+      return train(length, width, height);
     case "FERRY":
       return ferry(length, width, height);
     default:
