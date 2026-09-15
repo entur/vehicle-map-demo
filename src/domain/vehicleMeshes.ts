@@ -436,110 +436,6 @@ class MeshBuilder {
   }
 }
 
-type RoadVehicleSpec = {
-  length: number;
-  width: number;
-  height: number;
-  windowBottom: number;
-  windowTop: number;
-  /** Axle positions along y, measured from the vehicle's centre. */
-  axles: number[];
-};
-
-function roadVehicle(spec: RoadVehicleSpec): VehicleModel {
-  const { length: L, width: W, height: H } = spec;
-  const body = PAINT;
-  const m = new MeshBuilder();
-  const wheelRadius = 0.5;
-  const roofTop = H - 0.15;
-
-  m.box(0, 0, 0.3, W * 0.96, L * 0.98, 0.3, MESH_COLOURS.dark);
-  m.box(0, 0, 0.6, W, L, spec.windowBottom - 0.6, body);
-  m.box(
-    0,
-    0,
-    spec.windowBottom,
-    W * 0.985,
-    L * 0.995,
-    spec.windowTop - spec.windowBottom,
-    MESH_COLOURS.glass,
-  );
-  m.box(0, 0, spec.windowTop, W, L, roofTop - spec.windowTop, body);
-  m.box(0, -L * 0.1, roofTop, W * 0.6, L * 0.25, 0.15, MESH_COLOURS.roofUnit);
-
-  // Window pillars, so the glass reads as windows rather than one band.
-  const pillarCount = Math.max(3, Math.round(L / 1.9));
-  for (let i = 0; i <= pillarCount; i++) {
-    const y = -L / 2 + 0.6 + (i * (L - 1.2)) / pillarCount;
-    for (const side of [-1, 1]) {
-      m.box(
-        (side * W) / 2,
-        y,
-        spec.windowBottom,
-        0.05,
-        0.14,
-        spec.windowTop - spec.windowBottom,
-        body,
-      );
-    }
-  }
-
-  // Front: windscreen, headlights. Rear: tail lights. Destination signs above
-  // the windscreen, above the rear window, and at the top of the glass behind
-  // the front door on each side — so one is in view from any angle.
-  m.box(0, L / 2, 0.9, W * 0.9, 0.04, spec.windowTop - 0.9, MESH_COLOURS.glass);
-  for (const end of [-1, 1]) {
-    m.box(
-      0,
-      end * (L / 2 + 0.03),
-      spec.windowTop + 0.05,
-      W * 0.7,
-      0.03,
-      0.25,
-      SIGN,
-    );
-  }
-  for (const side of [-1, 1]) {
-    // Flush with the body panels; the glass it sits on is inset behind them.
-    m.box(
-      side * (W / 2 - 0.01),
-      L / 2 - 1.8,
-      spec.windowTop - 0.35,
-      0.02,
-      Math.min(1.6, L * 0.2),
-      0.3,
-      SIGN,
-    );
-  }
-  for (const side of [-1, 1]) {
-    m.box(
-      side * W * 0.35,
-      L / 2 + 0.03,
-      0.7,
-      0.35,
-      0.03,
-      0.15,
-      MESH_COLOURS.headlight,
-    );
-    m.box(
-      side * W * 0.4,
-      -L / 2 - 0.03,
-      0.9,
-      0.2,
-      0.03,
-      0.35,
-      MESH_COLOURS.taillight,
-    );
-  }
-
-  for (const y of spec.axles) {
-    for (const side of [-1, 1]) {
-      m.wheel(side * (W / 2 - 0.16), y, wheelRadius, 0.3);
-    }
-  }
-  return m.build();
-}
-
 type BusSpec = {
   length: number;
   width: number;
@@ -567,6 +463,14 @@ type BusSpec = {
   /** The spacing the window pillars aim for. */
   windowPitch: number;
   sideSignY: number;
+  wheelRadius: number;
+  archRadius: number;
+  /**
+   * Mirrors on arms reaching forward past the windscreen, as buses and
+   * coaches carry. A van's door mirrors would stand further out than the
+   * nominal width allows, so it has none.
+   */
+  rabbitEarMirrors: boolean;
 };
 
 /**
@@ -589,8 +493,7 @@ function busBody(spec: BusSpec): {
   const { dark, glass } = MESH_COLOURS;
   const { length: L, width: W, bottom, skirtTop, windowTop, corner } = spec;
   const half = W / 2;
-  const wheelRadius = 0.5;
-  const archRadius = 0.62;
+  const { wheelRadius, archRadius } = spec;
 
   const frontY = (z: number) =>
     L / 2 -
@@ -737,7 +640,7 @@ function busBody(spec: BusSpec): {
   }
 
   // Window pillars along the straight sides, skipping the doors — and any
-  // that would stand in the air ahead of a raked windscreen’s top.
+  // that would stand in the air ahead of a raked windscreen's top.
   const span = L - 2 * corner;
   const pillars = Math.round(span / spec.windowPitch);
   for (let i = 0; i <= pillars; i++) {
@@ -786,6 +689,7 @@ function busBody(spec: BusSpec): {
   for (const side of [-1, 1]) {
     m.endPanel(1, side * 0.35, 0.6, wiper, wiper + 0.03, frontY, 0.012, dark);
 
+    if (!spec.rabbitEarMirrors) continue;
     const armStart = L / 2 - corner - spec.rake;
     const armEnd = L / 2 + 0.12;
     m.box(
@@ -849,6 +753,9 @@ function cityBus(L: number, W: number, H: number): VehicleModel {
     doorWidth: 1.2,
     windowPitch: 1.45,
     sideSignY: axles[0] - 0.1,
+    wheelRadius: 0.5,
+    archRadius: 0.62,
+    rabbitEarMirrors: true,
   });
 
   for (const side of [-1, 1]) {
@@ -914,6 +821,9 @@ function coach(L: number, W: number, H: number): VehicleModel {
     doorWidth: 1.0,
     windowPitch: 2.1,
     sideSignY: axles[0] - 0.5,
+    wheelRadius: 0.5,
+    archRadius: 0.62,
+    rabbitEarMirrors: true,
   });
 
   // Front: a grille with a badge between slim lamp clusters, all below the
@@ -979,6 +889,145 @@ function coach(L: number, W: number, H: number): VehicleModel {
   for (const y of [L / 2 - 2.6, -L / 2 + 3]) {
     m.box(0, y, roofTop, 0.7, 0.7, 0.03, MESH_COLOURS.hatch);
   }
+
+  return m.build();
+}
+
+/**
+ * A high-roof minibus, the fallback for taxis and every mode without a model
+ * of its own. On-demand services published as taxis are mostly run with
+ * vehicles like this, and its nominal size is the fallback's. It has a short
+ * upright nose under a steeply raked windscreen, hinged cab doors, a sliding
+ * door on the kerb side, split rear doors with tall lamp clusters, and a lit
+ * roof sign in the sign colour.
+ */
+function van(L: number, W: number, H: number): VehicleModel {
+  const { headlight, taillight, indicator, dark, hub } = MESH_COLOURS;
+  const half = W / 2;
+  const bottom = 0.35;
+  const windowTop = 2.25;
+  const roofTop = H - 0.25;
+  const axles = [L / 2 - 1.05, -L / 2 + 2.25];
+  const { m, frontY } = busBody({
+    length: L,
+    width: W,
+    height: H,
+    bottom,
+    skirtTop: 0.5,
+    windscreenBottom: 1.15,
+    windowBottom: 1.35,
+    rearWindowBottom: 1.35,
+    windowTop,
+    roofTop,
+    roofRadius: 0.2,
+    corner: 0.3,
+    roofDrop: 0.15,
+    rake: 0.9,
+    axles,
+    doors: [],
+    doorWidth: 0,
+    windowPitch: 1.25,
+    sideSignY: -0.9,
+    wheelRadius: 0.36,
+    archRadius: 0.46,
+    rabbitEarMirrors: false,
+  });
+
+  // Door seams: thin dark outlines laid on the side, with a grey handle.
+  const seam = (x: number, y0: number, y1: number, z0: number, z1: number) => {
+    const t = 0.02;
+    const panel = (ya: number, yb: number, za: number, zb: number) =>
+      m.sidePanel(
+        x,
+        [
+          [ya, za],
+          [yb, za],
+          [yb, zb],
+          [ya, zb],
+        ],
+        dark,
+      );
+    panel(y0, y1, z0, z0 + t);
+    panel(y0, y1, z1 - t, z1);
+    panel(y0, y0 + t, z0, z1);
+    panel(y1 - t, y1, z0, z1);
+  };
+  const cabDoor = { back: axles[0] - 1.25, front: axles[0] - 0.05 };
+  const slidingDoor = { back: -0.3, front: cabDoor.back - 0.35 };
+  const doorTop = windowTop + 0.1;
+  for (const side of [-1, 1]) {
+    const x = side * (half + 0.004);
+    seam(x, cabDoor.back, cabDoor.front, 0.55, doorTop);
+    m.box(
+      side * (half + 0.01),
+      cabDoor.back + 0.2,
+      1.05,
+      0.02,
+      0.18,
+      0.05,
+      hub,
+    );
+  }
+  seam(
+    half + 0.004,
+    slidingDoor.back,
+    slidingDoor.front,
+    bottom + 0.05,
+    doorTop,
+  );
+  m.box(half + 0.01, slidingDoor.front - 0.15, 1.05, 0.02, 0.18, 0.05, hub);
+  // The sliding door's track, running back below the rear side windows.
+  m.sidePanel(
+    half + 0.004,
+    [
+      [-L / 2 + 0.5, 1.28],
+      [slidingDoor.back, 1.28],
+      [slidingDoor.back, 1.31],
+      [-L / 2 + 0.5, 1.31],
+    ],
+    dark,
+  );
+
+  // Front: a grille with a badge between the headlights, on the upright
+  // nose below the windscreen.
+  const front = frontY(0) + 0.015;
+  m.box(0, front, 0.72, 0.8, 0.03, 0.3, dark);
+  m.box(0, front + 0.01, 0.82, 0.14, 0.03, 0.1, hub);
+  for (const side of [-1, 1]) {
+    m.box(side * 0.66, front, 0.82, 0.34, 0.03, 0.2, headlight);
+    m.box(side * 0.89, front, 0.82, 0.1, 0.03, 0.2, indicator);
+  }
+
+  // Rear: split doors with a centre seam, and tall lamp clusters.
+  m.endPanel(
+    -1,
+    0,
+    0.03,
+    bottom + 0.1,
+    windowTop + 0.3,
+    () => -L / 2,
+    0.01,
+    dark,
+  );
+  for (const side of [-1, 1]) {
+    m.box(side * 0.82, -L / 2 - 0.015, 0.75, 0.16, 0.03, 0.6, taillight);
+    m.box(side * 0.82, -L / 2 - 0.015, 1.37, 0.16, 0.03, 0.12, indicator);
+  }
+
+  // The roof sign, lit in the sign colour like the destination signs.
+  m.prism(
+    [
+      [-0.4, axles[0] - 1.6],
+      [0.4, axles[0] - 1.6],
+      [0.4, axles[0] - 1.25],
+      [-0.4, axles[0] - 1.25],
+    ],
+    roofTop,
+    H,
+    SIGN,
+    SIGN,
+    1.15,
+  );
 
   return m.build();
 }
@@ -1770,14 +1819,7 @@ function buildModelFor(mode: VehicleModeEnumeration): VehicleModel {
     case "FERRY":
       return ferry(length, width, height);
     default:
-      return roadVehicle({
-        length,
-        width,
-        height,
-        windowBottom: 1.2,
-        windowTop: 2.2,
-        axles: [length / 2 - 1.6, -length / 2 + 1.6],
-      });
+      return van(length, width, height);
   }
 }
 
