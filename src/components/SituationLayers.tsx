@@ -1,3 +1,4 @@
+import type { AllPaintProperties } from "@maplibre/maplibre-gl-style-spec";
 import type { FeatureCollection } from "geojson";
 import { GeoJSONSource, LngLatBounds } from "maplibre-gl";
 import { useEffect, useMemo, useState } from "react";
@@ -202,7 +203,8 @@ export function SituationLayers({ visible }: { visible: boolean }) {
         for (const [property, full] of Object.entries(paint)) {
           map.setPaintProperty(
             id,
-            property,
+            // `Object.entries` widens the key to `string`.
+            property as keyof AllPaintProperties,
             dimmedUnlessSelected(selection, full, full * DIMMED_FACTOR),
           );
         }

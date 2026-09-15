@@ -53,7 +53,7 @@ export function RouteLayer({ serviceJourneyId, cancelled }: RouteLayerProps) {
     map.setPaintProperty(
       "service-journey-route-layer",
       "line-dasharray",
-      cancelled ? [2, 2] : null,
+      cancelled ? [2, 2] : undefined,
     );
   }, [cancelled, mapRef]);
 
