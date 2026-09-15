@@ -22,6 +22,10 @@ const subscriptionQuery = `
         lineRef
         lineName
         publicCode
+        presentation {
+          colour
+          textColour
+        }
       }
       location {
         latitude
@@ -32,6 +36,7 @@ const subscriptionQuery = `
         date
       }
       occupancyStatus
+      bearing
     }
   }
 `;

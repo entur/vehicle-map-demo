@@ -6,6 +6,8 @@ import { ThemeProvider } from "@mui/material";
 import { theme } from "./theme.ts";
 import { useFilterQueryParams } from "../hooks/useFilterQueryParams.ts";
 import { useModeQueryParam } from "../hooks/useModeQueryParam.ts";
+import { useViewDimensionQueryParam } from "../hooks/useViewDimensionQueryParam.ts";
+import { ViewDimension } from "../domain/viewDimension.ts";
 import { SituationsProvider } from "../situations/SituationsProvider.tsx";
 import {
   AppMode,
@@ -16,6 +18,7 @@ import {
 function App() {
   const [currentFilter, setCurrentFilter] = useState<Filter | null>(null);
   const [mode, setMode] = useState<AppMode>("vehicles");
+  const [viewDimension, setViewDimension] = useState<ViewDimension>("2d");
   const [mapViewOptions, setMapViewOptions] = useState<MapViewOptions>({
     showVehicleTraces: false,
     showVehicles: true,
@@ -34,6 +37,7 @@ function App() {
   );
   useFilterQueryParams(currentFilter, setCurrentFilter);
   useModeQueryParam(mode, setMode);
+  useViewDimensionQueryParam(viewDimension, setViewDimension);
 
   return (
     <div style={{ width: "100vw", height: "100vh" }}>
@@ -45,6 +49,8 @@ function App() {
           <MapView
             mode={mode}
             setMode={setMode}
+            viewDimension={viewDimension}
+            setViewDimension={setViewDimension}
             data={data}
             setCurrentFilter={setCurrentFilter}
             currentFilter={currentFilter}

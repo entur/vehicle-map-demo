@@ -8,10 +8,21 @@ export type Filter = {
   maxDataAge?: number;
 };
 
+export type LinePresentation = {
+  /** Six hex digits without '#', e.g. "76A300"; null when none is published. */
+  colour: string | null;
+  textColour: string | null;
+};
+
 export type Line = {
   lineRef: string;
   lineName: string;
   publicCode: string;
+  /**
+   * Only the live vehicle subscription selects this; other queries leave it
+   * undefined. Null when the line publishes no presentation.
+   */
+  presentation?: LinePresentation | null;
 };
 
 export type Codespace = {
@@ -37,6 +48,9 @@ export type VehicleUpdate = {
   serviceJourney: ServiceJourney;
   lastUpdated: string;
   occupancyStatus: OccupancyStatus;
+  /** Degrees clockwise from north. Measured on dev, some producers send
+   * negative values and some send nothing — see vehicleFootprint.ts. */
+  bearing: number | null;
 };
 
 export type ServiceJourney = {

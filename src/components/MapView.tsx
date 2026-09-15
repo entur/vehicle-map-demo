@@ -14,6 +14,7 @@ import { RightMenu } from "./RightMenu";
 import { LeftMenu } from "./LeftMenu";
 import { VehicleData } from "../hooks/useVehiclePositionsData.ts";
 import { VehicleTraces } from "./Vehicle/VehicleTraces.tsx";
+import { VehicleModels } from "./Vehicle/VehicleModels.tsx";
 import { VehiclePopup } from "./Vehicle/VehiclePopup.tsx";
 import { useFollowedVehicle } from "../hooks/useFollowedVehicle"; // adjust path as needed
 import { SelectedVehiclePanel } from "./SelectedVehiclePanel";
@@ -22,10 +23,16 @@ import { SituationLayers } from "./SituationLayers.tsx";
 import { SituationDetailPanel } from "./SituationsPanel/SituationDetailPanel.tsx";
 import { AppMode } from "../domain/appMode.ts";
 import { ModeLayers } from "./ModeLayers.tsx";
+import { ViewDimension } from "../domain/viewDimension.ts";
+import { RotateControl } from "./RotateControl.tsx";
+import { ViewDimensionControl } from "./ViewDimensionControl.tsx";
+import { ViewDimensionLayers } from "./ViewDimensionLayers.tsx";
 
 type MapViewProps = {
   mode: AppMode;
   setMode: (mode: AppMode) => void;
+  viewDimension: ViewDimension;
+  setViewDimension: (viewDimension: ViewDimension) => void;
   data: VehicleData[];
   setCurrentFilter: React.Dispatch<React.SetStateAction<Filter | null>>;
   currentFilter: Filter | null;
@@ -36,6 +43,8 @@ type MapViewProps = {
 export function MapView({
   mode,
   setMode,
+  viewDimension,
+  setViewDimension,
   data,
   setCurrentFilter,
   currentFilter,
@@ -80,8 +89,15 @@ export function MapView({
       >
         <NavigationControl position="top-left" />
         <GeolocateControl position="top-left" />
+        <ViewDimensionControl
+          dimension={viewDimension}
+          setDimension={setViewDimension}
+        />
+        {viewDimension === "3d" && <RotateControl />}
+        <ViewDimensionLayers dimension={viewDimension} />
         <LeftMenu
           mode={mode}
+          viewDimension={viewDimension}
           data={data.map((vehicle) => vehicle.vehicleUpdate)}
           setCurrentFilter={setCurrentFilter}
           currentFilter={currentFilter}
@@ -109,6 +125,12 @@ export function MapView({
                 followedVehicle ? followedVehicle.properties.id : null
               }
             />
+            {mapViewOptions.showVehicles && (
+              <VehicleModels
+                data={data.map((vehicle) => vehicle.vehicleUpdate)}
+                viewDimension={viewDimension}
+              />
+            )}
             {mapViewOptions.showVehicleTraces && <VehicleTraces data={data} />}
             <RouteLayer
               serviceJourneyId={

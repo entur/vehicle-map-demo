@@ -21,6 +21,9 @@ const severityColourExpression: ExpressionSpecification = [
   SEVERITY_NOTABLE,
 ];
 
+/** Zoom at which vehicle icons start cross-fading into 3D models. */
+export const VEHICLE_MODEL_MIN_ZOOM = 16;
+
 /** Ring and casing colour for the selected situation's features. */
 const SITUATION_SELECTION_HALO = "#2f6fed";
 
@@ -41,6 +44,13 @@ export const SITUATION_LAYER_OPACITY = {
 export const mapStyle: StyleSpecification = {
   version: 8,
   glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
+  // Only visible once the camera is tilted far enough to see the horizon, so
+  // it has no effect on the flat 2D view.
+  sky: {
+    "sky-color": "#b9d7ee",
+    "horizon-color": "#eef3f6",
+    "sky-horizon-blend": 0.6,
+  },
   sources: {
     osm: {
       type: "raster",
@@ -49,12 +59,42 @@ export const mapStyle: StyleSpecification = {
       attribution: "&copy; OpenStreetMap Contributors",
       maxzoom: 19,
     },
+    // 3D view only (see src/domain/viewDimension.ts). Both keyless. Terrain and
+    // hillshade read the same tiles through two sources, because MapLibre
+    // warns that one raster-dem source serving both degrades its tile cache.
+    terrain: {
+      type: "raster-dem",
+      url: "https://tiles.mapterhorn.com/tilejson.json",
+      encoding: "terrarium",
+      tileSize: 512,
+      maxzoom: 15,
+    },
+    hillshade: {
+      type: "raster-dem",
+      url: "https://tiles.mapterhorn.com/tilejson.json",
+      encoding: "terrarium",
+      tileSize: 512,
+      maxzoom: 15,
+    },
+    // Vector tiles for building footprints and heights only; the base map
+    // stays the OSM raster so the 2D view is unchanged.
+    openfreemap: {
+      type: "vector",
+      url: "https://tiles.openfreemap.org/planet",
+      attribution: '&copy; <a href="https://openfreemap.org">OpenFreeMap</a>',
+    },
     vehicles: {
       type: "geojson",
       data: { type: "FeatureCollection", features: [] },
       cluster: false,
       clusterMaxZoom: 14,
       clusterRadius: 5,
+    },
+    // Box-with-a-nose outlines, one per vehicle, extruded by
+    // vehicle-model-layer. Written alongside `vehicles` by VehicleMarkers.
+    vehicleModels: {
+      type: "geojson",
+      data: { type: "FeatureCollection", features: [] },
     },
     vehicleTraces: {
       type: "geojson",
@@ -82,6 +122,48 @@ export const mapStyle: StyleSpecification = {
       paint: {
         "raster-saturation": 0.3,
         "raster-contrast": 0.1,
+      },
+    },
+    // The two 3D-only base layers sit directly on the raster, beneath every
+    // data layer, so buildings never cover a vehicle or a situation.
+    {
+      id: "hillshade-layer",
+      type: "hillshade",
+      source: "hillshade",
+      layout: { visibility: "none" },
+      paint: {
+        "hillshade-exaggeration": 0.3,
+        "hillshade-shadow-color": "#473b24",
+      },
+    },
+    {
+      id: "buildings-3d-layer",
+      type: "fill-extrusion",
+      source: "openfreemap",
+      "source-layer": "building",
+      minzoom: 14,
+      filter: ["!=", ["get", "hide_3d"], true],
+      layout: { visibility: "none" },
+      paint: {
+        "fill-extrusion-color": "#d6d0c8",
+        // OpenMapTiles estimates render_height from levels when no height is
+        // tagged; 8 m covers footprints with neither.
+        "fill-extrusion-height": [
+          "max",
+          3,
+          ["coalesce", ["get", "render_height"], 8],
+        ],
+        "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0],
+        "fill-extrusion-opacity": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          14,
+          0,
+          15,
+          0.85,
+        ],
+        "fill-extrusion-vertical-gradient": true,
       },
     },
     {
@@ -220,6 +302,21 @@ export const mapStyle: StyleSpecification = {
         "line-blur": 0.5,
       },
     },
+    // Click target for the 3D vehicle models, which deck.gl draws (see
+    // VehicleModels). Never visible: at opacity 0 MapLibre skips drawing it but
+    // still hit-tests the extruded footprint, so a click on a model selects the
+    // vehicle through the same queryRenderedFeatures path as the icon.
+    {
+      id: "vehicle-model-layer",
+      type: "fill-extrusion",
+      source: "vehicleModels",
+      minzoom: VEHICLE_MODEL_MIN_ZOOM,
+      paint: {
+        "fill-extrusion-height": ["get", "height"],
+        "fill-extrusion-base": 0,
+        "fill-extrusion-opacity": 0,
+      },
+    },
     {
       id: "vehicle-layer",
       type: "symbol",
@@ -262,8 +359,19 @@ export const mapStyle: StyleSpecification = {
         "text-allow-overlap": true,
       },
       paint: {
-        "text-color": "#000",
-        "text-halo-color": "#FFF",
+        "icon-opacity": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          VEHICLE_MODEL_MIN_ZOOM,
+          1,
+          VEHICLE_MODEL_MIN_ZOOM + 0.5,
+          0,
+        ],
+        // The line's published text and line colour, as a pair or not at all
+        // — see `labelColoursFor`.
+        "text-color": ["coalesce", ["get", "lineTextColour"], "#000"],
+        "text-halo-color": ["coalesce", ["get", "lineHaloColour"], "#FFF"],
         "text-halo-width": 6,
         "text-opacity": ["interpolate", ["linear"], ["zoom"], 13, 0, 13.01, 1],
       },

@@ -17,16 +17,15 @@ import {
   isWideTool,
   rightRailTools,
 } from "./appMode.ts";
-
-/** The base map belongs to no mode and is never hidden or cleared. */
-const BASE_LAYER = "osm";
-const BASE_SOURCE = "osm";
+// The base map belongs to no mode and is never hidden or cleared by a mode
+// switch; its 3D-only layers are governed by the view dimension instead.
+import { BASE_LAYERS, BASE_SOURCES } from "./viewDimension.ts";
 
 describe("MODE_LAYERS", () => {
   it("claims every non-base layer in the style exactly once", () => {
     const styleLayers = mapStyle.layers
       .map((layer) => layer.id)
-      .filter((id) => id !== BASE_LAYER);
+      .filter((id) => !BASE_LAYERS.includes(id));
     const claimed = APP_MODES.flatMap((mode) => MODE_LAYERS[mode]);
 
     expect([...claimed].sort()).toEqual([...styleLayers].sort());
@@ -45,7 +44,7 @@ describe("MODE_LAYERS", () => {
 describe("MODE_SOURCES", () => {
   it("claims every non-base source in the style exactly once", () => {
     const styleSources = Object.keys(mapStyle.sources).filter(
-      (id) => id !== BASE_SOURCE,
+      (id) => !BASE_SOURCES.includes(id),
     );
     const claimed = APP_MODES.flatMap((mode) => MODE_SOURCES[mode]);
 

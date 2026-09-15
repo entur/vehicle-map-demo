@@ -23,6 +23,7 @@ export const APP_MODES: AppMode[] = ["vehicles", "situations"];
 export const MODE_LAYERS: Record<AppMode, string[]> = {
   vehicles: [
     "vehicle-layer",
+    "vehicle-model-layer",
     "vehicle-trace-layer",
     "vehicle-follow-layer",
     "delay",
@@ -58,6 +59,8 @@ export const MODE_SWITCHED_LAYERS: Record<
 > = {
   vehicles: {
     "vehicle-layer": "showVehicles",
+    // Same switch: the model is the icon's zoomed-in form, not a separate layer.
+    "vehicle-model-layer": "showVehicles",
     "vehicle-trace-layer": "showVehicleTraces",
     delay: "showDelay",
     "vehicle-update-interval-icon-layer": "showUpdateFrequency",
@@ -123,7 +126,12 @@ export const MODE_DORMANT_LAYERS: Record<AppMode, string[]> = {
 
 /** GeoJSON sources a mode writes into — emptied when the mode is left. */
 export const MODE_SOURCES: Record<AppMode, string[]> = {
-  vehicles: ["vehicles", "vehicleTraces", "serviceJourneyRoute"],
+  vehicles: [
+    "vehicles",
+    "vehicleModels",
+    "vehicleTraces",
+    "serviceJourneyRoute",
+  ],
   situations: ["situationLines", "situationPoints"],
 };
 

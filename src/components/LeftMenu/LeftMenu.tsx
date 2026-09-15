@@ -4,9 +4,11 @@ import { LeftMenuButtons } from "./LeftMenuButtons.tsx";
 import { DrawerContent } from "./DrawerContent.tsx";
 import { LeftContentType } from "./types.ts";
 import { AppMode } from "../../domain/appMode.ts";
+import { ViewDimension } from "../../domain/viewDimension.ts";
 
 interface LeftMenuProps {
   mode: AppMode;
+  viewDimension: ViewDimension;
   setCurrentFilter: (filter: Filter) => void;
   currentFilter: Filter | null | undefined;
   mapViewOptions: MapViewOptions;
@@ -16,6 +18,7 @@ interface LeftMenuProps {
 
 export const LeftMenu = ({
   mode,
+  viewDimension,
   currentFilter,
   setCurrentFilter,
   mapViewOptions,
@@ -34,6 +37,7 @@ export const LeftMenu = ({
       <LeftMenuButtons
         activeContent={activeContent}
         setActiveContent={setActiveContent}
+        viewDimension={viewDimension}
       />
       <div className={`left-menu-container ${activeContent ? "open" : ""}`}>
         {activeContent && (
