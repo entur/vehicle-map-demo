@@ -1,0 +1,64 @@
+# publiccode.yml metadata, see https://yml.publiccode.tools/
+publiccodeYmlVersion: "0.7.0"
+
+name: Vehicle Map Demo
+url: https://github.com/entur/vehicle-map-demo
+
+platforms:
+  - web
+
+categories:
+  - data-visualization
+  - geographic-information-systems
+
+developmentStatus: beta
+softwareType: standalone/web
+
+organisation:
+  name: Entur AS
+  uri: https://entur.no
+
+usedBy:
+  - Norway (nationwide), Entur AS
+
+intendedAudience:
+  scope:
+    - transportation
+  countries:
+    - "NO"
+
+description:
+  en:
+    localisedName: Vehicle Map Demo
+    shortDescription: Demo web app that plots real-time vehicle positions from Entur on a map.
+    longDescription: >
+      Vehicle Map Demo is a small reference application that shows how to consume Entur's real-time vehicle
+      positions API. It opens a GraphQL subscription to live position updates for buses, trains, trams, ferries
+      and other vehicles in Norwegian public transport, draws them on an interactive map and moves the markers as
+      new data arrives. Vehicles can be filtered by codespace, operator, mode and data age, and selecting one
+      shows its details and route.
+      The application exists to document the API by example: developers who want to build on Entur's real-time
+      data can read a complete, working client rather than assembling one from the API reference alone. It is a
+      demonstrator, not a production service.
+    documentation: https://github.com/entur/vehicle-map-demo/blob/master/README.md
+    features:
+      - Live vehicle positions on an interactive map
+      - GraphQL subscription client for Entur's real-time vehicle positions API
+      - Filtering by codespace, operator, mode and data age
+      - Details and route for a selected vehicle
+      - Small, readable reference implementation
+
+legal:
+  license: EUPL-1.2
+  mainCopyrightOwner: Entur AS
+
+maintenance:
+  type: internal
+  contacts:
+    - name: Entur ROR (Open Data and Journey Planning)
+      email: kollektivdata@entur.org
+
+localisation:
+  localisationReady: false
+  availableLanguages:
+    - en
