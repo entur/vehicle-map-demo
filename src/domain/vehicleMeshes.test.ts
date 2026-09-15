@@ -125,6 +125,12 @@ describe("modelFor", () => {
         expect(z.min).toBeCloseTo(0, 5);
       });
 
+      // Every vehicle of a mode shares one instanced mesh, so detail is cheap —
+      // but not free. The budget keeps it from growing unnoticed.
+      it("stays within its triangle budget", () => {
+        expect(mesh.positions.value.length / 9).toBeLessThan(5000);
+      });
+
       it("is centred on the reported position", () => {
         const { x, y } = extent(mesh);
         expect(Math.abs(x.max + x.min)).toBeLessThan(0.05);
