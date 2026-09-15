@@ -977,50 +977,79 @@ function coach(L: number, W: number, H: number): VehicleModel {
   return m.build();
 }
 
-type RailVehicleSpec = {
-  cars: number;
+type Door = { y: number; width: number };
+
+type MultipleUnitSpec = {
   length: number;
   width: number;
   height: number;
-  floor: number;
+  cars: number;
+  /** The space between cars, bridged by a gangway. */
+  gap: number;
+  /** Underside of the hull; bogies and equipment reach below it. */
+  bottom: number;
+  skirtTop: number;
+  windscreenBottom: number;
   windowBottom: number;
   windowTop: number;
-  pantographOnCar?: number;
+  roofTop: number;
+  roofRadius: number;
+  noseLength: number;
+  /** How far the nose narrows on each side by the tip. */
+  noseInset: number;
+  /** Height kept above the windscreen's foot at the very tip, as a fraction. */
+  tipScale: number;
+  /** Doors for a car, given its centre; each is drawn on both sides. */
+  doorsFor: (car: number, cy: number, carLength: number) => Door[];
+  doorGlassBottom: number;
+  windowPitch: number;
+  bogies: (carLength: number) => number[];
+  wheelRadius: number;
+  /** Half the wheelbase of a bogie. */
+  axle: number;
+  frameBottom: number;
+  frameHeight: number;
+  underfloor: boolean;
+  roofUnitHeight: number;
+  /** Where the pantograph car's roof unit sits, from the car's centre. */
+  roofUnitOffset: number;
+  pantographCar?: number;
+  /** Third-rail collector shoes beside each bogie. */
+  shoes: boolean;
+  lampZ: number;
+  topLampZ?: number;
+  couplerZ?: number;
+  deflector: boolean;
+  sideSignFromTip: number;
+  sideSignLength: number;
 };
 
 /**
- * An articulated electric multiple unit of the kind most Norwegian regional
- * and local trains are: cars on shared (Jacobs) bogies at each joint, a cab at
- * both ends whose nose narrows and whose roof slopes down into a wrapped
- * windscreen, sliding doors on both sides, underfloor equipment, roof units
- * and a diamond pantograph. The front cab shows headlights and the rear cab
+ * A multiple unit with a cab at both ends — train, tram or metro. The nose
+ * narrows and its roof slopes down into a windscreen that wraps round the
+ * sides; cars are joined by gangways; doors, pillars and signs sit on both
+ * sides; and bogies, roof units and a pantograph or collector shoes are
+ * placed as the spec says. The front cab shows headlights and the rear cab
  * tail lights, so heading reads from either end.
  */
-function train(L: number, W: number, H: number): VehicleModel {
+function multipleUnit(spec: MultipleUnitSpec): VehicleModel {
   const m = new MeshBuilder();
   const { dark, glass, hub, headlight, taillight, roofUnit, doorFrame } =
     MESH_COLOURS;
+  const { length: L, width: W, height: H, cars, gap, bottom } = spec;
+  const { skirtTop, windscreenBottom, windowBottom, windowTop } = spec;
+  const { roofTop, roofRadius, noseLength, noseInset, tipScale } = spec;
   const half = W / 2;
-  const cars = 4;
-  const gap = 0.5;
   const carLength = (L - gap * (cars - 1)) / cars;
-  const bottom = 0.9;
-  const skirtTop = 1.15;
-  const windscreenBottom = 1.9;
-  const windowBottom = 1.95;
-  const windowTop = 3.0;
-  const roofTop = H - 0.75;
-  const roofRadius = 0.4;
-  const noseLength = 3;
-  const noseInset = 0.55;
-  /** Height kept above the windscreen's foot at the very tip, as a fraction. */
-  const tipScale = 0.4;
   const tipTop = windscreenBottom + (roofTop - windscreenBottom) * tipScale;
   const cab = noseLength + 1.4;
 
   // A cross-section `theta` of the way along a nose (0 where it starts): the
   // plan narrows and everything above the windscreen's foot is lowered, both
   // along a quarter circle.
+  const heights = [
+    ...new Set([bottom, skirtTop, windscreenBottom, windowBottom, windowTop]),
+  ].sort((a, b) => a - b);
   const section = (theta: number): HalfPoint[] => {
     const inset = noseInset * (1 - Math.cos(theta));
     const scale = 1 - (1 - tipScale) * (1 - Math.cos(theta));
@@ -1028,13 +1057,7 @@ function train(L: number, W: number, H: number): VehicleModel {
       z <= windscreenBottom
         ? z
         : windscreenBottom + (z - windscreenBottom) * scale;
-    const points: [number, number][] = [
-      bottom,
-      skirtTop,
-      windscreenBottom,
-      windowBottom,
-      windowTop,
-    ].map((z) => [half, z]);
+    const points: [number, number][] = heights.map((z) => [half, z]);
     for (let i = 0; i <= 4; i++) {
       const phi = (i / 4) * (Math.PI / 2);
       points.push([
@@ -1058,7 +1081,7 @@ function train(L: number, W: number, H: number): VehicleModel {
     [y - length / 2, z1],
   ];
 
-  const doors: { y: number; width: number }[] = [];
+  const doors: Door[] = [];
   for (let car = 0; car < cars; car++) {
     const y0 = -L / 2 + car * (carLength + gap);
     const y1 = y0 + carLength;
@@ -1102,33 +1125,32 @@ function train(L: number, W: number, H: number): VehicleModel {
       dark,
     );
 
-    // Passenger doors, measured from the tip in a cab car.
-    if (rearCab || frontCab) {
-      const end = frontCab ? 1 : -1;
-      for (const fromTip of [9.5, 15]) {
-        doors.push({ y: end * (L / 2 - fromTip), width: 1.3 });
-      }
-      doors.push({ y: end * (L / 2 - (noseLength + 0.9)), width: 0.7 });
-    } else {
-      for (const offset of [-1, 1]) {
-        doors.push({ y: cy + offset * carLength * 0.25, width: 1.3 });
-      }
-    }
+    doors.push(...spec.doorsFor(car, cy, carLength));
 
-    // Underfloor equipment and a roof unit; the pantograph car's unit moves
-    // aside for it.
+    // Underfloor equipment, and a roof unit that moves aside on the
+    // pantograph car.
+    if (spec.underfloor) {
+      m.box(
+        0,
+        rearCab ? cy + 1 : frontCab ? cy - 1 : cy,
+        bottom - 0.45,
+        W * 0.72,
+        carLength * (rearCab || frontCab ? 0.4 : 0.5),
+        0.45,
+        dark,
+      );
+    }
     m.box(
       0,
-      rearCab ? cy + 1 : frontCab ? cy - 1 : cy,
-      bottom - 0.45,
-      W * 0.72,
-      carLength * (rearCab || frontCab ? 0.4 : 0.5),
-      0.45,
-      dark,
+      car === spec.pantographCar ? cy + spec.roofUnitOffset : cy,
+      roofTop,
+      1.5,
+      3.2,
+      spec.roofUnitHeight,
+      roofUnit,
     );
-    m.box(0, car === 1 ? cy + 4.5 : cy, roofTop, 1.5, 3.2, 0.28, roofUnit);
 
-    // Gangway bellows to the next car, over the shared bogie.
+    // Gangway bellows to the next car.
     if (car < cars - 1) {
       m.box(
         0,
@@ -1142,7 +1164,7 @@ function train(L: number, W: number, H: number): VehicleModel {
     }
 
     // Window pillars, clear of the cabs and the doors.
-    const pillars = Math.round((carLength - 0.8) / 2.3);
+    const pillars = Math.round((carLength - 0.8) / spec.windowPitch);
     for (let i = 0; i <= pillars; i++) {
       const y = y0 + 0.4 + (i * (carLength - 0.8)) / pillars;
       if (L / 2 - Math.abs(y) < cab) continue;
@@ -1175,7 +1197,7 @@ function train(L: number, W: number, H: number): VehicleModel {
             rect(
               y + (leaf * width) / 4,
               width / 2 - 0.16,
-              1.55,
+              spec.doorGlassBottom,
               windowTop - 0.12,
             ),
             glass,
@@ -1196,202 +1218,260 @@ function train(L: number, W: number, H: number): VehicleModel {
     }
   }
 
-  // Bogies: one under each cab, and one shared at every joint.
-  const bogies = [-L / 2 + 3.4, L / 2 - 3.4];
-  for (let car = 0; car < cars - 1; car++) {
-    bogies.push(-L / 2 + car * (carLength + gap) + carLength + gap / 2);
-  }
-  for (const y of bogies) {
-    m.box(0, y, 0.62, 1.8, 0.5, 0.2, dark);
+  // Bogies: frames, wheels and axle boxes, with a bolster where the hull
+  // stands high enough to show one.
+  const { wheelRadius, axle, frameBottom, frameHeight } = spec;
+  for (const y of spec.bogies(carLength)) {
+    if (bottom - 0.28 > frameBottom) {
+      m.box(0, y, bottom - 0.28, 1.8, 0.5, 0.2, dark);
+    }
     for (const side of [-1, 1]) {
-      m.box(side * 0.98, y, 0.32, 0.14, 3.4, 0.4, dark);
-      for (const axle of [-1.35, 1.35]) {
-        m.wheel(side * 0.75, y + axle, 0.43, 0.14, 12);
-        m.box(side * 1.08, y + axle, 0.3, 0.1, 0.35, 0.26, hub);
+      m.box(
+        side * 0.98,
+        y,
+        frameBottom,
+        0.14,
+        2 * axle + 0.7,
+        frameHeight,
+        dark,
+      );
+      for (const offset of [-axle, axle]) {
+        m.wheel(side * 0.75, y + offset, wheelRadius, 0.14, 12);
+        m.box(
+          side * 1.08,
+          y + offset,
+          frameBottom - 0.02,
+          0.1,
+          0.35,
+          frameHeight - 0.14,
+          hub,
+        );
+      }
+      if (spec.shoes) {
+        m.box(side * 1.12, y, 0.14, 0.14, 0.6, frameBottom - 0.04, dark);
       }
     }
   }
 
-  // Each end: lamps in an A (head at the front, tail at the rear), a
-  // coupler, an obstacle deflector, and destination signs on the end and
-  // on both sides of the cab car.
+  // Each end: lamps (head at the front, tail at the rear), an optional
+  // coupler and obstacle deflector, and destination signs on the end and on
+  // both sides of the cab car.
   for (const end of [-1, 1]) {
     const lamp = end === 1 ? headlight : taillight;
     const face = end * (L / 2 + 0.015);
     for (const side of [-1, 1]) {
-      m.box(side * 0.68, face, 1.28, 0.42, 0.03, 0.2, lamp);
+      m.box(side * 0.68, face, spec.lampZ, 0.42, 0.03, 0.2, lamp);
       m.box(
         side * (half + 0.01),
-        end * (L / 2 - 6.2),
+        end * (L / 2 - spec.sideSignFromTip),
         windowTop - 0.35,
         0.02,
-        2,
+        spec.sideSignLength,
         0.3,
         SIGN,
       );
     }
-    m.box(0, face, 1.62, 0.3, 0.03, 0.14, lamp);
-    m.box(0, end * (L / 2 + 0.175), 0.85, 0.35, 0.35, 0.3, dark);
-    m.box(0, end * (L / 2 - 0.55), 0.4, 1.9, 0.5, 0.5, dark);
+    if (spec.topLampZ !== undefined) {
+      m.box(0, face, spec.topLampZ, 0.3, 0.03, 0.14, lamp);
+    }
+    if (spec.couplerZ !== undefined) {
+      m.box(0, end * (L / 2 + 0.175), spec.couplerZ, 0.35, 0.35, 0.3, dark);
+    }
+    if (spec.deflector) {
+      m.box(0, end * (L / 2 - 0.55), 0.4, 1.9, 0.5, 0.5, dark);
+    }
     m.box(0, face, tipTop - 0.32, 1.2, 0.03, 0.25, SIGN);
   }
 
-  // A diamond pantograph on the second car, standing on two insulators.
-  const py = -L / 2 + (carLength + gap) + carLength / 2 - 2;
-  for (const dy of [-0.5, 0.5]) {
-    m.box(0, py + dy, roofTop, 0.22, 0.22, 0.2, MESH_COLOURS.hatch);
+  // A diamond pantograph, standing on two insulators.
+  if (spec.pantographCar !== undefined) {
+    const py =
+      -L / 2 + spec.pantographCar * (carLength + gap) + carLength / 2 - 2;
+    for (const dy of [-0.5, 0.5]) {
+      m.box(0, py + dy, roofTop, 0.22, 0.22, 0.2, MESH_COLOURS.hatch);
+    }
+    m.box(0, py, roofTop + 0.2, 0.9, 1.3, 0.06, dark);
+    const base = roofTop + 0.26;
+    const head = H - 0.07;
+    const knee: [number, number] = [py + 0.7, (base + head) / 2];
+    for (const x of [-0.28, 0.28]) {
+      m.beam([x, py - 0.6, base], [x, knee[0], knee[1]], 0.08, dark);
+      m.beam([x, knee[0], knee[1]], [x, py - 0.3, head - 0.03], 0.06, dark);
+    }
+    m.box(0, py - 0.3, head, 1.8, 0.14, 0.07, hub);
   }
-  m.box(0, py, roofTop + 0.2, 0.9, 1.3, 0.06, dark);
-  const base = roofTop + 0.26;
-  const head = H - 0.07;
-  const knee: [number, number] = [py + 0.7, (base + head) / 2];
-  for (const x of [-0.28, 0.28]) {
-    m.beam([x, py - 0.6, base], [x, knee[0], knee[1]], 0.08, dark);
-    m.beam([x, knee[0], knee[1]], [x, py - 0.3, head - 0.03], 0.06, dark);
-  }
-  m.box(0, py - 0.3, head, 1.8, 0.14, 0.07, hub);
 
   return m.build();
 }
 
-/** Cars of equal length separated by dark gangways, on bogies. */
-function railVehicle(spec: RailVehicleSpec): VehicleModel {
-  const { length: L, width: W, height: H, cars } = spec;
-  const body = PAINT;
-  const m = new MeshBuilder();
+/**
+ * An articulated electric multiple unit of the kind most Norwegian regional
+ * and local trains are: four cars on shared (Jacobs) bogies at each joint
+ * plus one under each cab, a long nose, a driver's door behind each cab,
+ * underfloor equipment, a coupler and obstacle deflector at each end, and a
+ * pantograph on the second car.
+ */
+function train(L: number, W: number, H: number): VehicleModel {
+  const cars = 4;
   const gap = 0.5;
-  const carLength = (L - gap * (cars - 1)) / cars;
-  const pantographHeight = spec.pantographOnCar === undefined ? 0 : 0.5;
-  const roofTop = H - pantographHeight;
-
-  for (let car = 0; car < cars; car++) {
-    const cy = -L / 2 + carLength / 2 + car * (carLength + gap);
-    m.box(
-      0,
-      cy,
-      0.5,
-      W * 0.9,
-      carLength * 0.96,
-      spec.floor - 0.5,
-      MESH_COLOURS.dark,
-    );
-    m.box(
-      0,
-      cy,
-      spec.floor,
-      W,
-      carLength,
-      spec.windowBottom - spec.floor,
-      body,
-    );
-    m.box(
-      0,
-      cy,
-      spec.windowBottom,
-      W * 0.985,
-      carLength * 0.995,
-      spec.windowTop - spec.windowBottom,
-      MESH_COLOURS.glass,
-    );
-    m.box(0, cy, spec.windowTop, W, carLength, roofTop - spec.windowTop, body);
-
-    const pillars = Math.max(2, Math.round(carLength / 2.5));
-    for (let i = 0; i <= pillars; i++) {
-      const y = cy - carLength / 2 + 0.4 + (i * (carLength - 0.8)) / pillars;
-      for (const side of [-1, 1]) {
-        m.box(
-          (side * W) / 2,
-          y,
-          spec.windowBottom,
-          0.05,
-          0.2,
-          spec.windowTop - spec.windowBottom,
-          body,
-        );
+  const noseLength = 3;
+  return multipleUnit({
+    length: L,
+    width: W,
+    height: H,
+    cars,
+    gap,
+    bottom: 0.9,
+    skirtTop: 1.15,
+    windscreenBottom: 1.9,
+    windowBottom: 1.95,
+    windowTop: 3.0,
+    roofTop: H - 0.75,
+    roofRadius: 0.4,
+    noseLength,
+    noseInset: 0.55,
+    tipScale: 0.4,
+    doorsFor: (car, cy, carLength) => {
+      if (car === 0 || car === cars - 1) {
+        const end = car === 0 ? -1 : 1;
+        return [
+          ...[9.5, 15].map((fromTip) => ({
+            y: end * (L / 2 - fromTip),
+            width: 1.3,
+          })),
+          { y: end * (L / 2 - (noseLength + 0.9)), width: 0.7 },
+        ];
       }
-    }
+      return [-1, 1].map((offset) => ({
+        y: cy + offset * carLength * 0.25,
+        width: 1.3,
+      }));
+    },
+    doorGlassBottom: 1.55,
+    windowPitch: 2.3,
+    bogies: (carLength) => [
+      -L / 2 + 3.4,
+      L / 2 - 3.4,
+      ...Array.from(
+        { length: cars - 1 },
+        (_, car) => -L / 2 + car * (carLength + gap) + carLength + gap / 2,
+      ),
+    ],
+    wheelRadius: 0.43,
+    axle: 1.35,
+    frameBottom: 0.32,
+    frameHeight: 0.4,
+    underfloor: true,
+    roofUnitHeight: 0.28,
+    roofUnitOffset: 4.5,
+    pantographCar: 1,
+    shoes: false,
+    lampZ: 1.28,
+    topLampZ: 1.62,
+    couplerZ: 0.85,
+    deflector: true,
+    sideSignFromTip: 6.2,
+    sideSignLength: 2,
+  });
+}
 
-    for (const offset of [-1, 1]) {
-      m.box(
-        0,
-        cy + offset * (carLength / 2 - 2.2),
-        0,
-        W * 0.75,
-        2.6,
-        0.5,
-        MESH_COLOURS.dark,
-      );
-    }
-    if (car < cars - 1) {
-      m.box(
-        0,
-        cy + carLength / 2 + gap / 2,
-        spec.floor,
-        W * 0.8,
-        gap + 0.1,
-        roofTop - spec.floor - 0.2,
-        MESH_COLOURS.dark,
-      );
-    }
-    if (car === spec.pantographOnCar) {
-      m.box(0, cy, roofTop, 0.12, 0.12, pantographHeight, MESH_COLOURS.dark);
-      m.box(
-        0,
-        cy,
-        roofTop + pantographHeight - 0.08,
-        W * 0.55,
-        0.12,
-        0.08,
-        MESH_COLOURS.dark,
-      );
-    }
-  }
+/**
+ * A low-floor articulated tram: three sections, a short bluff nose with a
+ * windscreen reaching almost to the rail, a bogie under each cab and one under
+ * the middle section, doors glazed nearly to the floor, equipment on the roof
+ * rather than under it, and a pantograph on the middle section.
+ */
+function tram(L: number, W: number, H: number): VehicleModel {
+  const cars = 3;
+  return multipleUnit({
+    length: L,
+    width: W,
+    height: H,
+    cars,
+    gap: 0.4,
+    bottom: 0.35,
+    skirtTop: 0.5,
+    windscreenBottom: 1.0,
+    windowBottom: 1.0,
+    windowTop: 2.55,
+    roofTop: H - 0.65,
+    roofRadius: 0.3,
+    noseLength: 1.8,
+    noseInset: 0.35,
+    tipScale: 0.75,
+    doorsFor: (car, cy) =>
+      car === 0 || car === cars - 1
+        ? [{ y: (car === 0 ? -1 : 1) * (L / 2 - 5.6), width: 1.3 }]
+        : [-1, 1].map((offset) => ({ y: cy + offset * 2.6, width: 1.3 })),
+    doorGlassBottom: 0.55,
+    windowPitch: 1.8,
+    bogies: () => [-L / 2 + 3, 0, L / 2 - 3],
+    wheelRadius: 0.33,
+    axle: 0.9,
+    frameBottom: 0.22,
+    frameHeight: 0.32,
+    underfloor: false,
+    roofUnitHeight: 0.3,
+    roofUnitOffset: 3,
+    pantographCar: 1,
+    shoes: false,
+    lampZ: 0.6,
+    deflector: false,
+    sideSignFromTip: 8.4,
+    sideSignLength: 1.4,
+  });
+}
 
-  // Cab ends: windscreens and destination signs both ends, a side sign on the
-  // cab car each side, headlights in front, tail lights behind.
-  for (const end of [-1, 1]) {
-    m.box(
-      0,
-      end * (L / 2 + 0.03),
-      spec.windowTop + 0.05,
-      W * 0.6,
-      0.03,
-      0.25,
-      SIGN,
-    );
-    for (const side of [-1, 1]) {
-      m.box(
-        side * (W / 2 - 0.01),
-        end * (L / 2 - 3),
-        spec.windowTop - 0.35,
-        0.02,
-        2,
-        0.3,
-        SIGN,
-      );
-    }
-    m.box(
-      0,
-      end * (L / 2),
-      spec.windowBottom - 0.2,
-      W * 0.8,
-      0.04,
-      spec.windowTop - spec.windowBottom + 0.2,
-      MESH_COLOURS.glass,
-    );
-    for (const side of [-1, 1]) {
-      m.box(
-        side * W * 0.33,
-        end * (L / 2 + 0.03),
-        spec.floor + 0.1,
-        0.3,
-        0.03,
-        0.15,
-        end === 1 ? MESH_COLOURS.headlight : MESH_COLOURS.taillight,
-      );
-    }
-  }
-  return m.build();
+/**
+ * A metro unit: three cars, each on its own pair of bogies, a flat cab front
+ * with only a slight nose, three double doors a side per car, underfloor
+ * equipment, couplers at the ends, and third-rail collector shoes instead of
+ * a pantograph.
+ */
+function metro(L: number, W: number, H: number): VehicleModel {
+  const roofTop = H - 0.3;
+  return multipleUnit({
+    length: L,
+    width: W,
+    height: H,
+    cars: 3,
+    gap: 0.6,
+    bottom: 0.95,
+    skirtTop: 1.05,
+    windscreenBottom: 1.35,
+    windowBottom: 1.8,
+    windowTop: 2.85,
+    roofTop,
+    roofRadius: 0.35,
+    noseLength: 1.0,
+    noseInset: 0.25,
+    tipScale: 0.85,
+    doorsFor: (_car, cy, carLength) =>
+      [-1, 0, 1].map((offset) => ({
+        y: cy + offset * carLength * 0.3,
+        width: 1.4,
+      })),
+    doorGlassBottom: 1.2,
+    windowPitch: 2.0,
+    bogies: (carLength) =>
+      [0, 1, 2].flatMap((car) => {
+        const cy = -L / 2 + carLength / 2 + car * (carLength + 0.6);
+        return [cy - (carLength / 2 - 2.4), cy + (carLength / 2 - 2.4)];
+      }),
+    wheelRadius: 0.41,
+    axle: 1.05,
+    frameBottom: 0.3,
+    frameHeight: 0.38,
+    underfloor: true,
+    roofUnitHeight: H - roofTop,
+    roofUnitOffset: 0,
+    shoes: true,
+    lampZ: 1.12,
+    couplerZ: 0.8,
+    deflector: false,
+    sideSignFromTip: 1.9,
+    sideSignLength: 1.6,
+  });
 }
 
 function ferry(length: number, width: number, height: number): VehicleModel {
@@ -1437,26 +1517,9 @@ function buildModelFor(mode: VehicleModeEnumeration): VehicleModel {
     case "COACH":
       return coach(length, width, height);
     case "TRAM":
-      return railVehicle({
-        cars: 3,
-        length,
-        width,
-        height,
-        floor: 0.55,
-        windowBottom: 1.1,
-        windowTop: 2.6,
-        pantographOnCar: 1,
-      });
+      return tram(length, width, height);
     case "METRO":
-      return railVehicle({
-        cars: 3,
-        length,
-        width,
-        height,
-        floor: 1.0,
-        windowBottom: 1.8,
-        windowTop: 2.85,
-      });
+      return metro(length, width, height);
     case "RAIL":
       return train(length, width, height);
     case "FERRY":
