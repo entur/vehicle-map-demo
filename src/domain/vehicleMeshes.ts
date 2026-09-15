@@ -54,12 +54,16 @@ export const MESH_COLOURS = {
   roofUnit: rgb(0xd5d8dc),
   headlight: rgb(0xfff4c2),
   taillight: rgb(0x9c2020),
-  deck: rgb(0xdedad2),
+  deck: rgb(0x8b9486),
   white: rgb(0xf4f4f2),
   indicator: rgb(0xe89a2c),
   archLiner: rgb(0x141414),
   hatch: rgb(0x9aa0a6),
   doorFrame: rgb(0xa9aeb3),
+  antifouling: rgb(0x7a2e27),
+  starboard: rgb(0x2e9e4f),
+  raft: rgb(0xe9e6dd),
+  rescueBoat: rgb(0xf26b1d),
 } as const;
 
 /**
@@ -1474,38 +1478,277 @@ function metro(L: number, W: number, H: number): VehicleModel {
   });
 }
 
-function ferry(length: number, width: number, height: number): VehicleModel {
-  const hull = PAINT;
-  const L = length;
-  const W = width;
+/**
+ * A convex plan outline: a rectangle from yBack to yFront whose front is
+ * rounded over `nose` metres, for deckhouses seen from above.
+ */
+function roundedFront(
+  halfWidth: number,
+  yBack: number,
+  yFront: number,
+  nose: number,
+): [number, number][] {
+  const outline: [number, number][] = [
+    [-halfWidth, yBack],
+    [halfWidth, yBack],
+  ];
+  for (let i = 0; i <= 8; i++) {
+    const a = (i / 8) * Math.PI;
+    outline.push([halfWidth * Math.cos(a), yFront - nose + nose * Math.sin(a)]);
+  }
+  return outline;
+}
+
+/**
+ * A passenger ferry: a lofted monohull whose sides taper into a pointed bow
+ * with rising sheer and a lifted forefoot, painted in the line colour above
+ * a boot-top and antifouling; rubbing strakes and deck railings; a deckhouse
+ * with a wrapped window band, a wheelhouse forward with bridge wings and
+ * navigation lights, a mast carrying the masthead light, a funnel aft, and
+ * liferafts, a rescue boat, bollards and a windlass on deck.
+ */
+function ferry(L: number, W: number, H: number): VehicleModel {
   const m = new MeshBuilder();
-  const deck = 2.2;
-  m.prism(
-    [
-      [-W * 0.42, -L / 2],
-      [W * 0.42, -L / 2],
-      [W / 2, -L / 4],
-      [W / 2, L / 4],
-      [W * 0.3, L * 0.42],
-      [0, L / 2],
-      [-W * 0.3, L * 0.42],
-      [-W / 2, L / 4],
-      [-W / 2, -L / 4],
-    ],
+  const { dark, glass, deck, hub, roofUnit, white } = MESH_COLOURS;
+  const half = W / 2;
+  const deckHeight = 2.2;
+  const waterline = 0.9;
+  const bootTop = 1.15;
+  const taperFrom = 4;
+
+  // Plan half-width, deck height and forefoot lift along the hull.
+  const bow = (y: number) =>
+    Math.max(0, Math.min(1, (y - taperFrom) / (L / 2 - taperFrom)));
+  const halfWidthAt = (y: number) => {
+    if (y < -L / 2 + 4) return half * (0.94 + (0.06 * (y + L / 2)) / 4);
+    return half * Math.pow(1 - bow(y) ** 2, 0.6);
+  };
+  const deckAt = (y: number) => deckHeight + 0.6 * bow(y) ** 2;
+  const liftAt = (y: number) => 1.6 * bow(y) ** 3;
+
+  const base: [number, number][] = [
+    [1.2, 0],
+    [3.6, 0.3],
+    [4.7, 0.65],
+    [half, waterline],
+    [half, bootTop],
+    [half, deckHeight],
+    [0, deckHeight],
+  ];
+  const stations = [
+    -L / 2,
+    -16,
+    -8,
     0,
-    deck,
-    hull,
-    MESH_COLOURS.deck,
-    0.8,
+    taperFrom,
+    7,
+    10,
+    12.5,
+    14.5,
+    16.2,
+    17.6,
+    18.7,
+    19.5,
+    L / 2,
+  ].map((y) => {
+    const scale = halfWidthAt(y) / half;
+    const lift = liftAt(y);
+    const top = deckAt(y);
+    return {
+      y,
+      half: base.map(([x, z]): HalfPoint => [
+        x * scale,
+        lift + (z * (top - lift)) / deckHeight,
+      ]),
+    };
+  });
+  m.hull(
+    stations,
+    (y, z) => {
+      if (deckAt(y) - z < 0.02) return deck;
+      if (z < waterline) return MESH_COLOURS.antifouling;
+      if (z < bootTop) return dark;
+      return PAINT;
+    },
+    MESH_COLOURS.antifouling,
   );
-  m.box(0, -L * 0.08, deck, W * 0.8, L * 0.55, 1.6, MESH_COLOURS.white);
-  m.box(0, -L * 0.08, deck + 0.55, W * 0.81, L * 0.5, 0.6, MESH_COLOURS.glass);
-  m.box(0, L * 0.12, deck + 1.6, W * 0.6, L * 0.12, 1.3, MESH_COLOURS.white);
-  m.box(0, L * 0.12, deck + 2.1, W * 0.61, L * 0.1, 0.5, MESH_COLOURS.glass);
-  const funnelHeight = height - (deck + 1.6);
-  m.box(0, -L * 0.2, deck + 1.6, 1.2, 1.6, funnelHeight, hull);
-  m.box(0, -L * 0.2, height - 0.3, 1.25, 1.65, 0.3, MESH_COLOURS.dark);
-  m.box(0, L / 2 - 0.4, deck, 0.2, 0.2, 0.6, MESH_COLOURS.headlight);
+
+  // Rubbing strakes along both sides, stopping short of the stem.
+  const edge = stations.map(({ y }) => y).filter((y) => y <= 18.7);
+  for (const side of [-1, 1]) {
+    for (let i = 0; i + 1 < edge.length; i++) {
+      const [ya, yb] = [edge[i], edge[i + 1]];
+      m.beam(
+        [side * (halfWidthAt(ya) + 0.05), ya, 1.9],
+        [side * (halfWidthAt(yb) + 0.05), yb, 1.9 + (deckAt(yb) - deckAt(ya))],
+        0.12,
+        dark,
+      );
+    }
+  }
+
+  // Railings: posts along the deck edge with a rail along their tops, and a
+  // rail across the stern.
+  const railHeight = 1.0;
+  const posts: number[] = [];
+  for (let y = -L / 2 + 0.3; y <= 18.2; y += 1.6) posts.push(y);
+  for (const side of [-1, 1]) {
+    const top = (y: number): Vec3 => [
+      side * (halfWidthAt(y) - 0.12),
+      y,
+      deckAt(y) + railHeight,
+    ];
+    for (let i = 0; i < posts.length; i++) {
+      const y = posts[i];
+      m.beam([side * (halfWidthAt(y) - 0.12), y, deckAt(y)], top(y), 0.05, hub);
+      if (i + 1 < posts.length) m.beam(top(y), top(posts[i + 1]), 0.05, hub);
+    }
+  }
+  const sternRail = halfWidthAt(posts[0]) - 0.12;
+  m.beam(
+    [-sternRail, posts[0], deckHeight + railHeight],
+    [sternRail, posts[0], deckHeight + railHeight],
+    0.05,
+    hub,
+  );
+  for (const x of [-2.4, 0, 2.4]) {
+    m.beam(
+      [x, posts[0], deckHeight],
+      [x, posts[0], deckHeight + railHeight],
+      0.05,
+      hub,
+    );
+  }
+
+  // Deckhouse: white, with a window band wrapping round its rounded front,
+  // mullions along its sides, and a grey roof.
+  const house = { half: 3.6, back: -13, front: 8, nose: 2.2 };
+  const houseTop = deckHeight + 1.9;
+  m.prism(
+    roundedFront(house.half, house.back, house.front, house.nose),
+    deckHeight,
+    houseTop,
+    white,
+    roofUnit,
+  );
+  m.prism(
+    roundedFront(
+      house.half + 0.04,
+      house.back - 0.04,
+      house.front + 0.04,
+      house.nose + 0.04,
+    ),
+    deckHeight + 0.7,
+    deckHeight + 1.4,
+    glass,
+    glass,
+  );
+  for (let y = house.back + 0.6; y < house.front - house.nose; y += 1.2) {
+    for (const side of [-1, 1]) {
+      m.sidePanel(
+        side * (house.half + 0.045),
+        [
+          [y - 0.06, deckHeight + 0.7],
+          [y + 0.06, deckHeight + 0.7],
+          [y + 0.06, deckHeight + 1.4],
+          [y - 0.06, deckHeight + 1.4],
+        ],
+        white,
+      );
+    }
+  }
+
+  // Wheelhouse forward on the deckhouse roof, with bridge wings carrying the
+  // side lights: red to port (-x), green to starboard (+x).
+  const bridge = { half: 2.6, back: 1.5, front: 7, nose: 1.4 };
+  const bridgeTop = houseTop + 1.5;
+  m.prism(
+    roundedFront(bridge.half, bridge.back, bridge.front, bridge.nose),
+    houseTop,
+    bridgeTop,
+    white,
+    white,
+  );
+  m.prism(
+    roundedFront(
+      bridge.half + 0.04,
+      bridge.back - 0.04,
+      bridge.front + 0.04,
+      bridge.nose + 0.04,
+    ),
+    houseTop + 0.65,
+    houseTop + 1.25,
+    glass,
+    glass,
+  );
+  m.box(0, 5, houseTop + 0.9, 2 * (house.half + 0.9), 1.2, 0.1, white);
+  for (const side of [-1, 1]) {
+    m.box(
+      side * (house.half + 0.75),
+      5,
+      houseTop + 1.0,
+      0.2,
+      0.3,
+      0.2,
+      side === 1 ? MESH_COLOURS.starboard : MESH_COLOURS.taillight,
+    );
+  }
+
+  // Mast on the wheelhouse roof, with a yard and the masthead light on top.
+  const mastY = 3.5;
+  m.beam([0, mastY, bridgeTop], [0, mastY, H - 0.1], 0.12, hub);
+  m.box(0, mastY, H - 0.45, 2.2, 0.08, 0.06, hub);
+  m.box(0, mastY, H - 0.1, 0.18, 0.18, 0.1, MESH_COLOURS.headlight);
+
+  // Funnel aft on the deckhouse roof, in the line colour with a dark top.
+  const funnel = Array.from({ length: 12 }, (_, i): [number, number] => {
+    const a = (i / 12) * Math.PI * 2;
+    return [0.8 * Math.cos(a), -9 + 1.3 * Math.sin(a)];
+  });
+  m.prism(funnel, houseTop, houseTop + 1.0, PAINT, dark);
+  m.prism(
+    funnel.map(([x, y]): [number, number] => [x * 1.03, -9 + (y + 9) * 1.03]),
+    houseTop + 1.0,
+    houseTop + 1.25,
+    dark,
+    dark,
+  );
+
+  // Liferaft canisters along both sides of the deckhouse roof.
+  for (const side of [-1, 1]) {
+    for (let i = 0; i < 4; i++) {
+      m.box(
+        side * 3.0,
+        -6.5 + i * 1.5,
+        houseTop,
+        0.7,
+        0.9,
+        0.6,
+        MESH_COLOURS.raft,
+      );
+    }
+  }
+
+  // Rescue boat on a cradle on the aft deck, starboard side.
+  m.box(3.1, -16, deckHeight, 1.2, 2.6, 0.35, dark);
+  m.prism(
+    roundedFront(0.7, -17.6, -14.2, 0.8),
+    deckHeight + 0.35,
+    deckHeight + 1.0,
+    MESH_COLOURS.rescueBoat,
+    MESH_COLOURS.rescueBoat,
+    0.85,
+  );
+
+  // Bollards fore and aft, and the anchor windlass on the foredeck.
+  for (const side of [-1, 1]) {
+    for (const y of [-18.5, -14.5, 12.5]) {
+      const x = side * Math.min(3.8, halfWidthAt(y) - 0.9);
+      m.box(x, y, deckAt(y), 0.3, 0.3, 0.45, dark);
+    }
+  }
+  m.box(0, 15.5, deckAt(15.5), 1.2, 0.8, 0.5, dark);
+
   return m.build();
 }
 
