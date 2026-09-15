@@ -7,7 +7,7 @@ import {
 
 /** Evaluates a style expression against a feature carrying `situationNumber`. */
 function evaluate(expr: unknown, situationNumber: string): unknown {
-  const parsed = expression.createExpression(expr);
+  const parsed = expression.createExpression(expr, "test");
   if (parsed.result !== "success") {
     throw new Error(parsed.value.map((e) => e.message).join("; "));
   }

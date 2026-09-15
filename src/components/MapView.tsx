@@ -8,6 +8,11 @@ import { mapStyle } from "./mapStyle.ts";
 import { CaptureBoundingBox } from "./CaptureBoundingBox.tsx";
 import { Filter, MapViewOptions } from "../types.ts";
 import "maplibre-gl/dist/maplibre-gl.css";
+import { setWorkerUrl } from "maplibre-gl";
+// MapLibre 6 cannot locate its worker from inside a bundle. `?worker&url`
+// rather than `?url`: the worker imports a sibling chunk that `?url` leaves
+// out of production builds, so no tiles would load.
+import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import { SelectedVehicle, VehicleMarkers } from "./Vehicle/VehicleMarkers.tsx";
 import { RegisterIcons } from "./RegisterIcons.tsx";
 import { RightMenu } from "./RightMenu";
@@ -27,6 +32,8 @@ import { ViewDimension } from "../domain/viewDimension.ts";
 import { RotateControl } from "./RotateControl.tsx";
 import { ViewDimensionControl } from "./ViewDimensionControl.tsx";
 import { ViewDimensionLayers } from "./ViewDimensionLayers.tsx";
+
+setWorkerUrl(workerUrl);
 
 type MapViewProps = {
   mode: AppMode;
