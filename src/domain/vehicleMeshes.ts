@@ -736,11 +736,13 @@ function busBody(spec: BusSpec): {
     }
   }
 
-  // Window pillars along the straight sides, skipping the doors.
+  // Window pillars along the straight sides, skipping the doors — and any
+  // that would stand in the air ahead of a raked windscreen’s top.
   const span = L - 2 * corner;
   const pillars = Math.round(span / spec.windowPitch);
   for (let i = 0; i <= pillars; i++) {
     const y = -L / 2 + corner + (i * span) / pillars;
+    if (y > frontY(windowTop) - corner) continue;
     const inDoor = doors.some(
       (door) => Math.abs(y - door) < doorWidth / 2 + 0.1,
     );
