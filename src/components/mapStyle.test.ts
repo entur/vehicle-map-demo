@@ -59,10 +59,64 @@ describe("buildMapStyle", () => {
     }
   });
 
-  it("draws both base maps beneath everything else", () => {
+  it("keeps each scheme's snapshot order within the non-symbol and symbol groups", () => {
+    const style = buildMapStyle("light");
+    const ids = style.layers.map((l) => l.id);
+    const byType = new Map(style.layers.map((l) => [l.id, l.type]));
+
+    for (const scheme of MAP_SCHEMES) {
+      const schemeIds = baseMapLayerIds().filter((id) =>
+        id.startsWith(`${scheme}/`),
+      );
+      const nonSymbolIds = schemeIds.filter(
+        (id) => byType.get(id) !== "symbol",
+      );
+      const symbolIds = schemeIds.filter((id) => byType.get(id) === "symbol");
+
+      const actualNonSymbol = ids.filter((id) => nonSymbolIds.includes(id));
+      const actualSymbol = ids.filter((id) => symbolIds.includes(id));
+
+      expect(actualNonSymbol).toEqual(nonSymbolIds);
+      expect(actualSymbol).toEqual(symbolIds);
+    }
+  });
+
+  it("draws every base non-symbol layer beneath hillshade-layer", () => {
+    const style = buildMapStyle("light");
+    const ids = style.layers.map((l) => l.id);
+    const byType = new Map(style.layers.map((l) => [l.id, l.type]));
+    const hillshadeIndex = ids.indexOf("hillshade-layer");
+
+    for (const id of baseMapLayerIds()) {
+      if (byType.get(id) === "symbol") continue;
+      expect(ids.indexOf(id)).toBeLessThan(hillshadeIndex);
+    }
+  });
+
+  it("draws buildings-3d-layer beneath every base symbol layer", () => {
+    const style = buildMapStyle("light");
+    const ids = style.layers.map((l) => l.id);
+    const byType = new Map(style.layers.map((l) => [l.id, l.type]));
+    const buildingsIndex = ids.indexOf("buildings-3d-layer");
+
+    for (const id of baseMapLayerIds()) {
+      if (byType.get(id) !== "symbol") continue;
+      expect(buildingsIndex).toBeLessThan(ids.indexOf(id));
+    }
+  });
+
+  it("draws every base layer beneath the first app layer", () => {
     const ids = buildMapStyle("light").layers.map((l) => l.id);
-    const base = baseMapLayerIds();
-    expect(ids.slice(0, base.length)).toEqual(base);
+    const base = new Set(baseMapLayerIds());
+    const firstAppIndex = ids.findIndex(
+      (id) =>
+        !base.has(id) &&
+        id !== "hillshade-layer" &&
+        id !== "buildings-3d-layer",
+    );
+    for (const id of base) {
+      expect(ids.indexOf(id)).toBeLessThan(firstAppIndex);
+    }
   });
 
   it("takes glyphs and sprite from OpenFreeMap and drops the OSM raster", () => {

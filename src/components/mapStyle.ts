@@ -60,10 +60,22 @@ export const SITUATION_LAYER_OPACITY = {
   },
 } as const;
 
-/** Both base maps, with `scheme`'s visible — see BaseMapScheme for later switches. */
-function baseMapFor(scheme: MapScheme): LayerSpecification[] {
+/**
+ * Both base maps, with `scheme`'s visible — see BaseMapScheme for later
+ * switches. Split into the two groups the style interleaves the 3D base
+ * layers between (see the layers array below): ordinary layers, then symbol
+ * (label) layers. Each scheme keeps its own snapshot's relative order within
+ * a group — light before dark in both, matching MAP_SCHEMES — so a Fiord
+ * line layer that follows a symbol layer in its snapshot (a few boundary
+ * lines do) moves below the labels along with the rest of its group. That is
+ * accepted: label legibility wins, and only one scheme is visible at a time.
+ */
+function baseMapFor(scheme: MapScheme): {
+  nonSymbol: LayerSpecification[];
+  symbol: LayerSpecification[];
+} {
   const visibility = new Map(baseLayerVisibility(scheme));
-  return MAP_SCHEMES.flatMap(baseMapLayers).map(
+  const layers = MAP_SCHEMES.flatMap(baseMapLayers).map(
     (layer) =>
       ({
         ...layer,
@@ -73,6 +85,10 @@ function baseMapFor(scheme: MapScheme): LayerSpecification[] {
         },
       }) as LayerSpecification,
   );
+  return {
+    nonSymbol: layers.filter((layer) => layer.type !== "symbol"),
+    symbol: layers.filter((layer) => layer.type === "symbol"),
+  };
 }
 
 /**
@@ -84,6 +100,7 @@ function baseMapFor(scheme: MapScheme): LayerSpecification[] {
  */
 export function buildMapStyle(scheme: MapScheme): StyleSpecification {
   const paint = SCHEME_PAINT[scheme];
+  const base = baseMapFor(scheme);
   return {
     version: 8,
     glyphs: BASE_MAP_GLYPHS,
@@ -143,9 +160,12 @@ export function buildMapStyle(scheme: MapScheme): StyleSpecification {
     },
 
     layers: [
-      ...baseMapFor(scheme),
-      // The two 3D-only base layers sit on the base map, beneath every data
-      // layer, so buildings never cover a vehicle or a situation.
+      ...base.nonSymbol,
+      // The two 3D-only base layers sit between the base map's ordinary
+      // layers and its symbol (label) layers: below every data layer, so
+      // buildings never cover a vehicle or a situation, and below every
+      // base-map label, so hillshading and building extrusions never shade
+      // or cover street and place names.
       {
         id: "hillshade-layer",
         type: "hillshade",
@@ -186,6 +206,7 @@ export function buildMapStyle(scheme: MapScheme): StyleSpecification {
           "fill-extrusion-vertical-gradient": true,
         },
       },
+      ...base.symbol,
       // Two-tone edge (dataColours.ts): ink separates the route on the light
       // base map, white on the dark one. Solid even when the route is dashed
       // for a cancelled trip, so the dashes read against a continuous band.

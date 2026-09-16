@@ -11,6 +11,7 @@ import { CaptureBoundingBox } from "./CaptureBoundingBox.tsx";
 import { Filter, MapViewOptions } from "../types.ts";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { setWorkerUrl } from "maplibre-gl";
+import type { MapStyleDataEvent } from "maplibre-gl";
 // MapLibre 6 cannot locate its worker from inside a bundle. `?worker&url`
 // rather than `?url`: the worker imports a sibling chunk that `?url` leaves
 // out of production builds, so no tiles would load.
@@ -93,6 +94,34 @@ export function MapView({
     }
   };
 
+  // `onStyleData` fires on the map instance's first 'styledata' — set up by
+  // react-map-gl (@vis.gl/react-maplibre's Map component) while constructing
+  // the underlying maplibregl.Map, strictly before any child of <Map>
+  // (including BaseMapScheme) even mounts: the Map component only renders its
+  // children once its own map-instance state is set, one render after the
+  // instance — and this listener — are created. So this always observes the
+  // style exactly as buildMapStyle baked it, before BaseMapScheme's own
+  // 'styledata' listener (registered later, from its own effect) can correct
+  // a wrongly-built scheme. Lets the Playwright dark-load smoke test detect a
+  // flash of the wrong base map that a check at 'load' time would miss.
+  const capturedInitialBaseVisibility = useRef(false);
+  const handleStyleData = (event: MapStyleDataEvent) => {
+    if (!import.meta.env.DEV || capturedInitialBaseVisibility.current) return;
+    capturedInitialBaseVisibility.current = true;
+    const map = event.target;
+    (
+      window as unknown as {
+        __vehicleMapInitialBaseVisibility?: {
+          light: unknown;
+          dark: unknown;
+        };
+      }
+    ).__vehicleMapInitialBaseVisibility = {
+      light: map.getLayoutProperty("light/background", "visibility"),
+      dark: map.getLayoutProperty("dark/background", "visibility"),
+    };
+  };
+
   const { followedVehicle, handleFollowToggle, clearFollowedVehicle } =
     useFollowedVehicle(data, selectedVehicle, mapRef);
 
@@ -168,6 +197,7 @@ export function MapView({
         initialViewState={{ longitude: 10.0, latitude: 64.0, zoom: 4 }}
         mapStyle={mapStyle}
         onLoad={handleMapLoad}
+        onStyleData={handleStyleData}
       >
         <NavigationControl position="top-left" />
         <GeolocateControl position="top-left" />

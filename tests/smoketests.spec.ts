@@ -131,22 +131,43 @@ type TestMap = {
   getLayoutProperty(id: string, name: string): unknown;
   hasImage(name: string): boolean;
   querySourceFeatures(source: string): unknown[];
+  addImage(
+    name: string,
+    image: { width: number; height: number; data: Uint8Array },
+  ): void;
 };
-type TestWindow = { __vehicleMap?: TestMap };
+type BaseVisibility = { light: unknown; dark: unknown };
+type TestWindow = {
+  __vehicleMap?: TestMap;
+  // Set once, from MapView's onStyleData handler, on the map's first
+  // 'styledata' — before BaseMapScheme's own listener (registered later, once
+  // BaseMapScheme has mounted) has any chance to correct a wrongly-built
+  // scheme. Unlike __vehicleMap (set on 'load'), this proves what
+  // buildMapStyle actually baked in, not what the running map looks like by
+  // the time the style, sprite and glyphs have finished loading.
+  __vehicleMapInitialBaseVisibility?: BaseVisibility;
+};
 
 test("switching to dark swaps the base map and keeps app state", async ({
   page,
 }) => {
   await page.emulateMedia({ colorScheme: "light" });
   await page.goto("/");
-  await page.waitForFunction(
-    () => {
-      const map = (window as unknown as TestWindow).__vehicleMap;
-      return !!map && map.querySourceFeatures("vehicles").length > 0;
-    },
-    null,
-    { timeout: 30000 },
-  );
+
+  // Live dev API: matches the older vehicle test's approach of skipping
+  // rather than failing when the feed doesn't deliver in time.
+  const hasVehicle = await page
+    .waitForFunction(
+      () => {
+        const map = (window as unknown as TestWindow).__vehicleMap;
+        return !!map && map.querySourceFeatures("vehicles").length > 0;
+      },
+      null,
+      { timeout: 30000 },
+    )
+    .then(() => true)
+    .catch(() => false);
+  if (!hasVehicle) test.skip(true, "Could not confirm vehicles loaded");
 
   const read = () =>
     page.evaluate(() => {
@@ -165,6 +186,15 @@ test("switching to dark swaps the base map and keeps app state", async ({
   const before = await read();
   expect(before.light).toBe("visible");
   expect(before.dark).toBe("none");
+  expect(before.vehicleIcon).toBe(true);
+
+  // Sentinel for setStyle: setStyle drops every registered image, so a
+  // surviving probe is the clearest proof this was a visibility switch, not a
+  // style replacement.
+  await page.evaluate(() => {
+    const map = (window as unknown as TestWindow).__vehicleMap!;
+    map.addImage("__probe", { width: 1, height: 1, data: new Uint8Array(4) });
+  });
 
   await page.getByRole("button", { name: "Theme: system" }).click();
   await page.getByRole("button", { name: "Theme: light" }).click();
@@ -180,11 +210,35 @@ test("switching to dark swaps the base map and keeps app state", async ({
   expect(after.icon).toBe(true);
   expect(after.vehicleIcon).toBe(true);
   expect(after.features).toBeGreaterThan(0);
+
+  const probeSurvived = await page.evaluate(() =>
+    (window as unknown as TestWindow).__vehicleMap!.hasImage("__probe"),
+  );
+  expect(probeSurvived).toBe(true);
 });
 
 test("loading in dark starts on the dark base map", async ({ page }) => {
   await page.emulateMedia({ colorScheme: "dark" });
   await page.goto("/");
+
+  // Proves the style buildMapStyle actually baked in, not just the running
+  // map's eventual state: __vehicleMapInitialBaseVisibility is recorded on
+  // the map's first 'styledata', before BaseMapScheme's own listener can run
+  // and correct a wrongly-built scheme (see MapView's onStyleData handler and
+  // its comment). Checking only __vehicleMap, which is set on 'load', would
+  // pass even if MapView built the light style and BaseMapScheme silently
+  // fixed it up before 'load' fired.
+  await page.waitForFunction(
+    () => !!(window as unknown as TestWindow).__vehicleMapInitialBaseVisibility,
+    null,
+    { timeout: 30000 },
+  );
+  const initial = await page.evaluate(
+    () => (window as unknown as TestWindow).__vehicleMapInitialBaseVisibility!,
+  );
+  expect(initial).toEqual({ light: "none", dark: "visible" });
+
+  // The running map should agree once it has finished loading.
   await page.waitForFunction(
     () =>
       !!(window as unknown as TestWindow).__vehicleMap?.getLayer(
@@ -193,7 +247,6 @@ test("loading in dark starts on the dark base map", async ({ page }) => {
     null,
     { timeout: 30000 },
   );
-
   const visibility = await page.evaluate(() => {
     const map = (window as unknown as TestWindow).__vehicleMap!;
     return {

@@ -129,9 +129,30 @@ body .maplibregl-map {
   background-color: var(--mui-palette-action-hover);
 }
 
-/* The zoom, compass and geolocate glyphs are dark background SVGs. */
-[data-mui-color-scheme="dark"] .maplibregl-map .maplibregl-ctrl-icon {
+/* The zoom, compass, geolocate and attribution-toggle glyphs are dark
+   background SVGs. */
+[data-mui-color-scheme="dark"] .maplibregl-map .maplibregl-ctrl-icon,
+[data-mui-color-scheme="dark"] .maplibregl-map .maplibregl-ctrl-attrib-button {
   filter: invert(1) hue-rotate(180deg);
+}
+
+/* The attribution control (both its expanded and compact/pill forms), which
+   maplibre-gl.css otherwise draws as a white pill — invisible against Fiord
+   in dark mode. Selectors need the `.maplibregl-map` prefix for specificity,
+   since maplibre-gl.css is emitted after this file. */
+.maplibregl-map .maplibregl-ctrl-attrib,
+.maplibregl-map .maplibregl-ctrl-attrib.maplibregl-compact,
+.maplibregl-map .maplibregl-ctrl-attrib.maplibregl-compact-show {
+  background-color: var(--mui-palette-background-paper);
+  color: var(--mui-palette-text-secondary);
+}
+
+.maplibregl-map .maplibregl-ctrl-attrib a {
+  color: var(--mui-palette-text-primary);
+}
+
+.maplibregl-map .maplibregl-ctrl-attrib-button {
+  background-color: var(--mui-palette-background-paper);
 }
 
 .maplibregl-map .maplibregl-popup-content {
