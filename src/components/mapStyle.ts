@@ -14,6 +14,7 @@ import {
   TRACE,
 } from "../domain/dataColours.ts";
 import { SCHEME_PAINT, baseLayerVisibility } from "../domain/baseMapScheme.ts";
+import { VEHICLE_ICON_MATCH } from "../domain/vehicleIcons.ts";
 import {
   BASE_MAP_GLYPHS,
   BASE_MAP_SOURCES,
@@ -377,34 +378,10 @@ export function buildMapStyle(scheme: MapScheme): StyleSpecification {
         type: "symbol",
         source: "vehicles",
         layout: {
-          "icon-image": [
-            "match",
-            ["get", "mode"],
-            "BUS",
-            "bus-icon",
-            "FERRY",
-            "ferry-icon",
-            "RAIL",
-            "train-icon",
-            "TRAM",
-            "tram-icon",
-            "bus-red",
-          ],
-          "icon-size": [
-            "interpolate",
-            ["linear"],
-            ["zoom"],
-            4,
-            0.08,
-            8,
-            0.12,
-            12,
-            0.2,
-            14,
-            0.25,
-            18,
-            0.35,
-          ],
+          "icon-image": VEHICLE_ICON_MATCH,
+          // Icons are 52 logical px across at size 1 (drawVehicleIcon.ts):
+          // ≈22px at zoom 4 growing to ≈32px from zoom 12.
+          "icon-size": ["interpolate", ["linear"], ["zoom"], 4, 0.42, 12, 0.62],
           "icon-allow-overlap": true,
           "text-field": ["get", "lineCode"],
           "text-size": 14,

@@ -1,10 +1,12 @@
 import { useEffect } from "react";
 import { useMap } from "react-map-gl/maplibre";
 
-import busIcon from "../static/images/bus.png";
-import ferryIcon from "../static/images/ferry.png";
-import trainIcon from "../static/images/train.png";
-import tramIcon from "../static/images/tram.png";
+import { UNKNOWN_VEHICLE_ICON } from "../domain/vehicleIcons.ts";
+import {
+  VEHICLE_ICON_PIXEL_RATIO,
+  vehicleIconImageData,
+} from "./drawVehicleIcon.ts";
+import { VEHICLE_ICON_URLS } from "./vehicleIconImages.ts";
 import greenMarkerIcon from "../static/images/markerGreen.png";
 import redMarker from "../static/images/redUpdate.png";
 import orangeMarker from "../static/images/yellowUpdate.png";
@@ -23,10 +25,6 @@ import occupancy6 from "../static/images/occupancy6.png";
 import redSkull from "../static/images/skullRed.png";
 
 const images = [
-  { name: "bus-icon", url: busIcon },
-  { name: "ferry-icon", url: ferryIcon },
-  { name: "train-icon", url: trainIcon },
-  { name: "tram-icon", url: tramIcon },
   { name: "green-marker-icon", url: greenMarkerIcon },
   { name: "red-marker", url: redMarker },
   { name: "orange-marker", url: orangeMarker },
@@ -45,6 +43,28 @@ const images = [
   { name: "red-skull-marker", url: redSkull },
 ];
 
+const vehicleIcons: [name: string, url: string | null][] = [
+  ...Object.entries(VEHICLE_ICON_URLS),
+  [UNKNOWN_VEHICLE_ICON, null],
+];
+
+/**
+ * Names this app has registered. An image that exists under one of our names
+ * before we register it came from the base map sprite — the app's icon would
+ * silently never show — so that is warned about.
+ */
+const registered = new Set<string>();
+
+function warnIfTaken(map: { hasImage(name: string): boolean }, name: string) {
+  if (map.hasImage(name) && !registered.has(name)) {
+    console.warn(
+      `Map image "${name}" already exists before the app registered it; the base map sprite probably uses the same name, so the app's icon will not show.`,
+    );
+    return true;
+  }
+  return false;
+}
+
 export function RegisterIcons() {
   const { current: mapRef } = useMap();
 
@@ -54,13 +74,23 @@ export function RegisterIcons() {
 
     const handleMapLoad = () => {
       images.forEach(async ({ name, url }) => {
-        if (!map.hasImage(name)) {
-          const response = await map.loadImage(url);
-          if (response.data) {
-            map.addImage(name, response.data);
-          }
+        if (warnIfTaken(map, name) || map.hasImage(name)) return;
+        const response = await map.loadImage(url);
+        if (response.data && !map.hasImage(name)) {
+          map.addImage(name, response.data);
+          registered.add(name);
         }
       });
+      for (const [name, url] of vehicleIcons) {
+        if (warnIfTaken(map, name) || map.hasImage(name)) continue;
+        vehicleIconImageData(url)
+          .then((data) => {
+            if (map.hasImage(name)) return;
+            map.addImage(name, data, { pixelRatio: VEHICLE_ICON_PIXEL_RATIO });
+            registered.add(name);
+          })
+          .catch((error: unknown) => console.error(error));
+      }
     };
 
     if (map.isStyleLoaded()) {

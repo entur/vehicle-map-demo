@@ -157,6 +157,7 @@ test("switching to dark swaps the base map and keeps app state", async ({
         vehicleLayer:
           map.getLayoutProperty("vehicle-layer", "visibility") ?? "visible",
         icon: map.hasImage("green-marker-icon"),
+        vehicleIcon: map.hasImage("vehicle-bus"),
         features: map.querySourceFeatures("vehicles").length,
       };
     });
@@ -177,6 +178,7 @@ test("switching to dark swaps the base map and keeps app state", async ({
   expect(after.light).toBe("none");
   expect(after.vehicleLayer).toBe(before.vehicleLayer);
   expect(after.icon).toBe(true);
+  expect(after.vehicleIcon).toBe(true);
   expect(after.features).toBeGreaterThan(0);
 });
 

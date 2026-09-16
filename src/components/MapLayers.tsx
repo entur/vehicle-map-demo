@@ -9,8 +9,9 @@ import {
 } from "@mui/material";
 import { MapViewOptions } from "../types.ts";
 import { AppMode } from "../domain/appMode.ts";
+import { VehicleIconCanvas } from "./VehicleIconCanvas.tsx";
+import { VEHICLE_ICON_URLS } from "./vehicleIconImages.ts";
 
-import busIcon from "../static/images/bus.png";
 import greenMarker from "../static/images/greenUpdate.png";
 import skullMarker from "../static/images/skull.png";
 import greenLight from "../static/images/greenLight.png";
@@ -74,7 +75,15 @@ export function MapLayers({ mode, mapViewOptions, setMapViewOptions }: Props) {
                   onChange={handleToggleLayer("showVehicles", "vehicle-layer")}
                 />
               }
-              label={getLabelWithIcon(busIcon, "Vehicles", 22)}
+              label={
+                <Box sx={{ display: "flex", alignItems: "center" }}>
+                  <VehicleIconCanvas
+                    url={VEHICLE_ICON_URLS["vehicle-bus"]}
+                    size={22}
+                  />
+                  <Typography variant="body2">Vehicles</Typography>
+                </Box>
+              }
             />
             <FormControlLabel
               control={

@@ -1,7 +1,5 @@
 /// <reference types="vite/client" />
 
-declare module "*.svg";
-
 declare module "*.css";
 
 declare module "*.png";

@@ -1,7 +1,5 @@
-import busIcon from "../static/images/bus.png";
-import ferryIcon from "../static/images/ferry.png";
-import trainIcon from "../static/images/train.png";
-import tramIcon from "../static/images/tram.png";
+import { VehicleIconCanvas } from "./VehicleIconCanvas.tsx";
+import { VEHICLE_ICON_URLS } from "./vehicleIconImages.ts";
 import greenMarkerIcon from "../static/images/markerGreen.png";
 import greenMarker from "../static/images/greenUpdate.png";
 import orangeMarker from "../static/images/yellowUpdate.png";
@@ -26,12 +24,18 @@ type LegendItems = {
   height: number;
 };
 
+const VEHICLE_LEGEND: { url: string | null; label: string }[] = [
+  { url: VEHICLE_ICON_URLS["vehicle-bus"], label: "Bus" },
+  { url: VEHICLE_ICON_URLS["vehicle-coach"], label: "Coach" },
+  { url: VEHICLE_ICON_URLS["vehicle-tram"], label: "Tram" },
+  { url: VEHICLE_ICON_URLS["vehicle-metro"], label: "Metro" },
+  { url: VEHICLE_ICON_URLS["vehicle-rail"], label: "Train" },
+  { url: VEHICLE_ICON_URLS["vehicle-water"], label: "Ferry" },
+  { url: null, label: "Other modes" },
+];
+
 export function Legend() {
   const legendItems: LegendItems[] = [
-    { icon: busIcon, label: "Bus", height: 24 },
-    { icon: ferryIcon, label: "Ferry", height: 28 },
-    { icon: trainIcon, label: "Train", height: 22 },
-    { icon: tramIcon, label: "Tram", height: 28 },
     { icon: greenMarkerIcon, label: "Follow vehicle marker", height: 20 },
     { icon: greenMarker, label: "Update frequency < 2s", height: 17 },
     { icon: orangeMarker, label: "Update frequency < 15s", height: 18 },
@@ -75,6 +79,16 @@ export function Legend() {
       <Typography variant="h6" gutterBottom>
         Map legend
       </Typography>
+
+      {VEHICLE_LEGEND.map((item) => (
+        <Box
+          key={item.label}
+          sx={{ display: "flex", alignItems: "center", mb: 1 }}
+        >
+          <VehicleIconCanvas url={item.url} size={24} />
+          <Typography variant="body2">{item.label}</Typography>
+        </Box>
+      ))}
 
       {legendItems.map((item, index) => (
         <Box key={index} sx={{ display: "flex", alignItems: "center", mb: 1 }}>
