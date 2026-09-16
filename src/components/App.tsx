@@ -22,7 +22,7 @@ function App() {
   const [mapViewOptions, setMapViewOptions] = useState<MapViewOptions>({
     showVehicleTraces: false,
     showVehicles: true,
-    showDelay: true,
+    showDelay: false,
     showUpdateFrequency: false,
     showDeadUpdateFrequency: false,
     showVehicleHeatmap: false,
