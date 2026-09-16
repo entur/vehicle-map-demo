@@ -23,6 +23,7 @@ export const APP_MODES: AppMode[] = ["vehicles", "situations"];
 export const MODE_LAYERS: Record<AppMode, string[]> = {
   vehicles: [
     "vehicle-layer",
+    "vehicle-bearing-layer",
     "vehicle-model-layer",
     "vehicle-trace-layer",
     "vehicle-follow-layer",
@@ -65,6 +66,8 @@ export const MODE_SWITCHED_LAYERS: Record<
     "vehicle-layer": "showVehicles",
     // Same switch: the model is the icon's zoomed-in form, not a separate layer.
     "vehicle-model-layer": "showVehicles",
+    // Same switch: the arrow is part of the icon.
+    "vehicle-bearing-layer": "showVehicles",
     "vehicle-trace-layer": "showVehicleTraces",
     delay: "showDelay",
     "vehicle-update-interval-icon-layer": "showUpdateFrequency",

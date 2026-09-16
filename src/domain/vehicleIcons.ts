@@ -4,6 +4,9 @@ import type { VehicleModeEnumeration } from "../types.ts";
 /** Drawn for any mode without its own icon, so it reads as unknown, not as a bus. */
 export const UNKNOWN_VEHICLE_ICON = "vehicle-unknown";
 
+/** The arrowhead drawn around a vehicle icon, rotated to its bearing. */
+export const BEARING_ARROW_ICON = "vehicle-bearing-arrow";
+
 /** The map image each mode is drawn with. Modes absent here get the generic icon. */
 export const VEHICLE_ICON_BY_MODE: Partial<
   Record<VehicleModeEnumeration, string>

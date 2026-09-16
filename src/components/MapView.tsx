@@ -18,6 +18,7 @@ import type { MapStyleDataEvent } from "maplibre-gl";
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import { SelectedVehicle, VehicleMarkers } from "./Vehicle/VehicleMarkers.tsx";
 import { RegisterIcons } from "./RegisterIcons.tsx";
+import { VehicleLabelPlacement } from "./Vehicle/VehicleLabelPlacement.tsx";
 import { RightMenu } from "./RightMenu";
 import { VehicleData } from "../hooks/useVehiclePositionsData.ts";
 import { VehicleTraces } from "./Vehicle/VehicleTraces.tsx";
@@ -218,6 +219,7 @@ export function MapView({
           setMapViewOptions={setMapViewOptions}
         />
         <RegisterIcons />
+        <VehicleLabelPlacement />
         <ModeLayers mode={mode} mapViewOptions={mapViewOptions} />
         <CaptureBoundingBox
           setCurrentFilter={setCurrentFilter}

@@ -1,9 +1,13 @@
 import { useEffect } from "react";
 import { useMap } from "react-map-gl/maplibre";
 
-import { UNKNOWN_VEHICLE_ICON } from "../domain/vehicleIcons.ts";
+import {
+  BEARING_ARROW_ICON,
+  UNKNOWN_VEHICLE_ICON,
+} from "../domain/vehicleIcons.ts";
 import {
   VEHICLE_ICON_PIXEL_RATIO,
+  bearingArrowImageData,
   vehicleIconImageData,
 } from "./drawVehicleIcon.ts";
 import { VEHICLE_ICON_URLS } from "./vehicleIconImages.ts";
@@ -90,6 +94,15 @@ export function RegisterIcons() {
             registered.add(name);
           })
           .catch((error: unknown) => console.error(error));
+      }
+      if (
+        !warnIfTaken(map, BEARING_ARROW_ICON) &&
+        !map.hasImage(BEARING_ARROW_ICON)
+      ) {
+        map.addImage(BEARING_ARROW_ICON, bearingArrowImageData(), {
+          pixelRatio: VEHICLE_ICON_PIXEL_RATIO,
+        });
+        registered.add(BEARING_ARROW_ICON);
       }
     };
 

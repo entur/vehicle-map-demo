@@ -72,7 +72,10 @@ export function MapLayers({ mode, mapViewOptions, setMapViewOptions }: Props) {
               control={
                 <Switch
                   checked={mapViewOptions.showVehicles}
-                  onChange={handleToggleLayer("showVehicles", "vehicle-layer")}
+                  onChange={handleToggleLayer("showVehicles", [
+                    "vehicle-layer",
+                    "vehicle-bearing-layer",
+                  ])}
                 />
               }
               label={

@@ -1,4 +1,4 @@
-import { EDGE_WHITE } from "../domain/dataColours.ts";
+import { EDGE_INK, EDGE_WHITE } from "../domain/dataColours.ts";
 
 /** Pixels across a drawn icon: 2× the SVGs' 52px viewBox. */
 export const VEHICLE_ICON_SIZE = 104;
@@ -45,6 +45,70 @@ export function drawVehicleIcon(
   ctx.lineWidth = RING_WIDTH;
   ctx.strokeStyle = EDGE_WHITE;
   ctx.stroke();
+}
+
+/**
+ * Pixels across the bearing arrow image. Drawn at the same pixel ratio as the
+ * vehicle icons and centred on the same point, so at an equal icon-size the
+ * arrow sits just outside the icon's circle at every zoom.
+ */
+export const BEARING_ARROW_SIZE = 200;
+
+/** Device-pixel radii of the arrowhead, measured from the icon's centre. */
+const ARROW_BASE_RADIUS = 56;
+const ARROW_NOTCH_RADIUS = 65;
+const ARROW_TIP_RADIUS = 90;
+const ARROW_HALF_WIDTH = 24;
+/** 2 logical px: the white outside of the two-tone edge. */
+const ARROW_EDGE_WIDTH = 4;
+
+/**
+ * The arrowhead's outline, pointing up (north before icon-rotate), clear of
+ * the icon's circle: tip, right barb, notch, left barb.
+ */
+export function bearingArrowPoints(
+  size: number = BEARING_ARROW_SIZE,
+): [x: number, y: number][] {
+  const c = size / 2;
+  return [
+    [c, c - ARROW_TIP_RADIUS],
+    [c + ARROW_HALF_WIDTH, c - ARROW_BASE_RADIUS],
+    [c, c - ARROW_NOTCH_RADIUS],
+    [c - ARROW_HALF_WIDTH, c - ARROW_BASE_RADIUS],
+  ];
+}
+
+/**
+ * Draws the bearing arrow: an ink arrowhead edged in white, the same two-tone
+ * edge the other map marks carry, so it reads on both base maps.
+ */
+export function drawBearingArrow(
+  ctx: CanvasRenderingContext2D,
+  size: number = BEARING_ARROW_SIZE,
+): void {
+  ctx.clearRect(0, 0, size, size);
+  ctx.beginPath();
+  bearingArrowPoints(size).forEach(([x, y], i) =>
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y),
+  );
+  ctx.closePath();
+  ctx.lineJoin = "round";
+  ctx.lineWidth = ARROW_EDGE_WIDTH * 2;
+  ctx.strokeStyle = EDGE_WHITE;
+  ctx.stroke();
+  ctx.fillStyle = EDGE_INK;
+  ctx.fill();
+}
+
+/** The bearing arrow as map image data. */
+export function bearingArrowImageData(): ImageData {
+  const canvas = document.createElement("canvas");
+  canvas.width = BEARING_ARROW_SIZE;
+  canvas.height = BEARING_ARROW_SIZE;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("No 2D canvas context for the bearing arrow");
+  drawBearingArrow(ctx);
+  return ctx.getImageData(0, 0, BEARING_ARROW_SIZE, BEARING_ARROW_SIZE);
 }
 
 function loadImage(url: string): Promise<HTMLImageElement> {

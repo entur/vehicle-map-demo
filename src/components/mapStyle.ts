@@ -14,7 +14,14 @@ import {
   TRACE,
 } from "../domain/dataColours.ts";
 import { SCHEME_PAINT, baseLayerVisibility } from "../domain/baseMapScheme.ts";
-import { VEHICLE_ICON_MATCH } from "../domain/vehicleIcons.ts";
+import {
+  BEARING_ARROW_ICON,
+  VEHICLE_ICON_MATCH,
+} from "../domain/vehicleIcons.ts";
+import {
+  vehicleLabelAnchor,
+  vehicleLabelOffset,
+} from "../domain/vehicleLabelPlacement.ts";
 import {
   BASE_MAP_GLYPHS,
   BASE_MAP_SOURCES,
@@ -39,6 +46,23 @@ const severityColourExpression: ExpressionSpecification = [
 
 /** Zoom at which vehicle icons start cross-fading into 3D models. */
 export const VEHICLE_MODEL_MIN_ZOOM = 16;
+
+/**
+ * Zoom from which a vehicle's bearing is drawn as an arrow on its icon's edge.
+ * The arrow fades out with the icon, since the 3D model shows heading itself.
+ */
+export const VEHICLE_BEARING_MIN_ZOOM = 13;
+
+/** `vehicle-layer`'s icon-size, shared so the arrow stays at the circle's edge. */
+const VEHICLE_ICON_SIZE_EXPRESSION: ExpressionSpecification = [
+  "interpolate",
+  ["linear"],
+  ["zoom"],
+  4,
+  0.42,
+  12,
+  0.62,
+];
 
 /** Every app text layer's font — the one OpenFreeMap's glyph server has. */
 const APP_TEXT_FONT = ["Noto Sans Regular"];
@@ -394,6 +418,41 @@ export function buildMapStyle(scheme: MapScheme): StyleSpecification {
           "fill-extrusion-opacity": 0,
         },
       },
+      // Below vehicle-layer and centred on the same point at the same size, so
+      // the arrowhead sits just outside the icon's circle. Vehicles without a
+      // usable bearing (a null property, set by VehicleMarkers) get no arrow.
+      {
+        id: "vehicle-bearing-layer",
+        type: "symbol",
+        source: "vehicles",
+        minzoom: VEHICLE_BEARING_MIN_ZOOM - 0.5,
+        filter: ["==", ["typeof", ["get", "bearing"]], "number"],
+        layout: {
+          "icon-image": BEARING_ARROW_ICON,
+          "icon-size": VEHICLE_ICON_SIZE_EXPRESSION,
+          "icon-rotate": ["get", "bearing"],
+          "icon-rotation-alignment": "map",
+          // Upright like the icon it rings, even when the map is pitched.
+          "icon-pitch-alignment": "viewport",
+          "icon-allow-overlap": true,
+          "icon-ignore-placement": true,
+        },
+        paint: {
+          "icon-opacity": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            VEHICLE_BEARING_MIN_ZOOM - 0.5,
+            0,
+            VEHICLE_BEARING_MIN_ZOOM,
+            1,
+            VEHICLE_MODEL_MIN_ZOOM,
+            1,
+            VEHICLE_MODEL_MIN_ZOOM + 0.5,
+            0,
+          ],
+        },
+      },
       {
         id: "vehicle-layer",
         type: "symbol",
@@ -402,13 +461,15 @@ export function buildMapStyle(scheme: MapScheme): StyleSpecification {
           "icon-image": VEHICLE_ICON_MATCH,
           // Icons are 52 logical px across at size 1 (drawVehicleIcon.ts):
           // ≈22px at zoom 4 growing to ≈32px from zoom 12.
-          "icon-size": ["interpolate", ["linear"], ["zoom"], 4, 0.42, 12, 0.62],
+          "icon-size": VEHICLE_ICON_SIZE_EXPRESSION,
           "icon-allow-overlap": true,
           "text-field": ["get", "lineCode"],
           "text-size": 14,
           "text-font": APP_TEXT_FONT,
-          "text-anchor": "top-left",
-          "text-offset": [0, -2.8],
+          // Behind the vehicle, clear of the bearing arrow. Built for a
+          // north-up map; VehicleLabelPlacement rebuilds both as the map turns.
+          "text-anchor": vehicleLabelAnchor(0),
+          "text-offset": vehicleLabelOffset(0),
           "text-allow-overlap": true,
         },
         paint: {
