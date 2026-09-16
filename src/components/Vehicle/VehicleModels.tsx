@@ -72,15 +72,32 @@ export function VehicleModels({
     [data, chasedVehicleKey],
   );
 
+  // Terrain heights, per vehicle report. The vehicle cache replaces a report's
+  // object only when a new one arrives, so a vehicle that has not reported
+  // since the last frame is not looked up again — and each report is looked up
+  // once, not once per model layer. Started afresh when terrain comes or goes.
+  const elevations = useMemo(
+    () => ({ viewDimension, heights: new WeakMap<VehicleUpdate, number>() }),
+    [viewDimension],
+  );
+
   useEffect(() => {
     const map = mapRef?.getMap();
     if (!map) return;
 
     // Terrain height at the vehicle, or sea level when there is no terrain
-    // (2D) or its tiles have not loaded yet — the next vehicle frame retries.
+    // (2D) or its tiles have not loaded yet — the next vehicle frame retries,
+    // since only a found height is cached.
     const getPosition = (vehicle: VehicleUpdate): [number, number, number] => {
       const { longitude, latitude } = vehicle.location;
-      const elevation = map.queryTerrainElevation([longitude, latitude]);
+      let elevation = elevations.heights.get(vehicle);
+      if (elevation === undefined) {
+        const found = map.queryTerrainElevation([longitude, latitude]);
+        if (found !== null && found !== undefined) {
+          elevation = found;
+          elevations.heights.set(vehicle, found);
+        }
+      }
       return [longitude, latitude, elevation ?? 0];
     };
     options.current = {
@@ -96,18 +113,22 @@ export function VehicleModels({
     overlay.setProps({
       layers: [...baseLayers.current, ...chasedLayers.current],
     });
-  }, [overlay, mapRef, unchased, opacity, viewDimension]);
+  }, [overlay, mapRef, unchased, opacity, viewDimension, elevations]);
 
   useEffect(() => {
     const publish = () => {
       const vehicle = chasedVehicleStore.get();
+      // A new object every frame, so the cache never hits; look the position up
+      // once here rather than once per model layer.
+      const position = vehicle && options.current?.getPosition(vehicle);
       chasedLayers.current =
-        vehicle && options.current
+        vehicle && options.current && position
           ? vehicleModelLayers([vehicle], {
               ...options.current,
               idPrefix: "vehicle-models-chased",
+              getPosition: () => position,
               // A new position every frame, so a new trigger every frame.
-              positionTrigger: vehicle.location,
+              positionTrigger: position,
             })
           : [];
       overlay.setProps({

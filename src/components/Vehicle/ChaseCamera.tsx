@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useMap } from "react-map-gl/maplibre";
+import type { Map as MapLibreMap } from "maplibre-gl";
 import { Filter } from "../../types.ts";
 import { VehicleData } from "../../hooks/useVehiclePositionsData.ts";
 import {
@@ -8,6 +9,7 @@ import {
   addSample,
   chaseBoundingBox,
   chaseTarget,
+  distanceMetres,
   positionAt,
   smoothAngle,
   smoothingAlpha,
@@ -35,6 +37,38 @@ const BUFFERED_TIME_CONSTANT_MS = 150;
 const LATEST_TIME_CONSTANT_MS = 1200;
 const HEADING_TIME_CONSTANT_MS = 600;
 const HUD_REFRESH_MS = 250;
+/**
+ * The chase moves the camera at most this often. Every camera move is a full
+ * map redraw with terrain, which dominates the chase's CPU cost, and
+ * requestAnimationFrame follows the display: on a 120 Hz screen an uncapped
+ * chase redraws twice as often for motion no smoother to the eye.
+ */
+const CHASE_FPS = 30;
+/** Slack for frame timing jitter, so a frame due at the cap is not skipped. */
+const FRAME_SLACK_MS = 2;
+
+/**
+ * How far the map shows from its centre, in metres: the farthest of the four
+ * canvas corners. With the chase's top padding the centre is the vehicle.
+ */
+function viewReachMetres(map: MapLibreMap): number {
+  const { lng, lat } = map.getCenter();
+  const { clientWidth: w, clientHeight: h } = map.getCanvas();
+  return Math.max(
+    ...[
+      [0, 0],
+      [w, 0],
+      [0, h],
+      [w, h],
+    ].map(([x, y]) => {
+      const corner = map.unproject([x, y]);
+      return distanceMetres(
+        { lon: lng, lat },
+        { lon: corner.lng, lat: corner.lat },
+      );
+    }),
+  );
+}
 
 type Hud =
   | { phase: "waiting" }
@@ -78,6 +112,12 @@ export function ChaseCamera({
   const key = chased.vehicleId + "_" + chased.serviceJourneyId;
   const samples = useRef<ChaseSample[]>([]);
   const latestReport = useRef<VehicleData["vehicleUpdate"] | null>(null);
+  /**
+   * How far the chase view reaches. Zero until the fly-in lands, so the box
+   * starts at its minimum rather than sized for the unpitched view the chase
+   * started from — which would re-open the subscription again on landing.
+   */
+  const viewReach = useRef(0);
   const [hud, setHud] = useState<Hud>({ phase: "waiting" });
 
   // Read by the long-lived effects below without restarting them.
@@ -87,6 +127,22 @@ export function ChaseCamera({
     viewDimensionRef.current = viewDimension;
     onStopRef.current = onStop;
   });
+
+  const keepBoxAroundVehicle = useCallback(() => {
+    const report = latestReport.current;
+    if (!report) return;
+    const { longitude, latitude } = report.location;
+    setCurrentFilter((prev) => {
+      const boundingBox = chaseBoundingBox(
+        prev?.boundingBox,
+        longitude,
+        latitude,
+        viewReach.current,
+      );
+      if (prev && boundingBox === prev.boundingBox) return prev;
+      return { ...prev, boundingBox };
+    });
+  }, [setCurrentFilter]);
 
   // Record each new report, and keep the subscription box around the vehicle.
   useEffect(() => {
@@ -103,18 +159,8 @@ export function ChaseCamera({
     if (next === samples.current) return;
     samples.current = next;
     latestReport.current = report;
-
-    const { longitude, latitude } = report.location;
-    setCurrentFilter((prev) => {
-      const boundingBox = chaseBoundingBox(
-        prev?.boundingBox,
-        longitude,
-        latitude,
-      );
-      if (prev && boundingBox === prev.boundingBox) return prev;
-      return { ...prev, boundingBox };
-    });
-  }, [data, key, setCurrentFilter]);
+    keepBoxAroundVehicle();
+  }, [data, key, keepBoxAroundVehicle]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -144,6 +190,13 @@ export function ChaseCamera({
     let phase: "waiting" | "flying" | "chasing" = "waiting";
     let camera: LngLat | null = null;
     let heading: number | null = null;
+    /** What the map and the model last showed, to skip frames that change nothing. */
+    let shown: {
+      lon: number;
+      lat: number;
+      heading: number | null;
+      report: VehicleData["vehicleUpdate"];
+    } | null = null;
     let playbackTime: number | null = null;
     let lastFrame = performance.now();
     let lastHud = 0;
@@ -153,9 +206,24 @@ export function ChaseCamera({
       if (phase !== "flying") return;
       phase = "chasing";
       map.setMinZoom(CHASE_MIN_ZOOM);
+      viewReach.current = viewReachMetres(map);
+      keepBoxAroundVehicle();
     };
 
+    // Zooming changes how far the view reaches, so the box may need to grow
+    // (zooming out) or, well past the needed size, shrink.
+    const onZoomEnd = () => {
+      if (phase !== "chasing") return;
+      viewReach.current = viewReachMetres(map);
+      keepBoxAroundVehicle();
+    };
+    map.on("zoomend", onZoomEnd);
+
     const tick = (frameTime: number) => {
+      if (frameTime - lastFrame < 1000 / CHASE_FPS - FRAME_SLACK_MS) {
+        frame = requestAnimationFrame(tick);
+        return;
+      }
       const dt = frameTime - lastFrame;
       lastFrame = frameTime;
       const now = Date.now();
@@ -207,18 +275,36 @@ export function ChaseCamera({
                   smoothingAlpha(dt, HEADING_TIME_CONSTANT_MS),
                 );
         }
-        map.jumpTo({
-          center: [camera.lon, camera.lat],
-          ...(heading !== null && { bearing: heading }),
-        });
       }
 
-      if (report && camera) {
+      // A vehicle standing at a stop leaves the camera where it is, and a camera
+      // move is a full map redraw, so frames that would change nothing are
+      // skipped. Smoothing only approaches its target, so "nothing" is a
+      // millimetre and a hundredth of a degree.
+      const unchanged =
+        shown !== null &&
+        camera !== null &&
+        shown.report === report &&
+        Math.abs(shown.lon - camera.lon) < 1e-8 &&
+        Math.abs(shown.lat - camera.lat) < 1e-8 &&
+        (shown.heading === heading ||
+          (shown.heading !== null &&
+            heading !== null &&
+            Math.abs(shown.heading - heading) < 0.01));
+
+      if (report && camera && !unchanged) {
+        if (phase === "chasing") {
+          map.jumpTo({
+            center: [camera.lon, camera.lat],
+            ...(heading !== null && { bearing: heading }),
+          });
+        }
         store.set({
           ...report,
           location: { longitude: camera.lon, latitude: camera.lat },
           bearing: heading,
         });
+        shown = { lon: camera.lon, lat: camera.lat, heading, report };
       }
 
       if (frameTime - lastHud >= HUD_REFRESH_MS) {
@@ -247,6 +333,7 @@ export function ChaseCamera({
     return () => {
       cancelAnimationFrame(frame);
       map.off("moveend", onFlightEnd);
+      map.off("zoomend", onZoomEnd);
       map.stop();
       store.set(null);
 
@@ -263,7 +350,7 @@ export function ChaseCamera({
         duration: 800,
       });
     };
-  }, [mapRef, store, key]);
+  }, [mapRef, store, key, keepBoxAroundVehicle]);
 
   return (
     <div className="chase-hud" role="status">

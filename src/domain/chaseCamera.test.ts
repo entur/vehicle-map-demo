@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { METRES_PER_DEGREE_LAT } from "./vehicleFootprint.ts";
 import {
-  CHASE_BOX_HALF_SIZE_DEG,
+  CHASE_BOX_MIN_HALF_SIZE_M,
   ChaseSample,
   FAST_INTERVAL_MS,
   addSample,
@@ -263,35 +264,75 @@ describe("smoothAngle", () => {
 });
 
 describe("chaseBoundingBox", () => {
+  /** Half the box's north-south extent, in metres. */
+  const halfHeightM = (box: number[][]) =>
+    ((box[1][1] - box[0][1]) / 2) * METRES_PER_DEGREE_LAT;
+  /** How far the default chase view reaches, measured: about 1 km. */
+  const REACH_M = 1000;
+
   it("centres a new box on the vehicle", () => {
-    const box = chaseBoundingBox(undefined, OSLO.lon, OSLO.lat);
+    const box = chaseBoundingBox(undefined, OSLO.lon, OSLO.lat, REACH_M);
     expect((box[0][1] + box[1][1]) / 2).toBeCloseTo(OSLO.lat, 9);
     expect((box[0][0] + box[1][0]) / 2).toBeCloseTo(OSLO.lon, 9);
-    expect(box[1][1] - box[0][1]).toBeCloseTo(2 * CHASE_BOX_HALF_SIZE_DEG, 9);
+  });
+
+  it("covers twice what the view reaches, so recentring stays rare", () => {
+    const box = chaseBoundingBox(undefined, OSLO.lon, OSLO.lat, REACH_M);
+    expect(halfHeightM(box)).toBeCloseTo(2 * REACH_M, 3);
+  });
+
+  it("is never smaller than the minimum, however close the view", () => {
+    const box = chaseBoundingBox(undefined, OSLO.lon, OSLO.lat, 100);
+    expect(halfHeightM(box)).toBeCloseTo(CHASE_BOX_MIN_HALF_SIZE_M, 3);
   });
 
   it("keeps the same box while the vehicle stays near its centre", () => {
     // Each new box re-opens the vehicle subscription, so it must not follow
     // the vehicle metre by metre.
-    const box = chaseBoundingBox(undefined, OSLO.lon, OSLO.lat);
-    const moved = chaseBoundingBox(box, OSLO.lon, OSLO.lat + 0.01);
-    expect(moved).toBe(box);
+    const box = chaseBoundingBox(undefined, OSLO.lon, OSLO.lat, REACH_M);
+    const lat = OSLO.lat + (0.4 * halfHeightM(box)) / METRES_PER_DEGREE_LAT;
+    expect(chaseBoundingBox(box, OSLO.lon, lat, REACH_M)).toBe(box);
   });
 
   it("recentres once the vehicle nears the edge", () => {
-    const box = chaseBoundingBox(undefined, OSLO.lon, OSLO.lat);
-    const lat = OSLO.lat + CHASE_BOX_HALF_SIZE_DEG * 0.8;
-    const moved = chaseBoundingBox(box, OSLO.lon, lat);
+    const box = chaseBoundingBox(undefined, OSLO.lon, OSLO.lat, REACH_M);
+    const lat = OSLO.lat + (0.8 * halfHeightM(box)) / METRES_PER_DEGREE_LAT;
+    const moved = chaseBoundingBox(box, OSLO.lon, lat, REACH_M);
     expect(moved).not.toBe(box);
     expect((moved[0][1] + moved[1][1]) / 2).toBeCloseTo(lat, 9);
   });
 
+  it("grows when zooming out makes the view reach past it", () => {
+    const box = chaseBoundingBox(undefined, OSLO.lon, OSLO.lat, REACH_M);
+    const grown = chaseBoundingBox(box, OSLO.lon, OSLO.lat, 3 * REACH_M);
+    expect(halfHeightM(grown)).toBeCloseTo(6 * REACH_M, 3);
+  });
+
+  it("keeps a somewhat larger box when zooming back in", () => {
+    // Shrinking on every zoom-in would re-open the subscription for nothing.
+    const box = chaseBoundingBox(undefined, OSLO.lon, OSLO.lat, 1500);
+    expect(chaseBoundingBox(box, OSLO.lon, OSLO.lat, REACH_M)).toBe(box);
+  });
+
+  it("replaces a box far larger than the view needs", () => {
+    // The whole-country viewport box from before the chase started holds
+    // hundreds of vehicles the chase never shows.
+    const country = [
+      [4, 57],
+      [32, 72],
+    ];
+    const box = chaseBoundingBox(country, OSLO.lon, OSLO.lat, REACH_M);
+    expect(box).not.toBe(country);
+    expect(halfHeightM(box)).toBeCloseTo(2 * REACH_M, 3);
+  });
+
   it("replaces a box that does not contain the vehicle at all", () => {
-    // The map viewport box from before the chase started.
     const viewport = [
       [5, 58],
       [6, 59],
     ];
-    expect(chaseBoundingBox(viewport, OSLO.lon, OSLO.lat)).not.toBe(viewport);
+    expect(chaseBoundingBox(viewport, OSLO.lon, OSLO.lat, REACH_M)).not.toBe(
+      viewport,
+    );
   });
 });

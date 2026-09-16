@@ -256,41 +256,57 @@ export function smoothingAlpha(dtMs: number, timeConstantMs: number): number {
   return 1 - Math.exp(-dtMs / timeConstantMs);
 }
 
-/** Half the height of the subscription box while chasing: about 5.5 km. */
-export const CHASE_BOX_HALF_SIZE_DEG = 0.05;
+/**
+ * The smallest half-height of the subscription box while chasing. Measured,
+ * the default chase camera (zoom 17.5, pitch 60°) shows about 1 km ahead.
+ */
+export const CHASE_BOX_MIN_HALF_SIZE_M = 2000;
 
 /** The box is recentred once the vehicle leaves this share of its middle. */
 const RECENTRE_FRACTION = 0.5;
 
+/** A box up to this many times the needed size is kept rather than shrunk. */
+const MAX_OVERSIZE = 2;
+
 /**
- * The vehicle subscription's bounding box while chasing. A pitched camera's
- * viewport bounds balloon toward the horizon, and a camera that moves every
- * frame would re-open the subscription continuously, so the chase uses a fixed
- * box around the vehicle instead, returned unchanged (same identity) until the
- * vehicle nears its edge.
+ * The vehicle subscription's bounding box while chasing, given how far the
+ * view reaches from the vehicle. A pitched camera's viewport bounds balloon
+ * toward the horizon, and a camera that moves every frame would re-open the
+ * subscription continuously, so the chase uses a box around the vehicle
+ * instead, returned unchanged (same identity) until the vehicle nears its
+ * edge or the view outgrows it.
+ *
+ * It is sized to twice the view's reach, with the vehicle allowed to drift
+ * half-way to the edge, so what is on screen stays inside it. Sized larger,
+ * every vehicle frame carries — and the map re-processes — vehicles far out
+ * of sight: a fixed ±5.5 km box put about 250 vehicles through the model and
+ * marker layers on every frame in central Trondheim, for a view showing a few.
  */
 export function chaseBoundingBox(
   box: number[][] | undefined,
   lon: number,
   lat: number,
+  viewReachMetres: number,
 ): number[][] {
-  const halfLat = CHASE_BOX_HALF_SIZE_DEG;
+  const neededHalfLat =
+    Math.max(CHASE_BOX_MIN_HALF_SIZE_M, 2 * viewReachMetres) /
+    METRES_PER_DEGREE_LAT;
   if (box) {
     const [[minLon, minLat], [maxLon, maxLat]] = box;
     const boxHalfLat = (maxLat - minLat) / 2;
     const boxHalfLon = (maxLon - minLon) / 2;
-    const isChaseBox = Math.abs(boxHalfLat - halfLat) < 1e-9;
     if (
-      isChaseBox &&
+      boxHalfLat >= neededHalfLat - 1e-9 &&
+      boxHalfLat <= neededHalfLat * MAX_OVERSIZE &&
       Math.abs(lat - (minLat + boxHalfLat)) <= boxHalfLat * RECENTRE_FRACTION &&
       Math.abs(lon - (minLon + boxHalfLon)) <= boxHalfLon * RECENTRE_FRACTION
     ) {
       return box;
     }
   }
-  const halfLon = halfLat / Math.cos((lat * Math.PI) / 180);
+  const halfLon = neededHalfLat / Math.cos((lat * Math.PI) / 180);
   return [
-    [lon - halfLon, lat - halfLat],
-    [lon + halfLon, lat + halfLat],
+    [lon - halfLon, lat - neededHalfLat],
+    [lon + halfLon, lat + neededHalfLat],
   ];
 }
