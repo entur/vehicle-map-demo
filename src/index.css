@@ -109,3 +109,10 @@ body {
 .chase-hud-stop:hover {
   background: #5d9c9b;
 }
+
+/* The top-left control stack sits at the same inset as every other floating
+   surface. DETAIL_PANEL_SX (src/components/detailDrawer.ts) is placed beside
+   it from this value — change both. */
+.maplibregl-map .maplibregl-ctrl-top-left .maplibregl-ctrl {
+  margin: 12px 0 0 12px;
+}

@@ -45,15 +45,14 @@ test("selecting a vehicle shows the timetable panel", async ({ page }) => {
   if (!box) test.skip(true, "Map canvas not found");
   await page.mouse.click(box!.x + box!.width / 2, box!.y + box!.height / 2);
 
-  // If a vehicle was selected, the drawer (MUI's persistent Drawer renders a
-  // `.MuiDrawer-paper` element) becomes visible.
-  const drawer = page.locator(".MuiDrawer-paper");
-  await expect(drawer).toBeVisible({ timeout: 5000 });
+  // If a vehicle was selected, its detail panel appears.
+  const panel = page.getByRole("region", { name: "Selected vehicle" });
+  await expect(panel).toBeVisible({ timeout: 5000 });
 
   // And at least one stop row eventually appears. We don't have a stable
-  // test ID on rows; assert by waiting for >=1 element under the drawer with
+  // test ID on rows; assert by waiting for >=1 element under the panel with
   // tabular-numeric content matching HH:MM.
-  await expect(drawer.locator("text=/[0-9]{2}:[0-9]{2}/").first()).toBeVisible({
+  await expect(panel.locator("text=/[0-9]{2}:[0-9]{2}/").first()).toBeVisible({
     timeout: 8000,
   });
 });
