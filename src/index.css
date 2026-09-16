@@ -13,65 +13,6 @@ body {
   margin: 0;
 }
 
-.right-menu-container {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 0;
-  background-color: #f4f4f4;
-  overflow-x: hidden;
-  transition: 0.3s;
-  margin-top: 20px;
-  box-shadow: none;
-}
-
-.right-menu-container.open {
-  width: 250px;
-  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
-}
-
-/* Tools whose content does not fit a 250px column — see isWideTool. The rail
-   buttons and the mode switch shift by the same amount, so all three stay in
-   step; changing one width means changing all three. */
-.right-menu-container.open.wide {
-  width: 460px;
-}
-
-.sidebar-button.right {
-  position: absolute;
-  right: 5px;
-  width: 48px; /* set a fixed width  */
-  height: 48px; /* set a fixed height */
-  background: #fff;
-  border: 1px solid;
-  border-radius: 50%; /* makes it round */
-  cursor: pointer;
-  transition:
-    right 0.3s,
-    background-color 0.2s;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-}
-
-.sidebar-button.right.open {
-  right: 255px;
-}
-
-.sidebar-button.right.open.wide {
-  right: 465px;
-}
-
-.sidebar-button.active {
-  background: #1fcac2;
-}
-
-.sidebar-button:hover {
-  background: #5d9c9b;
-}
-
 .vehicle-popup-content {
   display: flex;
   flex-direction: column;
@@ -119,69 +60,6 @@ body {
 .round-icon-button-small {
   width: 32px;
   height: 32px;
-}
-
-.left-menu-container {
-  position: absolute;
-  top: 125px;
-  left: 0;
-  width: 0;
-  background-color: #f4f4f4;
-  overflow-x: hidden;
-  transition: 0.3s;
-  margin-top: 20px;
-  box-shadow: none;
-}
-
-.left-menu-container.open {
-  width: 250px;
-  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
-}
-
-.sidebar-button.left {
-  position: absolute;
-  left: 5px;
-  width: 48px;
-  height: 48px;
-  background: #fff;
-  border: 1px solid;
-  border-radius: 50%;
-  cursor: pointer;
-  transition:
-    left 0.3s,
-    background-color 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-}
-
-.sidebar-button.left.open {
-  left: 255px;
-}
-
-.sidebar-button.active {
-  background: #1fcac2;
-}
-
-.sidebar-button:hover {
-  background: #5d9c9b;
-}
-
-.mode-switch {
-  position: absolute;
-  top: 20px;
-  right: 5px;
-  z-index: 1;
-  transition: right 0.3s;
-}
-
-.mode-switch.open {
-  right: 255px;
-}
-
-.mode-switch.open.wide {
-  right: 465px;
 }
 
 /* Text in a MapLibre control button, which is otherwise sized for an icon. */

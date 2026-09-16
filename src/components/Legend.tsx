@@ -18,7 +18,7 @@ import occupancy4 from "../static/images/occupancy4.png";
 import occupancy5 from "../static/images/occupancy5.png";
 import occupancy6 from "../static/images/occupancy6.png";
 import redSkull from "../static/images/skullRed.png";
-import { Box, Card, CardContent, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 
 type LegendItems = {
   icon: any;
@@ -71,26 +71,21 @@ export function Legend() {
   ];
 
   return (
-    <Card>
-      <CardContent>
-        <Typography variant="h6" gutterBottom>
-          Map legend
-        </Typography>
+    <Box>
+      <Typography variant="h6" gutterBottom>
+        Map legend
+      </Typography>
 
-        {legendItems.map((item, index) => (
-          <Box
-            key={index}
-            sx={{ display: "flex", alignItems: "center", mb: 1 }}
-          >
-            <img
-              src={item.icon}
-              alt={item.label}
-              style={{ width: "auto", height: item.height, marginRight: 8 }}
-            />
-            <Typography variant="body2">{item.label}</Typography>
-          </Box>
-        ))}
-      </CardContent>
-    </Card>
+      {legendItems.map((item, index) => (
+        <Box key={index} sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+          <img
+            src={item.icon}
+            alt={item.label}
+            style={{ width: "auto", height: item.height, marginRight: 8 }}
+          />
+          <Typography variant="body2">{item.label}</Typography>
+        </Box>
+      ))}
+    </Box>
   );
 }

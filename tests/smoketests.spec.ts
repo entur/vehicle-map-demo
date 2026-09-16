@@ -75,6 +75,18 @@ test("switching to situations mode swaps the tool rail", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Situations" })).toBeVisible();
 });
 
+test("statistics is a vehicles-mode tool in the right toolbar", async ({
+  page,
+}) => {
+  await page.goto("/");
+
+  await page.getByRole("button", { name: "Statistics" }).click();
+  await expect(page.getByRole("region", { name: "Statistics" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Situations", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Statistics" })).toHaveCount(0);
+});
+
 test("mode survives a reload", async ({ page }) => {
   await page.goto("/?mode=situations");
 

@@ -4,6 +4,7 @@ import { Filter, MapViewOptions, VehicleUpdate } from "../../types.ts";
 import { DataChecker } from "../DataChecker/DataChecker.tsx";
 import { FilterBox } from "../FilterBox.tsx";
 import { Legend } from "../Legend.tsx";
+import { InfoBox } from "../InfoBox.tsx";
 import { SituationsPanel } from "../SituationsPanel";
 import { SituationStatsTables } from "../SituationsPanel/SituationStatsTables.tsx";
 import { AppMode } from "../../domain/appMode.ts";
@@ -25,6 +26,7 @@ export const DrawerContent = ({
   setCurrentFilter,
   mapViewOptions,
   setMapViewOptions,
+  data,
 }: DrawerContentProps) => {
   return (
     <>
@@ -45,6 +47,9 @@ export const DrawerContent = ({
         />
       )}
       {activeContent === "stoplight" && currentFilter && <DataChecker />}
+      {activeContent === "statistics" && currentFilter && (
+        <InfoBox data={data} />
+      )}
       {activeContent === "situations" && <SituationsPanel />}
       {activeContent === "situationStats" && <SituationStatsTables />}
     </>

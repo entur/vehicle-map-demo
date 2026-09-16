@@ -157,6 +157,7 @@ const KNOWN_CONTENT_TYPES: RightContentType[] = [
   "info",
   "layers",
   "stoplight",
+  "statistics",
   "situations",
   "situationStats",
 ];
@@ -168,6 +169,7 @@ describe("rightRailTools", () => {
       "filtering",
       "info",
       "stoplight",
+      "statistics",
     ]);
     expect(rightRailTools("situations")).toEqual([
       "layers",
@@ -184,6 +186,11 @@ describe("rightRailTools", () => {
       }
     }
   });
+
+  it("offers statistics in vehicles mode only", () => {
+    expect(rightRailTools("vehicles")).toContain("statistics");
+    expect(rightRailTools("situations")).not.toContain("statistics");
+  });
 });
 
 describe("isWideTool", () => {
@@ -191,6 +198,7 @@ describe("isWideTool", () => {
     expect(isWideTool("situationStats")).toBe(true);
     expect(isWideTool("situations")).toBe(false);
     expect(isWideTool("filtering")).toBe(false);
+    expect(isWideTool("statistics")).toBe(false);
   });
 
   it("marks only tools some mode's rail actually offers", () => {

@@ -16,7 +16,6 @@ import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import { SelectedVehicle, VehicleMarkers } from "./Vehicle/VehicleMarkers.tsx";
 import { RegisterIcons } from "./RegisterIcons.tsx";
 import { RightMenu } from "./RightMenu";
-import { LeftMenu } from "./LeftMenu";
 import { VehicleData } from "../hooks/useVehiclePositionsData.ts";
 import { VehicleTraces } from "./Vehicle/VehicleTraces.tsx";
 import { VehicleModels } from "./Vehicle/VehicleModels.tsx";
@@ -162,15 +161,6 @@ export function MapView({
         />
         {viewDimension === "3d" && <RotateControl />}
         <ViewDimensionLayers dimension={viewDimension} />
-        <LeftMenu
-          mode={mode}
-          viewDimension={viewDimension}
-          data={data.map((vehicle) => vehicle.vehicleUpdate)}
-          setCurrentFilter={setCurrentFilter}
-          currentFilter={currentFilter}
-          mapViewOptions={mapViewOptions}
-          setMapViewOptions={setMapViewOptions}
-        />
         <RightMenu
           mode={mode}
           setMode={setMode}

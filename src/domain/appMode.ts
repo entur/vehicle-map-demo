@@ -140,7 +140,7 @@ export const otherMode = (mode: AppMode): AppMode =>
 
 /** The right-rail tools available in each mode, in display order. */
 const RIGHT_RAIL_TOOLS: Record<AppMode, RightContentType[]> = {
-  vehicles: ["layers", "filtering", "info", "stoplight"],
+  vehicles: ["layers", "filtering", "info", "stoplight", "statistics"],
   situations: ["layers", "filtering", "situations", "situationStats"],
 };
 
@@ -150,12 +150,11 @@ export function rightRailTools(mode: AppMode): RightContentType[] {
 }
 
 /**
- * Tools whose drawer opens wider than the default 250px.
+ * Tools whose panel opens wider than the default 300px.
  *
- * The feed report is six count tables over the whole feed; in a 250px column
+ * The feed report is six count tables over the whole feed; in a narrow column
  * they stack into one long scroll and nothing can be compared side by side.
- * Kept as a table rather than a flag on the tool so the rail, the buttons and
- * the mode switch all read the same source when they shift out of the way.
+ * Only the tool panel reads this — nothing else moves when it widens.
  */
 const WIDE_TOOLS: RightContentType[] = ["situationStats"];
 

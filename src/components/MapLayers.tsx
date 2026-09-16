@@ -1,8 +1,6 @@
 import { ChangeEvent } from "react";
 import { useMap } from "react-map-gl/maplibre";
 import {
-  Card,
-  CardContent,
   Typography,
   FormGroup,
   FormControlLabel,
@@ -62,131 +60,122 @@ export function MapLayers({ mode, mapViewOptions, setMapViewOptions }: Props) {
   );
 
   return (
-    <Card>
-      <CardContent>
-        <Typography variant="h6" gutterBottom>
-          Map Layers
-        </Typography>
-        <FormGroup>
-          {mode === "vehicles" && (
-            <>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={mapViewOptions.showVehicles}
-                    onChange={handleToggleLayer(
-                      "showVehicles",
-                      "vehicle-layer",
-                    )}
-                  />
-                }
-                label={getLabelWithIcon(busIcon, "Vehicles", 22)}
-              />
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={mapViewOptions.showVehicleTraces}
-                    onChange={handleToggleLayer(
-                      "showVehicleTraces",
-                      "vehicle-trace-layer",
-                    )}
-                  />
-                }
-                label={getLabelWithIcon(traces, "Vehicle traces", 24)}
-              />
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={mapViewOptions.showDelay}
-                    onChange={handleToggleLayer("showDelay", "delay")}
-                  />
-                }
-                label={getLabelWithIcon(greenLight, "Delay", 24)}
-              />
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={mapViewOptions.showUpdateFrequency}
-                    onChange={handleToggleLayer(
-                      "showUpdateFrequency",
-                      "vehicle-update-interval-icon-layer",
-                    )}
-                  />
-                }
-                label={getLabelWithIcon(greenMarker, "Update frequency", 16)}
-              />
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={mapViewOptions.showDeadUpdateFrequency}
-                    onChange={handleToggleLayer(
-                      "showDeadUpdateFrequency",
-                      "vehicle-update-interval-skull-layer",
-                    )}
-                  />
-                }
-                label={getLabelWithIcon(
-                  skullMarker,
-                  "Stale updates (30s+)",
-                  24,
-                )}
-              />
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={mapViewOptions.showOccupancy}
-                    onChange={handleToggleLayer(
-                      "showOccupancy",
-                      "occupancy-layer",
-                    )}
-                  />
-                }
-                label={getLabelWithIcon(occupancy2, "Occupancy", 8)}
-              />
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={mapViewOptions.showVehicleHeatmap}
-                    onChange={handleToggleLayer(
-                      "showVehicleHeatmap",
-                      "vehicles-heatmap",
-                    )}
-                  />
-                }
-                label={getLabelWithIcon(heatMap, "Vehicle heatmap", 24)}
-              />
-            </>
-          )}
-          {mode === "situations" && (
-            <>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={mapViewOptions.showAffectedStops}
-                    onChange={handleToggleLayer(
-                      "showAffectedStops",
-                      "situation-points-layer",
-                    )}
-                  />
-                }
-                label={getLabelWithIcon(situationMarker, "Affected stops", 22)}
-              />
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={mapViewOptions.showAffectedLines}
-                    onChange={handleToggleLayer("showAffectedLines", [
-                      "situation-lines-casing-layer",
-                      "situation-lines-layer",
-                    ])}
-                  />
-                }
-                label={getLabelWithIcon(situationMarker, "Affected spans", 22)}
-              />
-            </>
-          )}
-        </FormGroup>
-      </CardContent>
-    </Card>
+    <Box>
+      <Typography variant="h6" gutterBottom>
+        Map Layers
+      </Typography>
+      <FormGroup>
+        {mode === "vehicles" && (
+          <>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={mapViewOptions.showVehicles}
+                  onChange={handleToggleLayer("showVehicles", "vehicle-layer")}
+                />
+              }
+              label={getLabelWithIcon(busIcon, "Vehicles", 22)}
+            />
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={mapViewOptions.showVehicleTraces}
+                  onChange={handleToggleLayer(
+                    "showVehicleTraces",
+                    "vehicle-trace-layer",
+                  )}
+                />
+              }
+              label={getLabelWithIcon(traces, "Vehicle traces", 24)}
+            />
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={mapViewOptions.showDelay}
+                  onChange={handleToggleLayer("showDelay", "delay")}
+                />
+              }
+              label={getLabelWithIcon(greenLight, "Delay", 24)}
+            />
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={mapViewOptions.showUpdateFrequency}
+                  onChange={handleToggleLayer(
+                    "showUpdateFrequency",
+                    "vehicle-update-interval-icon-layer",
+                  )}
+                />
+              }
+              label={getLabelWithIcon(greenMarker, "Update frequency", 16)}
+            />
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={mapViewOptions.showDeadUpdateFrequency}
+                  onChange={handleToggleLayer(
+                    "showDeadUpdateFrequency",
+                    "vehicle-update-interval-skull-layer",
+                  )}
+                />
+              }
+              label={getLabelWithIcon(skullMarker, "Stale updates (30s+)", 24)}
+            />
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={mapViewOptions.showOccupancy}
+                  onChange={handleToggleLayer(
+                    "showOccupancy",
+                    "occupancy-layer",
+                  )}
+                />
+              }
+              label={getLabelWithIcon(occupancy2, "Occupancy", 8)}
+            />
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={mapViewOptions.showVehicleHeatmap}
+                  onChange={handleToggleLayer(
+                    "showVehicleHeatmap",
+                    "vehicles-heatmap",
+                  )}
+                />
+              }
+              label={getLabelWithIcon(heatMap, "Vehicle heatmap", 24)}
+            />
+          </>
+        )}
+        {mode === "situations" && (
+          <>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={mapViewOptions.showAffectedStops}
+                  onChange={handleToggleLayer(
+                    "showAffectedStops",
+                    "situation-points-layer",
+                  )}
+                />
+              }
+              label={getLabelWithIcon(situationMarker, "Affected stops", 22)}
+            />
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={mapViewOptions.showAffectedLines}
+                  onChange={handleToggleLayer("showAffectedLines", [
+                    "situation-lines-casing-layer",
+                    "situation-lines-layer",
+                  ])}
+                />
+              }
+              label={getLabelWithIcon(situationMarker, "Affected spans", 22)}
+            />
+          </>
+        )}
+      </FormGroup>
+    </Box>
   );
 }

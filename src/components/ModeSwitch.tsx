@@ -6,9 +6,6 @@ import { ColorSchemeToggle } from "./ColorSchemeToggle.tsx";
 type Props = {
   mode: AppMode;
   setMode: (mode: AppMode) => void;
-  drawerOpen: boolean;
-  /** The open drawer is a wide one, so the switch shifts further left. */
-  wide: boolean;
 };
 
 /**
@@ -16,10 +13,9 @@ type Props = {
  * inside a drawer — which is closed by default — would leave the app with no
  * on-screen indication of which feed is running.
  */
-export function ModeSwitch({ mode, setMode, drawerOpen, wide }: Props) {
+export function ModeSwitch({ mode, setMode }: Props) {
   return (
     <FloatingCard
-      className={`mode-switch ${drawerOpen ? "open" : ""} ${wide ? "wide" : ""}`}
       sx={{ display: "flex", alignItems: "center", gap: 0.5, padding: 0.5 }}
     >
       <ToggleButtonGroup
