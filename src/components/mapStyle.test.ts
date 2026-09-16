@@ -8,7 +8,18 @@ import {
   MapScheme,
   baseMapLayerIds,
 } from "./basemap/basemap.ts";
-import { SCHEME_PAINT, baseLayerVisibility } from "../domain/baseMapScheme.ts";
+import {
+  SCHEME_PAINT,
+  baseLayerVisibility,
+  transitNetworkPaint,
+} from "../domain/baseMapScheme.ts";
+import { BASE_LAYERS } from "../domain/viewDimension.ts";
+import {
+  TRANSIT_NETWORK_LABEL_LAYERS,
+  TRANSIT_NETWORK_LAYERS,
+  TRANSIT_NETWORK_LINE_LAYERS,
+  TRANSIT_NETWORK_POINT_LAYERS,
+} from "../domain/transitNetwork.ts";
 
 type Loose = {
   id: string;
@@ -31,6 +42,9 @@ function schemeIndependent(scheme: MapScheme): StyleSpecification {
   }
   delete layer(style, "buildings-3d-layer").paint?.["fill-extrusion-color"];
   delete layer(style, "hillshade-layer").paint?.["hillshade-shadow-color"];
+  for (const [id, property] of transitNetworkPaint(scheme)) {
+    delete layer(style, id).paint?.[property];
+  }
   delete style.sky;
   return style;
 }
@@ -56,6 +70,52 @@ describe("buildMapStyle", () => {
         layer(style, "hillshade-layer").paint?.["hillshade-shadow-color"],
       ).toBe(SCHEME_PAINT[scheme].hillshadeShadow);
       expect(style.sky).toEqual(SCHEME_PAINT[scheme].sky);
+      for (const [id, property, value] of transitNetworkPaint(scheme)) {
+        expect([id, property, layer(style, id).paint?.[property]]).toEqual([
+          id,
+          property,
+          value,
+        ]);
+      }
+    }
+  });
+
+  it("draws the transit network visible at mount, reading the base map's tiles", () => {
+    const style = buildMapStyle("light");
+    for (const id of TRANSIT_NETWORK_LAYERS) {
+      const l = style.layers.find((candidate) => candidate.id === id) as
+        { source?: string; layout?: { visibility?: string } } | undefined;
+      expect([id, l?.source, l?.layout?.visibility]).toEqual([
+        id,
+        "openmaptiles",
+        "visible",
+      ]);
+    }
+  });
+
+  it("draws transit lines under hillshade, points under buildings and labels over base labels", () => {
+    const style = buildMapStyle("light");
+    const ids = style.layers.map((l) => l.id);
+    const byType = new Map(style.layers.map((l) => [l.id, l.type]));
+    const at = (id: string) => ids.indexOf(id);
+    const base = baseMapLayerIds();
+    const lastBase = (symbol: boolean) =>
+      Math.max(
+        ...base
+          .filter((id) => (byType.get(id) === "symbol") === symbol)
+          .map(at),
+      );
+
+    for (const id of TRANSIT_NETWORK_LINE_LAYERS) {
+      expect(at(id)).toBeGreaterThan(lastBase(false));
+      expect(at(id)).toBeLessThan(at("hillshade-layer"));
+    }
+    for (const id of TRANSIT_NETWORK_POINT_LAYERS) {
+      expect(at(id)).toBeGreaterThan(at("hillshade-layer"));
+      expect(at(id)).toBeLessThan(at("buildings-3d-layer"));
+    }
+    for (const id of TRANSIT_NETWORK_LABEL_LAYERS) {
+      expect(at(id)).toBeGreaterThan(lastBase(true));
     }
   });
 
@@ -107,13 +167,8 @@ describe("buildMapStyle", () => {
 
   it("draws every base layer beneath the first app layer", () => {
     const ids = buildMapStyle("light").layers.map((l) => l.id);
-    const base = new Set(baseMapLayerIds());
-    const firstAppIndex = ids.findIndex(
-      (id) =>
-        !base.has(id) &&
-        id !== "hillshade-layer" &&
-        id !== "buildings-3d-layer",
-    );
+    const base = new Set(BASE_LAYERS);
+    const firstAppIndex = ids.findIndex((id) => !base.has(id));
     for (const id of base) {
       expect(ids.indexOf(id)).toBeLessThan(firstAppIndex);
     }

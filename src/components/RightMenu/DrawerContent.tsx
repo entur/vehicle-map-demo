@@ -16,6 +16,8 @@ type DrawerContentProps = {
   setCurrentFilter: (filter: Filter) => void;
   mapViewOptions: MapViewOptions;
   setMapViewOptions: (mapViewOptions: MapViewOptions) => void;
+  showTransitNetwork: boolean;
+  setShowTransitNetwork: (show: boolean) => void;
   data: VehicleUpdate[];
 };
 
@@ -26,6 +28,8 @@ export const DrawerContent = ({
   setCurrentFilter,
   mapViewOptions,
   setMapViewOptions,
+  showTransitNetwork,
+  setShowTransitNetwork,
   data,
 }: DrawerContentProps) => {
   return (
@@ -44,6 +48,8 @@ export const DrawerContent = ({
           mode={mode}
           mapViewOptions={mapViewOptions}
           setMapViewOptions={setMapViewOptions}
+          showTransitNetwork={showTransitNetwork}
+          setShowTransitNetwork={setShowTransitNetwork}
         />
       )}
       {activeContent === "stoplight" && currentFilter && <DataChecker />}

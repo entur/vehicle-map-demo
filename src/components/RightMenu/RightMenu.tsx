@@ -17,6 +17,8 @@ interface RightMenuProps {
   currentFilter: Filter | null | undefined;
   mapViewOptions: MapViewOptions;
   setMapViewOptions: (mapViewOptions: MapViewOptions) => void;
+  showTransitNetwork: boolean;
+  setShowTransitNetwork: (show: boolean) => void;
   data: VehicleUpdate[];
 }
 
@@ -27,6 +29,8 @@ export const RightMenu = ({
   setCurrentFilter,
   mapViewOptions,
   setMapViewOptions,
+  showTransitNetwork,
+  setShowTransitNetwork,
   data,
 }: RightMenuProps) => {
   const [activeContent, setActiveContent] = useState<RightContentType | null>(
@@ -103,6 +107,8 @@ export const RightMenu = ({
               setCurrentFilter={setCurrentFilter}
               mapViewOptions={mapViewOptions}
               setMapViewOptions={setMapViewOptions}
+              showTransitNetwork={showTransitNetwork}
+              setShowTransitNetwork={setShowTransitNetwork}
               data={data}
             />
           </FloatingCard>

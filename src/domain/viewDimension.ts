@@ -3,6 +3,7 @@ import {
   BASE_MAP_SOURCES,
   baseMapLayerIds,
 } from "../components/basemap/basemap.ts";
+import { TRANSIT_NETWORK_LAYERS } from "./transitNetwork.ts";
 
 /**
  * Whether the map is drawn flat or tilted over terrain with extruded
@@ -27,8 +28,15 @@ export function parseViewDimension(
  */
 export const VIEW_3D_LAYERS = ["hillshade-layer", "buildings-3d-layer"];
 
-/** Derived, not listed: both base maps' layers plus the 3D-only ones. */
-export const BASE_LAYERS = [...baseMapLayerIds(), ...VIEW_3D_LAYERS];
+/**
+ * Derived, not listed: both base maps' layers, the 3D-only ones, and the
+ * transit network drawn from the base map's tiles (see transitNetwork.ts).
+ */
+export const BASE_LAYERS = [
+  ...baseMapLayerIds(),
+  ...VIEW_3D_LAYERS,
+  ...TRANSIT_NETWORK_LAYERS,
+];
 
 export const BASE_SOURCES = [
   ...Object.keys(BASE_MAP_SOURCES),

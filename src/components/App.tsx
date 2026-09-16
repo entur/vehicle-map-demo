@@ -19,6 +19,9 @@ function App() {
   const [currentFilter, setCurrentFilter] = useState<Filter | null>(null);
   const [mode, setMode] = useState<AppMode>("vehicles");
   const [viewDimension, setViewDimension] = useState<ViewDimension>("2d");
+  // Base map context shared by both modes, so not a MapViewOptions key: those
+  // are single-mode switches and re-open the vehicle subscription.
+  const [showTransitNetwork, setShowTransitNetwork] = useState(true);
   const [mapViewOptions, setMapViewOptions] = useState<MapViewOptions>({
     showVehicleTraces: false,
     showVehicles: true,
@@ -58,6 +61,8 @@ function App() {
             setMode={setMode}
             viewDimension={viewDimension}
             setViewDimension={setViewDimension}
+            showTransitNetwork={showTransitNetwork}
+            setShowTransitNetwork={setShowTransitNetwork}
             data={data}
             setCurrentFilter={setCurrentFilter}
             currentFilter={currentFilter}

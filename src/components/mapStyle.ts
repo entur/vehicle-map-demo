@@ -13,7 +13,25 @@ import {
   SEVERITY_SEVERE,
   TRACE,
 } from "../domain/dataColours.ts";
-import { SCHEME_PAINT, baseLayerVisibility } from "../domain/baseMapScheme.ts";
+import {
+  SCHEME_PAINT,
+  baseLayerVisibility,
+  transitNetworkPaint,
+} from "../domain/baseMapScheme.ts";
+import {
+  FERRY_FILTER,
+  FERRY_LABEL_LAYER,
+  FERRY_LINE_LAYER,
+  STATION_FILTER,
+  STATION_LABEL_LAYER,
+  STATION_LAYER,
+  STOP_FILTER,
+  STOP_LABEL_LAYER,
+  STOP_LAYER,
+  STOP_MIN_ZOOM,
+  TRANSIT_LINE_FILTER,
+  TRANSIT_LINE_LAYER,
+} from "../domain/transitNetwork.ts";
 import {
   BEARING_ARROW_ICON,
   VEHICLE_ICON_MATCH,
@@ -115,6 +133,157 @@ function baseMapFor(scheme: MapScheme): {
   };
 }
 
+/** A tunnel is drawn faint: the line is there, but not on the surface. */
+const TUNNEL_OPACITY: ExpressionSpecification = [
+  "case",
+  ["==", ["get", "brunnel"], "tunnel"],
+  0.35,
+  1,
+];
+
+/**
+ * The transit network (src/domain/transitNetwork.ts), in the three groups the
+ * style interleaves it into, with `scheme`'s colours from transitNetworkPaint.
+ * Visible at mount; TransitNetworkLayers owns visibility from then on.
+ */
+function transitNetworkFor(scheme: MapScheme): {
+  lines: LayerSpecification[];
+  points: LayerSpecification[];
+  labels: LayerSpecification[];
+} {
+  const lines: LayerSpecification[] = [
+    {
+      id: TRANSIT_LINE_LAYER,
+      type: "line",
+      source: "openmaptiles",
+      "source-layer": "transportation",
+      minzoom: 7,
+      filter: TRANSIT_LINE_FILTER,
+      layout: { "line-join": "round", visibility: "visible" },
+      paint: {
+        "line-width": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          7,
+          0.6,
+          12,
+          1.4,
+          16,
+          2.5,
+        ],
+        "line-opacity": TUNNEL_OPACITY,
+      },
+    },
+    {
+      id: FERRY_LINE_LAYER,
+      type: "line",
+      source: "openmaptiles",
+      "source-layer": "transportation",
+      minzoom: 6,
+      filter: FERRY_FILTER,
+      layout: { "line-join": "round", visibility: "visible" },
+      paint: {
+        "line-width": ["interpolate", ["linear"], ["zoom"], 6, 0.8, 14, 2],
+        "line-dasharray": [3, 2],
+      },
+    },
+  ];
+  const points: LayerSpecification[] = [
+    {
+      id: STOP_LAYER,
+      type: "circle",
+      source: "openmaptiles",
+      "source-layer": "poi",
+      minzoom: STOP_MIN_ZOOM,
+      filter: STOP_FILTER,
+      layout: { visibility: "visible" },
+      paint: {
+        "circle-radius": 3,
+        "circle-stroke-width": 1.5,
+        "circle-pitch-alignment": "map",
+      },
+    },
+    {
+      id: STATION_LAYER,
+      type: "circle",
+      source: "openmaptiles",
+      "source-layer": "poi",
+      minzoom: 11,
+      filter: STATION_FILTER,
+      layout: { visibility: "visible" },
+      paint: {
+        "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 3, 16, 5.5],
+        "circle-stroke-width": 1.5,
+        "circle-pitch-alignment": "map",
+      },
+    },
+  ];
+  const labels: LayerSpecification[] = [
+    {
+      id: FERRY_LABEL_LAYER,
+      type: "symbol",
+      source: "openmaptiles",
+      "source-layer": "transportation_name",
+      minzoom: 11,
+      filter: FERRY_FILTER,
+      layout: {
+        visibility: "visible",
+        "symbol-placement": "line",
+        "text-field": ["get", "name"],
+        "text-font": APP_TEXT_FONT,
+        "text-size": 11,
+      },
+      paint: { "text-halo-width": 1.2 },
+    },
+    {
+      id: STOP_LABEL_LAYER,
+      type: "symbol",
+      source: "openmaptiles",
+      "source-layer": "poi",
+      minzoom: STOP_MIN_ZOOM,
+      filter: STOP_FILTER,
+      layout: {
+        visibility: "visible",
+        "text-field": ["get", "name"],
+        "text-font": APP_TEXT_FONT,
+        "text-size": 10.5,
+        "text-anchor": "top",
+        "text-offset": [0, 0.5],
+        "text-max-width": 8,
+      },
+      paint: { "text-halo-width": 1.2 },
+    },
+    {
+      id: STATION_LABEL_LAYER,
+      type: "symbol",
+      source: "openmaptiles",
+      "source-layer": "poi",
+      minzoom: 12,
+      filter: STATION_FILTER,
+      layout: {
+        visibility: "visible",
+        "text-field": ["get", "name"],
+        "text-font": APP_TEXT_FONT,
+        "text-size": 12,
+        "text-anchor": "top",
+        "text-offset": [0, 0.6],
+        "text-max-width": 8,
+      },
+      paint: { "text-halo-width": 1.2 },
+    },
+  ];
+
+  const byId = new Map(
+    [...lines, ...points, ...labels].map((layer) => [layer.id, layer]),
+  );
+  for (const [id, property, value] of transitNetworkPaint(scheme)) {
+    const layer = byId.get(id) as { paint: Record<string, unknown> };
+    layer.paint[property] = value;
+  }
+  return { lines, points, labels };
+}
+
 /**
  * The app's one style, for the colour scheme in force when the map mounts.
  * Build it once per mount and never hand `<Map>` a new one: a changed style
@@ -125,6 +294,7 @@ function baseMapFor(scheme: MapScheme): {
 export function buildMapStyle(scheme: MapScheme): StyleSpecification {
   const paint = SCHEME_PAINT[scheme];
   const base = baseMapFor(scheme);
+  const transit = transitNetworkFor(scheme);
   return {
     version: 8,
     glyphs: BASE_MAP_GLYPHS,
@@ -185,6 +355,7 @@ export function buildMapStyle(scheme: MapScheme): StyleSpecification {
 
     layers: [
       ...base.nonSymbol,
+      ...transit.lines,
       // The two 3D-only base layers sit between the base map's ordinary
       // layers and its symbol (label) layers: below every data layer, so
       // buildings never cover a vehicle or a situation, and below every
@@ -200,6 +371,10 @@ export function buildMapStyle(scheme: MapScheme): StyleSpecification {
           "hillshade-shadow-color": paint.hillshadeShadow,
         },
       },
+      // Beneath buildings-3d-layer, so in 3D a building hides the stops
+      // behind it, as it hides the street they are on. Above hillshade, so the
+      // circles are never shaded.
+      ...transit.points,
       {
         id: "buildings-3d-layer",
         type: "fill-extrusion",
@@ -231,6 +406,7 @@ export function buildMapStyle(scheme: MapScheme): StyleSpecification {
         },
       },
       ...base.symbol,
+      ...transit.labels,
       // Two-tone edge (dataColours.ts): ink separates the route on the light
       // base map, white on the dark one. Solid even when the route is dashed
       // for a cancelled trip, so the dashes read against a continuous band.

@@ -40,6 +40,7 @@ import { RotateControl } from "./RotateControl.tsx";
 import { ViewDimensionControl } from "./ViewDimensionControl.tsx";
 import { ViewDimensionLayers } from "./ViewDimensionLayers.tsx";
 import { BaseMapScheme } from "./BaseMapScheme.tsx";
+import { TransitNetworkLayers } from "./TransitNetworkLayers.tsx";
 import { ChaseCamera } from "./Vehicle/ChaseCamera.tsx";
 import {
   ChasedVehicle,
@@ -53,6 +54,8 @@ type MapViewProps = {
   setMode: (mode: AppMode) => void;
   viewDimension: ViewDimension;
   setViewDimension: (viewDimension: ViewDimension) => void;
+  showTransitNetwork: boolean;
+  setShowTransitNetwork: (show: boolean) => void;
   data: VehicleData[];
   setCurrentFilter: React.Dispatch<React.SetStateAction<Filter | null>>;
   currentFilter: Filter | null;
@@ -65,6 +68,8 @@ export function MapView({
   setMode,
   viewDimension,
   setViewDimension,
+  showTransitNetwork,
+  setShowTransitNetwork,
   data,
   setCurrentFilter,
   currentFilter,
@@ -212,6 +217,7 @@ export function MapView({
         {viewDimension === "3d" && <RotateControl />}
         <ViewDimensionLayers dimension={viewDimension} />
         <BaseMapScheme />
+        <TransitNetworkLayers visible={showTransitNetwork} />
         <RightMenu
           mode={mode}
           setMode={switchMode}
@@ -220,6 +226,8 @@ export function MapView({
           currentFilter={currentFilter}
           mapViewOptions={mapViewOptions}
           setMapViewOptions={setMapViewOptions}
+          showTransitNetwork={showTransitNetwork}
+          setShowTransitNetwork={setShowTransitNetwork}
         />
         <RegisterIcons />
         <VehicleLabelPlacement />

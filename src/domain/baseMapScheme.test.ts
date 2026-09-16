@@ -62,6 +62,16 @@ describe("SCHEME_PAINT", () => {
         "horizon-color": "#eef3f6",
         "sky-horizon-blend": 0.6,
       },
+      transit: {
+        rail: "#8f96a3",
+        ferry: "#6f86a6",
+        stopFill: "#ffffff",
+        stopStroke: "#5b6475",
+        stationFill: "#4a5263",
+        stationStroke: "#ffffff",
+        text: "#3d4452",
+        textHalo: "#ffffff",
+      },
     });
   });
 
@@ -70,6 +80,9 @@ describe("SCHEME_PAINT", () => {
       expect(SCHEME_PAINT[scheme].buildings).toMatch(/^#[0-9a-f]{6}$/);
       expect(SCHEME_PAINT[scheme].hillshadeShadow).toMatch(/^#[0-9a-f]{6}$/);
       expect(SCHEME_PAINT[scheme].sky["sky-color"]).toBeTruthy();
+      for (const colour of Object.values(SCHEME_PAINT[scheme].transit)) {
+        expect(colour).toMatch(/^#[0-9a-f]{6}$/);
+      }
     }
   });
 });

@@ -24,9 +24,17 @@ type Props = {
   mode: AppMode;
   mapViewOptions: MapViewOptions;
   setMapViewOptions: (mapViewOptions: MapViewOptions) => void;
+  showTransitNetwork: boolean;
+  setShowTransitNetwork: (show: boolean) => void;
 };
 
-export function MapLayers({ mode, mapViewOptions, setMapViewOptions }: Props) {
+export function MapLayers({
+  mode,
+  mapViewOptions,
+  setMapViewOptions,
+  showTransitNetwork,
+  setShowTransitNetwork,
+}: Props) {
   const { current: mapRef } = useMap();
 
   // Takes one layer id or several: situations draw across lines and points that
@@ -188,6 +196,21 @@ export function MapLayers({ mode, mapViewOptions, setMapViewOptions }: Props) {
             />
           </>
         )}
+      </FormGroup>
+      <Typography variant="subtitle2" sx={{ mt: 2 }}>
+        Base map
+      </Typography>
+      <FormGroup>
+        {/* In both modes; TransitNetworkLayers applies it to the map. */}
+        <FormControlLabel
+          control={
+            <Switch
+              checked={showTransitNetwork}
+              onChange={(event) => setShowTransitNetwork(event.target.checked)}
+            />
+          }
+          label={<Typography variant="body2">Transit network</Typography>}
+        />
       </FormGroup>
     </Box>
   );

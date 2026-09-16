@@ -5,6 +5,7 @@ import {
   SCHEME_PAINT,
   baseLayerVisibility,
   mapSchemeFor,
+  transitNetworkPaint,
 } from "../domain/baseMapScheme.ts";
 import { whenLayerExists } from "../utils/whenLayerExists.ts";
 
@@ -14,8 +15,8 @@ import { whenLayerExists } from "../utils/whenLayerExists.ts";
  * and nothing the app has put on the map — images, GeoJSON data, app layer
  * visibility, terrain — is touched.
  *
- * Sole owner of base-layer visibility, the building and hillshade colours and
- * the sky. 3D-layer visibility belongs to ViewDimensionLayers and app layers to
+ * Sole owner of base-layer visibility, the building, hillshade and transit
+ * network colours and the sky. 3D-layer visibility belongs to ViewDimensionLayers and app layers to
  * ModeLayers/MapLayers.
  */
 export function BaseMapScheme() {
@@ -44,6 +45,9 @@ export function BaseMapScheme() {
         "hillshade-shadow-color",
         paint.hillshadeShadow,
       );
+      for (const [id, property, value] of transitNetworkPaint(scheme)) {
+        map.setPaintProperty(id, property as "line-color", value);
+      }
       map.setSky(paint.sky);
     };
 
