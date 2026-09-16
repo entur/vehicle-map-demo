@@ -21,59 +21,25 @@ body {
 }
 
 .vehicle-popup-actions {
-  margin-top: 16px;
+  margin-top: 8px;
   display: flex;
   justify-content: center;
-  gap: 16px;
+  gap: 4px;
   width: 100%;
-}
-
-.round-icon-button {
-  border: 1px solid black;
-  border-radius: 50%;
-  width: 48px;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #fff;
-  cursor: pointer;
-  transition:
-    right 0.3s,
-    background-color 0.2s;
-}
-
-.round-icon-button:hover {
-  background: #5d9c9b;
-}
-
-.icon {
-  width: 40px;
-  height: 40px;
-}
-
-.icon-small {
-  width: 24px;
-  height: 24px;
-}
-
-.round-icon-button-small {
-  width: 32px;
-  height: 32px;
 }
 
 /* Text in a MapLibre control button, which is otherwise sized for an icon. */
 .view-dimension-button {
   font-weight: 600;
   font-size: 12px;
-  color: #333;
+  color: var(--mui-palette-text-primary);
 }
 
 .rotate-button {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #333;
+  color: var(--mui-palette-text-primary);
 }
 
 /* Status bar for the chase camera, over the bottom of the map. */
@@ -90,24 +56,26 @@ body {
   gap: 8px 12px;
   max-width: calc(100% - 32px);
   padding: 8px 8px 8px 16px;
-  background: #fff;
-  border: 1px solid #000;
+  background: var(--mui-palette-background-paper);
+  color: var(--mui-palette-text-primary);
+  box-shadow: var(--floating-shadow);
   border-radius: 24px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
   font-size: 14px;
   font-variant-numeric: tabular-nums;
 }
 
 .chase-hud-stop {
   padding: 6px 14px;
-  border: 1px solid #000;
+  border: 1px solid var(--mui-palette-divider);
   border-radius: 16px;
-  background: #fff;
+  background: transparent;
+  color: inherit;
+  font: inherit;
   cursor: pointer;
 }
 
 .chase-hud-stop:hover {
-  background: #5d9c9b;
+  background: var(--mui-palette-action-hover);
 }
 
 /* The top-left control stack sits at the same inset as every other floating
@@ -115,4 +83,71 @@ body {
    it from this value — change both. */
 .maplibregl-map .maplibregl-ctrl-top-left .maplibregl-ctrl {
   margin: 12px 0 0 12px;
+}
+
+/* MapLibre's control stack and popups, drawn like the app's own cards. */
+.maplibregl-map .maplibregl-ctrl-group {
+  background: var(--mui-palette-background-paper);
+  border-radius: 10px;
+}
+
+.maplibregl-map .maplibregl-ctrl-group:not(:empty) {
+  box-shadow: var(--floating-shadow);
+}
+
+.maplibregl-map .maplibregl-ctrl-group button + button {
+  border-top-color: var(--mui-palette-divider);
+}
+
+.maplibregl-map .maplibregl-ctrl-group button:first-child {
+  border-radius: 10px 10px 0 0;
+}
+
+.maplibregl-map .maplibregl-ctrl-group button:last-child {
+  border-radius: 0 0 10px 10px;
+}
+
+.maplibregl-map .maplibregl-ctrl-group button:only-child {
+  border-radius: 10px;
+}
+
+.maplibregl-map .maplibregl-ctrl button:not(:disabled):hover {
+  background-color: var(--mui-palette-action-hover);
+}
+
+/* The zoom, compass and geolocate glyphs are dark background SVGs. */
+[data-mui-color-scheme="dark"] .maplibregl-map .maplibregl-ctrl-icon {
+  filter: invert(1);
+}
+
+.maplibregl-map .maplibregl-popup-content {
+  background: var(--mui-palette-background-paper);
+  color: var(--mui-palette-text-primary);
+  border-radius: 10px;
+  box-shadow: var(--floating-shadow);
+  padding: 12px 16px;
+}
+
+.maplibregl-map .maplibregl-popup-close-button {
+  color: var(--mui-palette-text-secondary);
+}
+
+.maplibregl-map .maplibregl-popup-anchor-top .maplibregl-popup-tip,
+.maplibregl-map .maplibregl-popup-anchor-top-left .maplibregl-popup-tip,
+.maplibregl-map .maplibregl-popup-anchor-top-right .maplibregl-popup-tip {
+  border-bottom-color: var(--mui-palette-background-paper);
+}
+
+.maplibregl-map .maplibregl-popup-anchor-bottom .maplibregl-popup-tip,
+.maplibregl-map .maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip,
+.maplibregl-map .maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip {
+  border-top-color: var(--mui-palette-background-paper);
+}
+
+.maplibregl-map .maplibregl-popup-anchor-left .maplibregl-popup-tip {
+  border-right-color: var(--mui-palette-background-paper);
+}
+
+.maplibregl-map .maplibregl-popup-anchor-right .maplibregl-popup-tip {
+  border-left-color: var(--mui-palette-background-paper);
 }

@@ -8,12 +8,13 @@ import {
   Typography,
   Stack,
   Box,
+  IconButton,
 } from "@mui/material";
+import ListAltIcon from "@mui/icons-material/ListAlt";
+import DataObjectIcon from "@mui/icons-material/DataObject";
 import { VehicleUpdateComplete } from "../../types";
 import redlightIcon from "../../static/images/redLight.png";
 import greenlightIcon from "../../static/images/greenLight.png";
-import detailsIcon from "../../static/images/details.png";
-import jsonIcon from "../../static/images/json.png";
 import Tooltip from "@mui/material/Tooltip";
 
 type VehicleDetailsDialogProps = {
@@ -74,13 +75,17 @@ export function VehicleDetailsDialog({
         >
           <span>Vehicle Details</span>
           <Tooltip title={showJson ? "View details" : "View JSON"}>
-            <button className="round-icon-button" onClick={toggleJson}>
-              <img
-                src={showJson ? detailsIcon : jsonIcon}
-                alt={showJson ? "View details" : "View JSON"}
-                className="icon"
-              />
-            </button>
+            <IconButton
+              aria-label={showJson ? "View details" : "View JSON"}
+              onClick={toggleJson}
+              sx={{ borderRadius: "6px" }}
+            >
+              {showJson ? (
+                <ListAltIcon fontSize="small" />
+              ) : (
+                <DataObjectIcon fontSize="small" />
+              )}
+            </IconButton>
           </Tooltip>
         </Box>
       </DialogTitle>
@@ -280,7 +285,7 @@ export function VehicleDetailsDialog({
             <Box
               component="pre"
               sx={{
-                backgroundColor: "#f5f5f5",
+                bgcolor: "action.hover",
                 padding: 2,
                 borderRadius: 1,
                 overflow: "auto",
