@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "capture-fixtures": "node scripts/capture-situations-fixture.mjs",
+    "fetch-basemap": "node scripts/fetch-basemap-styles.mjs",
     "preview": "vite preview",
     "format": "prettier . --write",
     "check": "prettier . --check",
