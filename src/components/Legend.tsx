@@ -19,7 +19,7 @@ import redSkull from "../static/images/skullRed.png";
 import { Box, Typography } from "@mui/material";
 
 type LegendItems = {
-  icon: any;
+  icon: string;
   label: string;
   height: number;
 };

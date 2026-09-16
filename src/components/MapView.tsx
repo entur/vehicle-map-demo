@@ -11,7 +11,11 @@ import { CaptureBoundingBox } from "./CaptureBoundingBox.tsx";
 import { Filter, MapViewOptions } from "../types.ts";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { setWorkerUrl } from "maplibre-gl";
-import type { MapStyleDataEvent } from "maplibre-gl";
+import type {
+  Map as MapLibreMap,
+  MapLibreEvent,
+  MapStyleDataEvent,
+} from "maplibre-gl";
 // MapLibre 6 cannot locate its worker from inside a bundle. `?worker&url`
 // rather than `?url`: the worker imports a sibling chunk that `?url` leaves
 // out of production builds, so no tiles would load.
@@ -77,15 +81,9 @@ export function MapView({
   const [selectedVehicle, setSelectedVehicle] =
     useState<SelectedVehicle | null>(null);
   const [tripCancelled, setTripCancelled] = useState(false);
-  const mapRef = useRef<any>(null);
+  const mapRef = useRef<MapLibreMap | null>(null);
 
-  useEffect(() => {
-    if (selectedVehicle === null) {
-      setTripCancelled(false);
-    }
-  }, [selectedVehicle]);
-
-  const handleMapLoad = (event: any) => {
+  const handleMapLoad = (event: MapLibreEvent) => {
     mapRef.current = event.target;
     // Lets the Playwright smoke tests read layer state, which the canvas hides.
     // Development builds only.
@@ -185,12 +183,17 @@ export function MapView({
   // than returning to none. The followed vehicle is cleared alongside it:
   // otherwise the first vehicle frame after returning to Vehicles mode would
   // flyTo a follow target with no popup and no on-screen sign a follow is
-  // active.
-  useEffect(() => {
-    setSelectedVehicle(null);
-    clearFollowedVehicle();
-    stopChase();
-  }, [mode, clearFollowedVehicle, stopChase]);
+  // active. Done where the mode is switched rather than in an effect on
+  // `mode`, so the reset lands in the same render as the switch. The mode
+  // read from `?mode=` on load needs no reset: nothing is selected yet.
+  const switchMode = (next: AppMode) => {
+    if (next !== mode) {
+      setSelectedVehicle(null);
+      clearFollowedVehicle();
+      stopChase();
+    }
+    setMode(next);
+  };
 
   return (
     <>
@@ -211,7 +214,7 @@ export function MapView({
         <BaseMapScheme />
         <RightMenu
           mode={mode}
-          setMode={setMode}
+          setMode={switchMode}
           data={data.map((vehicle) => vehicle.vehicleUpdate)}
           setCurrentFilter={setCurrentFilter}
           currentFilter={currentFilter}
@@ -258,7 +261,9 @@ export function MapView({
               serviceJourneyId={
                 selectedVehicle?.properties.serviceJourneyId ?? null
               }
-              cancelled={tripCancelled}
+              // The panel reports the cancellation of the selected trip; with
+              // nothing selected, whatever it last reported no longer applies.
+              cancelled={selectedVehicle !== null && tripCancelled}
             />
             {/* The popup would sit at the newest report, ahead of the chased
                 model, and over the road the camera is showing. */}

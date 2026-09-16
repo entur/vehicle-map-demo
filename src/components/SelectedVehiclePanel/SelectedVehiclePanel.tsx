@@ -34,17 +34,19 @@ export function SelectedVehiclePanel({
   const timetable = useTimetableSubscription(serviceJourneyId, date);
 
   // After (NO_TIMETABLE_TIMEOUT_MS) without a timetable frame, surface the
-  // "not available" message. Reset whenever the selection changes.
-  const [timedOut, setTimedOut] = useState(false);
+  // "not available" message. The timeout remembers which journey it fired
+  // for, so a new selection starts un-timed-out without being reset.
+  const journeyKey = `${serviceJourneyId}|${date}`;
+  const [timedOutFor, setTimedOutFor] = useState<string | null>(null);
+  const timedOut = timedOutFor === journeyKey;
   useEffect(() => {
-    setTimedOut(false);
     if (!serviceJourneyId) return;
     const id = window.setTimeout(
-      () => setTimedOut(true),
+      () => setTimedOutFor(journeyKey),
       NO_TIMETABLE_TIMEOUT_MS,
     );
     return () => window.clearTimeout(id);
-  }, [serviceJourneyId, date]);
+  }, [serviceJourneyId, journeyKey]);
 
   const open = selectedVehicle !== null;
   const currentOrder = vehicleData?.monitoredCall?.order ?? null;

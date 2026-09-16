@@ -61,9 +61,13 @@ export function useTimetableSubscription(
   serviceJourneyId: string | null,
   date: string | null,
 ): EstimatedTimetableUpdate | null {
-  const [timetable, setTimetable] = useState<EstimatedTimetableUpdate | null>(
-    null,
-  );
+  // Stored with the journey it arrived for, so a changed selection reads as no
+  // timetable straight away instead of being cleared by the effect.
+  const journeyKey = `${serviceJourneyId}|${date}`;
+  const [received, setReceived] = useState<{
+    journeyKey: string;
+    timetable: EstimatedTimetableUpdate;
+  } | null>(null);
   const subscriptionRef = useRef<AsyncIterableIterator<
     FormattedExecutionResult<SubscriptionData, unknown>
   > | null>(null);
@@ -74,7 +78,6 @@ export function useTimetableSubscription(
     if (subscriptionRef.current?.return) {
       subscriptionRef.current.return();
     }
-    setTimetable(null);
 
     if (!serviceJourneyId || !date) {
       return;
@@ -90,7 +93,7 @@ export function useTimetableSubscription(
       for await (const event of subscriptionRef.current) {
         const update = event?.data?.timetables?.[0];
         if (update) {
-          setTimetable(update);
+          setReceived({ journeyKey, timetable: update });
         }
       }
     };
@@ -102,7 +105,7 @@ export function useTimetableSubscription(
     return () => {
       subscriptionRef.current?.return?.();
     };
-  }, [serviceJourneyId, date, subscriptionClient]);
+  }, [serviceJourneyId, date, journeyKey, subscriptionClient]);
 
-  return timetable;
+  return received?.journeyKey === journeyKey ? received.timetable : null;
 }

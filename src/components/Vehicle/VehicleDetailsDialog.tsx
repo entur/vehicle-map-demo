@@ -26,7 +26,7 @@ type VehicleDetailsDialogProps = {
 type DataRowProps = {
   label: string;
   value: React.ReactNode;
-  rawValue: any;
+  rawValue: unknown;
 };
 
 function DataRow({ label, value, rawValue }: DataRowProps) {
