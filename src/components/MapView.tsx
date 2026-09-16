@@ -33,6 +33,7 @@ import { ViewDimension } from "../domain/viewDimension.ts";
 import { RotateControl } from "./RotateControl.tsx";
 import { ViewDimensionControl } from "./ViewDimensionControl.tsx";
 import { ViewDimensionLayers } from "./ViewDimensionLayers.tsx";
+import { BaseMapScheme } from "./BaseMapScheme.tsx";
 import { ChaseCamera } from "./Vehicle/ChaseCamera.tsx";
 import {
   ChasedVehicle,
@@ -84,6 +85,12 @@ export function MapView({
 
   const handleMapLoad = (event: any) => {
     mapRef.current = event.target;
+    // Lets the Playwright smoke tests read layer state, which the canvas hides.
+    // Development builds only.
+    if (import.meta.env.DEV) {
+      (window as unknown as { __vehicleMap?: unknown }).__vehicleMap =
+        event.target;
+    }
   };
 
   const { followedVehicle, handleFollowToggle, clearFollowedVehicle } =
@@ -170,6 +177,7 @@ export function MapView({
         />
         {viewDimension === "3d" && <RotateControl />}
         <ViewDimensionLayers dimension={viewDimension} />
+        <BaseMapScheme />
         <RightMenu
           mode={mode}
           setMode={setMode}

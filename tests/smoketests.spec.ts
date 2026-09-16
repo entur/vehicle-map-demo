@@ -125,3 +125,79 @@ test("the theme toggle switches to dark and survives a reload", async ({
 
   await expect(page.getByRole("button", { name: "Theme: dark" })).toBeVisible();
 });
+
+type TestMap = {
+  getLayer(id: string): unknown;
+  getLayoutProperty(id: string, name: string): unknown;
+  hasImage(name: string): boolean;
+  querySourceFeatures(source: string): unknown[];
+};
+type TestWindow = { __vehicleMap?: TestMap };
+
+test("switching to dark swaps the base map and keeps app state", async ({
+  page,
+}) => {
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.goto("/");
+  await page.waitForFunction(
+    () => {
+      const map = (window as unknown as TestWindow).__vehicleMap;
+      return !!map && map.querySourceFeatures("vehicles").length > 0;
+    },
+    null,
+    { timeout: 30000 },
+  );
+
+  const read = () =>
+    page.evaluate(() => {
+      const map = (window as unknown as TestWindow).__vehicleMap!;
+      return {
+        light: map.getLayoutProperty("light/background", "visibility"),
+        dark: map.getLayoutProperty("dark/background", "visibility"),
+        vehicleLayer:
+          map.getLayoutProperty("vehicle-layer", "visibility") ?? "visible",
+        icon: map.hasImage("green-marker-icon"),
+        features: map.querySourceFeatures("vehicles").length,
+      };
+    });
+
+  const before = await read();
+  expect(before.light).toBe("visible");
+  expect(before.dark).toBe("none");
+
+  await page.getByRole("button", { name: "Theme: system" }).click();
+  await page.getByRole("button", { name: "Theme: light" }).click();
+  await expect(page.locator("html")).toHaveAttribute(
+    "data-mui-color-scheme",
+    "dark",
+  );
+
+  await expect.poll(async () => (await read()).dark).toBe("visible");
+  const after = await read();
+  expect(after.light).toBe("none");
+  expect(after.vehicleLayer).toBe(before.vehicleLayer);
+  expect(after.icon).toBe(true);
+  expect(after.features).toBeGreaterThan(0);
+});
+
+test("loading in dark starts on the dark base map", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.goto("/");
+  await page.waitForFunction(
+    () =>
+      !!(window as unknown as TestWindow).__vehicleMap?.getLayer(
+        "dark/background",
+      ),
+    null,
+    { timeout: 30000 },
+  );
+
+  const visibility = await page.evaluate(() => {
+    const map = (window as unknown as TestWindow).__vehicleMap!;
+    return {
+      light: map.getLayoutProperty("light/background", "visibility"),
+      dark: map.getLayoutProperty("dark/background", "visibility"),
+    };
+  });
+  expect(visibility).toEqual({ light: "none", dark: "visible" });
+});
