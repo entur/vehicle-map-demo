@@ -56,11 +56,11 @@ function CountTable({
  * single row; kept rather than hidden, because a table that disappears reflows
  * the grid and removes the confirmation of what you are scoped to.
  *
- * Laid out as a grid rather than a stack: this opens in a wide drawer (see
+ * Laid out as a grid rather than a stack: this opens in a wide panel (see
  * `isWideTool`), and stacking six tables in one narrow column made the codespace
  * and affects-shape tables unreadable without long scrolling, with no way to
  * compare two of them. `auto-fill` rather than a fixed column count so the
- * layout still collapses to one column if the drawer is ever narrowed.
+ * layout still collapses to one column if the panel is ever narrowed.
  */
 export function SituationStatsTables() {
   const { stats, statsScope } = useSituations();

@@ -28,8 +28,19 @@ body {
   width: 100%;
 }
 
-/* Text in a MapLibre control button, which is otherwise sized for an icon. */
+/* maplibre-gl.css sets `.maplibregl-map { font: 12px/20px Helvetica Neue,
+   Arial… }`, which everything inside the map (tool panels, popups, the chase
+   HUD) would otherwise inherit instead of the app's Inter body font. This
+   selector is emitted after maplibre-gl.css in the bundle, so it needs
+   strictly higher specificity than `.maplibregl-map` alone to win. */
+body .maplibregl-map {
+  font: inherit;
+}
+
+/* Text in a MapLibre control button, which is otherwise sized for an icon.
+   Buttons don't inherit font-family by default. */
 .view-dimension-button {
+  font-family: inherit;
   font-weight: 600;
   font-size: 12px;
   color: var(--mui-palette-text-primary);
@@ -99,15 +110,18 @@ body {
   border-top-color: var(--mui-palette-divider);
 }
 
-.maplibregl-map .maplibregl-ctrl-group button:first-child {
+.maplibregl-map .maplibregl-ctrl-group button:first-child,
+.maplibregl-map .maplibregl-ctrl-group button:focus:first-child {
   border-radius: 10px 10px 0 0;
 }
 
-.maplibregl-map .maplibregl-ctrl-group button:last-child {
+.maplibregl-map .maplibregl-ctrl-group button:last-child,
+.maplibregl-map .maplibregl-ctrl-group button:focus:last-child {
   border-radius: 0 0 10px 10px;
 }
 
-.maplibregl-map .maplibregl-ctrl-group button:only-child {
+.maplibregl-map .maplibregl-ctrl-group button:only-child,
+.maplibregl-map .maplibregl-ctrl-group button:focus:only-child {
   border-radius: 10px;
 }
 
@@ -117,7 +131,7 @@ body {
 
 /* The zoom, compass and geolocate glyphs are dark background SVGs. */
 [data-mui-color-scheme="dark"] .maplibregl-map .maplibregl-ctrl-icon {
-  filter: invert(1);
+  filter: invert(1) hue-rotate(180deg);
 }
 
 .maplibregl-map .maplibregl-popup-content {

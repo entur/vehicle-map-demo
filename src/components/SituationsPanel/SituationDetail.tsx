@@ -1,4 +1,5 @@
-import { Box, Typography } from "@mui/material";
+import { Box, IconButton, Typography } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
 import { NationalSituation, TranslatedString } from "../../types.ts";
 import { SituationFlag } from "../../domain/situationFlags.ts";
 import { describeMistype, mistypedRefsOf } from "../../domain/journeyRef.ts";
@@ -151,22 +152,9 @@ export function SituationDetail({
         <Typography component="div" sx={{ fontSize: 13, fontWeight: 700 }}>
           Detail
         </Typography>
-        <Box
-          component="button"
-          type="button"
-          onClick={onClose}
-          aria-label="Close detail"
-          sx={{
-            border: "none",
-            background: "none",
-            cursor: "pointer",
-            fontSize: 14,
-            padding: 0,
-            color: "text.secondary",
-          }}
-        >
-          ×
-        </Box>
+        <IconButton aria-label="Close" onClick={onClose} size="small">
+          <CloseIcon fontSize="small" />
+        </IconButton>
       </Box>
 
       <Translations label="Summary" strings={situation.summary} />

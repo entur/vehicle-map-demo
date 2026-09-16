@@ -34,7 +34,7 @@ export const RightMenuButtons = ({
   setActiveContent,
 }: RightMenuButtonsProps) => (
   <FloatingCard
-    role="navigation"
+    role="group"
     aria-label="Tools"
     sx={{
       display: "flex",

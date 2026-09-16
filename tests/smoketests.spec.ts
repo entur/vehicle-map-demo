@@ -81,6 +81,11 @@ test("statistics is a vehicles-mode tool in the right toolbar", async ({
 
   await page.getByRole("button", { name: "Statistics" }).click();
   await expect(page.getByRole("region", { name: "Statistics" })).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "Statistics" }).getByText("Statistics", {
+      exact: true,
+    }),
+  ).toBeVisible();
 
   await page.getByRole("button", { name: "Situations", exact: true }).click();
   await expect(page.getByRole("button", { name: "Statistics" })).toHaveCount(0);
