@@ -13,24 +13,24 @@ only saturated colours on screen are the data — severity, line colours and tra
 
 ## Scope
 
-This is the first of two sub-projects, each with its own PR:
+This is the first of two sub-projects. Both ship on the same branch, `modernize-look-and-feel`,
+as one PR — the user decided nothing ships until both are complete:
 
 1. **UI (this spec).** Theme tokens, typography, dark mode, floating-card layout, component
    restyle.
-2. **Base map (later spec).** Both colour schemes move from the OSM raster to OpenFreeMap vector
-   styles, the base map follows the colour scheme, data colours (severity, delay, occupancy,
-   map paint) get dark variants, and the new per-mode vehicle SVG icons in
-   `src/static/images/vehicles/` replace the vehicle PNGs, with every mode registered and a
-   real fallback icon.
+2. **Base map** — see `docs/superpowers/specs/2026-09-16-base-map-design.md`. Both colour schemes
+   move from the OSM raster to OpenFreeMap vector styles, the base map follows the colour scheme,
+   data colours are tuned to read on both, and the per-mode vehicle SVG icons replace the vehicle
+   PNGs, with every mode registered and a generic fallback icon.
 
-Until the second PR merges, dark mode is dark chrome over a light map. That is accepted.
+Between the two sub-projects' commits, dark mode is dark chrome over a light map.
 
-### Out of scope for this PR
+### Out of scope for this sub-project
 
 - Map layer paint in `mapStyle.ts`, 3D vehicle models, `SituationLayers` expressions.
 - Data colours: `situationSeverity.ts`, `delayThresholds.ts`, occupancy colours in `StopRow.tsx`.
   They are shared with map layers and need checking against the dark base map, so they change
-  in the base map PR. On dark panels they are knowingly under-contrasted until then.
+  in the base map sub-project. On dark panels they are knowingly under-contrasted until then.
 - Images that depict what the map draws: Legend and MapLayers symbols (vehicle PNGs, update
   markers, lights, occupancy, heatmap, traces), and the red/orange/green status lights in
   `DataResults` and `VehicleDetailsDialog`.
@@ -199,7 +199,7 @@ get distinct icons, and that comment is removed along with the rail.
 
 `@mui/icons-material` is added as a dependency, imported per icon (`@mui/icons-material/Layers`)
 so only used icons are bundled. PNGs and SVGs in `src/static/images/` that nothing imports after
-the change are deleted in this PR.
+the change are deleted in this sub-project.
 
 ### Buttons
 
@@ -288,4 +288,4 @@ Screenshots of light and dark go into the PR description.
   `data-mui-color-scheme`, the `selection.*` tokens and what they are for, the
   `vehicle-map-color-scheme` storage key and the matching pre-load script in `index.html`
   (change one, change both), and that data colours are deliberately outside the theme until the
-  base map PR.
+  base map sub-project.
