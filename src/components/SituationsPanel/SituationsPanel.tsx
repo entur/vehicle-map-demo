@@ -107,7 +107,7 @@ export const SituationsPanel = memo(function SituationsPanel() {
         sx={{
           fontSize: 12,
           marginBottom: 2,
-          color: feed.status === "error" ? "#c0392b" : "#666",
+          color: feed.status === "error" ? "error.main" : "text.secondary",
         }}
       >
         <StatusLine />
@@ -119,7 +119,7 @@ export const SituationsPanel = memo(function SituationsPanel() {
           fontSize: 11,
           fontWeight: 700,
           textTransform: "uppercase",
-          color: "#666",
+          color: "text.secondary",
         }}
       >
         On the map ({mapped.length} of {filtered.length})

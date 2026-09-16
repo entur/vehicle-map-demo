@@ -39,7 +39,7 @@ export function UnmappableList({
           fontSize: 11,
           fontWeight: 700,
           textTransform: "uppercase",
-          color: "#666",
+          color: "text.secondary",
         }}
       >
         Not on the map ({unmappable.length} of {filtered.length})
@@ -62,8 +62,15 @@ export function UnmappableList({
                 width: "100%",
                 textAlign: "left",
                 border: "none",
-                borderBottom: "1px dotted #eee",
-                background: selected === situationNumber ? "#eef7f7" : "none",
+                borderBottom: "1px dotted var(--mui-palette-divider)",
+                background:
+                  selected === situationNumber
+                    ? "var(--mui-palette-selection-bg)"
+                    : "none",
+                boxShadow:
+                  selected === situationNumber
+                    ? "inset 3px 0 0 var(--mui-palette-selection-main)"
+                    : "none",
                 cursor: "pointer",
                 padding: "4px 0",
                 font: "inherit",
@@ -75,7 +82,7 @@ export function UnmappableList({
               <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
                 <Typography
                   component="span"
-                  sx={{ fontSize: 10, color: "#999" }}
+                  sx={{ fontSize: 10, color: "text.disabled" }}
                 >
                   {situation.codespace?.codespaceId ?? "(no codespace)"} ·{" "}
                   {situation.severity ?? "(no severity)"} ·{" "}
@@ -89,7 +96,9 @@ export function UnmappableList({
                     sx={{
                       fontSize: 10,
                       color:
-                        FLAG_LEVEL[flag] === "warning" ? "#c0392b" : "#999",
+                        FLAG_LEVEL[flag] === "warning"
+                          ? "#c0392b"
+                          : "text.disabled",
                     }}
                   >
                     {flag}

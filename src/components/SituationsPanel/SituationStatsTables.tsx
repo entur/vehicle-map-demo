@@ -17,13 +17,16 @@ function CountTable({
           fontSize: 11,
           fontWeight: 700,
           textTransform: "uppercase",
-          color: "#666",
+          color: "text.secondary",
         }}
       >
         {title}
       </Typography>
       {entries.length === 0 && (
-        <Typography component="div" sx={{ fontSize: 12, color: "#999" }}>
+        <Typography
+          component="div"
+          sx={{ fontSize: 12, color: "text.disabled" }}
+        >
           —
         </Typography>
       )}
@@ -70,7 +73,7 @@ export function SituationStatsTables() {
     : `${statsScope.total} situations`;
 
   return (
-    <Box sx={{ padding: 1.5 }}>
+    <Box sx={{ padding: 1.5, fontVariantNumeric: "tabular-nums" }}>
       <Typography
         component="h2"
         sx={{ fontSize: 16, fontWeight: 700, marginBottom: 1.5 }}
@@ -79,7 +82,7 @@ export function SituationStatsTables() {
       </Typography>
       <Typography
         component="div"
-        sx={{ fontSize: 12, color: "#666", marginBottom: 1.5 }}
+        sx={{ fontSize: 12, color: "text.secondary", marginBottom: 1.5 }}
       >
         {scope}
       </Typography>

@@ -21,7 +21,7 @@ type DataResultsProps = {
 export function DataResults({ data, loading }: DataResultsProps) {
   const vehicleDataMetrics: DataItem[] = transformVehicleUpdates(data);
   return (
-    <Box>
+    <Box sx={{ fontVariantNumeric: "tabular-nums" }}>
       {loading && <Skeleton variant={"rounded"}></Skeleton>}
       {!loading && (
         <List

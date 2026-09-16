@@ -62,8 +62,12 @@ export function StopRow({ call, isCurrent }: StopRowProps) {
     width: isCurrent ? 14 : 10,
     height: isCurrent ? 14 : 10,
     borderRadius: "50%",
-    background: isCurrent ? "#1fcac2" : isPast ? "#bababa" : "#4a4a4a",
-    border: isCurrent ? "2px solid #000" : "none",
+    background: isCurrent
+      ? "var(--mui-palette-selection-main)"
+      : isPast
+        ? "var(--mui-palette-text-disabled)"
+        : "var(--mui-palette-text-secondary)",
+    border: isCurrent ? "2px solid var(--mui-palette-text-primary)" : "none",
     zIndex: 1,
     position: "relative",
     boxSizing: "border-box",
@@ -71,11 +75,20 @@ export function StopRow({ call, isCurrent }: StopRowProps) {
 
   if (isCancelled) {
     dotStyle.background = "transparent";
-    dotStyle.border = `2px solid ${isPast ? "#bababa" : "#4a4a4a"}`;
+    dotStyle.border = `2px solid ${
+      isPast
+        ? "var(--mui-palette-text-disabled)"
+        : "var(--mui-palette-text-secondary)"
+    }`;
   }
 
   return (
-    <Box sx={{ borderBottom: "1px dotted #eee" }}>
+    <Box
+      sx={{
+        borderBottom: "1px dotted var(--mui-palette-divider)",
+        fontVariantNumeric: "tabular-nums",
+      }}
+    >
       <Box
         sx={{
           display: "flex",
@@ -99,7 +112,7 @@ export function StopRow({ call, isCurrent }: StopRowProps) {
               top: 0,
               bottom: 0,
               width: 2,
-              background: "#d0d0d0",
+              background: "var(--mui-palette-divider)",
             }}
           />
           <Box sx={dotStyle} />
@@ -114,7 +127,10 @@ export function StopRow({ call, isCurrent }: StopRowProps) {
           }}
         >
           {showAimed && (
-            <Typography component="div" sx={{ fontSize: 10, color: "#999" }}>
+            <Typography
+              component="div"
+              sx={{ fontSize: 10, color: "text.disabled" }}
+            >
               {aimedLabel}
             </Typography>
           )}
