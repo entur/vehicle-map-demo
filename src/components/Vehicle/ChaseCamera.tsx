@@ -258,7 +258,7 @@ export function ChaseCamera({
       map.touchPitch.enable();
       map.scrollZoom.enable();
       map.easeTo({
-        pitch: cameraFor(viewDimensionRef.current).pitch,
+        ...cameraFor(viewDimensionRef.current),
         padding: saved.padding,
         duration: 800,
       });
