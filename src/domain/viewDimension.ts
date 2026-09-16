@@ -38,12 +38,17 @@ export function terrainFor(
 }
 
 /**
- * The pitch the map eases to on entering a dimension. Kept below MapLibre's
- * default 60° limit on purpose: the vehicle subscription is bounded by
- * `getBounds()`, which grows sharply as the horizon comes into view.
+ * The camera the map eases to on entering a dimension. The 3D pitch is kept
+ * below MapLibre's default 60° limit on purpose: the vehicle subscription is
+ * bounded by `getBounds()`, which grows sharply as the horizon comes into view.
+ * 2D is also turned north-up, since a rotated flat map is almost always left
+ * over from 3D or a chase; 3D keeps whatever bearing the map has.
  */
-export function cameraFor(dimension: ViewDimension): { pitch: number } {
-  return { pitch: dimension === "3d" ? 55 : 0 };
+export function cameraFor(dimension: ViewDimension): {
+  pitch: number;
+  bearing?: number;
+} {
+  return dimension === "3d" ? { pitch: 55 } : { pitch: 0, bearing: 0 };
 }
 
 /** Degrees one click of the 3D view's rotate buttons turns the map. */

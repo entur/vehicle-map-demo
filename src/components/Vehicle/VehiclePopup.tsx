@@ -3,6 +3,7 @@ import { SelectedVehicle } from "./VehicleMarkers.tsx";
 import { useVehicleUpdateCompleteSubscription } from "../../hooks/useVehicleUpdateCompleteSubscription.ts";
 import { FollowButton } from "./FollowButton.tsx";
 import { DetailsButton } from "./DetailsButton.tsx";
+import { ChaseButton } from "./ChaseButton.tsx";
 import { VehicleInfo } from "./VehicleInfo.tsx";
 
 type VehiclePopupProps = {
@@ -10,6 +11,7 @@ type VehiclePopupProps = {
   onClose: () => void;
   onFollow: () => void;
   followedVehicle?: SelectedVehicle | null;
+  onChase: () => void;
 };
 
 export function VehiclePopup({
@@ -17,6 +19,7 @@ export function VehiclePopup({
   onClose,
   onFollow,
   followedVehicle,
+  onChase,
 }: VehiclePopupProps) {
   const subscriptionData = useVehicleUpdateCompleteSubscription(
     vehicle.properties.id,
@@ -49,6 +52,7 @@ export function VehiclePopup({
                 }
                 onClick={onFollow}
               />
+              <ChaseButton onClick={onChase} />
               <DetailsButton vehicleData={subscriptionData} />
             </div>
           )}

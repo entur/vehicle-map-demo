@@ -80,9 +80,10 @@ export const useVehicleUpdateCompleteSubscription = (
   const subscriptionClient = useSubscriptionClient();
 
   useEffect(() => {
-    if (subscriptionRef.current?.return) {
-      subscriptionRef.current.return();
-    }
+    // A frame already resolved in the iterator's queue when `.return()` is
+    // called in the cleanup can still run one more loop iteration; `cancelled`
+    // keeps it from reaching state after unmount or a change of vehicle.
+    let cancelled = false;
 
     subscriptionRef.current = subscriptionClient.iterate<SubscriptionData>({
       query: subscriptionQuery,
@@ -93,6 +94,7 @@ export const useVehicleUpdateCompleteSubscription = (
       if (!subscriptionRef.current) return;
 
       for await (const event of subscriptionRef.current) {
+        if (cancelled) break;
         if (event?.data?.vehicles?.length) {
           setVehicleUpdate(event.data.vehicles[0]);
         }
@@ -103,8 +105,13 @@ export const useVehicleUpdateCompleteSubscription = (
       console.error("Subscription error:", error);
     });
 
-    return () => {};
-  }, [vehicleId, subscriptionClient]);
+    // Closed on unmount as well as on a change of vehicle. Without this the
+    // subscription outlived its popup or panel for the rest of the session.
+    return () => {
+      cancelled = true;
+      subscriptionRef.current?.return?.();
+    };
+  }, [vehicleId, serviceJourneyId, subscriptionClient]);
 
   return vehicleUpdate;
 };

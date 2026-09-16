@@ -188,6 +188,7 @@ export const useVehiclePositionsData = (
 
     return () => {
       cancelled = true;
+      subscription.current?.return?.();
     };
   }, [filter, subscriptionClient, mapViewOptions, enabled]);
   return data;

@@ -13,8 +13,8 @@ import { whenLayerExists } from "../utils/whenLayerExists.ts";
  * camera. Terrain is set here rather than through `<Map terrain>`: that prop
  * ignores `undefined` and its types reject the `null` that removes terrain.
  *
- * The camera only moves when the pitch differs, so a 2D first load does not
- * fire a spurious moveend (and with it a bounding-box update).
+ * The camera only moves when the pitch or bearing differs, so a 2D first load
+ * does not fire a spurious moveend (and with it a bounding-box update).
  */
 export function ViewDimensionLayers({
   dimension,
@@ -35,9 +35,12 @@ export function ViewDimensionLayers({
           map.setLayoutProperty(id, "visibility", visibility);
         }
       }
-      const { pitch } = cameraFor(dimension);
-      if (map.getPitch() !== pitch) {
-        map.easeTo({ pitch, duration: 800 });
+      const camera = cameraFor(dimension);
+      if (
+        map.getPitch() !== camera.pitch ||
+        (camera.bearing !== undefined && map.getBearing() !== camera.bearing)
+      ) {
+        map.easeTo({ ...camera, duration: 800 });
       }
     };
 

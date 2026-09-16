@@ -66,6 +66,16 @@ describe("cameraFor", () => {
     expect(cameraFor("3d").pitch).toBeGreaterThan(0);
     expect(cameraFor("3d").pitch).toBeLessThanOrEqual(60);
   });
+
+  it("turns 2d north-up", () => {
+    // A rotated flat map reads as a mistake, most often left over from a 3D
+    // view or a chase camera turned to follow a vehicle.
+    expect(cameraFor("2d").bearing).toBe(0);
+  });
+
+  it("keeps the bearing on entering 3d", () => {
+    expect(cameraFor("3d").bearing).toBeUndefined();
+  });
 });
 
 describe("rotatedBearing", () => {
