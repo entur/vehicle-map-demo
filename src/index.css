@@ -187,3 +187,37 @@ body {
   justify-content: center;
   color: #333;
 }
+
+/* Status bar for the chase camera, over the bottom of the map. */
+.chase-hud {
+  position: absolute;
+  bottom: calc(32px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 12px;
+  max-width: calc(100% - 32px);
+  padding: 8px 8px 8px 16px;
+  background: #fff;
+  border: 1px solid #000;
+  border-radius: 24px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.chase-hud-stop {
+  padding: 6px 14px;
+  border: 1px solid #000;
+  border-radius: 16px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.chase-hud-stop:hover {
+  background: #5d9c9b;
+}

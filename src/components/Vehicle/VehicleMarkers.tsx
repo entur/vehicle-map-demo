@@ -91,10 +91,17 @@ export function VehicleMarkers({
   data,
   setSelectedVehicle,
   followedVehicleId,
+  hiddenVehicleKey,
 }: {
   data: VehicleUpdate[];
   setSelectedVehicle: (selectedVehicle: SelectedVehicle | null) => void;
   followedVehicleId: string | null;
+  /**
+   * Cache key of a vehicle to leave out: the chased one, whose model the chase
+   * camera draws at its interpolated position. Its label and delay light would
+   * otherwise sit at the newest report, seconds ahead of the model.
+   */
+  hiddenVehicleKey: string | null;
 }) {
   const { current: mapRef } = useMap();
 
@@ -104,7 +111,15 @@ export function VehicleMarkers({
     }
 
     const map = mapRef.getMap();
-    const features = data.map((vehicle) =>
+    const shown =
+      hiddenVehicleKey === null
+        ? data
+        : data.filter(
+            (vehicle) =>
+              vehicle.vehicleId + "_" + vehicle.serviceJourney.id !==
+              hiddenVehicleKey,
+          );
+    const features = shown.map((vehicle) =>
       createFeature(vehicle, vehicle.vehicleId === followedVehicleId),
     );
     // The source is declared in mapStyle, but getSource() returns undefined
@@ -122,7 +137,7 @@ export function VehicleMarkers({
     modelSource?.setData({
       type: "FeatureCollection",
       features: features.map((feature, i) =>
-        createModelFeature(feature, data[i]),
+        createModelFeature(feature, shown[i]),
       ),
     });
 
@@ -156,7 +171,7 @@ export function VehicleMarkers({
       clickSubscription.unsubscribe();
       clearSelectionOnClick.unsubscribe();
     };
-  }, [data, mapRef, setSelectedVehicle, followedVehicleId]);
+  }, [data, mapRef, setSelectedVehicle, followedVehicleId, hiddenVehicleKey]);
 
   return null;
 }

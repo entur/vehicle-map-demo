@@ -28,13 +28,21 @@ const arraysAreEqual = (a?: number[][], b?: number[][]) => {
 
 export function CaptureBoundingBox({
   setCurrentFilter,
+  paused,
 }: {
   setCurrentFilter: React.Dispatch<React.SetStateAction<Filter | null>>;
+  /**
+   * While the chase camera runs it owns the bounding box: its pitched,
+   * per-frame camera would otherwise balloon the box toward the horizon and
+   * re-open the subscription twice a second. Unpausing captures the viewport
+   * again straight away.
+   */
+  paused: boolean;
 }) {
   const { current: map } = useMap();
 
   useEffect(() => {
-    if (!map) return;
+    if (!map || paused) return;
 
     const handleMoveEnd = throttle(() => {
       const bounds = map.getMap().getBounds();
@@ -69,7 +77,7 @@ export function CaptureBoundingBox({
     return () => {
       mapInstance.off("moveend", handleMoveEnd);
     };
-  }, [map, setCurrentFilter]);
+  }, [map, setCurrentFilter, paused]);
 
   return null;
 }
