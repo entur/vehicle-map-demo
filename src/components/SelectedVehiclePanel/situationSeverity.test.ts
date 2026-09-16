@@ -2,9 +2,9 @@ import { describe, expect, test } from "vitest";
 import { SeverityEnumeration } from "../../types.ts";
 import { severityColour, worstSeverity } from "./situationSeverity.ts";
 
-const RED = "#c0392b";
-const ORANGE = "#e07a1f";
-const GREY = "#999999";
+const RED = "#e5483a";
+const ORANGE = "#f08a24";
+const GREY = "#9aa1ad";
 
 function s(severity: SeverityEnumeration | null) {
   return { severity };

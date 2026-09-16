@@ -4,6 +4,7 @@ import { useSituations } from "../../situations/SituationsContext.ts";
 import { pickTranslation } from "../SelectedVehiclePanel/situationText.ts";
 import { affectsShape } from "../../domain/situationStats.ts";
 import { FLAG_LEVEL } from "../../domain/situationFlags.ts";
+import { SEVERITY_SEVERE } from "../../domain/dataColours.ts";
 
 /**
  * Situations that flatten to no map features at all — a small minority on
@@ -97,7 +98,7 @@ export function UnmappableList({
                       fontSize: 10,
                       color:
                         FLAG_LEVEL[flag] === "warning"
-                          ? "#c0392b"
+                          ? SEVERITY_SEVERE
                           : "text.disabled",
                     }}
                   >

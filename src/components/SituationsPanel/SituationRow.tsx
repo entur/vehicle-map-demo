@@ -1,6 +1,7 @@
 import { Box, Typography } from "@mui/material";
 import { memo } from "react";
 import { NationalSituation } from "../../types.ts";
+import { SEVERITY_SEVERE } from "../../domain/dataColours.ts";
 import { FLAG_LEVEL, SituationFlag } from "../../domain/situationFlags.ts";
 import { severityColour } from "../SelectedVehiclePanel/situationSeverity.ts";
 import { pickTranslation } from "../SelectedVehiclePanel/situationText.ts";
@@ -79,7 +80,9 @@ function SituationRowImpl({
             sx={{
               fontSize: 10,
               color:
-                FLAG_LEVEL[flag] === "warning" ? "#c0392b" : "text.secondary",
+                FLAG_LEVEL[flag] === "warning"
+                  ? SEVERITY_SEVERE
+                  : "text.secondary",
             }}
           >
             {flag}

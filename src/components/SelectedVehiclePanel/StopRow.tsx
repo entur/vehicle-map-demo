@@ -1,5 +1,13 @@
 import { Box, Typography } from "@mui/material";
 import { useState } from "react";
+import {
+  OCCUPANCY_FEW,
+  OCCUPANCY_FULL,
+  OCCUPANCY_NOT_BOARDING,
+  OCCUPANCY_OK,
+  OCCUPANCY_STANDING,
+  SEVERITY_SEVERE,
+} from "../../domain/dataColours.ts";
 import { Call } from "../../types.ts";
 import { resolveCallTimes } from "./callTimes.ts";
 import { delayBucket, delayColour } from "./delayThresholds.ts";
@@ -12,15 +20,24 @@ type StopRowProps = {
 };
 
 const OCCUPANCY_DISPLAY: Record<string, { label: string; colour: string }> = {
-  empty: { label: "Empty", colour: "#1f8a3a" },
-  manySeatsAvailable: { label: "Many seats available", colour: "#1f8a3a" },
-  seatsAvailable: { label: "Seats available", colour: "#1f8a3a" },
-  fewSeatsAvailable: { label: "Few seats available", colour: "#e6a700" },
-  standingAvailable: { label: "Standing room available", colour: "#e07a1f" },
-  standingRoomOnly: { label: "Standing room only", colour: "#e07a1f" },
-  crushedStandingRoomOnly: { label: "Crowded", colour: "#c0392b" },
-  full: { label: "Full", colour: "#c0392b" },
-  notAcceptingPassengers: { label: "Not boarding", colour: "#7a1f1f" },
+  empty: { label: "Empty", colour: OCCUPANCY_OK },
+  manySeatsAvailable: { label: "Many seats available", colour: OCCUPANCY_OK },
+  seatsAvailable: { label: "Seats available", colour: OCCUPANCY_OK },
+  fewSeatsAvailable: { label: "Few seats available", colour: OCCUPANCY_FEW },
+  standingAvailable: {
+    label: "Standing room available",
+    colour: OCCUPANCY_STANDING,
+  },
+  standingRoomOnly: {
+    label: "Standing room only",
+    colour: OCCUPANCY_STANDING,
+  },
+  crushedStandingRoomOnly: { label: "Crowded", colour: OCCUPANCY_FULL },
+  full: { label: "Full", colour: OCCUPANCY_FULL },
+  notAcceptingPassengers: {
+    label: "Not boarding",
+    colour: OCCUPANCY_NOT_BOARDING,
+  },
 };
 
 function formatTime(iso: string | null): string | null {
@@ -139,7 +156,7 @@ export function StopRow({ call, isCurrent }: StopRowProps) {
             sx={{
               fontSize: 12,
               fontWeight: 600,
-              color: isCancelled ? "#c0392b" : realtimeColour,
+              color: isCancelled ? SEVERITY_SEVERE : realtimeColour,
             }}
           >
             {isCancelled ? "—" : (realtimeLabel ?? aimedLabel ?? "—")}
@@ -154,14 +171,14 @@ export function StopRow({ call, isCurrent }: StopRowProps) {
             fontSize: 12,
             fontWeight: isCurrent ? 700 : 400,
             textDecoration: isCancelled ? "line-through" : "none",
-            color: isCancelled ? "#c0392b" : "inherit",
+            color: isCancelled ? SEVERITY_SEVERE : "inherit",
           }}
         >
           {call.stopPoint.name}
           {isCancelled && (
             <Typography
               component="span"
-              sx={{ marginLeft: 1, fontSize: 10, color: "#c0392b" }}
+              sx={{ marginLeft: 1, fontSize: 10, color: SEVERITY_SEVERE }}
             >
               cancelled
             </Typography>
