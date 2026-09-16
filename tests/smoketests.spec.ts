@@ -82,3 +82,30 @@ test("mode survives a reload", async ({ page }) => {
     0,
   );
 });
+
+test("the theme toggle switches to dark and survives a reload", async ({
+  page,
+}) => {
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.goto("/");
+  const html = page.locator("html");
+
+  await page.getByRole("button", { name: "Theme: system" }).click();
+  await page.getByRole("button", { name: "Theme: light" }).click();
+  await expect(page.getByRole("button", { name: "Theme: dark" })).toBeVisible();
+  await expect(html).toHaveAttribute("data-mui-color-scheme", "dark");
+
+  // Hold the app back on its config fetch, so React has not rendered when we
+  // look: a dark attribute at that point can only have come from the pre-load
+  // script in index.html.
+  await page.route("**/bootstrap.json", async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    await route.continue();
+  });
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(html).toHaveAttribute("data-mui-color-scheme", "dark", {
+    timeout: 500,
+  });
+
+  await expect(page.getByRole("button", { name: "Theme: dark" })).toBeVisible();
+});

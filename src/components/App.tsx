@@ -2,8 +2,8 @@ import { useState } from "react";
 import { Filter, MapViewOptions } from "../types.ts";
 import { useVehiclePositionsData } from "../hooks/useVehiclePositionsData.ts";
 import { MapView } from "./MapView.tsx";
-import { ThemeProvider } from "@mui/material";
-import { theme } from "./theme.ts";
+import { CssBaseline, ThemeProvider } from "@mui/material";
+import { COLOR_SCHEME_STORAGE_KEY, theme } from "./theme.ts";
 import { useFilterQueryParams } from "../hooks/useFilterQueryParams.ts";
 import { useModeQueryParam } from "../hooks/useModeQueryParam.ts";
 import { useViewDimensionQueryParam } from "../hooks/useViewDimensionQueryParam.ts";
@@ -41,7 +41,14 @@ function App() {
 
   return (
     <div style={{ width: "100vw", height: "100vh" }}>
-      <ThemeProvider theme={theme}>
+      <ThemeProvider
+        theme={theme}
+        modeStorageKey={COLOR_SCHEME_STORAGE_KEY}
+        // Client-only app: read the stored mode on the first render instead
+        // of rendering once with no mode and again after mount.
+        noSsr
+      >
+        <CssBaseline enableColorScheme />
         <SituationsProvider
           codespaceId={currentFilter?.codespaceId}
           enabled={isSituationsFeedEnabled(mode)}

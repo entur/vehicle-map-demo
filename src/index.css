@@ -1,3 +1,14 @@
+/* The one shadow every surface over the map uses — cards, toolbar, popups,
+   map controls. Read from sx as "var(--floating-shadow)". Dark panels over a
+   dark map need a much stronger shadow to separate at all. */
+:root {
+  --floating-shadow: 0 2px 10px rgba(20, 24, 32, 0.18);
+}
+
+[data-mui-color-scheme="dark"] {
+  --floating-shadow: 0 2px 12px rgba(0, 0, 0, 0.55);
+}
+
 body {
   margin: 0;
 }
@@ -162,7 +173,6 @@ body {
   top: 20px;
   right: 5px;
   z-index: 1;
-  background: #fff;
   transition: right 0.3s;
 }
 
