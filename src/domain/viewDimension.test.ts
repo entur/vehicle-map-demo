@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { mapStyle } from "../components/mapStyle.ts";
+import { buildMapStyle } from "../components/mapStyle.ts";
+
+const mapStyle = buildMapStyle("light");
 import { MODE_LAYERS, MODE_SOURCES, APP_MODES } from "./appMode.ts";
 import {
   BASE_LAYERS,

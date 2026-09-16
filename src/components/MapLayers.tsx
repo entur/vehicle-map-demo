@@ -153,10 +153,10 @@ export function MapLayers({ mode, mapViewOptions, setMapViewOptions }: Props) {
               control={
                 <Switch
                   checked={mapViewOptions.showAffectedStops}
-                  onChange={handleToggleLayer(
-                    "showAffectedStops",
+                  onChange={handleToggleLayer("showAffectedStops", [
+                    "situation-points-edge-layer",
                     "situation-points-layer",
-                  )}
+                  ])}
                 />
               }
               label={getLabelWithIcon(situationMarker, "Affected stops", 22)}
@@ -166,6 +166,7 @@ export function MapLayers({ mode, mapViewOptions, setMapViewOptions }: Props) {
                 <Switch
                   checked={mapViewOptions.showAffectedLines}
                   onChange={handleToggleLayer("showAffectedLines", [
+                    "situation-lines-outer-casing-layer",
                     "situation-lines-casing-layer",
                     "situation-lines-layer",
                   ])}

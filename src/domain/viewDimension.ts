@@ -1,4 +1,8 @@
 import type { TerrainSpecification } from "@maplibre/maplibre-gl-style-spec";
+import {
+  BASE_MAP_SOURCES,
+  baseMapLayerIds,
+} from "../components/basemap/basemap.ts";
 
 /**
  * Whether the map is drawn flat or tilted over terrain with extruded
@@ -23,9 +27,14 @@ export function parseViewDimension(
  */
 export const VIEW_3D_LAYERS = ["hillshade-layer", "buildings-3d-layer"];
 
-export const BASE_LAYERS = ["osm", ...VIEW_3D_LAYERS];
+/** Derived, not listed: both base maps' layers plus the 3D-only ones. */
+export const BASE_LAYERS = [...baseMapLayerIds(), ...VIEW_3D_LAYERS];
 
-export const BASE_SOURCES = ["osm", "terrain", "hillshade", "openfreemap"];
+export const BASE_SOURCES = [
+  ...Object.keys(BASE_MAP_SOURCES),
+  "terrain",
+  "hillshade",
+];
 
 /**
  * Terrain reads its own `raster-dem` source rather than sharing the

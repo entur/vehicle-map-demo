@@ -33,11 +33,15 @@ export const MODE_LAYERS: Record<AppMode, string[]> = {
     "vehicles-heatmap",
     "occupancy-layer",
     "service-journey-route-layer",
+    "service-journey-route-outer-casing-layer",
+    "service-journey-route-casing-layer",
   ],
   situations: [
     "situation-lines-casing-layer",
+    "situation-lines-outer-casing-layer",
     "situation-lines-layer",
     "situation-points-layer",
+    "situation-points-edge-layer",
     "situation-lines-halo-layer",
     "situation-points-halo-layer",
   ],
@@ -70,10 +74,12 @@ export const MODE_SWITCHED_LAYERS: Record<
   },
   situations: {
     "situation-points-layer": "showAffectedStops",
-    // One switch, two layers: the casing is the line's own outline and must
-    // never be left drawn over a map with no line on it.
+    "situation-points-edge-layer": "showAffectedStops",
+    // One switch, three layers: the two casings are the line's own edge and
+    // must never be left drawn over a map with no line on it.
     "situation-lines-layer": "showAffectedLines",
     "situation-lines-casing-layer": "showAffectedLines",
+    "situation-lines-outer-casing-layer": "showAffectedLines",
   },
 };
 
@@ -100,7 +106,12 @@ export const MODE_SWITCHED_LAYERS: Record<
  * reveal the genuinely dormant layers.
  */
 export const MODE_DEFAULT_VISIBLE_LAYERS: Record<AppMode, string[]> = {
-  vehicles: ["service-journey-route-layer", "vehicle-follow-layer"],
+  vehicles: [
+    "service-journey-route-layer",
+    "service-journey-route-outer-casing-layer",
+    "service-journey-route-casing-layer",
+    "vehicle-follow-layer",
+  ],
   // The halo layers are the situations-mode counterpart of
   // vehicle-follow-layer: filtered to the selected situation by
   // SituationLayers, never toggled. They stay visible when the "Affected

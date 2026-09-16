@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { mapStyle } from "../components/mapStyle.ts";
+import { buildMapStyle } from "../components/mapStyle.ts";
+
+const mapStyle = buildMapStyle("light");
 import { RightContentType } from "../components/RightMenu/types.ts";
 import { MapViewOptions } from "../types.ts";
 import {

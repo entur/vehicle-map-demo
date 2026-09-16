@@ -4,7 +4,9 @@ import {
   NavigationControl,
   GeolocateControl,
 } from "react-map-gl/maplibre";
-import { mapStyle } from "./mapStyle.ts";
+import { buildMapStyle } from "./mapStyle.ts";
+import { useColorScheme } from "@mui/material/styles";
+import { mapSchemeFor } from "../domain/baseMapScheme.ts";
 import { CaptureBoundingBox } from "./CaptureBoundingBox.tsx";
 import { Filter, MapViewOptions } from "../types.ts";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -62,6 +64,13 @@ export function MapView({
   mapViewOptions,
   setMapViewOptions,
 }: MapViewProps) {
+  const { colorScheme } = useColorScheme();
+  // Built once, for the scheme in force at mount, and never replaced: a new
+  // style object makes react-map-gl call setStyle, which resets GeoJSON data,
+  // layer visibility and registered images. Scheme changes after mount go
+  // through BaseMapScheme.
+  const [mapStyle] = useState(() => buildMapStyle(mapSchemeFor(colorScheme)));
+
   const [selectedVehicle, setSelectedVehicle] =
     useState<SelectedVehicle | null>(null);
   const [tripCancelled, setTripCancelled] = useState(false);
