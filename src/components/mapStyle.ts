@@ -197,7 +197,7 @@ export function buildMapStyle(scheme: MapScheme): StyleSpecification {
         paint: {
           "line-color": EDGE_WHITE,
           "line-width": 10,
-          "line-opacity": 0.85,
+          "line-opacity": 1,
         },
       },
       {
@@ -208,7 +208,7 @@ export function buildMapStyle(scheme: MapScheme): StyleSpecification {
         paint: {
           "line-color": EDGE_INK,
           "line-width": 7,
-          "line-opacity": 0.85,
+          "line-opacity": 1,
         },
       },
       {
@@ -222,7 +222,7 @@ export function buildMapStyle(scheme: MapScheme): StyleSpecification {
         paint: {
           "line-color": ROUTE,
           "line-width": 4,
-          "line-opacity": 0.85,
+          "line-opacity": 1,
         },
       },
       // Halo layers sit under the ordinary situation layers and are filtered to
@@ -452,8 +452,8 @@ export function buildMapStyle(scheme: MapScheme): StyleSpecification {
             300,
             "red-light", //
           ],
-          "icon-size": 0.18,
-          "icon-offset": [-100, -180],
+          "icon-size": 0.16,
+          "icon-offset": [-60, -110],
           "icon-allow-overlap": true,
         },
       },
