@@ -13,12 +13,12 @@ type Dimensions = { length: number; width: number; height: number };
 export const VEHICLE_DIMENSIONS: Partial<
   Record<VehicleModeEnumeration, Dimensions>
 > = {
-  BUS: { length: 12, width: 2.55, height: 3.2 },
+  BUS: { length: 18, width: 2.55, height: 3.2 },
   COACH: { length: 13, width: 2.55, height: 3.6 },
   TRAM: { length: 32, width: 2.65, height: 3.6 },
   METRO: { length: 60, width: 3.2, height: 3.7 },
-  RAIL: { length: 75, width: 3.2, height: 4.2 },
-  FERRY: { length: 40, width: 10, height: 6 },
+  RAIL: { length: 150, width: 3.2, height: 4.2 },
+  FERRY: { length: 50, width: 12, height: 6 },
 };
 
 const DEFAULT_DIMENSIONS: Dimensions = { length: 8, width: 2.5, height: 3 };
