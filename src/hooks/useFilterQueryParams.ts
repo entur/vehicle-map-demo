@@ -1,5 +1,6 @@
 import { Filter } from "../types.ts";
 import { useEffect, useRef } from "react";
+import { filterFromQueryParams } from "../domain/filterQueryParams.ts";
 
 function getQueryParams() {
   if (!window.location.search) return {};
@@ -23,14 +24,9 @@ export function useFilterQueryParams(
   useEffect(() => {
     if (!loadState.current.loaded) {
       loadState.current.loaded = true;
-      // `mode` shares the query string but is not part of Filter — it is owned
-      // by useModeQueryParam. Merging it here would put a stray key into the
-      // filter object and, from there, into the subscription variables.
-      const { mode: _mode, ...queryParams } = getQueryParams();
-      void _mode;
       setFilter({
         ...(filter || {}),
-        ...queryParams,
+        ...filterFromQueryParams(getQueryParams()),
       } as Filter);
     }
   }, [filter, setFilter]);
