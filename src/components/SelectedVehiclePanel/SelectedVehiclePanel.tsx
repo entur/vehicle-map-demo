@@ -1,4 +1,5 @@
-import { Box, Drawer, IconButton, Typography } from "@mui/material";
+import { Alert, Box, IconButton, Typography } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
 import { useEffect, useState } from "react";
 import { SelectedVehicle } from "../Vehicle/VehicleMarkers.tsx";
 import { useVehicleUpdateCompleteSubscription } from "../../hooks/useVehicleUpdateCompleteSubscription.ts";
@@ -6,10 +7,8 @@ import { useTimetableSubscription } from "../../hooks/useTimetableSubscription.t
 import { delayBucket, delayColour, formatDelay } from "./delayThresholds.ts";
 import { Timetable } from "./Timetable.tsx";
 import { SituationList } from "./SituationList.tsx";
-import {
-  DETAIL_DRAWER_TOP_OFFSET,
-  DETAIL_DRAWER_WIDTH,
-} from "../detailDrawer.ts";
+import { DETAIL_PANEL_SX } from "../detailDrawer.ts";
+import { FloatingCard } from "../FloatingCard.tsx";
 
 type SelectedVehiclePanelProps = {
   selectedVehicle: SelectedVehicle | null;
@@ -17,8 +16,6 @@ type SelectedVehiclePanelProps = {
   onCancellationChange?: (cancelled: boolean) => void;
 };
 
-const DRAWER_WIDTH = DETAIL_DRAWER_WIDTH;
-const DRAWER_TOP_OFFSET = DETAIL_DRAWER_TOP_OFFSET;
 const NO_TIMETABLE_TIMEOUT_MS = 3000;
 
 export function SelectedVehiclePanel({
@@ -37,17 +34,19 @@ export function SelectedVehiclePanel({
   const timetable = useTimetableSubscription(serviceJourneyId, date);
 
   // After (NO_TIMETABLE_TIMEOUT_MS) without a timetable frame, surface the
-  // "not available" message. Reset whenever the selection changes.
-  const [timedOut, setTimedOut] = useState(false);
+  // "not available" message. The timeout remembers which journey it fired
+  // for, so a new selection starts un-timed-out without being reset.
+  const journeyKey = `${serviceJourneyId}|${date}`;
+  const [timedOutFor, setTimedOutFor] = useState<string | null>(null);
+  const timedOut = timedOutFor === journeyKey;
   useEffect(() => {
-    setTimedOut(false);
     if (!serviceJourneyId) return;
     const id = window.setTimeout(
-      () => setTimedOut(true),
+      () => setTimedOutFor(journeyKey),
       NO_TIMETABLE_TIMEOUT_MS,
     );
     return () => window.clearTimeout(id);
-  }, [serviceJourneyId, date]);
+  }, [serviceJourneyId, journeyKey]);
 
   const open = selectedVehicle !== null;
   const currentOrder = vehicleData?.monitoredCall?.order ?? null;
@@ -70,24 +69,13 @@ export function SelectedVehiclePanel({
         .join(" ")
     : "Loading…";
 
+  if (!open) return null;
+
   return (
-    <Drawer
-      anchor="left"
-      variant="persistent"
-      open={open}
-      slotProps={{
-        paper: {
-          sx: {
-            width: DRAWER_WIDTH,
-            top: DRAWER_TOP_OFFSET,
-            height: `calc(100% - ${DRAWER_TOP_OFFSET}px)`,
-            padding: 2,
-            boxSizing: "border-box",
-            display: "flex",
-            flexDirection: "column",
-          },
-        },
-      }}
+    <FloatingCard
+      role="region"
+      aria-label="Selected vehicle"
+      sx={DETAIL_PANEL_SX}
     >
       <Box
         sx={{
@@ -108,26 +96,14 @@ export function SelectedVehiclePanel({
           )}
         </Box>
         <IconButton aria-label="Close" onClick={onClose} size="small">
-          <Box component="span" sx={{ fontSize: 20, lineHeight: 1 }}>
-            ×
-          </Box>
+          <CloseIcon fontSize="small" />
         </IconButton>
       </Box>
 
       {tripCancelled && (
-        <Box
-          sx={{
-            marginTop: 1,
-            padding: 1,
-            background: "#fde8e6",
-            color: "#c0392b",
-            borderRadius: 1,
-            fontSize: 13,
-            fontWeight: 600,
-          }}
-        >
+        <Alert severity="error" sx={{ marginTop: 1, paddingY: 0 }}>
           Trip cancelled
-        </Box>
+        </Alert>
       )}
 
       <SituationList
@@ -171,6 +147,6 @@ export function SelectedVehiclePanel({
           </Typography>
         )}
       </Box>
-    </Drawer>
+    </FloatingCard>
   );
 }

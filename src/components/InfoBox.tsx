@@ -1,4 +1,4 @@
-import { Card, CardContent, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { VehicleModeEnumeration, VehicleUpdate } from "../types.ts";
 
 type InfoBoxProps = {
@@ -46,48 +46,45 @@ export function InfoBox({ data }: InfoBoxProps) {
   const updateFrequency = data ? getUpdateFrequencyCounts(data) : null;
 
   return (
-    <Card>
-      <CardContent>
-        <Typography variant="h6" gutterBottom>
-          Statistics
-        </Typography>
-        {data && (
-          <>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              {"Size of data set: " + data.length}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              {"Buses: " + getNoOfVehicles(data, "BUS")}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              {"Trains: " + getNoOfVehicles(data, "RAIL")}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              {"Trams: " + getNoOfVehicles(data, "TRAM")}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              {"Ferries: " + getNoOfVehicles(data, "FERRY")}
-            </Typography>
-            {updateFrequency && (
-              <>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  {"Update frequency (<2s): " + updateFrequency.lessThan2}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  {"Update frequency (2-15s): " + updateFrequency.between2And15}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  {"Update frequency (15-30s): " +
-                    updateFrequency.between15And30}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  {"Update frequency (>30s): " + updateFrequency.greaterThan30}
-                </Typography>
-              </>
-            )}
-          </>
-        )}
-      </CardContent>
-    </Card>
+    <Box>
+      <Typography variant="h6" gutterBottom>
+        Statistics
+      </Typography>
+      {data && (
+        <>
+          <Typography variant="body2" color="text.secondary" gutterBottom>
+            {"Size of data set: " + data.length}
+          </Typography>
+          <Typography variant="body2" color="text.secondary" gutterBottom>
+            {"Buses: " + getNoOfVehicles(data, "BUS")}
+          </Typography>
+          <Typography variant="body2" color="text.secondary" gutterBottom>
+            {"Trains: " + getNoOfVehicles(data, "RAIL")}
+          </Typography>
+          <Typography variant="body2" color="text.secondary" gutterBottom>
+            {"Trams: " + getNoOfVehicles(data, "TRAM")}
+          </Typography>
+          <Typography variant="body2" color="text.secondary" gutterBottom>
+            {"Ferries: " + getNoOfVehicles(data, "FERRY")}
+          </Typography>
+          {updateFrequency && (
+            <>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                {"Update frequency (<2s): " + updateFrequency.lessThan2}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                {"Update frequency (2-15s): " + updateFrequency.between2And15}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                {"Update frequency (15-30s): " + updateFrequency.between15And30}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                {"Update frequency (>30s): " + updateFrequency.greaterThan30}
+              </Typography>
+            </>
+          )}
+        </>
+      )}
+    </Box>
   );
 }

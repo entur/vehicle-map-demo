@@ -1,91 +1,71 @@
-import filterIcon from "../../static/images/filter.png";
-import infoIcon from "../../static/images/info.png";
-import layersIcon from "../../static/images/layers.png";
-import orangeMarkerIcon from "../../static/images/orangeMarker.png";
-import statisticsIcon from "../../static/images/statistics.png";
-import stoplightIcon from "../../static/images/stoplight.png";
+import { IconButton, Tooltip } from "@mui/material";
+import LayersIcon from "@mui/icons-material/Layers";
+import FilterListIcon from "@mui/icons-material/FilterList";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import FactCheckIcon from "@mui/icons-material/FactCheck";
+import BarChartIcon from "@mui/icons-material/BarChart";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import AssessmentIcon from "@mui/icons-material/Assessment";
+import { ReactElement } from "react";
 import { AppMode, rightRailTools } from "../../domain/appMode.ts";
+import { FloatingCard } from "../FloatingCard.tsx";
 import { RightContentType } from "./types.ts";
+import { TOOL_LABELS } from "./toolLabels.ts";
 
-type Tool = {
-  content: RightContentType;
-  icon: string;
-  label: string;
+const ICONS: Record<RightContentType, ReactElement> = {
+  layers: <LayersIcon fontSize="small" />,
+  filtering: <FilterListIcon fontSize="small" />,
+  info: <InfoOutlinedIcon fontSize="small" />,
+  stoplight: <FactCheckIcon fontSize="small" />,
+  statistics: <BarChartIcon fontSize="small" />,
+  situations: <WarningAmberIcon fontSize="small" />,
+  situationStats: <AssessmentIcon fontSize="small" />,
 };
-
-const TOOLS: Record<RightContentType, Tool> = {
-  layers: { content: "layers", icon: layersIcon, label: "Layers" },
-  filtering: { content: "filtering", icon: filterIcon, label: "Filter" },
-  info: { content: "info", icon: infoIcon, label: "Info" },
-  stoplight: {
-    content: "stoplight",
-    icon: stoplightIcon,
-    label: "Data report",
-  },
-  // Shares the icon with the vehicles-mode left-rail Statistics button. They
-  // never appear together — that rail is hidden in situations mode — and the
-  // shared icon reads correctly: both are aggregate readouts over a feed.
-  situationStats: {
-    content: "situationStats",
-    icon: statisticsIcon,
-    label: "Feed report",
-  },
-  situations: {
-    content: "situations",
-    icon: orangeMarkerIcon,
-    // Deliberately not "Situations": that is the mode toggle's label, and the
-    // label drives both `alt` and `title`, so reusing it would give two
-    // controls the same accessible name.
-    label: "Situations panel",
-  },
-};
-
-/** Below the mode switch, then one button pitch apart. */
-const FIRST_BUTTON_TOP = 75;
-const BUTTON_PITCH = 55;
 
 type RightMenuButtonsProps = {
   mode: AppMode;
   activeContent: RightContentType | null;
   setActiveContent: (contentType: RightContentType | null) => void;
-  /** The open drawer is a wide one, so the buttons shift further left. */
-  wide: boolean;
 };
 
 export const RightMenuButtons = ({
   mode,
   activeContent,
   setActiveContent,
-  wide,
-}: RightMenuButtonsProps) => {
-  const toggleSidebar = (newActiveContent: RightContentType) => {
-    setActiveContent(
-      newActiveContent === activeContent ? null : newActiveContent,
-    );
-  };
-
-  return (
-    <>
-      {rightRailTools(mode).map((content, index) => {
-        const tool = TOOLS[content];
-        return (
-          <button
-            key={content}
-            onClick={() => toggleSidebar(content)}
-            className={`sidebar-button right ${
-              activeContent === content ? "active" : ""
-            } ${activeContent ? "open" : ""} ${wide ? "wide" : ""}`}
-            style={{ top: `${FIRST_BUTTON_TOP + index * BUTTON_PITCH}px` }}
+}: RightMenuButtonsProps) => (
+  <FloatingCard
+    role="group"
+    aria-label="Tools"
+    sx={{
+      display: "flex",
+      flexDirection: "column",
+      gap: 0.25,
+      padding: 0.5,
+      flexShrink: 0,
+    }}
+  >
+    {rightRailTools(mode).map((content) => {
+      const label = TOOL_LABELS[content];
+      const active = activeContent === content;
+      return (
+        <Tooltip key={content} title={label} placement="left">
+          <IconButton
+            aria-label={label}
+            aria-pressed={active}
+            onClick={() => setActiveContent(active ? null : content)}
+            sx={{
+              width: 36,
+              height: 36,
+              borderRadius: "6px",
+              color: active ? "selection.main" : "text.secondary",
+              bgcolor: active ? "selection.bg" : "transparent",
+              "&:hover": { bgcolor: active ? "selection.bg" : "action.hover" },
+            }}
           >
-            <img
-              src={tool.icon}
-              alt={tool.label}
-              title={tool.label}
-              style={{ width: "40px", height: "40px" }}
-            />
-          </button>
-        );
-      })}
-    </>
-  );
-};
+            {ICONS[content]}
+          </IconButton>
+        </Tooltip>
+      );
+    })}
+  </FloatingCard>
+);

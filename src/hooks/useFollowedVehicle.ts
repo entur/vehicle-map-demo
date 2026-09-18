@@ -1,17 +1,25 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import type { Map as MapLibreMap } from "maplibre-gl";
 import { VehicleData } from "./useVehiclePositionsData.ts";
 import { SelectedVehicle } from "../components/Vehicle/VehicleMarkers.tsx";
 
 export function useFollowedVehicle(
   data: VehicleData[],
   selectedVehicle: SelectedVehicle | null,
-  mapRef: React.RefObject<any>,
+  mapRef: React.RefObject<MapLibreMap | null>,
 ) {
   const [followedVehicle, setFollowedVehicle] =
     useState<SelectedVehicle | null>(null);
 
+  // Where the camera was last sent, so a frame that did not move the vehicle
+  // does not restart the flight. A ref, not state: nothing renders from it.
+  const flownTo = useRef<number[] | null>(null);
   useEffect(() => {
-    if (followedVehicle && mapRef.current) {
+    flownTo.current = followedVehicle?.coordinates ?? null;
+  }, [followedVehicle]);
+
+  useEffect(() => {
+    if (followedVehicle && flownTo.current && mapRef.current) {
       const updatedVehicleData = data.find(
         (vehicle) =>
           vehicle.vehicleUpdate.vehicleId === followedVehicle.properties.id,
@@ -23,16 +31,12 @@ export function useFollowedVehicle(
         ];
 
         if (
-          newCoords[0] !== followedVehicle.coordinates[0] ||
-          newCoords[1] !== followedVehicle.coordinates[1]
+          newCoords[0] !== flownTo.current[0] ||
+          newCoords[1] !== flownTo.current[1]
         ) {
-          const updatedFollowVehicle = {
-            ...followedVehicle,
-            coordinates: newCoords,
-          };
-          setFollowedVehicle(updatedFollowVehicle);
+          flownTo.current = newCoords;
           mapRef.current.flyTo({
-            center: newCoords,
+            center: newCoords as [number, number],
             essential: true,
           });
         }

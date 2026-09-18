@@ -1,6 +1,6 @@
-import Tooltip from "@mui/material/Tooltip";
-// `?url`: vite-svg-loader would otherwise turn the import into a component.
-import chaseIcon from "../../static/images/chase.svg?url";
+import { IconButton, Tooltip } from "@mui/material";
+import VideocamIcon from "@mui/icons-material/Videocam";
+import { POPUP_ACTION_SX } from "./popupAction.ts";
 
 type ChaseButtonProps = {
   onClick: () => void;
@@ -10,13 +10,13 @@ type ChaseButtonProps = {
 export function ChaseButton({ onClick }: ChaseButtonProps) {
   return (
     <Tooltip title="Chase camera">
-      <button
-        className="round-icon-button"
-        onClick={onClick}
+      <IconButton
         aria-label="Chase camera"
+        onClick={onClick}
+        sx={POPUP_ACTION_SX}
       >
-        <img src={chaseIcon} alt="" className="icon" />
-      </button>
+        <VideocamIcon fontSize="small" />
+      </IconButton>
     </Tooltip>
   );
 }
