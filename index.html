@@ -5,6 +5,29 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Vehicle Map Demo</title>
+    <script>
+      // Mirrors MUI's InitColorSchemeScript: apply the saved colour scheme
+      // before the bundle loads, so dark-mode users see no light flash. The key
+      // is COLOR_SCHEME_STORAGE_KEY in src/components/theme.ts — change both.
+      (function () {
+        try {
+          var mode =
+            localStorage.getItem("vehicle-map-color-scheme") || "system";
+          var scheme =
+            mode === "system"
+              ? window.matchMedia("(prefers-color-scheme: dark)").matches
+                ? "dark"
+                : "light"
+              : mode;
+          if (scheme === "light" || scheme === "dark") {
+            document.documentElement.setAttribute(
+              "data-mui-color-scheme",
+              scheme,
+            );
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

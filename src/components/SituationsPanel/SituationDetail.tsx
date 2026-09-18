@@ -1,4 +1,5 @@
-import { Box, Typography } from "@mui/material";
+import { Box, IconButton, Typography } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
 import { NationalSituation, TranslatedString } from "../../types.ts";
 import { SituationFlag } from "../../domain/situationFlags.ts";
 import { describeMistype, mistypedRefsOf } from "../../domain/journeyRef.ts";
@@ -9,7 +10,11 @@ import { decodePolyline } from "../../utils/decodePolyline.ts";
 function Field({ label, value }: { label: string; value: string | null }) {
   return (
     <Box sx={{ display: "flex", gap: 1, fontSize: 11 }}>
-      <span style={{ color: "#666", minWidth: 110 }}>{label}</span>
+      <span
+        style={{ color: "var(--mui-palette-text-secondary)", minWidth: 110 }}
+      >
+        {label}
+      </span>
       <span style={{ wordBreak: "break-all" }}>{value ?? "—"}</span>
     </Box>
   );
@@ -32,7 +37,7 @@ function Translations({
           fontSize: 10,
           fontWeight: 700,
           textTransform: "uppercase",
-          color: "#666",
+          color: "text.secondary",
         }}
       >
         {label}
@@ -44,7 +49,7 @@ function Translations({
         >
           <Typography
             component="span"
-            sx={{ fontSize: 10, color: "#999", marginRight: 0.5 }}
+            sx={{ fontSize: 10, color: "text.disabled", marginRight: 0.5 }}
           >
             {entry.language ?? "untagged"}
           </Typography>
@@ -84,7 +89,10 @@ function AffectsGroup({
 
   return (
     <Box sx={{ marginTop: 0.5 }}>
-      <Typography component="div" sx={{ fontSize: 10, color: "#666" }}>
+      <Typography
+        component="div"
+        sx={{ fontSize: 10, color: "text.secondary" }}
+      >
         {label} ({entries.length})
       </Typography>
       {shown.map((entry, index) => (
@@ -102,7 +110,7 @@ function AffectsGroup({
           sx={{
             fontSize: 11,
             paddingLeft: 1,
-            color: "#666",
+            color: "text.secondary",
             fontStyle: "italic",
           }}
         >
@@ -128,7 +136,7 @@ export function SituationDetail({
   return (
     <Box
       sx={{
-        border: "1px solid #ddd",
+        border: "1px solid var(--mui-palette-divider)",
         borderRadius: 1,
         padding: 1.5,
         marginBottom: 2,
@@ -144,22 +152,9 @@ export function SituationDetail({
         <Typography component="div" sx={{ fontSize: 13, fontWeight: 700 }}>
           Detail
         </Typography>
-        <Box
-          component="button"
-          type="button"
-          onClick={onClose}
-          aria-label="Close detail"
-          sx={{
-            border: "none",
-            background: "none",
-            cursor: "pointer",
-            fontSize: 14,
-            padding: 0,
-            color: "#666",
-          }}
-        >
-          ×
-        </Box>
+        <IconButton aria-label="Close" onClick={onClose} size="small">
+          <CloseIcon fontSize="small" />
+        </IconButton>
       </Box>
 
       <Translations label="Summary" strings={situation.summary} />
@@ -173,7 +168,7 @@ export function SituationDetail({
             fontSize: 10,
             fontWeight: 700,
             textTransform: "uppercase",
-            color: "#666",
+            color: "text.secondary",
           }}
         >
           Validity
@@ -197,7 +192,7 @@ export function SituationDetail({
               fontSize: 10,
               fontWeight: 700,
               textTransform: "uppercase",
-              color: "#666",
+              color: "text.secondary",
             }}
           >
             Info links
@@ -221,7 +216,7 @@ export function SituationDetail({
             fontSize: 10,
             fontWeight: 700,
             textTransform: "uppercase",
-            color: "#666",
+            color: "text.secondary",
           }}
         >
           Affects — {affectsShape(situation)}

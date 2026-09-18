@@ -16,6 +16,7 @@ import {
 } from "../../domain/chaseCamera.ts";
 import { ViewDimension, cameraFor } from "../../domain/viewDimension.ts";
 import { ChasedVehicle, ChasedVehicleStore } from "./chasedVehicleStore.ts";
+import { VEHICLE_MODEL_MIN_ZOOM } from "../mapStyle.ts";
 
 const CHASE_ZOOM = 17.5;
 /**
@@ -25,8 +26,12 @@ const CHASE_ZOOM = 17.5;
  * middle of, capping or stranding the pitch.
  */
 const CHASE_PITCH = 60;
-/** Below this the models fade out, leaving nothing on screen to chase. */
-const CHASE_MIN_ZOOM = 16;
+/**
+ * Where the models finish fading in. The chased vehicle has no icon — the
+ * markers leave it out — so below this it fades with the models, and at
+ * `VEHICLE_MODEL_MIN_ZOOM` itself it is gone, leaving nothing to chase.
+ */
+const CHASE_MIN_ZOOM = VEHICLE_MODEL_MIN_ZOOM + 0.5;
 /** Share of the map's height padded off the top, so the road ahead shows. */
 const TOP_PADDING_SHARE = 0.35;
 const FLY_IN_MS = 1500;

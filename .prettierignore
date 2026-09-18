@@ -1,3 +1,6 @@
 # Ignore artifacts:
 dist
 node_modules
+
+# Vendored OpenFreeMap style snapshots, written by scripts/fetch-basemap-styles.mjs
+src/components/basemap/*.json
