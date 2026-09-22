@@ -1,3 +1,9 @@
+import {
+  DELAY_EARLY,
+  DELAY_LATE,
+  DELAY_ON_TIME,
+} from "../../domain/dataColours.ts";
+
 export type DelayBucket = "ontime" | "late" | "early";
 
 const ON_TIME_TOLERANCE_SECONDS = 60;
@@ -11,11 +17,11 @@ export function delayBucket(delaySeconds: number): DelayBucket {
 export function delayColour(bucket: DelayBucket): string {
   switch (bucket) {
     case "late":
-      return "#c0392b";
+      return DELAY_LATE;
     case "early":
-      return "#2980b9";
+      return DELAY_EARLY;
     case "ontime":
-      return "#1f8a3a";
+      return DELAY_ON_TIME;
   }
 }
 

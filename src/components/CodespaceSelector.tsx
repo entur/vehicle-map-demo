@@ -39,7 +39,10 @@ export function CodespaceSelector({
           <MenuItem key={option.value} value={option.value}>
             {option.value}
             {option.count !== null && (
-              <Box component="span" sx={{ marginLeft: 1, color: "#999" }}>
+              <Box
+                component="span"
+                sx={{ marginLeft: 1, color: "text.disabled" }}
+              >
                 {option.count}
               </Box>
             )}

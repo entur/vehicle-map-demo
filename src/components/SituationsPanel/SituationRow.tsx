@@ -1,6 +1,7 @@
 import { Box, Typography } from "@mui/material";
 import { memo } from "react";
 import { NationalSituation } from "../../types.ts";
+import { SEVERITY_SEVERE } from "../../domain/dataColours.ts";
 import { FLAG_LEVEL, SituationFlag } from "../../domain/situationFlags.ts";
 import { severityColour } from "../SelectedVehiclePanel/situationSeverity.ts";
 import { pickTranslation } from "../SelectedVehiclePanel/situationText.ts";
@@ -49,9 +50,12 @@ function SituationRowImpl({
         width: "100%",
         textAlign: "left",
         border: "none",
-        borderBottom: "1px dotted #eee",
+        borderBottom: "1px dotted var(--mui-palette-divider)",
         borderLeft: `3px solid ${severityColour(situation.severity)}`,
-        background: selected ? "#eef7f7" : "none",
+        background: selected ? "var(--mui-palette-selection-bg)" : "none",
+        boxShadow: selected
+          ? "inset 3px 0 0 var(--mui-palette-selection-main)"
+          : "none",
         cursor: "pointer",
         padding: "6px 8px",
         font: "inherit",
@@ -61,7 +65,10 @@ function SituationRowImpl({
         {summary}
       </Typography>
       <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", marginTop: 0.25 }}>
-        <Typography component="span" sx={{ fontSize: 10, color: "#666" }}>
+        <Typography
+          component="span"
+          sx={{ fontSize: 10, color: "text.secondary" }}
+        >
           {situation.codespace?.codespaceId ?? "(no codespace)"} ·{" "}
           {situation.severity ?? "(no severity)"} ·{" "}
           {situation.reportType ?? "(no type)"}
@@ -72,7 +79,10 @@ function SituationRowImpl({
             component="span"
             sx={{
               fontSize: 10,
-              color: FLAG_LEVEL[flag] === "warning" ? "#c0392b" : "#666",
+              color:
+                FLAG_LEVEL[flag] === "warning"
+                  ? SEVERITY_SEVERE
+                  : "text.secondary",
             }}
           >
             {flag}

@@ -19,7 +19,7 @@ export function useOperators(codespaceId: string) {
   const requestHeaders = useRequestHeaders();
   useEffect(() => {
     const fetchOperators = async () => {
-      const response: any = await request(
+      const response = await request<{ operators: Operator[] }>(
         config["vehicle-positions-graphql-endpoint"],
         query,
         { codespaceId },
@@ -28,7 +28,7 @@ export function useOperators(codespaceId: string) {
       setOperators(response.operators);
     };
     fetchOperators();
-  }, [codespaceId, config]);
+  }, [codespaceId, config, requestHeaders]);
 
   return operators;
 }

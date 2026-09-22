@@ -66,13 +66,7 @@ export function useSituationsSubscription(enabled: boolean): SituationsFeed {
   const subscriptionClient = useSubscriptionClient();
 
   useEffect(() => {
-    if (!enabled) {
-      // Reset rather than freeze: the feed has no TTL, so keeping the last
-      // frames would present a stale snapshot as live on returning.
-      byNumber.current = new Map();
-      setFeed({ situations: [], status: "connecting", lastUpdated: null });
-      return;
-    }
+    if (!enabled) return;
 
     byNumber.current = new Map();
 
@@ -125,6 +119,11 @@ export function useSituationsSubscription(enabled: boolean): SituationsFeed {
       cancelled = true;
       clearTimeout(emptyTimer);
       subscription.current?.return?.();
+      // Reset rather than freeze when the feed is disabled: it has no TTL, so
+      // keeping the last frames would present a stale snapshot as live on
+      // returning. Done as the subscription ends, not as a reaction to it.
+      byNumber.current = new Map();
+      setFeed({ situations: [], status: "connecting", lastUpdated: null });
     };
   }, [subscriptionClient, enabled]);
 

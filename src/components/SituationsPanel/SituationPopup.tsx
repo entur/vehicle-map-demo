@@ -56,7 +56,7 @@ export function SituationPopup({
             fontSize: 10,
             fontWeight: 700,
             textTransform: "uppercase",
-            color: "#666",
+            color: "text.secondary",
             marginBottom: 0.5,
           }}
         >
@@ -77,10 +77,16 @@ export function SituationPopup({
               width: "100%",
               textAlign: "left",
               border: "none",
-              borderBottom: "1px dotted #eee",
+              borderBottom: "1px dotted var(--mui-palette-divider)",
               borderLeft: `3px solid ${severityColour(situation.severity)}`,
               background:
-                selected === situation.situationNumber ? "#eef7f7" : "none",
+                selected === situation.situationNumber
+                  ? "var(--mui-palette-selection-bg)"
+                  : "none",
+              boxShadow:
+                selected === situation.situationNumber
+                  ? "inset 3px 0 0 var(--mui-palette-selection-main)"
+                  : "none",
               cursor: "pointer",
               padding: "4px 6px",
               font: "inherit",
@@ -89,14 +95,21 @@ export function SituationPopup({
             <Typography component="div" sx={{ fontSize: 12, fontWeight: 600 }}>
               {pickTranslation(situation.summary) ?? "(no summary)"}
             </Typography>
-            <Typography component="div" sx={{ fontSize: 10, color: "#666" }}>
+            <Typography
+              component="div"
+              sx={{ fontSize: 10, color: "text.secondary" }}
+            >
               {situation.codespace?.codespaceId ?? "(no codespace)"} ·{" "}
               {situation.severity ?? "(no severity)"} ·{" "}
               {situation.reportType ?? "(no type)"}
             </Typography>
             <Typography
               component="div"
-              sx={{ fontSize: 9, color: "#999", wordBreak: "break-all" }}
+              sx={{
+                fontSize: 9,
+                color: "text.disabled",
+                wordBreak: "break-all",
+              }}
             >
               {situation.situationNumber}
             </Typography>

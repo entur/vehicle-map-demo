@@ -4,19 +4,26 @@ import {
   NavigationControl,
   GeolocateControl,
 } from "react-map-gl/maplibre";
-import { mapStyle } from "./mapStyle.ts";
+import { buildMapStyle } from "./mapStyle.ts";
+import { useColorScheme } from "@mui/material/styles";
+import { mapSchemeFor } from "../domain/baseMapScheme.ts";
 import { CaptureBoundingBox } from "./CaptureBoundingBox.tsx";
 import { Filter, MapViewOptions } from "../types.ts";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { setWorkerUrl } from "maplibre-gl";
+import type {
+  Map as MapLibreMap,
+  MapLibreEvent,
+  MapStyleDataEvent,
+} from "maplibre-gl";
 // MapLibre 6 cannot locate its worker from inside a bundle. `?worker&url`
 // rather than `?url`: the worker imports a sibling chunk that `?url` leaves
 // out of production builds, so no tiles would load.
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import { SelectedVehicle, VehicleMarkers } from "./Vehicle/VehicleMarkers.tsx";
 import { RegisterIcons } from "./RegisterIcons.tsx";
+import { VehicleLabelPlacement } from "./Vehicle/VehicleLabelPlacement.tsx";
 import { RightMenu } from "./RightMenu";
-import { LeftMenu } from "./LeftMenu";
 import { VehicleData } from "../hooks/useVehiclePositionsData.ts";
 import { VehicleTraces } from "./Vehicle/VehicleTraces.tsx";
 import { VehicleModels } from "./Vehicle/VehicleModels.tsx";
@@ -32,6 +39,8 @@ import { ViewDimension } from "../domain/viewDimension.ts";
 import { RotateControl } from "./RotateControl.tsx";
 import { ViewDimensionControl } from "./ViewDimensionControl.tsx";
 import { ViewDimensionLayers } from "./ViewDimensionLayers.tsx";
+import { BaseMapScheme } from "./BaseMapScheme.tsx";
+import { TransitNetworkLayers } from "./TransitNetworkLayers.tsx";
 import { ChaseCamera } from "./Vehicle/ChaseCamera.tsx";
 import {
   ChasedVehicle,
@@ -45,6 +54,8 @@ type MapViewProps = {
   setMode: (mode: AppMode) => void;
   viewDimension: ViewDimension;
   setViewDimension: (viewDimension: ViewDimension) => void;
+  showTransitNetwork: boolean;
+  setShowTransitNetwork: (show: boolean) => void;
   data: VehicleData[];
   setCurrentFilter: React.Dispatch<React.SetStateAction<Filter | null>>;
   currentFilter: Filter | null;
@@ -57,25 +68,62 @@ export function MapView({
   setMode,
   viewDimension,
   setViewDimension,
+  showTransitNetwork,
+  setShowTransitNetwork,
   data,
   setCurrentFilter,
   currentFilter,
   mapViewOptions,
   setMapViewOptions,
 }: MapViewProps) {
+  const { colorScheme } = useColorScheme();
+  // Built once, for the scheme in force at mount, and never replaced: a new
+  // style object makes react-map-gl call setStyle, which resets GeoJSON data,
+  // layer visibility and registered images. Scheme changes after mount go
+  // through BaseMapScheme.
+  const [mapStyle] = useState(() => buildMapStyle(mapSchemeFor(colorScheme)));
+
   const [selectedVehicle, setSelectedVehicle] =
     useState<SelectedVehicle | null>(null);
   const [tripCancelled, setTripCancelled] = useState(false);
-  const mapRef = useRef<any>(null);
+  const mapRef = useRef<MapLibreMap | null>(null);
 
-  useEffect(() => {
-    if (selectedVehicle === null) {
-      setTripCancelled(false);
-    }
-  }, [selectedVehicle]);
-
-  const handleMapLoad = (event: any) => {
+  const handleMapLoad = (event: MapLibreEvent) => {
     mapRef.current = event.target;
+    // Lets the Playwright smoke tests read layer state, which the canvas hides.
+    // Development builds only.
+    if (import.meta.env.DEV) {
+      (window as unknown as { __vehicleMap?: unknown }).__vehicleMap =
+        event.target;
+    }
+  };
+
+  // `onStyleData` fires on the map instance's first 'styledata' — set up by
+  // react-map-gl (@vis.gl/react-maplibre's Map component) while constructing
+  // the underlying maplibregl.Map, strictly before any child of <Map>
+  // (including BaseMapScheme) even mounts: the Map component only renders its
+  // children once its own map-instance state is set, one render after the
+  // instance — and this listener — are created. So this always observes the
+  // style exactly as buildMapStyle baked it, before BaseMapScheme's own
+  // 'styledata' listener (registered later, from its own effect) can correct
+  // a wrongly-built scheme. Lets the Playwright dark-load smoke test detect a
+  // flash of the wrong base map that a check at 'load' time would miss.
+  const capturedInitialBaseVisibility = useRef(false);
+  const handleStyleData = (event: MapStyleDataEvent) => {
+    if (!import.meta.env.DEV || capturedInitialBaseVisibility.current) return;
+    capturedInitialBaseVisibility.current = true;
+    const map = event.target;
+    (
+      window as unknown as {
+        __vehicleMapInitialBaseVisibility?: {
+          light: unknown;
+          dark: unknown;
+        };
+      }
+    ).__vehicleMapInitialBaseVisibility = {
+      light: map.getLayoutProperty("light/background", "visibility"),
+      dark: map.getLayoutProperty("dark/background", "visibility"),
+    };
   };
 
   const { followedVehicle, handleFollowToggle, clearFollowedVehicle } =
@@ -140,12 +188,17 @@ export function MapView({
   // than returning to none. The followed vehicle is cleared alongside it:
   // otherwise the first vehicle frame after returning to Vehicles mode would
   // flyTo a follow target with no popup and no on-screen sign a follow is
-  // active.
-  useEffect(() => {
-    setSelectedVehicle(null);
-    clearFollowedVehicle();
-    stopChase();
-  }, [mode, clearFollowedVehicle, stopChase]);
+  // active. Done where the mode is switched rather than in an effect on
+  // `mode`, so the reset lands in the same render as the switch. The mode
+  // read from `?mode=` on load needs no reset: nothing is selected yet.
+  const switchMode = (next: AppMode) => {
+    if (next !== mode) {
+      setSelectedVehicle(null);
+      clearFollowedVehicle();
+      stopChase();
+    }
+    setMode(next);
+  };
 
   return (
     <>
@@ -153,6 +206,7 @@ export function MapView({
         initialViewState={{ longitude: 10.0, latitude: 64.0, zoom: 4 }}
         mapStyle={mapStyle}
         onLoad={handleMapLoad}
+        onStyleData={handleStyleData}
       >
         <NavigationControl position="top-left" />
         <GeolocateControl position="top-left" />
@@ -162,25 +216,21 @@ export function MapView({
         />
         {viewDimension === "3d" && <RotateControl />}
         <ViewDimensionLayers dimension={viewDimension} />
-        <LeftMenu
-          mode={mode}
-          viewDimension={viewDimension}
-          data={data.map((vehicle) => vehicle.vehicleUpdate)}
-          setCurrentFilter={setCurrentFilter}
-          currentFilter={currentFilter}
-          mapViewOptions={mapViewOptions}
-          setMapViewOptions={setMapViewOptions}
-        />
+        <BaseMapScheme />
+        <TransitNetworkLayers visible={showTransitNetwork} />
         <RightMenu
           mode={mode}
-          setMode={setMode}
+          setMode={switchMode}
           data={data.map((vehicle) => vehicle.vehicleUpdate)}
           setCurrentFilter={setCurrentFilter}
           currentFilter={currentFilter}
           mapViewOptions={mapViewOptions}
           setMapViewOptions={setMapViewOptions}
+          showTransitNetwork={showTransitNetwork}
+          setShowTransitNetwork={setShowTransitNetwork}
         />
         <RegisterIcons />
+        <VehicleLabelPlacement />
         <ModeLayers mode={mode} mapViewOptions={mapViewOptions} />
         <CaptureBoundingBox
           setCurrentFilter={setCurrentFilter}
@@ -219,7 +269,9 @@ export function MapView({
               serviceJourneyId={
                 selectedVehicle?.properties.serviceJourneyId ?? null
               }
-              cancelled={tripCancelled}
+              // The panel reports the cancellation of the selected trip; with
+              // nothing selected, whatever it last reported no longer applies.
+              cancelled={selectedVehicle !== null && tripCancelled}
             />
             {/* The popup would sit at the newest report, ahead of the chased
                 model, and over the road the camera is showing. */}
