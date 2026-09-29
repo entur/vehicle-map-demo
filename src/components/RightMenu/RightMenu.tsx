@@ -10,6 +10,8 @@ import { FloatingCard } from "../FloatingCard.tsx";
 import { SURFACE_INSET } from "../theme.ts";
 import { AppMode, isWideTool, rightRailTools } from "../../domain/appMode.ts";
 
+const NO_DATA: VehicleUpdate[] = [];
+
 interface RightMenuProps {
   mode: AppMode;
   setMode: (mode: AppMode) => void;
@@ -54,6 +56,10 @@ export const RightMenu = ({
       setActiveContent(null);
     }
   }
+
+  // `data` changes on every vehicle frame and only the statistics panel reads
+  // it. Handing the others a constant lets the memoised panel skip the frames.
+  const panelData = activeContent === "statistics" ? data : NO_DATA;
 
   const panelWidth =
     activeContent !== null && isWideTool(activeContent) ? 460 : 300;
@@ -111,7 +117,7 @@ export const RightMenu = ({
               setMapViewOptions={setMapViewOptions}
               showTransitNetwork={showTransitNetwork}
               setShowTransitNetwork={setShowTransitNetwork}
-              data={data}
+              data={panelData}
             />
           </FloatingCard>
         )}

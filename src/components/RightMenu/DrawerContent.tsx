@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { MapLayers } from "../MapLayers.tsx";
 import { RightContentType } from "./types.ts";
 import { Filter, MapViewOptions, VehicleUpdate } from "../../types.ts";
@@ -21,7 +22,7 @@ type DrawerContentProps = {
   data: VehicleUpdate[];
 };
 
-export const DrawerContent = ({
+export const DrawerContent = memo(function DrawerContent({
   mode,
   activeContent,
   currentFilter,
@@ -31,7 +32,7 @@ export const DrawerContent = ({
   showTransitNetwork,
   setShowTransitNetwork,
   data,
-}: DrawerContentProps) => {
+}: DrawerContentProps) {
   return (
     <>
       {activeContent === "filtering" && currentFilter && (
@@ -60,4 +61,4 @@ export const DrawerContent = ({
       {activeContent === "situationStats" && <SituationStatsTables />}
     </>
   );
-};
+});

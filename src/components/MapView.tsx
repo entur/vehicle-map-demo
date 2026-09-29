@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Map,
   NavigationControl,
@@ -190,15 +190,25 @@ export function MapView({
   // flyTo a follow target with no popup and no on-screen sign a follow is
   // active. Done where the mode is switched rather than in an effect on
   // `mode`, so the reset lands in the same render as the switch. The mode
-  // read from `?mode=` on load needs no reset: nothing is selected yet.
-  const switchMode = (next: AppMode) => {
-    if (next !== mode) {
-      setSelectedVehicle(null);
-      clearFollowedVehicle();
-      stopChase();
-    }
-    setMode(next);
-  };
+  // read from `?mode=` on load needs no reset: nothing is selected yet. A
+  // callback so it stays stable between mode changes, and the memoised mode
+  // pill in RightMenu skips the vehicle frames.
+  const switchMode = useCallback(
+    (next: AppMode) => {
+      if (next !== mode) {
+        setSelectedVehicle(null);
+        clearFollowedVehicle();
+        stopChase();
+      }
+      setMode(next);
+    },
+    [mode, clearFollowedVehicle, stopChase, setMode],
+  );
+
+  const vehicleUpdates = useMemo(
+    () => data.map((vehicle) => vehicle.vehicleUpdate),
+    [data],
+  );
 
   return (
     <>
@@ -221,7 +231,7 @@ export function MapView({
         <RightMenu
           mode={mode}
           setMode={switchMode}
-          data={data.map((vehicle) => vehicle.vehicleUpdate)}
+          data={vehicleUpdates}
           setCurrentFilter={setCurrentFilter}
           currentFilter={currentFilter}
           mapViewOptions={mapViewOptions}
@@ -239,7 +249,7 @@ export function MapView({
         {mode === "vehicles" && (
           <>
             <VehicleMarkers
-              data={data.map((vehicle) => vehicle.vehicleUpdate)}
+              data={vehicleUpdates}
               setSelectedVehicle={setSelectedVehicle}
               followedVehicleId={
                 followedVehicle ? followedVehicle.properties.id : null
@@ -248,7 +258,7 @@ export function MapView({
             />
             {mapViewOptions.showVehicles && (
               <VehicleModels
-                data={data.map((vehicle) => vehicle.vehicleUpdate)}
+                data={vehicleUpdates}
                 viewDimension={viewDimension}
                 chasedVehicleKey={chasedVehicleKey}
                 chasedVehicleStore={chasedVehicleStore}

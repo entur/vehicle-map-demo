@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { ToggleButton, ToggleButtonGroup } from "@mui/material";
 import { AppMode } from "../domain/appMode.ts";
 import { FloatingCard } from "./FloatingCard.tsx";
@@ -13,7 +14,7 @@ type Props = {
  * inside a drawer — which is closed by default — would leave the app with no
  * on-screen indication of which feed is running.
  */
-export function ModeSwitch({ mode, setMode }: Props) {
+export const ModeSwitch = memo(function ModeSwitch({ mode, setMode }: Props) {
   return (
     <FloatingCard
       sx={{ display: "flex", alignItems: "center", gap: 0.5, padding: 0.5 }}
@@ -34,4 +35,4 @@ export function ModeSwitch({ mode, setMode }: Props) {
       <ColorSchemeToggle />
     </FloatingCard>
   );
-}
+});
