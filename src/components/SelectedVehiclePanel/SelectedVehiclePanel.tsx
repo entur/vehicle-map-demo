@@ -3,7 +3,10 @@ import CloseIcon from "@mui/icons-material/Close";
 import { useEffect, useState } from "react";
 import { SelectedVehicle } from "../Vehicle/VehicleMarkers.tsx";
 import { useVehicleUpdateCompleteSubscription } from "../../hooks/useVehicleUpdateCompleteSubscription.ts";
-import { useTimetableSubscription } from "../../hooks/useTimetableSubscription.ts";
+import {
+  timetableJourneyKey,
+  useTimetableSubscription,
+} from "../../hooks/useTimetableSubscription.ts";
 import { delayBucket, delayColour, formatDelay } from "./delayThresholds.ts";
 import { Timetable } from "./Timetable.tsx";
 import { SituationList } from "./SituationList.tsx";
@@ -38,20 +41,21 @@ export function SelectedVehiclePanel({
   // for, so a new selection starts un-timed-out on its first render; the
   // cleanup clears it too, since reselecting the same journey gives the same
   // key and would otherwise skip "Loading timetable…".
-  const journeyKey = `${serviceJourneyId}|${date}`;
+  const journeyKey = timetableJourneyKey(serviceJourneyId, date);
   const [timedOutFor, setTimedOutFor] = useState<string | null>(null);
   const timedOut = timedOutFor === journeyKey;
   useEffect(() => {
     if (!serviceJourneyId) return;
+    const key = timetableJourneyKey(serviceJourneyId, date);
     const id = window.setTimeout(
-      () => setTimedOutFor(journeyKey),
+      () => setTimedOutFor(key),
       NO_TIMETABLE_TIMEOUT_MS,
     );
     return () => {
       window.clearTimeout(id);
       setTimedOutFor(null);
     };
-  }, [serviceJourneyId, journeyKey]);
+  }, [serviceJourneyId, date]);
 
   const open = selectedVehicle !== null;
   const currentOrder = vehicleData?.monitoredCall?.order ?? null;

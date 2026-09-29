@@ -57,6 +57,14 @@ const subscriptionQuery = `
   }
 `;
 
+/** Identifies one selected journey; the panel's timeout is keyed the same way. */
+export function timetableJourneyKey(
+  serviceJourneyId: string | null,
+  date: string | null,
+): string {
+  return `${serviceJourneyId}|${date}`;
+}
+
 export function useTimetableSubscription(
   serviceJourneyId: string | null,
   date: string | null,
@@ -65,7 +73,7 @@ export function useTimetableSubscription(
   // timetable straight away, before the effect's cleanup has cleared it. The
   // cleanup is still needed: deselecting and reselecting the same journey
   // gives the same key, and would otherwise bring back the old timetable.
-  const journeyKey = `${serviceJourneyId}|${date}`;
+  const journeyKey = timetableJourneyKey(serviceJourneyId, date);
   const [received, setReceived] = useState<{
     journeyKey: string;
     timetable: EstimatedTimetableUpdate;
@@ -84,6 +92,7 @@ export function useTimetableSubscription(
     if (!serviceJourneyId || !date) {
       return;
     }
+    const key = timetableJourneyKey(serviceJourneyId, date);
 
     subscriptionRef.current = subscriptionClient.iterate<SubscriptionData>({
       query: subscriptionQuery,
@@ -98,7 +107,7 @@ export function useTimetableSubscription(
       for await (const event of subscriptionRef.current) {
         const update = event?.data?.timetables?.[0];
         if (update && !closed) {
-          setReceived({ journeyKey, timetable: update });
+          setReceived({ journeyKey: key, timetable: update });
         }
       }
     };
@@ -112,7 +121,7 @@ export function useTimetableSubscription(
       subscriptionRef.current?.return?.();
       setReceived(null);
     };
-  }, [serviceJourneyId, date, journeyKey, subscriptionClient]);
+  }, [serviceJourneyId, date, subscriptionClient]);
 
   return received?.journeyKey === journeyKey ? received.timetable : null;
 }
