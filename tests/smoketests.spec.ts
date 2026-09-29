@@ -246,6 +246,40 @@ test("switching to dark swaps the base map and keeps app state", async ({
   expect(probeSurvived).toBe(true);
 });
 
+test("the attribution is small type in the map's corner, readable in dark", async ({
+  page,
+}) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.goto("/?mode=vehicles");
+  const attribution = page.locator(
+    ".maplibregl-ctrl-bottom-right > .maplibregl-ctrl-attrib",
+  );
+  await expect(attribution).toBeVisible();
+  const style = await attribution.evaluate((el) => {
+    const cs = getComputedStyle(el);
+    const box = el.getBoundingClientRect();
+    const map = el.closest(".maplibregl-map")!.getBoundingClientRect();
+    const paper = getComputedStyle(document.documentElement)
+      .getPropertyValue("--mui-palette-background-paperChannel")
+      .trim()
+      .split(/\s+/)
+      .join(", ");
+    return {
+      fontSize: parseFloat(cs.fontSize),
+      corner: [map.right - box.right, map.bottom - box.bottom],
+      background: cs.backgroundColor,
+      paper: `rgba(${paper}, 0.8)`,
+    };
+  });
+  // Flush in the corner, as other maps have it, rather than inset like a card.
+  expect(style.corner).toEqual([0, 0]);
+  // Not the app's body text, which it would otherwise inherit.
+  expect(style.fontSize).toBeLessThanOrEqual(12);
+  // The scheme's own card colour: MapLibre's translucent white hid the
+  // light-grey "Data from" and separators in dark mode.
+  expect(style.background).toBe(style.paper);
+});
+
 test("loading in dark starts on the dark base map", async ({ page }) => {
   await page.emulateMedia({ colorScheme: "dark" });
   await page.goto("/");
@@ -292,39 +326,34 @@ test.describe("on a phone", () => {
   // follows the width, and the sheet's handle needs touch.
   test.use({ viewport: { width: 390, height: 664 }, hasTouch: true });
 
-  test("the attribution shows at load and collapses after five seconds", async ({
+  test("the attribution is the same small strip in the corner as on a wide screen", async ({
     page,
   }) => {
-    // The OSMF attribution guidelines allow a collapse after five seconds,
-    // not a start collapsed: the credit is shown first.
     await page.goto("/?mode=vehicles");
     const attribution = page.locator(
-      ".maplibregl-ctrl-top-left > .maplibregl-ctrl-attrib",
+      ".maplibregl-ctrl-bottom-right > .maplibregl-ctrl-attrib",
     );
-    await expect(attribution).toHaveClass(/maplibregl-compact-show/);
-    await expect(attribution).not.toHaveClass(/maplibregl-compact-show/, {
-      timeout: 8000,
+    await expect(attribution).toBeVisible();
+    // Never MapLibre's compact button, which it would be on a narrow map.
+    await expect(attribution).not.toHaveClass(/maplibregl-compact/);
+    const placed = await attribution.evaluate((el) => {
+      const box = el.getBoundingClientRect();
+      const map = el.closest(".maplibregl-map")!.getBoundingClientRect();
+      return {
+        corner: [map.right - box.right, map.bottom - box.bottom],
+        fontSize: parseFloat(getComputedStyle(el).fontSize),
+      };
     });
-    // Collapsed, it is one of the stack's buttons in shape: square, and in
-    // line with the zoom buttons above it.
-    const zoom = (await page
-      .locator(".maplibregl-ctrl-top-left > .maplibregl-ctrl-group")
-      .first()
-      .boundingBox())!;
-    const collapsed = (await attribution.boundingBox())!;
-    expect([collapsed.x, collapsed.width, collapsed.height]).toEqual([
-      zoom.x,
-      zoom.width,
-      zoom.width,
-    ]);
-    // Still reachable from its button.
-    await attribution.locator(".maplibregl-ctrl-attrib-button").tap();
-    await expect(attribution).toHaveClass(/maplibregl-compact-show/);
+    expect(placed.corner).toEqual([0, 0]);
+    expect(placed.fontSize).toBeLessThanOrEqual(12);
   });
 
   test("a selected vehicle opens a bottom sheet and stays in view above it", async ({
     page,
   }) => {
+    // Runs through selection, resizing and a chase against live data, which
+    // takes most of the default 30 s on its own.
+    test.slow();
     await page.goto("/?mode=vehicles");
     await page.waitForFunction(
       () => !!(window as unknown as TestWindow).__vehicleMap,
@@ -485,16 +514,13 @@ test.describe("on a phone", () => {
       })
       .toEqual([sheetBox.x, sheetBox.width]);
 
-    // The map's attribution is at the foot of the top-left control stack,
-    // where neither the sheet nor the HUD nor the toolbar can cover it — at
-    // the bottom it went behind the sheet, and lifted above the sheet and
-    // HUD it went under the toolbar. Collapsed to its button, since expanded
-    // it covered the HUD. Checked here, with the map at its shortest.
+    // The attribution strip stays readable under the sheet, which stands
+    // clear above it. Checked here, in the chase's 3D view, where the
+    // terrain's credit wraps it onto a second line on a phone.
     const attribution = page.locator(
-      ".maplibregl-ctrl-top-left > .maplibregl-ctrl-attrib",
+      ".maplibregl-ctrl-bottom-right > .maplibregl-ctrl-attrib",
     );
     await expect(attribution).toBeVisible();
-    await expect(attribution).not.toHaveClass(/maplibregl-compact-show/);
     const topmostAtCentre = (el: Element) => {
       const box = el.getBoundingClientRect();
       return el.contains(
@@ -504,19 +530,35 @@ test.describe("on a phone", () => {
         ),
       );
     };
-    expect(
-      await attribution.evaluate((el) => {
-        const top = el.getBoundingClientRect().top;
-        return [...el.parentElement!.children].every(
-          (other) =>
-            other === el || other.getBoundingClientRect().bottom <= top,
-        );
-      }),
-    ).toBe(true);
+    // Measured in one round trip: the chase redraws every frame, and three
+    // separate boundingBox calls outlasted the poll's timeout.
+    await expect
+      .poll(() =>
+        attribution.evaluate((el) => {
+          const sheet = document.querySelector(
+            '[role="region"][aria-label="Selected vehicle"]',
+          )!;
+          return (
+            el.getBoundingClientRect().top -
+            sheet.getBoundingClientRect().bottom
+          );
+        }),
+      )
+      .toBeGreaterThanOrEqual(0);
     expect(await attribution.evaluate(topmostAtCentre)).toBe(true);
-    // Nor does anything cover the only on-screen way out of a chase.
+    // Nor does anything cover the only on-screen way out of a chase, or the
+    // start of the HUD's status, where on a short phone the map controls'
+    // stack comes down to it.
     expect(
       await hud.getByRole("button", { name: "Stop" }).evaluate(topmostAtCentre),
+    ).toBe(true);
+    expect(
+      await hud.evaluate((el) => {
+        const status = el.querySelector("span")!.getBoundingClientRect();
+        return el.contains(
+          document.elementFromPoint(status.left + 2, status.top + 2),
+        );
+      }),
     ).toBe(true);
 
     await hud.getByRole("button", { name: "Stop" }).tap();

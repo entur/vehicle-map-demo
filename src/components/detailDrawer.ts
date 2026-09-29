@@ -49,16 +49,17 @@ export const DETAIL_SHEET_MEDIA_QUERY = "(max-width: 599.95px)";
 
 /**
  * The same panels on a phone: docked to the bottom, full width between the
- * insets every card keeps, `height` px tall. The height comes from
- * `sheetHeight` in `src/domain/bottomSheet.ts`, which also gives the map the
- * matching bottom padding, so the two cannot disagree about what is hidden.
+ * insets every card keeps, `height` px tall and `bottom` px off the bottom
+ * edge. Both come from `src/domain/bottomSheet.ts` (`sheetHeight`,
+ * `sheetBottom`), which also gives the map the matching bottom padding, so
+ * the two cannot disagree about what is hidden.
  */
-export function detailSheetSx(height: number) {
+export function detailSheetSx(height: number, bottom: number) {
   return {
     position: "absolute",
     left: SURFACE_INSET,
     right: SURFACE_INSET,
-    bottom: SURFACE_INSET,
+    bottom,
     height,
     zIndex: 2,
     paddingX: 2,

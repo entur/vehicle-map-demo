@@ -56,6 +56,7 @@ import {
   SheetSnap,
   clampSnap,
   maxSnapFor,
+  sheetBottom,
   sheetMapInset,
 } from "../domain/bottomSheet.ts";
 import { useViewportHeight } from "../hooks/useViewportHeight.ts";
@@ -231,12 +232,17 @@ export function MapView({
   // chase ends.
   const maxSheetSnap = maxSnapFor(chasedVehicle !== null);
   const sheetSnap = clampSnap(chosenSheetSnap, maxSheetSnap);
+  // The sheet stands clear above the attribution strip in the corner, which
+  // wraps onto more lines as layers add their credits.
+  const [attributionHeight, setAttributionHeight] = useState(0);
+  const sheetBottomEdge = sheetBottom(SURFACE_INSET, attributionHeight);
   const detailLayout: DetailLayout = narrow
     ? {
         kind: "sheet",
         snap: sheetSnap,
         maxSnap: maxSheetSnap,
         setSnap: setSheetSnap,
+        bottom: sheetBottomEdge,
       }
     : { kind: "card" };
   const { selected: selectedSituation } = useSituations();
@@ -244,7 +250,7 @@ export function MapView({
     mode === "vehicles" ? selectedVehicle !== null : selectedSituation !== null;
   const sheetBottomInset =
     narrow && detailOpen
-      ? sheetMapInset(sheetSnap, viewportHeight, SURFACE_INSET)
+      ? sheetMapInset(sheetSnap, viewportHeight, sheetBottomEdge)
       : 0;
   // During a chase the HUD sits above the sheet (or near the bottom edge when
   // there is none) and hides more of the map than the sheet alone. Read only
@@ -285,7 +291,7 @@ export function MapView({
           setDimension={setViewDimension}
         />
         {viewDimension === "3d" && <RotateControl />}
-        <MapAttribution narrow={narrow} collapse={narrow && detailOpen} />
+        <MapAttribution onHeightChange={setAttributionHeight} />
         <ViewDimensionLayers dimension={viewDimension} />
         <BaseMapScheme builtFor={builtScheme} />
         <TransitNetworkLayers visible={showTransitNetwork} />

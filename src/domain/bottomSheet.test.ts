@@ -6,6 +6,7 @@ import {
   SHEET_SNAPS,
   nearestSnap,
   nextSnap,
+  sheetBottom,
   sheetHeight,
   sheetMapInset,
 } from "./bottomSheet.ts";
@@ -24,6 +25,42 @@ describe("sheetHeight", () => {
       expect(peek).toBeLessThanOrEqual(half);
       expect(half).toBeLessThanOrEqual(full);
     }
+  });
+});
+
+describe("sheetBottom", () => {
+  it("floats the sheet at the inset when the attribution is short", () => {
+    expect(sheetBottom(12, 0)).toBe(12);
+    expect(sheetBottom(12, 6)).toBe(12);
+  });
+
+  it("stands the sheet clear above the attribution strip", () => {
+    expect(sheetBottom(12, 16)).toBe(20);
+    expect(sheetBottom(12, 32)).toBe(36);
+  });
+});
+
+describe("a sheet raised off the bottom", () => {
+  it("keeps the same clearance above the fully open sheet", () => {
+    const vh = 844;
+    const top = (bottom: number) =>
+      vh - bottom - sheetHeight("full", vh, bottom);
+    expect(top(36)).toBe(top(12));
+  });
+
+  it("leaves peek and half their heights", () => {
+    expect(sheetHeight("peek", 844, 36)).toBe(PEEK_HEIGHT);
+    expect(sheetHeight("half", 844, 36)).toBe(422);
+  });
+
+  it("pads the map by the sheet and everything under it", () => {
+    expect(sheetMapInset("peek", 844, 36)).toBe(PEEK_HEIGHT + 36);
+    expect(sheetMapInset("full", 844, 36)).toBe(sheetMapInset("full", 844, 12));
+  });
+
+  it("lands a drag on the raised sheet's own heights", () => {
+    const full = sheetHeight("full", 844, 36);
+    expect(nearestSnap(full, 844, "full", 36)).toBe("full");
   });
 });
 

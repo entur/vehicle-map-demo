@@ -67,7 +67,12 @@ body .maplibregl-map {
   right: 12px;
   margin-inline: auto;
   width: fit-content;
-  z-index: 1;
+  /* Above MapLibre's control corners (2) and RightMenu (3): on a short phone
+     in 3D the sheet leaves the HUD so little room that the control stack and
+     the toolbar reach down to it, and its Stop button is the only on-screen
+     way out of a chase. The rotate buttons it can cover do nothing then — the
+     chase sets the bearing. */
+  z-index: 4;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -119,65 +124,11 @@ body .maplibregl-map {
   background: var(--mui-palette-action-hover);
 }
 
-/* On a phone the attribution joins the top-left stack (see MapView) and is
-   kept at its foot: MapLibre appends controls as they are added, and the
-   rotate buttons are added only on switching to 3D. */
-.maplibregl-map .maplibregl-ctrl-top-left {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-}
-
-/* Expanded, it stops short of the right-hand toolbar rather than running
-   under it: the 12px inset either side of the toolbar's 44px width and the
-   8px gap beside it (TOOLBAR_WIDTH and TOOLBAR_GAP in detailDrawer.ts), and
-   the stack's own 12px inset. */
-.maplibregl-map .maplibregl-ctrl-top-left > .maplibregl-ctrl-attrib {
-  order: 1;
-  max-width: calc(100vw - 12px - 12px - 8px - 44px - 12px);
-  box-sizing: border-box;
-}
-
-/* In the stack it takes the shape of the stack's buttons — MapLibre's 29px
-   square, the card radius and shadow — with the 24px glyph centred, rather
-   than MapLibre's own 24px circle. Expanded, the text runs beside it. */
-.maplibregl-map
-  .maplibregl-ctrl-top-left
-  > .maplibregl-ctrl-attrib.maplibregl-compact {
-  min-height: 29px;
-  padding: 0 0 0 29px;
-  border-radius: var(--card-radius);
-  box-shadow: var(--floating-shadow);
-}
-
-.maplibregl-map
-  .maplibregl-ctrl-top-left
-  > .maplibregl-ctrl-attrib.maplibregl-compact-show {
-  padding: 4px 10px 4px 29px;
-}
-
-.maplibregl-map .maplibregl-ctrl-top-left .maplibregl-ctrl-attrib-button {
-  width: 29px;
-  height: 29px;
-  border-radius: var(--card-radius);
-  background-position: center;
-  background-repeat: no-repeat;
-}
-
 /* The top-left control stack sits at the same inset as every other floating
    surface. DETAIL_PANEL_SX (src/components/detailDrawer.ts) is placed beside
    it from this value — change both. */
 .maplibregl-map .maplibregl-ctrl-top-left .maplibregl-ctrl {
   margin: 12px 0 0 12px;
-}
-
-/* The bottom corners (the attribution on a wide screen) at the same inset. */
-.maplibregl-map .maplibregl-ctrl-bottom-left .maplibregl-ctrl {
-  margin: 0 0 12px 12px;
-}
-
-.maplibregl-map .maplibregl-ctrl-bottom-right .maplibregl-ctrl {
-  margin: 0 12px 12px 0;
 }
 
 /* MapLibre's control stack and popups, drawn like the app's own cards. */
@@ -213,34 +164,30 @@ body .maplibregl-map {
   background-color: var(--mui-palette-action-hover);
 }
 
-/* The zoom, compass, geolocate and attribution-toggle glyphs are dark
-   background SVGs. */
-[data-mui-color-scheme="dark"] .maplibregl-map .maplibregl-ctrl-icon,
-[data-mui-color-scheme="dark"] .maplibregl-map .maplibregl-ctrl-attrib-button {
+/* The zoom, compass and geolocate glyphs are dark background SVGs. */
+[data-mui-color-scheme="dark"] .maplibregl-map .maplibregl-ctrl-icon {
   filter: invert(1) hue-rotate(180deg);
 }
 
-/* The attribution control (both its expanded and compact/pill forms), which
-   maplibre-gl.css otherwise draws as a white pill — invisible against Fiord
-   in dark mode. Selectors need the `.maplibregl-map` prefix for specificity,
-   since maplibre-gl.css is emitted after this file. */
-.maplibregl-map .maplibregl-ctrl-attrib,
-.maplibregl-map .maplibregl-ctrl-attrib.maplibregl-compact,
-.maplibregl-map .maplibregl-ctrl-attrib.maplibregl-compact-show {
-  background-color: var(--mui-palette-background-paper);
+/* The attribution: a strip of small type flush in the bottom-right corner
+   over translucent paper, as other maps have it, rather than the app's body
+   text it would otherwise inherit (see `body .maplibregl-map`). MapAttribution
+   keeps it from collapsing to MapLibre's compact button. The selector needs
+   `.maplibregl-ctrl` as well as the `.maplibregl-map` prefix: maplibre-gl.css
+   is emitted after this file, and its equally specific
+   `.maplibregl-ctrl.maplibregl-ctrl-attrib` otherwise wins — its translucent
+   white hid dark mode's light-grey text. */
+.maplibregl-map .maplibregl-ctrl.maplibregl-ctrl-attrib {
+  margin: 0;
+  padding: 0 5px;
+  background-color: rgb(var(--mui-palette-background-paperChannel) / 0.8);
   color: var(--mui-palette-text-secondary);
+  font-size: 11px;
+  line-height: 16px;
 }
 
 .maplibregl-map .maplibregl-ctrl-attrib a {
   color: var(--mui-palette-text-primary);
-}
-
-/* Transparent, so the control's paper shows through the glyph's cut-out "i".
-   The dark-mode filter above inverts the button's own background along with
-   the glyph, which turned a paper background near-white: a light disc with a
-   light "i". */
-.maplibregl-map .maplibregl-ctrl-attrib-button {
-  background-color: transparent;
 }
 
 .maplibregl-map .maplibregl-popup-content {

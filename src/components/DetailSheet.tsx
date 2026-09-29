@@ -45,10 +45,10 @@ export function DetailSheet({
     );
   }
 
-  const { snap, maxSnap, setSnap } = layout;
-  const restingHeight = sheetHeight(snap, viewportHeight);
-  const maxHeight = sheetHeight(maxSnap, viewportHeight);
-  const minHeight = sheetHeight("peek", viewportHeight);
+  const { snap, maxSnap, setSnap, bottom } = layout;
+  const restingHeight = sheetHeight(snap, viewportHeight, bottom);
+  const maxHeight = sheetHeight(maxSnap, viewportHeight, bottom);
+  const minHeight = sheetHeight("peek", viewportHeight, bottom);
 
   const onPointerDown = (event: React.PointerEvent<HTMLElement>) => {
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -73,7 +73,7 @@ export function DetailSheet({
     if (dragHeight === null) {
       setSnap(nextSnap(snap, maxSnap));
     } else {
-      setSnap(nearestSnap(dragHeight, viewportHeight, maxSnap));
+      setSnap(nearestSnap(dragHeight, viewportHeight, maxSnap, bottom));
       setDragHeight(null);
     }
   };
@@ -88,8 +88,13 @@ export function DetailSheet({
       role="region"
       aria-label={ariaLabel}
       sx={[
-        detailSheetSx(dragHeight ?? restingHeight),
-        { transition: dragHeight === null ? "height 200ms ease-out" : "none" },
+        detailSheetSx(dragHeight ?? restingHeight, bottom),
+        {
+          transition:
+            dragHeight === null
+              ? "height 200ms ease-out, bottom 200ms ease-out"
+              : "none",
+        },
       ]}
     >
       <Box

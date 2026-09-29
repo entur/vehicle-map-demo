@@ -19,13 +19,42 @@ const HALF_SHARE = 0.5;
 
 /**
  * Left clear above the fully open sheet, so the mode pill stays in view and
- * the map is still visibly there to drag the sheet back down to.
+ * the map is still visibly there to drag the sheet back down to. Measured
+ * from the top of the screen, so a sheet raised off the bottom is shorter
+ * rather than reaching higher.
  */
-const FULL_TOP_CLEARANCE = 72;
+const FULL_TOP_CLEARANCE = 60;
 
-/** The sheet's height, in px, at `snap` in a viewport `viewportHeight` tall. */
-export function sheetHeight(snap: SheetSnap, viewportHeight: number): number {
-  const full = Math.max(PEEK_HEIGHT, viewportHeight - FULL_TOP_CLEARANCE);
+/** Clear space between the attribution strip and the sheet above it. */
+const ATTRIBUTION_GAP = 4;
+
+/** Where the sheet floats when nothing is under it; every card's inset. */
+const DEFAULT_BOTTOM = 12;
+
+/**
+ * How far off the bottom edge the sheet floats: `inset`, or clear above the
+ * map's attribution strip when that is taller — which it is once it wraps,
+ * as it does on a phone when the terrain or aerial imagery adds its credit.
+ * The strip is flush in the corner and must stay readable, so the sheet
+ * makes room for it rather than covering it.
+ */
+export function sheetBottom(inset: number, attributionHeight: number): number {
+  return Math.max(inset, attributionHeight + ATTRIBUTION_GAP);
+}
+
+/**
+ * The sheet's height, in px, at `snap` in a viewport `viewportHeight` tall,
+ * floating `bottom` px off its bottom edge.
+ */
+export function sheetHeight(
+  snap: SheetSnap,
+  viewportHeight: number,
+  bottom = DEFAULT_BOTTOM,
+): number {
+  const full = Math.max(
+    PEEK_HEIGHT,
+    viewportHeight - bottom - FULL_TOP_CLEARANCE,
+  );
   switch (snap) {
     case "peek":
       return Math.min(PEEK_HEIGHT, full);
@@ -57,12 +86,13 @@ export function nearestSnap(
   height: number,
   viewportHeight: number,
   max: SheetSnap = "full",
+  bottom = DEFAULT_BOTTOM,
 ): SheetSnap {
   let best: SheetSnap = "peek";
   for (const snap of snapsUpTo(max)) {
     if (
-      Math.abs(sheetHeight(snap, viewportHeight) - height) <
-      Math.abs(sheetHeight(best, viewportHeight) - height)
+      Math.abs(sheetHeight(snap, viewportHeight, bottom) - height) <
+      Math.abs(sheetHeight(best, viewportHeight, bottom) - height)
     ) {
       best = snap;
     }
@@ -90,14 +120,15 @@ export function maxSnapFor(chasing: boolean): SheetSnap {
 /**
  * How much of the map's bottom edge the sheet hides — the map padding that
  * keeps the camera centring on what is still visible. The sheet floats
- * `inset` px off the bottom edge, and that gap is hidden in effect too.
+ * `inset` px off the bottom edge (see `sheetBottom`), and that gap is hidden
+ * in effect too.
  */
 export function sheetMapInset(
   snap: SheetSnap,
   viewportHeight: number,
   inset: number,
 ): number {
-  return sheetHeight(snap, viewportHeight) + inset;
+  return sheetHeight(snap, viewportHeight, inset) + inset;
 }
 
 /**
@@ -112,6 +143,8 @@ export type DetailLayout =
       snap: SheetSnap;
       /** The furthest the handle opens it; `snap` never exceeds it. */
       maxSnap: SheetSnap;
+      /** px it floats off the bottom edge, from `sheetBottom`. */
+      bottom: number;
       setSnap: (snap: SheetSnap) => void;
     };
 

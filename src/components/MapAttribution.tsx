@@ -1,51 +1,39 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { AttributionControl, useMap } from "react-map-gl/maplibre";
 
 type MapAttributionProps = {
-  /** A phone's layout: the attribution goes in the top-left stack. */
-  narrow: boolean;
-  /** Collapse it to its button, as MapLibre does on the map's first drag. */
-  collapse: boolean;
+  /** Told the strip's height in px whenever it changes, 0 when it is gone. */
+  onHeightChange: (px: number) => void;
 };
 
 /**
- * How long the attribution is shown before it collapses on its own. The OSMF
- * attribution guidelines allow a collapse "automatically after five seconds",
- * as well as on map interaction, but not starting collapsed.
- */
-const SHOWN_FOR_MS = 5000;
-
-/**
- * The map's attribution. On a wide screen, MapLibre's own place at the bottom
- * right. On a phone, at the foot of the top-left control stack (kept there by
- * CSS order, whatever mounts after it): at the bottom the detail sheet covers
- * it, and lifted above the sheet and a chase's HUD it went under the toolbar.
+ * The map's attribution: a strip of small type flush in the bottom-right
+ * corner on every screen, as other maps have it. Never collapsed to
+ * MapLibre's compact button, which it would otherwise be on a narrow map.
  *
- * On a narrow map MapLibre shows it expanded until the map is first dragged,
- * which leaves it across the map for as long as nobody drags, and a chase
- * disables dragging. Expanded in the stack it covers the HUD. So it also
- * collapses after `SHOWN_FOR_MS`, and when the sheet opens — tapping a
- * vehicle is map interaction, which the guidelines count as a drag does. Its
- * button still expands it.
+ * Its height is reported because on a phone it wraps — the terrain and the
+ * aerial imagery each add a credit — and the detail sheet stands clear above
+ * it (`sheetBottom`) rather than covering it. Observed, since the credits
+ * change with the layers shown.
  */
-export function MapAttribution({ narrow, collapse }: MapAttributionProps) {
+export function MapAttribution({ onHeightChange }: MapAttributionProps) {
   const { current: mapRef } = useMap();
-  const [shown, setShown] = useState(false);
 
+  // Runs after AttributionControl's own effect has added the control.
   useEffect(() => {
-    const timer = setTimeout(() => setShown(true), SHOWN_FOR_MS);
-    return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    if (!collapse && !shown) return;
-    mapRef
+    const strip = mapRef
       ?.getContainer()
-      .querySelector(".maplibregl-ctrl-attrib.maplibregl-compact")
-      ?.classList.remove("maplibregl-compact-show");
-  }, [mapRef, collapse, shown, narrow]);
+      .querySelector<HTMLElement>(".maplibregl-ctrl-attrib");
+    if (!strip) return;
+    const report = () => onHeightChange(strip.offsetHeight);
+    report();
+    const observer = new ResizeObserver(report);
+    observer.observe(strip);
+    return () => {
+      observer.disconnect();
+      onHeightChange(0);
+    };
+  }, [mapRef, onHeightChange]);
 
-  // Keyed so a move re-adds it: a MapLibre control cannot change position.
-  const position = narrow ? "top-left" : "bottom-right";
-  return <AttributionControl key={position} position={position} />;
+  return <AttributionControl position="bottom-right" compact={false} />;
 }
