@@ -1,8 +1,8 @@
 import { Paper, PaperProps } from "@mui/material";
-import { CARD_RADIUS } from "./theme.ts";
 
 /**
- * A surface floating over the map: card radius, the shared shadow, and pointer
+ * A surface floating over the map: the shared card radius and shadow (both in
+ * index.css, which MapLibre's controls and the chase HUD read too), and pointer
  * events back on — floating clusters switch them off so the map stays
  * draggable between cards. Elevation 0 because MUI lightens elevated Paper in
  * dark mode, which would make each card a slightly different grey.
@@ -14,7 +14,7 @@ export function FloatingCard({ sx, ...props }: PaperProps) {
       {...props}
       sx={[
         {
-          borderRadius: `${CARD_RADIUS}px`,
+          borderRadius: "var(--card-radius)",
           boxShadow: "var(--floating-shadow)",
           pointerEvents: "auto",
         },

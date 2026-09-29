@@ -20,10 +20,6 @@ export const COLOR_SCHEME_STORAGE_KEY = "vehicle-map-color-scheme";
 /** Distance of every floating surface from the map edge. */
 export const SURFACE_INSET = 12;
 
-/** Corner radius of cards over the map. Rows, buttons and chips use the
- * theme's 6px. */
-export const CARD_RADIUS = 10;
-
 export const theme = createTheme({
   // Explicit rather than the "data" shorthand, which would set a bare
   // `data-dark` attribute that neither MUI's InitColorSchemeScript convention
