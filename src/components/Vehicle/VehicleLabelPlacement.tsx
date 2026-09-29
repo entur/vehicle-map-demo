@@ -1,7 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useMap } from "react-map-gl/maplibre";
 import {
   quantiseMapBearing,
+  rebuildDelay,
   vehicleLabelAnchor,
   vehicleLabelOffset,
 } from "../../domain/vehicleLabelPlacement.ts";
@@ -20,9 +21,17 @@ const VEHICLE_LAYER = "vehicle-layer";
  * Every rebuild also makes MapLibre reload the whole `vehicles` source, so
  * none is done while zoomed out past `VEHICLE_LABEL_MIN_ZOOM`, where there are
  * no labels to place: the placement catches up when the map zooms back in.
+ * While chasing, rebuilds are also held to one per
+ * `CHASE_REBUILD_INTERVAL_MS`, with a trailing one so the last bearing lands.
  */
-export function VehicleLabelPlacement() {
+export function VehicleLabelPlacement({ chasing }: { chasing: boolean }) {
   const { current: mapRef } = useMap();
+  // Read from the listeners, so starting or stopping a chase does not
+  // re-register them and force a rebuild.
+  const chasingRef = useRef(chasing);
+  useEffect(() => {
+    chasingRef.current = chasing;
+  }, [chasing]);
 
   useEffect(() => {
     const map = mapRef?.getMap();
@@ -31,11 +40,17 @@ export function VehicleLabelPlacement() {
     // Unknown at first, so the first run always writes: a remount can find the
     // layer already rebuilt for some earlier rotation.
     let applied: number | null = null;
+    let lastRebuild: number | null = null;
+    let pending: number | undefined;
     const apply = () => {
+      // Also reached from zoomend, which must not leave a timer behind.
+      window.clearTimeout(pending);
+      pending = undefined;
       if (map.getZoom() < VEHICLE_LABEL_MIN_ZOOM) return;
       const bearing = quantiseMapBearing(map.getBearing());
       if (bearing === applied) return;
       applied = bearing;
+      lastRebuild = performance.now();
       map.setLayoutProperty(
         VEHICLE_LAYER,
         "text-anchor",
@@ -48,17 +63,29 @@ export function VehicleLabelPlacement() {
       );
     };
 
+    const onRotate = () => {
+      if (pending !== undefined) return;
+      const delay = rebuildDelay(
+        performance.now(),
+        lastRebuild,
+        chasingRef.current,
+      );
+      if (delay === 0) apply();
+      else pending = window.setTimeout(apply, delay);
+    };
+
     let listening = false;
     const cancel = whenLayerExists(map, VEHICLE_LAYER, () => {
       apply();
-      map.on("rotate", apply);
+      map.on("rotate", onRotate);
       map.on("zoomend", apply);
       listening = true;
     });
     return () => {
       cancel();
+      window.clearTimeout(pending);
       if (listening) {
-        map.off("rotate", apply);
+        map.off("rotate", onRotate);
         map.off("zoomend", apply);
       }
     };

@@ -241,7 +241,7 @@ export function MapView({
           setShowTransitNetwork={setShowTransitNetwork}
         />
         <RegisterIcons />
-        <VehicleLabelPlacement />
+        <VehicleLabelPlacement chasing={chasedVehicle !== null} />
         <ModeLayers mode={mode} mapViewOptions={mapViewOptions} />
         <CaptureBoundingBox
           setCurrentFilter={setCurrentFilter}

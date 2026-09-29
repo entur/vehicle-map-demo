@@ -37,6 +37,27 @@ const NO_BEARING: Placement = { anchor: "top-left", offset: [0, -2.8] };
  */
 export const MAP_BEARING_STEP = 15;
 
+/**
+ * While chasing, the camera turns the map on every animation frame, and each
+ * rebuild reloads the whole `vehicles` source — so rebuilds are held to one
+ * per this interval. A label a few hundred milliseconds late to change sides
+ * is not noticeable behind a moving vehicle.
+ */
+export const CHASE_REBUILD_INTERVAL_MS = 500;
+
+/**
+ * How long to wait before rebuilding the label placement: 0 to rebuild now.
+ * Only a chase is throttled; a user's rotation is brief and applied at once.
+ */
+export function rebuildDelay(
+  now: number,
+  lastRebuild: number | null,
+  chasing: boolean,
+): number {
+  if (!chasing || lastRebuild === null) return 0;
+  return Math.max(0, lastRebuild + CHASE_REBUILD_INTERVAL_MS - now);
+}
+
 export function quantiseMapBearing(mapBearing: number): number {
   const stepped = Math.round(mapBearing / MAP_BEARING_STEP) * MAP_BEARING_STEP;
   return ((stepped % 360) + 360) % 360;

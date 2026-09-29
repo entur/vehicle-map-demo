@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { expression, v8 } from "@maplibre/maplibre-gl-style-spec";
 import {
+  CHASE_REBUILD_INTERVAL_MS,
   placementFor,
   quantiseMapBearing,
+  rebuildDelay,
   vehicleLabelAnchor,
   vehicleLabelOffset,
 } from "./vehicleLabelPlacement.ts";
@@ -95,5 +97,23 @@ describe("quantiseMapBearing", () => {
     expect(quantiseMapBearing(8)).toBe(15);
     expect(quantiseMapBearing(-30)).toBe(330);
     expect(quantiseMapBearing(358)).toBe(0);
+  });
+});
+
+describe("rebuildDelay", () => {
+  it("rebuilds at once when not chasing, however recent the last rebuild", () => {
+    expect(rebuildDelay(1000, 999, false)).toBe(0);
+  });
+
+  it("rebuilds at once when chasing and nothing has been rebuilt yet", () => {
+    expect(rebuildDelay(1000, null, true)).toBe(0);
+  });
+
+  it("holds a chase rebuild until the interval since the last one has passed", () => {
+    expect(rebuildDelay(1100, 1000, true)).toBe(
+      CHASE_REBUILD_INTERVAL_MS - 100,
+    );
+    expect(rebuildDelay(1000 + CHASE_REBUILD_INTERVAL_MS, 1000, true)).toBe(0);
+    expect(rebuildDelay(5000, 1000, true)).toBe(0);
   });
 });
