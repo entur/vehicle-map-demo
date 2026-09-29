@@ -6,6 +6,7 @@ import {
 } from "react-map-gl/maplibre";
 import { buildMapStyle } from "./mapStyle.ts";
 import { useColorScheme } from "@mui/material/styles";
+import { useMediaQuery } from "@mui/material";
 import { mapSchemeFor } from "../domain/baseMapScheme.ts";
 import { CaptureBoundingBox } from "./CaptureBoundingBox.tsx";
 import { Filter, MapViewOptions } from "../types.ts";
@@ -46,6 +47,18 @@ import {
   ChasedVehicle,
   ChasedVehicleStore,
 } from "./Vehicle/chasedVehicleStore.ts";
+import { MapBottomPadding } from "./MapBottomPadding.tsx";
+import { DETAIL_SHEET_MEDIA_QUERY } from "./detailDrawer.ts";
+import { SURFACE_INSET } from "./theme.ts";
+import {
+  DetailLayout,
+  SheetSnap,
+  clampSnap,
+  maxSnapFor,
+  sheetMapInset,
+} from "../domain/bottomSheet.ts";
+import { useViewportHeight } from "../hooks/useViewportHeight.ts";
+import { useSituations } from "../situations/SituationsContext.ts";
 
 setWorkerUrl(workerUrl);
 
@@ -206,6 +219,50 @@ export function MapView({
     [mode, clearFollowedVehicle, stopChase, setMode],
   );
 
+  // On a phone the detail panels are a bottom sheet. Its snap lives here rather
+  // than in the sheet because the map is padded by its height too, and the
+  // two must agree on it in the same render. Kept across selections: someone
+  // who opened the sheet to read timetables wants the next one open as well.
+  const narrow = useMediaQuery(DETAIL_SHEET_MEDIA_QUERY, { noSsr: true });
+  const viewportHeight = useViewportHeight();
+  const [chosenSheetSnap, setSheetSnap] = useState<SheetSnap>("peek");
+  // Capped rather than overwritten, so the user's choice returns when the
+  // chase ends.
+  const maxSheetSnap = maxSnapFor(chasedVehicle !== null);
+  const sheetSnap = clampSnap(chosenSheetSnap, maxSheetSnap);
+  const detailLayout: DetailLayout = narrow
+    ? {
+        kind: "sheet",
+        snap: sheetSnap,
+        maxSnap: maxSheetSnap,
+        setSnap: setSheetSnap,
+      }
+    : { kind: "card" };
+  const { selected: selectedSituation } = useSituations();
+  const detailOpen =
+    mode === "vehicles" ? selectedVehicle !== null : selectedSituation !== null;
+  const sheetBottomInset =
+    narrow && detailOpen
+      ? sheetMapInset(sheetSnap, viewportHeight, SURFACE_INSET)
+      : 0;
+  // During a chase the HUD sits above the sheet (or near the bottom edge when
+  // there is none) and hides more of the map than the sheet alone. Read only
+  // while chasing, so the value the HUD last reported cannot outlive it.
+  const [chaseHudCovered, setChaseHudCovered] = useState(0);
+  const mapBottomInset = chasedVehicle
+    ? Math.max(sheetBottomInset, chaseHudCovered)
+    : sheetBottomInset;
+  // The chase places the camera itself every frame, and a fully open sheet
+  // leaves too thin a strip of map to bring anything into.
+  const keepInView =
+    narrow &&
+    mode === "vehicles" &&
+    sheetSnap !== "full" &&
+    selectedVehicle &&
+    !chasedVehicle
+      ? (selectedVehicle.coordinates as [number, number])
+      : null;
+
   const vehicleUpdates = useMemo(
     () => data.map((vehicle) => vehicle.vehicleUpdate),
     [data],
@@ -240,6 +297,7 @@ export function MapView({
           showTransitNetwork={showTransitNetwork}
           setShowTransitNetwork={setShowTransitNetwork}
         />
+        <MapBottomPadding bottom={mapBottomInset} keepInView={keepInView} />
         <RegisterIcons />
         <VehicleLabelPlacement chasing={chasedVehicle !== null} />
         <ModeLayers mode={mode} mapViewOptions={mapViewOptions} />
@@ -273,6 +331,8 @@ export function MapView({
                 store={chasedVehicleStore}
                 setCurrentFilter={setCurrentFilter}
                 onStop={stopChase}
+                bottomInset={sheetBottomInset}
+                onCoveredChange={setChaseHudCovered}
               />
             )}
             {mapViewOptions.showVehicleTraces && <VehicleTraces data={data} />}
@@ -311,9 +371,10 @@ export function MapView({
           selectedVehicle={selectedVehicle}
           onClose={() => setSelectedVehicle(null)}
           onCancellationChange={setTripCancelled}
+          layout={detailLayout}
         />
       )}
-      {mode === "situations" && <SituationDetailPanel />}
+      {mode === "situations" && <SituationDetailPanel layout={detailLayout} />}
     </>
   );
 }

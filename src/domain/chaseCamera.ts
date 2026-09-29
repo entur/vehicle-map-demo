@@ -310,3 +310,16 @@ export function chaseBoundingBox(
     [lon + halfLon, lat + neededHalfLat],
   ];
 }
+
+/** Share of the visible map padded off the top, so the road ahead shows. */
+export const CHASE_TOP_PADDING_SHARE = 0.35;
+
+/**
+ * The chase's top padding: a share of the map left visible above `bottom`,
+ * the px the phone's detail sheet and the chase HUD hide. A share of the
+ * whole map would overlap them once the sheet is open, leaving the vehicle
+ * no room at all.
+ */
+export function chaseTopPadding(mapHeight: number, bottom: number): number {
+  return Math.round(CHASE_TOP_PADDING_SHARE * Math.max(0, mapHeight - bottom));
+}

@@ -28,10 +28,16 @@ export function Timetable({ calls, currentOrder }: TimetableProps) {
     ? `${calls[0].order}-${calls[0].stopPoint.id}`
     : null;
 
+  // Scrolls the list itself rather than calling scrollIntoView, which also
+  // scrolls every scrollable ancestor: on a phone the sheet clips its
+  // content, and would be scrolled out from under its own header.
   useEffect(() => {
-    if (!currentRowRef.current) return;
+    const container = containerRef.current;
+    const row = currentRowRef.current;
+    if (!container || !row) return;
     if (lastScrolledTripKey.current === tripKey) return;
-    currentRowRef.current.scrollIntoView({ block: "center" });
+    container.scrollTop =
+      row.offsetTop - (container.clientHeight - row.offsetHeight) / 2;
     lastScrolledTripKey.current = tripKey;
   }, [tripKey]);
 
@@ -42,6 +48,8 @@ export function Timetable({ calls, currentOrder }: TimetableProps) {
         flex: 1,
         overflowY: "auto",
         paddingRight: 1,
+        // So rows' offsetTop is measured from the list, not the page.
+        position: "relative",
       }}
     >
       {calls.map((call, i) => {

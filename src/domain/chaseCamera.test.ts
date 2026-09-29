@@ -12,6 +12,7 @@ import {
   chaseTarget,
   positionAt,
   smoothAngle,
+  chaseTopPadding,
 } from "./chaseCamera.ts";
 
 const OSLO = { lon: 10.75, lat: 59.91 };
@@ -334,5 +335,16 @@ describe("chaseBoundingBox", () => {
     expect(chaseBoundingBox(viewport, OSLO.lon, OSLO.lat, REACH_M)).not.toBe(
       viewport,
     );
+  });
+});
+
+describe("chaseTopPadding", () => {
+  it("takes its share of the map left above the bottom padding", () => {
+    expect(chaseTopPadding(1000, 0)).toBe(350);
+    expect(chaseTopPadding(664, 498)).toBe(58);
+  });
+
+  it("never goes negative when the bottom hides everything", () => {
+    expect(chaseTopPadding(664, 900)).toBe(0);
   });
 });

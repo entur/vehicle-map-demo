@@ -57,15 +57,19 @@ body .maplibregl-map {
 .chase-hud {
   position: absolute;
   bottom: calc(32px + env(safe-area-inset-bottom, 0px));
-  left: 50%;
-  transform: translateX(-50%);
+  /* Centred by auto margins rather than left: 50% and a translate, which
+     leaves an absolutely positioned box only half the map to shrink-wrap
+     into — on a phone that wrapped the HUD onto three lines. */
+  left: 16px;
+  right: 16px;
+  margin-inline: auto;
+  width: fit-content;
   z-index: 1;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   justify-content: center;
   gap: 8px 12px;
-  max-width: calc(100% - 32px);
   padding: 8px 8px 8px 16px;
   background: var(--mui-palette-background-paper);
   color: var(--mui-palette-text-primary);
@@ -73,6 +77,27 @@ body .maplibregl-map {
   border-radius: 24px;
   font-size: 14px;
   font-variant-numeric: tabular-nums;
+}
+
+/* On a phone the HUD is one row: the label goes (the Stop button says what
+   it is), the status wraps within its own column, and Stop keeps its place
+   at the end. It sits above the detail sheet and pads the map, so every line
+   it saves is map the chased vehicle can be seen in. Same width as
+   DETAIL_SHEET_MEDIA_QUERY. */
+@media (max-width: 599.95px) {
+  .chase-hud {
+    flex-wrap: nowrap;
+    font-size: 13px;
+    border-radius: 16px;
+  }
+
+  .chase-hud strong {
+    display: none;
+  }
+
+  .chase-hud-stop {
+    flex: none;
+  }
 }
 
 .chase-hud-stop {

@@ -10,13 +10,14 @@ import {
 import { delayBucket, delayColour, formatDelay } from "./delayThresholds.ts";
 import { Timetable } from "./Timetable.tsx";
 import { SituationList } from "./SituationList.tsx";
-import { DETAIL_PANEL_SX } from "../detailDrawer.ts";
-import { FloatingCard } from "../FloatingCard.tsx";
+import { DetailSheet } from "../DetailSheet.tsx";
+import { DetailLayout } from "../../domain/bottomSheet.ts";
 
 type SelectedVehiclePanelProps = {
   selectedVehicle: SelectedVehicle | null;
   onClose: () => void;
   onCancellationChange?: (cancelled: boolean) => void;
+  layout: DetailLayout;
 };
 
 const NO_TIMETABLE_TIMEOUT_MS = 3000;
@@ -25,6 +26,7 @@ export function SelectedVehiclePanel({
   selectedVehicle,
   onClose,
   onCancellationChange,
+  layout,
 }: SelectedVehiclePanelProps) {
   const serviceJourneyId = selectedVehicle?.properties.serviceJourneyId ?? null;
   const date = selectedVehicle?.properties.date ?? null;
@@ -81,11 +83,7 @@ export function SelectedVehiclePanel({
   if (!open) return null;
 
   return (
-    <FloatingCard
-      role="region"
-      aria-label="Selected vehicle"
-      sx={DETAIL_PANEL_SX}
-    >
+    <DetailSheet layout={layout} aria-label="Selected vehicle">
       <Box
         sx={{
           display: "flex",
@@ -156,6 +154,6 @@ export function SelectedVehiclePanel({
           </Typography>
         )}
       </Box>
-    </FloatingCard>
+    </DetailSheet>
   );
 }

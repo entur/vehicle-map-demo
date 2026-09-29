@@ -39,3 +39,33 @@ export const DETAIL_PANEL_SX = {
   display: "flex",
   flexDirection: "column",
 } as const satisfies SxProps<Theme>;
+
+/**
+ * Below this width the detail panels leave the left-hand column and become a
+ * bottom sheet (`DetailSheet`), since a full-height card leaves a phone with a
+ * strip of map narrower than the card.
+ */
+export const DETAIL_SHEET_MEDIA_QUERY = "(max-width: 599.95px)";
+
+/**
+ * The same panels on a phone: docked to the bottom, full width between the
+ * insets every card keeps, `height` px tall. The height comes from
+ * `sheetHeight` in `src/domain/bottomSheet.ts`, which also gives the map the
+ * matching bottom padding, so the two cannot disagree about what is hidden.
+ */
+export function detailSheetSx(height: number) {
+  return {
+    position: "absolute",
+    left: SURFACE_INSET,
+    right: SURFACE_INSET,
+    bottom: SURFACE_INSET,
+    height,
+    zIndex: 2,
+    paddingX: 2,
+    paddingBottom: 2,
+    boxSizing: "border-box",
+    display: "flex",
+    flexDirection: "column",
+    overflow: "hidden",
+  } as const satisfies SxProps<Theme>;
+}

@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { useMap } from "react-map-gl/maplibre";
 import type { Map as MapLibreMap } from "maplibre-gl";
 import { Filter } from "../../types.ts";
@@ -8,6 +14,7 @@ import {
   LngLat,
   addSample,
   chaseBoundingBox,
+  chaseTopPadding,
   chaseTarget,
   distanceMetres,
   positionAt,
@@ -32,8 +39,6 @@ const CHASE_PITCH = 60;
  * `VEHICLE_MODEL_MIN_ZOOM` itself it is gone, leaving nothing to chase.
  */
 const CHASE_MIN_ZOOM = VEHICLE_MODEL_MIN_ZOOM + 0.5;
-/** Share of the map's height padded off the top, so the road ahead shows. */
-const TOP_PADDING_SHARE = 0.35;
 const FLY_IN_MS = 1500;
 
 /** Buffered playback is already continuous; this only absorbs a mode switch. */
@@ -92,7 +97,24 @@ type Props = {
   store: ChasedVehicleStore;
   setCurrentFilter: React.Dispatch<React.SetStateAction<Filter | null>>;
   onStop: () => void;
+  /**
+   * px of the map's bottom edge the phone's detail sheet hides, 0 when there
+   * is none. The HUD sits above it — its Stop button is the only on-screen
+   * way out of a chase.
+   */
+  bottomInset: number;
+  /**
+   * Told how many px of the map's bottom edge the HUD and whatever is below
+   * it hide, so the map can be padded by it: the chased vehicle is centred in
+   * what is left, and on a phone the HUD otherwise sits right over it.
+   */
+  onCoveredChange: (px: number) => void;
 };
+
+/** Gap between the HUD and the sheet below it, the same as between cards. */
+const HUD_SHEET_GAP = 12;
+/** Clear space kept between the HUD's top edge and the chased vehicle. */
+const HUD_VEHICLE_GAP = 12;
 
 /**
  * A camera behind and above one vehicle, turned the way it travels. Vehicles
@@ -112,8 +134,32 @@ export function ChaseCamera({
   store,
   setCurrentFilter,
   onStop,
+  bottomInset,
+  onCoveredChange,
 }: Props) {
   const { current: mapRef } = useMap();
+
+  // A layout effect, so the padding is in place before the fly-in, which
+  // starts on a later animation frame and reads it. Observed, because the HUD
+  // text changes every HUD_REFRESH_MS and can wrap onto another line.
+  const hudRef = useRef<HTMLDivElement | null>(null);
+  useLayoutEffect(() => {
+    const hud = hudRef.current;
+    if (!hud) return;
+    const report = () =>
+      onCoveredChange(
+        Math.ceil(
+          parseFloat(getComputedStyle(hud).bottom) +
+            hud.offsetHeight +
+            HUD_VEHICLE_GAP,
+        ),
+      );
+    report();
+    const observer = new ResizeObserver(report);
+    observer.observe(hud);
+    return () => observer.disconnect();
+  }, [bottomInset, onCoveredChange]);
+
   const key = chased.vehicleId + "_" + chased.serviceJourneyId;
   const samples = useRef<ChaseSample[]>([]);
   const latestReport = useRef<VehicleData["vehicleUpdate"] | null>(null);
@@ -244,9 +290,14 @@ export function ChaseCamera({
           zoom: Math.max(map.getZoom(), CHASE_ZOOM),
           pitch: CHASE_PITCH,
           bearing: heading ?? map.getBearing(),
+          // The bottom edge belongs to MapBottomPadding: on a phone it is
+          // what the detail sheet hides.
           padding: {
-            top: map.getContainer().clientHeight * TOP_PADDING_SHARE,
-            bottom: 0,
+            top: chaseTopPadding(
+              map.getContainer().clientHeight,
+              map.getPadding().bottom ?? 0,
+            ),
+            bottom: map.getPadding().bottom ?? 0,
             left: 0,
             right: 0,
           },
@@ -299,9 +350,17 @@ export function ChaseCamera({
 
       if (report && camera && !unchanged) {
         if (phase === "chasing") {
+          // The top padding follows the bottom, which the sheet and the HUD
+          // change mid-chase.
           map.jumpTo({
             center: [camera.lon, camera.lat],
             ...(heading !== null && { bearing: heading }),
+            padding: {
+              top: chaseTopPadding(
+                map.getContainer().clientHeight,
+                map.getPadding().bottom ?? 0,
+              ),
+            },
           });
         }
         store.set({
@@ -351,14 +410,26 @@ export function ChaseCamera({
       map.scrollZoom.enable();
       map.easeTo({
         ...cameraFor(viewDimensionRef.current),
-        padding: saved.padding,
+        padding: {
+          top: saved.padding.top ?? 0,
+          left: saved.padding.left ?? 0,
+          right: saved.padding.right ?? 0,
+          bottom: map.getPadding().bottom ?? 0,
+        },
         duration: 800,
       });
     };
   }, [mapRef, store, key, keepBoxAroundVehicle]);
 
   return (
-    <div className="chase-hud" role="status">
+    <div
+      ref={hudRef}
+      className="chase-hud"
+      role="status"
+      style={
+        bottomInset > 0 ? { bottom: bottomInset + HUD_SHEET_GAP } : undefined
+      }
+    >
       <strong>Chase camera</strong>
       <span>{hudText(hud)}</span>
       <button type="button" className="chase-hud-stop" onClick={onStop}>

@@ -1,7 +1,7 @@
 import { Box } from "@mui/material";
 import { useSituations } from "../../situations/SituationsContext.ts";
-import { DETAIL_PANEL_SX } from "../detailDrawer.ts";
-import { FloatingCard } from "../FloatingCard.tsx";
+import { DetailLayout } from "../../domain/bottomSheet.ts";
+import { DetailSheet } from "../DetailSheet.tsx";
 import { SituationDetail } from "./SituationDetail.tsx";
 
 /**
@@ -21,7 +21,7 @@ import { SituationDetail } from "./SituationDetail.tsx";
  * closes on a filter change rather than lingering over a situation the map no
  * longer shows.
  */
-export function SituationDetailPanel() {
+export function SituationDetailPanel({ layout }: { layout: DetailLayout }) {
   const { feed, flagsBySituation, selected, setSelected } = useSituations();
 
   const situation =
@@ -32,11 +32,7 @@ export function SituationDetailPanel() {
   if (situation === null) return null;
 
   return (
-    <FloatingCard
-      role="region"
-      aria-label="Selected situation"
-      sx={DETAIL_PANEL_SX}
-    >
+    <DetailSheet layout={layout} aria-label="Selected situation">
       {/* `minHeight: 0` so the flex child may shrink below its content and
           actually scroll — a situation with many affects groups is far taller
           than the panel. */}
@@ -47,6 +43,6 @@ export function SituationDetailPanel() {
           onClose={() => setSelected(null)}
         />
       </Box>
-    </FloatingCard>
+    </DetailSheet>
   );
 }
