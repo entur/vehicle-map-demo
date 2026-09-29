@@ -19,8 +19,12 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
-  /* Opt out of parallel tests on CI. */
-  workers: process.env.CI ? 1 : undefined,
+  /* Opt out of parallel tests on CI. Locally, three: every test runs a map
+     with software WebGL against the one dev server, and at Playwright's
+     default of half the cores (5 on a 10-core Mac) the suite overloaded —
+     measured, 2 of 6 runs failed with unrelated tests timing out, against
+     0 of 8 with three workers. */
+  workers: process.env.CI ? 1 : 3,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: "html",
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */

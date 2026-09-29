@@ -383,6 +383,16 @@ test.describe("on a phone", () => {
     expect(peek.y + peek.height).toBeGreaterThan(box.height * 0.95);
     expect(peek.height).toBeLessThan(box.height * 0.3);
 
+    // No map popup on a phone: its actions are in the sheet, inside the
+    // collapsed height rather than clipped below it.
+    await expect(page.locator(".vehicle-popup")).toHaveCount(0);
+    const chase = sheet.getByRole("button", { name: "Chase camera" });
+    await expect(chase).toBeVisible();
+    const chaseBox = (await chase.boundingBox())!;
+    expect(chaseBox.y + chaseBox.height).toBeLessThanOrEqual(
+      peek.y + peek.height,
+    );
+
     // The map is padded by what the sheet hides, and the selected vehicle is
     // above the sheet once the map has brought it out from under it.
     const hiddenBy = (sheetTop: number) => Math.round(box.height - sheetTop);

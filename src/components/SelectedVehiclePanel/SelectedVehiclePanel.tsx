@@ -12,12 +12,22 @@ import { Timetable } from "./Timetable.tsx";
 import { SituationList } from "./SituationList.tsx";
 import { DetailSheet } from "../DetailSheet.tsx";
 import { DetailLayout } from "../../domain/bottomSheet.ts";
+import {
+  VehicleActionHandlers,
+  VehicleActions,
+} from "../Vehicle/VehicleActions.tsx";
 
 type SelectedVehiclePanelProps = {
   selectedVehicle: SelectedVehicle | null;
   onClose: () => void;
   onCancellationChange?: (cancelled: boolean) => void;
   layout: DetailLayout;
+  /**
+   * The map popup's actions. Shown here only in the phone's sheet, where
+   * `MapView` does not draw the popup: over a phone-sized map it covered
+   * about as much as the sheet does, and repeated its header.
+   */
+  actions: VehicleActionHandlers;
 };
 
 const NO_TIMETABLE_TIMEOUT_MS = 3000;
@@ -27,6 +37,7 @@ export function SelectedVehiclePanel({
   onClose,
   onCancellationChange,
   layout,
+  actions,
 }: SelectedVehiclePanelProps) {
   const serviceJourneyId = selectedVehicle?.properties.serviceJourneyId ?? null;
   const date = selectedVehicle?.properties.date ?? null;
@@ -118,17 +129,31 @@ export function SelectedVehiclePanel({
         situations={timetable?.situations ?? null}
       />
 
+      {/* The actions share the delay's row, which has width to spare, so the
+          collapsed sheet shows them without growing. */}
       {vehicleData && (
-        <Typography
-          variant="body2"
+        <Box
           sx={{
             marginTop: 1,
-            color: delayColour(delayBucket(vehicleData.delay)),
-            fontWeight: 600,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 1,
           }}
         >
-          {formatDelay(vehicleData.delay)}
-        </Typography>
+          <Typography
+            variant="body2"
+            sx={{
+              color: delayColour(delayBucket(vehicleData.delay)),
+              fontWeight: 600,
+            }}
+          >
+            {formatDelay(vehicleData.delay)}
+          </Typography>
+          {layout.kind === "sheet" && (
+            <VehicleActions vehicleData={vehicleData} {...actions} />
+          )}
+        </Box>
       )}
 
       <Box

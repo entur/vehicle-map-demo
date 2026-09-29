@@ -345,8 +345,9 @@ export function MapView({
               cancelled={selectedVehicle !== null && tripCancelled}
             />
             {/* The popup would sit at the newest report, ahead of the chased
-                model, and over the road the camera is showing. */}
-            {selectedVehicle && !chasedVehicle && (
+                model, and over the road the camera is showing. On a phone
+                it is not drawn at all: its actions are in the detail sheet. */}
+            {selectedVehicle && !chasedVehicle && !narrow && (
               <VehiclePopup
                 vehicle={selectedVehicle}
                 onClose={() => setSelectedVehicle(null)}
@@ -372,6 +373,13 @@ export function MapView({
           onClose={() => setSelectedVehicle(null)}
           onCancellationChange={setTripCancelled}
           layout={detailLayout}
+          actions={{
+            isFollowing:
+              followedVehicle !== null &&
+              followedVehicle.properties.id === selectedVehicle?.properties.id,
+            onFollow: handleFollow,
+            onChase: handleChaseToggle,
+          }}
         />
       )}
       {mode === "situations" && <SituationDetailPanel layout={detailLayout} />}

@@ -1,9 +1,7 @@
 import { Popup } from "react-map-gl/maplibre";
 import { SelectedVehicle } from "./VehicleMarkers.tsx";
 import { useVehicleUpdateCompleteSubscription } from "../../hooks/useVehicleUpdateCompleteSubscription.ts";
-import { FollowButton } from "./FollowButton.tsx";
-import { DetailsButton } from "./DetailsButton.tsx";
-import { ChaseButton } from "./ChaseButton.tsx";
+import { VehicleActions } from "./VehicleActions.tsx";
 import { VehicleInfo } from "./VehicleInfo.tsx";
 
 type VehiclePopupProps = {
@@ -46,14 +44,14 @@ export function VehiclePopup({
           <VehicleInfo vehicleData={subscriptionData} />
           {subscriptionData && (
             <div className="vehicle-popup-actions">
-              <FollowButton
+              <VehicleActions
+                vehicleData={subscriptionData}
                 isFollowing={
                   followedVehicle?.properties.id === vehicle.properties.id
                 }
-                onClick={onFollow}
+                onFollow={onFollow}
+                onChase={onChase}
               />
-              <ChaseButton onClick={onChase} />
-              <DetailsButton vehicleData={subscriptionData} />
             </div>
           )}
         </div>
