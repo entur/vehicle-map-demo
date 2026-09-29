@@ -1,5 +1,9 @@
 import { useEffect, useRef } from "react";
-import { VEHICLE_ICON_SIZE, drawVehicleIcon } from "./drawVehicleIcon.ts";
+import {
+  VEHICLE_ICON_SIZE,
+  drawVehicleIcon,
+  loadVehicleIconImage,
+} from "./drawVehicleIcon.ts";
 
 /**
  * A vehicle icon in a panel, drawn exactly as on the map — an <img> of the SVG
@@ -24,11 +28,11 @@ export function VehicleIconCanvas({
       return;
     }
     let cancelled = false;
-    const image = new Image(VEHICLE_ICON_SIZE, VEHICLE_ICON_SIZE);
-    image.onload = () => {
-      if (!cancelled) drawVehicleIcon(ctx, image);
-    };
-    image.src = url;
+    loadVehicleIconImage(url)
+      .then((image) => {
+        if (!cancelled) drawVehicleIcon(ctx, image);
+      })
+      .catch((error: unknown) => console.error(error));
     return () => {
       cancelled = true;
     };

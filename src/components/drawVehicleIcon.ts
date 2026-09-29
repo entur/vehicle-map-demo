@@ -111,7 +111,8 @@ export function bearingArrowImageData(): ImageData {
   return ctx.getImageData(0, 0, BEARING_ARROW_SIZE, BEARING_ARROW_SIZE);
 }
 
-function loadImage(url: string): Promise<HTMLImageElement> {
+/** Loads a vehicle icon SVG at the size it is drawn from; rejects if it fails. */
+export function loadVehicleIconImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const image = new Image(VEHICLE_ICON_SIZE, VEHICLE_ICON_SIZE);
     image.onload = () => resolve(image);
@@ -133,6 +134,6 @@ export async function vehicleIconImageData(
   canvas.height = VEHICLE_ICON_SIZE;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("No 2D canvas context for vehicle icons");
-  drawVehicleIcon(ctx, url ? await loadImage(url) : null);
+  drawVehicleIcon(ctx, url ? await loadVehicleIconImage(url) : null);
   return ctx.getImageData(0, 0, VEHICLE_ICON_SIZE, VEHICLE_ICON_SIZE);
 }
