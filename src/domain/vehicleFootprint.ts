@@ -13,7 +13,7 @@ type Dimensions = { length: number; width: number; height: number };
 export const VEHICLE_DIMENSIONS: Partial<
   Record<VehicleModeEnumeration, Dimensions>
 > = {
-  BUS: { length: 18, width: 2.55, height: 3.2 },
+  BUS: { length: 12, width: 2.55, height: 3.2 },
   COACH: { length: 13, width: 2.55, height: 3.6 },
   TRAM: { length: 32, width: 2.65, height: 3.6 },
   METRO: { length: 60, width: 3.2, height: 3.7 },
