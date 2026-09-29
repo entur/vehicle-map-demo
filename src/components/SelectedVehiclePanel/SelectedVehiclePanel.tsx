@@ -35,7 +35,9 @@ export function SelectedVehiclePanel({
 
   // After (NO_TIMETABLE_TIMEOUT_MS) without a timetable frame, surface the
   // "not available" message. The timeout remembers which journey it fired
-  // for, so a new selection starts un-timed-out without being reset.
+  // for, so a new selection starts un-timed-out on its first render; the
+  // cleanup clears it too, since reselecting the same journey gives the same
+  // key and would otherwise skip "Loading timetable…".
   const journeyKey = `${serviceJourneyId}|${date}`;
   const [timedOutFor, setTimedOutFor] = useState<string | null>(null);
   const timedOut = timedOutFor === journeyKey;
@@ -45,7 +47,10 @@ export function SelectedVehiclePanel({
       () => setTimedOutFor(journeyKey),
       NO_TIMETABLE_TIMEOUT_MS,
     );
-    return () => window.clearTimeout(id);
+    return () => {
+      window.clearTimeout(id);
+      setTimedOutFor(null);
+    };
   }, [serviceJourneyId, journeyKey]);
 
   const open = selectedVehicle !== null;

@@ -62,7 +62,9 @@ export function useTimetableSubscription(
   date: string | null,
 ): EstimatedTimetableUpdate | null {
   // Stored with the journey it arrived for, so a changed selection reads as no
-  // timetable straight away instead of being cleared by the effect.
+  // timetable straight away, before the effect's cleanup has cleared it. The
+  // cleanup is still needed: deselecting and reselecting the same journey
+  // gives the same key, and would otherwise bring back the old timetable.
   const journeyKey = `${serviceJourneyId}|${date}`;
   const [received, setReceived] = useState<{
     journeyKey: string;
@@ -88,11 +90,14 @@ export function useTimetableSubscription(
       variables: { serviceJourneyId, date },
     });
 
+    // A frame already in flight when the subscription is closed must not land
+    // after the cleanup has cleared the state.
+    let closed = false;
     const subscribe = async () => {
       if (!subscriptionRef.current) return;
       for await (const event of subscriptionRef.current) {
         const update = event?.data?.timetables?.[0];
-        if (update) {
+        if (update && !closed) {
           setReceived({ journeyKey, timetable: update });
         }
       }
@@ -103,7 +108,9 @@ export function useTimetableSubscription(
     });
 
     return () => {
+      closed = true;
       subscriptionRef.current?.return?.();
+      setReceived(null);
     };
   }, [serviceJourneyId, date, journeyKey, subscriptionClient]);
 
