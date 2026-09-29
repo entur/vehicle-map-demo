@@ -10,6 +10,7 @@ import skullMarker from "../static/images/skull.png";
 import greenLight from "../static/images/greenLight.png";
 import orangeLight from "../static/images/orangeLight.png";
 import redLight from "../static/images/redLight.png";
+import ufo from "../static/images/ufo.png";
 import occupancy0 from "../static/images/occupancy0.png";
 import occupancy1 from "../static/images/occupancy1.png";
 import occupancy2 from "../static/images/occupancy2.png";
@@ -32,6 +33,7 @@ export function Legend() {
     { icon: ferryIcon, label: "Ferry", height: 28 },
     { icon: trainIcon, label: "Train", height: 22 },
     { icon: tramIcon, label: "Tram", height: 28 },
+    { icon: ufo, label: "Unknown transport", height: 14 },
     { icon: greenMarkerIcon, label: "Follow vehicle marker", height: 20 },
     { icon: greenMarker, label: "Update frequency < 2s", height: 17 },
     { icon: orangeMarker, label: "Update frequency < 15s", height: 18 },
