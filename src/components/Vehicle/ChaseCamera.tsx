@@ -24,6 +24,7 @@ import {
 import { ViewDimension, cameraFor } from "../../domain/viewDimension.ts";
 import { ChasedVehicle, ChasedVehicleStore } from "./chasedVehicleStore.ts";
 import { VEHICLE_MODEL_MIN_ZOOM } from "../mapStyle.ts";
+import { setPaddingInPlace } from "../../utils/setPaddingInPlace.ts";
 
 const CHASE_ZOOM = 17.5;
 /**
@@ -408,16 +409,18 @@ export function ChaseCamera({
       map.touchZoomRotate.enableRotation();
       map.touchPitch.enable();
       map.scrollZoom.enable();
-      map.easeTo({
-        ...cameraFor(viewDimensionRef.current),
-        padding: {
-          top: saved.padding.top ?? 0,
-          left: saved.padding.left ?? 0,
-          right: saved.padding.right ?? 0,
-          bottom: map.getPadding().bottom ?? 0,
-        },
-        duration: 800,
+      // The padding goes back at once, not as part of the ease below: when
+      // the chase switched the map to 3D, stopping it switches back in the
+      // same commit, and ViewDimensionLayers' own ease cancels this one
+      // before it has moved — which used to strand the chase's top padding
+      // and centre every later camera move too low. The bottom edge is
+      // MapBottomPadding's and is left alone.
+      setPaddingInPlace(map, {
+        top: saved.padding.top ?? 0,
+        left: saved.padding.left ?? 0,
+        right: saved.padding.right ?? 0,
       });
+      map.easeTo({ ...cameraFor(viewDimensionRef.current), duration: 800 });
     };
   }, [mapRef, store, key, keepBoxAroundVehicle]);
 
