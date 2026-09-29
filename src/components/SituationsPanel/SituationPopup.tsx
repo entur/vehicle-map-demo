@@ -3,6 +3,7 @@ import { Popup } from "react-map-gl/maplibre";
 import { useSituations } from "../../situations/SituationsContext.ts";
 import { severityColour } from "../SelectedVehiclePanel/situationSeverity.ts";
 import { pickTranslation } from "../SelectedVehiclePanel/situationText.ts";
+import { selectedRowSx } from "./selectedRowSx.ts";
 
 type SituationPopupProps = {
   longitude: number;
@@ -79,14 +80,7 @@ export function SituationPopup({
               border: "none",
               borderBottom: "1px dotted var(--mui-palette-divider)",
               borderLeft: `3px solid ${severityColour(situation.severity)}`,
-              background:
-                selected === situation.situationNumber
-                  ? "var(--mui-palette-selection-bg)"
-                  : "none",
-              boxShadow:
-                selected === situation.situationNumber
-                  ? "inset 3px 0 0 var(--mui-palette-selection-main)"
-                  : "none",
+              ...selectedRowSx(selected === situation.situationNumber),
               cursor: "pointer",
               padding: "4px 6px",
               font: "inherit",

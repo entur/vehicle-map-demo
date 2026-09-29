@@ -5,6 +5,7 @@ import { pickTranslation } from "../SelectedVehiclePanel/situationText.ts";
 import { affectsShape } from "../../domain/situationStats.ts";
 import { FLAG_LEVEL } from "../../domain/situationFlags.ts";
 import { SEVERITY_SEVERE } from "../../domain/dataColours.ts";
+import { selectedRowSx } from "./selectedRowSx.ts";
 
 /**
  * Situations that flatten to no map features at all — a small minority on
@@ -64,14 +65,7 @@ export function UnmappableList({
                 textAlign: "left",
                 border: "none",
                 borderBottom: "1px dotted var(--mui-palette-divider)",
-                background:
-                  selected === situationNumber
-                    ? "var(--mui-palette-selection-bg)"
-                    : "none",
-                boxShadow:
-                  selected === situationNumber
-                    ? "inset 3px 0 0 var(--mui-palette-selection-main)"
-                    : "none",
+                ...selectedRowSx(selected === situationNumber),
                 cursor: "pointer",
                 padding: "4px 0",
                 font: "inherit",

@@ -5,6 +5,7 @@ import { SEVERITY_SEVERE } from "../../domain/dataColours.ts";
 import { FLAG_LEVEL, SituationFlag } from "../../domain/situationFlags.ts";
 import { severityColour } from "../SelectedVehiclePanel/situationSeverity.ts";
 import { pickTranslation } from "../SelectedVehiclePanel/situationText.ts";
+import { selectedRowSx } from "./selectedRowSx.ts";
 
 type SituationRowProps = {
   situation: NationalSituation;
@@ -52,10 +53,7 @@ function SituationRowImpl({
         border: "none",
         borderBottom: "1px dotted var(--mui-palette-divider)",
         borderLeft: `3px solid ${severityColour(situation.severity)}`,
-        background: selected ? "var(--mui-palette-selection-bg)" : "none",
-        boxShadow: selected
-          ? "inset 3px 0 0 var(--mui-palette-selection-main)"
-          : "none",
+        ...selectedRowSx(selected),
         cursor: "pointer",
         padding: "6px 8px",
         font: "inherit",
