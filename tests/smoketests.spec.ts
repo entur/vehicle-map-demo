@@ -147,10 +147,16 @@ test("the theme toggle switches to dark and survives a reload", async ({
 type TestMap = {
   getLayer(id: string): unknown;
   getCanvas(): HTMLCanvasElement;
-  queryRenderedFeatures(options: { layers: string[] }): {
+  queryRenderedFeatures(
+    pointOrOptions: [number, number] | { layers: string[] },
+    options?: { layers: string[] },
+  ): {
     geometry: { type: string; coordinates: [number, number] };
   }[];
   project(lngLat: [number, number]): { x: number; y: number };
+  unproject(point: [number, number]): { lng: number; lat: number };
+  jumpTo(options: { center: [number, number]; zoom: number }): void;
+  getPadding(): { top: number; bottom: number };
   getLayoutProperty(id: string, name: string): unknown;
   hasImage(name: string): boolean;
   querySourceFeatures(source: string): unknown[];
@@ -278,4 +284,136 @@ test("loading in dark starts on the dark base map", async ({ page }) => {
     };
   });
   expect(visibility).toEqual({ light: "none", dark: "visible" });
+});
+
+test.describe("on a phone", () => {
+  // Not a device preset: those set the browser type, which a project already
+  // fixes, and isMobile, which Firefox does not support. The layout only
+  // follows the width, and the sheet's handle needs touch.
+  test.use({ viewport: { width: 390, height: 664 }, hasTouch: true });
+
+  test("a selected vehicle opens a bottom sheet and stays in view above it", async ({
+    page,
+  }) => {
+    await page.goto("/?mode=vehicles");
+    await page.waitForFunction(
+      () => !!(window as unknown as TestWindow).__vehicleMap,
+      null,
+      { timeout: 30000 },
+    );
+    // Trondheim: ATB reports every few seconds, so there are vehicles to tap
+    // at a zoom where they are drawn apart.
+    await page.evaluate(() =>
+      (window as unknown as TestWindow).__vehicleMap!.jumpTo({
+        center: [10.4, 63.43],
+        zoom: 13,
+      }),
+    );
+
+    // Vehicles low on the screen, where the collapsed sheet lands, so the
+    // map has to bring the selection into view. Clear of the bottom edge,
+    // where the attribution sits.
+    const targets = await page
+      .waitForFunction(
+        () => {
+          const map = (window as unknown as TestWindow).__vehicleMap!;
+          const { width, height } = map.getCanvas().getBoundingClientRect();
+          const points: { x: number; y: number }[] = [];
+          for (const feature of map.queryRenderedFeatures({
+            layers: ["vehicle-layer"],
+          })) {
+            if (feature.geometry.type !== "Point") continue;
+            const { x, y } = map.project(feature.geometry.coordinates);
+            const inside =
+              x > width * 0.2 &&
+              x < width * 0.7 &&
+              y > height * 0.65 &&
+              y < height * 0.88;
+            const apart = points.every(
+              (p) => Math.hypot(p.x - x, p.y - y) > 40,
+            );
+            if (inside && apart) points.push({ x, y });
+            if (points.length === 5) break;
+          }
+          return points.length > 0 ? points : null;
+        },
+        null,
+        { timeout: 30000 },
+      )
+      .then((handle) => handle.jsonValue())
+      .catch(() => null);
+
+    test.skip(!targets, "No vehicles rendered low in the Trondheim view");
+
+    const box = (await page.locator(".maplibregl-canvas").boundingBox())!;
+    const sheet = page.getByRole("region", { name: "Selected vehicle" });
+    const handle = sheet.getByRole("button", { name: /^Resize panel/ });
+
+    // A tap can land between vehicles as they move; try the next one. The
+    // vehicle a tap selects is the first feature under it in the layers
+    // VehicleMarkers queries — which include the line label, drawn beside the
+    // icon — so it is read the same way here, not assumed to be at the tap.
+    let selected: { at: [number, number] } | null = null;
+    for (const target of targets!) {
+      const hit = await page.evaluate(({ x, y }) => {
+        const map = (window as unknown as TestWindow).__vehicleMap!;
+        const [feature] = map.queryRenderedFeatures([x, y], {
+          layers: ["vehicle-layer", "vehicle-model-layer"],
+        });
+        if (!feature || feature.geometry.type !== "Point") return null;
+        return { at: feature.geometry.coordinates };
+      }, target);
+      if (!hit) continue;
+      await page.touchscreen.tap(box.x + target.x, box.y + target.y);
+      const opened = await sheet
+        .waitFor({ state: "visible", timeout: 3000 })
+        .then(() => true)
+        .catch(() => false);
+      if (opened) {
+        selected = hit;
+        break;
+      }
+    }
+    expect(selected, "no tapped vehicle opened the sheet").not.toBeNull();
+
+    // A sheet, not the desktop's column: across the bottom, collapsed.
+    await expect(handle).toHaveAccessibleName("Resize panel (collapsed)");
+    const peek = (await sheet.boundingBox())!;
+    expect(peek.width).toBeGreaterThan(box.width * 0.9);
+    expect(peek.y + peek.height).toBeGreaterThan(box.height * 0.95);
+    expect(peek.height).toBeLessThan(box.height * 0.3);
+
+    // The map is padded by what the sheet hides, and the selected vehicle is
+    // above the sheet once the map has brought it out from under it.
+    const hiddenBy = (sheetTop: number) => Math.round(box.height - sheetTop);
+    const readMap = () =>
+      page.evaluate((at) => {
+        const map = (window as unknown as TestWindow).__vehicleMap!;
+        return {
+          bottom: map.getPadding().bottom,
+          vehicleY: map.project(at).y,
+        };
+      }, selected!.at);
+    // The sheet eases between heights, so both sides are read together until
+    // they agree rather than the sheet once, mid-animation.
+    const paddingMismatch = async () =>
+      (await readMap()).bottom - hiddenBy((await sheet.boundingBox())!.y);
+    await expect.poll(paddingMismatch).toBe(0);
+    await expect
+      .poll(async () => (await readMap()).vehicleY, { timeout: 3000 })
+      .toBeLessThan(peek.y);
+
+    // Tapping the handle opens it a step, and the padding follows.
+    await handle.tap();
+    await expect(handle).toHaveAccessibleName("Resize panel (half open)");
+    await expect
+      .poll(async () => (await sheet.boundingBox())!.height)
+      .toBeGreaterThan(peek.height * 1.5);
+    await expect.poll(paddingMismatch).toBe(0);
+
+    // Closing gives the map back its whole height.
+    await sheet.getByRole("button", { name: "Close", exact: true }).tap();
+    await expect(sheet).toBeHidden();
+    await expect.poll(async () => (await readMap()).bottom).toBe(0);
+  });
 });
