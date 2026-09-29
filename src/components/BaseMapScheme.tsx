@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useMap } from "react-map-gl/maplibre";
 import { useColorScheme } from "@mui/material/styles";
 import {
@@ -8,6 +8,7 @@ import {
   transitNetworkPaint,
 } from "../domain/baseMapScheme.ts";
 import { whenLayerExists } from "../utils/whenLayerExists.ts";
+import { MapScheme } from "./basemap/basemap.ts";
 
 /**
  * Shows the base map for the current colour scheme. Both base maps live in the
@@ -18,17 +19,25 @@ import { whenLayerExists } from "../utils/whenLayerExists.ts";
  * Sole owner of base-layer visibility, the building, hillshade and transit
  * network colours and the sky. 3D-layer visibility belongs to ViewDimensionLayers and app layers to
  * ModeLayers/MapLayers.
+ *
+ * `builtFor` is the scheme the style was built with. Until the scheme differs
+ * from what the map already shows, there is nothing to write: the first run
+ * would otherwise repeat every visibility check, the paint and the sky that
+ * buildMapStyle has just baked in. A style built for the wrong scheme still
+ * differs, and is corrected on mount.
  */
-export function BaseMapScheme() {
+export function BaseMapScheme({ builtFor }: { builtFor: MapScheme }) {
   const { current: mapRef } = useMap();
   const { colorScheme } = useColorScheme();
   const scheme = mapSchemeFor(colorScheme);
+  const shown = useRef(builtFor);
 
   useEffect(() => {
     const map = mapRef?.getMap();
-    if (!map) return;
+    if (!map || scheme === shown.current) return;
 
     const apply = () => {
+      shown.current = scheme;
       for (const [id, visibility] of baseLayerVisibility(scheme)) {
         if (map.getLayoutProperty(id, "visibility") !== visibility) {
           map.setLayoutProperty(id, "visibility", visibility);

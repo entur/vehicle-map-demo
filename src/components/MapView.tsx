@@ -81,7 +81,8 @@ export function MapView({
   // style object makes react-map-gl call setStyle, which resets GeoJSON data,
   // layer visibility and registered images. Scheme changes after mount go
   // through BaseMapScheme.
-  const [mapStyle] = useState(() => buildMapStyle(mapSchemeFor(colorScheme)));
+  const [builtScheme] = useState(() => mapSchemeFor(colorScheme));
+  const [mapStyle] = useState(() => buildMapStyle(builtScheme));
 
   const [selectedVehicle, setSelectedVehicle] =
     useState<SelectedVehicle | null>(null);
@@ -226,7 +227,7 @@ export function MapView({
         />
         {viewDimension === "3d" && <RotateControl />}
         <ViewDimensionLayers dimension={viewDimension} />
-        <BaseMapScheme />
+        <BaseMapScheme builtFor={builtScheme} />
         <TransitNetworkLayers visible={showTransitNetwork} />
         <RightMenu
           mode={mode}
