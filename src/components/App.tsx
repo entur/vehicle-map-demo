@@ -43,7 +43,11 @@ function App() {
   useViewDimensionQueryParam(viewDimension, setViewDimension);
 
   return (
-    <div style={{ width: "100vw", height: "100vh" }}>
+    // dvh, not vh: on a phone 100vh is the height with the URL bar hidden, so
+    // while it shows the page is taller than the screen and scrolls. And
+    // positioned, so the detail sheet, which is outside <Map>, is placed
+    // against the same box as the chase HUD inside it.
+    <div style={{ position: "relative", width: "100vw", height: "100dvh" }}>
       <ThemeProvider
         theme={theme}
         modeStorageKey={COLOR_SCHEME_STORAGE_KEY}

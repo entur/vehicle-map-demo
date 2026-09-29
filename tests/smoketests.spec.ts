@@ -383,6 +383,28 @@ test.describe("on a phone", () => {
     expect(peek.y + peek.height).toBeGreaterThan(box.height * 0.95);
     expect(peek.height).toBeLessThan(box.height * 0.3);
 
+    // Placed against the box the map is in, not the page. A real phone's
+    // page and visible viewport differ by the URL bar, which no emulated
+    // viewport has; placed against the page, the sheet stood that much
+    // higher than the map's bottom edge, and the chase HUD, placed within
+    // the map, sank behind it.
+    expect(
+      await sheet.evaluate((el) => {
+        const parent = (el as HTMLElement).offsetParent;
+        return (
+          parent !== null &&
+          parent !== document.body &&
+          parent.contains(document.querySelector(".maplibregl-map"))
+        );
+      }),
+    ).toBe(true);
+    // Nor does the page scroll, which took the top controls out of reach.
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollHeight <= window.innerHeight,
+      ),
+    ).toBe(true);
+
     // No map popup on a phone: its actions are in the sheet, inside the
     // collapsed height rather than clipped below it.
     await expect(page.locator(".vehicle-popup")).toHaveCount(0);
