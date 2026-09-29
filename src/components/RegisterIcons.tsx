@@ -53,18 +53,25 @@ const vehicleIcons: [name: string, url: string | null][] = [
 ];
 
 /**
- * Names this app has registered. An image that exists under one of our names
- * before we register it came from the base map sprite — the app's icon would
- * silently never show — so that is warned about.
+ * Names this app has registered, per map. An image that exists under one of
+ * our names before we register it came from the base map sprite — the app's
+ * icon would silently never show — so that is warned about. Kept per map
+ * rather than per module so a new map instance (a remount, a hot reload) is
+ * checked afresh instead of inheriting names registered on an old one.
  */
-const registered = new Set<string>();
+const registeredByMap = new WeakMap<object, Set<string>>();
 
-function warnIfTaken(map: { hasImage(name: string): boolean }, name: string) {
-  if (map.hasImage(name) && !registered.has(name)) {
+/** True when `name` still has to be added; warns if the sprite has taken it. */
+function needsRegistering(
+  map: { hasImage(name: string): boolean },
+  registered: Set<string>,
+  name: string,
+) {
+  if (!map.hasImage(name)) return true;
+  if (!registered.has(name)) {
     console.warn(
       `Map image "${name}" already exists before the app registered it; the base map sprite probably uses the same name, so the app's icon will not show.`,
     );
-    return true;
   }
   return false;
 }
@@ -75,10 +82,15 @@ export function RegisterIcons() {
   useEffect(() => {
     if (!mapRef) return;
     const map = mapRef.getMap();
+    let registered = registeredByMap.get(map);
+    if (!registered) {
+      registered = new Set();
+      registeredByMap.set(map, registered);
+    }
 
     const handleMapLoad = () => {
       images.forEach(async ({ name, url }) => {
-        if (warnIfTaken(map, name) || map.hasImage(name)) return;
+        if (!needsRegistering(map, registered, name)) return;
         const response = await map.loadImage(url);
         if (response.data && !map.hasImage(name)) {
           map.addImage(name, response.data);
@@ -86,7 +98,7 @@ export function RegisterIcons() {
         }
       });
       for (const [name, url] of vehicleIcons) {
-        if (warnIfTaken(map, name) || map.hasImage(name)) continue;
+        if (!needsRegistering(map, registered, name)) continue;
         vehicleIconImageData(url)
           .then((data) => {
             if (map.hasImage(name)) return;
@@ -95,10 +107,7 @@ export function RegisterIcons() {
           })
           .catch((error: unknown) => console.error(error));
       }
-      if (
-        !warnIfTaken(map, BEARING_ARROW_ICON) &&
-        !map.hasImage(BEARING_ARROW_ICON)
-      ) {
+      if (needsRegistering(map, registered, BEARING_ARROW_ICON)) {
         map.addImage(BEARING_ARROW_ICON, bearingArrowImageData(), {
           pixelRatio: VEHICLE_ICON_PIXEL_RATIO,
         });
