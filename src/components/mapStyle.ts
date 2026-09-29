@@ -71,6 +71,13 @@ export const VEHICLE_MODEL_MIN_ZOOM = 16;
  */
 export const VEHICLE_BEARING_MIN_ZOOM = 13;
 
+/**
+ * Zoom from which `vehicle-layer` draws line-code labels. Below it the text
+ * field is empty rather than merely transparent, so the national view does not
+ * shape and place thousands of labels nobody can see on every vehicle frame.
+ */
+export const VEHICLE_LABEL_MIN_ZOOM = 13;
+
 /** `vehicle-layer`'s icon-size, shared so the arrow stays at the circle's edge. */
 const VEHICLE_ICON_SIZE_EXPRESSION: ExpressionSpecification = [
   "interpolate",
@@ -639,7 +646,13 @@ export function buildMapStyle(scheme: MapScheme): StyleSpecification {
           // ≈22px at zoom 4 growing to ≈32px from zoom 12.
           "icon-size": VEHICLE_ICON_SIZE_EXPRESSION,
           "icon-allow-overlap": true,
-          "text-field": ["get", "lineCode"],
+          "text-field": [
+            "step",
+            ["zoom"],
+            "",
+            VEHICLE_LABEL_MIN_ZOOM,
+            ["get", "lineCode"],
+          ],
           "text-size": 14,
           "text-font": APP_TEXT_FONT,
           // Behind the vehicle, clear of the bearing arrow. Built for a
@@ -663,15 +676,6 @@ export function buildMapStyle(scheme: MapScheme): StyleSpecification {
           "text-color": ["coalesce", ["get", "lineTextColour"], "#000"],
           "text-halo-color": ["coalesce", ["get", "lineHaloColour"], "#FFF"],
           "text-halo-width": 6,
-          "text-opacity": [
-            "interpolate",
-            ["linear"],
-            ["zoom"],
-            13,
-            0,
-            13.01,
-            1,
-          ],
         },
       },
       {

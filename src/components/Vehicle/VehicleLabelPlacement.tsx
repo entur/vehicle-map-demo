@@ -6,6 +6,7 @@ import {
   vehicleLabelOffset,
 } from "../../domain/vehicleLabelPlacement.ts";
 import { whenLayerExists } from "../../utils/whenLayerExists.ts";
+import { VEHICLE_LABEL_MIN_ZOOM } from "../mapStyle.ts";
 
 const VEHICLE_LAYER = "vehicle-layer";
 
@@ -15,6 +16,10 @@ const VEHICLE_LAYER = "vehicle-layer";
  * are rebuilt with it baked in — in `MAP_BEARING_STEP` steps, since each
  * rebuild re-lays out every vehicle label and the chase camera turns the map
  * continuously.
+ *
+ * Every rebuild also makes MapLibre reload the whole `vehicles` source, so
+ * none is done while zoomed out past `VEHICLE_LABEL_MIN_ZOOM`, where there are
+ * no labels to place: the placement catches up when the map zooms back in.
  */
 export function VehicleLabelPlacement() {
   const { current: mapRef } = useMap();
@@ -27,6 +32,7 @@ export function VehicleLabelPlacement() {
     // layer already rebuilt for some earlier rotation.
     let applied: number | null = null;
     const apply = () => {
+      if (map.getZoom() < VEHICLE_LABEL_MIN_ZOOM) return;
       const bearing = quantiseMapBearing(map.getBearing());
       if (bearing === applied) return;
       applied = bearing;
@@ -46,11 +52,15 @@ export function VehicleLabelPlacement() {
     const cancel = whenLayerExists(map, VEHICLE_LAYER, () => {
       apply();
       map.on("rotate", apply);
+      map.on("zoomend", apply);
       listening = true;
     });
     return () => {
       cancel();
-      if (listening) map.off("rotate", apply);
+      if (listening) {
+        map.off("rotate", apply);
+        map.off("zoomend", apply);
+      }
     };
   }, [mapRef]);
 
