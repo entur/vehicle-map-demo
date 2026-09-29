@@ -15,46 +15,64 @@ test("has map", async ({ page }) => {
 test("selecting a vehicle shows the timetable panel", async ({ page }) => {
   await page.goto("/");
 
-  // Wait for at least one vehicle marker to render. Vehicles render as a
-  // MapLibre symbol layer ("vehicle-layer") on top of a canvas, so we can't
-  // query individual markers via DOM — instead we wait for the GraphQL data
-  // to populate by polling the maplibre source.
-  const hasVehicle = await page
+  // Vehicles are drawn on a canvas, so ask the map where some are rather than
+  // clicking a fixed spot and hoping a vehicle happens to be there. Only
+  // vehicles well inside the canvas count: the edges are under the map
+  // controls, the toolbar and the detail card. Candidates are kept apart so
+  // each click lands on a different vehicle.
+  const targets = await page
     .waitForFunction(
       () => {
-        const win = window as unknown as {
-          __maplibreVehicleSourceFeatureCount?: number;
-        };
-        // The app does not expose the source count, so as a proxy we click the
-        // canvas center after a short delay — most dev runs have vehicles in
-        // the default viewport.
-        void win;
-        return true;
+        const map = (window as unknown as TestWindow).__vehicleMap;
+        if (!map?.getLayer("vehicle-layer")) return null;
+        const { width, height } = map.getCanvas().getBoundingClientRect();
+        const points: { x: number; y: number }[] = [];
+        for (const feature of map.queryRenderedFeatures({
+          layers: ["vehicle-layer"],
+        })) {
+          if (feature.geometry.type !== "Point") continue;
+          const { x, y } = map.project(feature.geometry.coordinates);
+          const inside =
+            x > width * 0.35 &&
+            x < width * 0.65 &&
+            y > height * 0.25 &&
+            y < height * 0.75;
+          const apart = points.every((p) => Math.hypot(p.x - x, p.y - y) > 40);
+          if (inside && apart) points.push({ x, y });
+          if (points.length === 5) break;
+        }
+        return points.length > 0 ? points : null;
       },
-      { timeout: 5000 },
+      null,
+      { timeout: 30000 },
     )
-    .then(() => true)
-    .catch(() => false);
+    .then((handle) => handle.jsonValue())
+    .catch(() => null);
 
-  if (!hasVehicle) test.skip(true, "Could not confirm vehicles loaded");
+  test.skip(!targets, "No vehicles rendered in the default view");
 
-  // Give vehicles a moment to render, then click the centre of the canvas.
-  await page.waitForTimeout(3000);
-  const canvas = page.locator(".maplibregl-canvas");
-  const box = await canvas.boundingBox();
-  if (!box) test.skip(true, "Map canvas not found");
-  await page.mouse.click(box!.x + box!.width / 2, box!.y + box!.height / 2);
-
-  // If a vehicle was selected, its detail panel appears.
+  const box = await page.locator(".maplibregl-canvas").boundingBox();
   const panel = page.getByRole("region", { name: "Selected vehicle" });
-  await expect(panel).toBeVisible({ timeout: 5000 });
+  // Stop rows carry HH:MM times; there is no stable test ID on them.
+  const stopTime = panel.locator("text=/[0-9]{2}:[0-9]{2}/").first();
+  const notAvailable = panel.getByText(
+    "Timetable not available for this trip.",
+  );
 
-  // And at least one stop row eventually appears. We don't have a stable
-  // test ID on rows; assert by waiting for >=1 element under the panel with
-  // tabular-numeric content matching HH:MM.
-  await expect(panel.locator("text=/[0-9]{2}:[0-9]{2}/").first()).toBeVisible({
-    timeout: 8000,
-  });
+  // Some journeys in the feed have no timetable (SKY ferries, for one), and
+  // the panel rightly says so. Move on to the next vehicle when that happens:
+  // the test is that timetables render, not that every vehicle has one.
+  for (const target of targets!) {
+    await page.mouse.click(box!.x + target.x, box!.y + target.y);
+    await expect(panel).toBeVisible({ timeout: 5000 });
+    await expect(stopTime.or(notAvailable).first()).toBeVisible({
+      timeout: 8000,
+    });
+    if (await stopTime.isVisible()) return;
+    await panel.getByRole("button", { name: "Close" }).click();
+    await expect(panel).toBeHidden();
+  }
+  throw new Error(`None of ${targets!.length} vehicles showed a timetable`);
 });
 
 test("switching to situations mode swaps the tool rail", async ({ page }) => {
@@ -128,6 +146,11 @@ test("the theme toggle switches to dark and survives a reload", async ({
 
 type TestMap = {
   getLayer(id: string): unknown;
+  getCanvas(): HTMLCanvasElement;
+  queryRenderedFeatures(options: { layers: string[] }): {
+    geometry: { type: string; coordinates: [number, number] };
+  }[];
+  project(lngLat: [number, number]): { x: number; y: number };
   getLayoutProperty(id: string, name: string): unknown;
   hasImage(name: string): boolean;
   querySourceFeatures(source: string): unknown[];
