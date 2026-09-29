@@ -69,7 +69,9 @@ export const RightMenu = ({
         top: SURFACE_INSET,
         right: SURFACE_INSET,
         bottom: SURFACE_INSET,
-        zIndex: 2,
+        // Above the left-hand detail cards: on a phone an open tool panel can
+        // reach across one, and the panel the user just opened should win.
+        zIndex: 3,
         display: "flex",
         flexDirection: "column",
         alignItems: "flex-end",
