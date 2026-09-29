@@ -292,6 +292,36 @@ test.describe("on a phone", () => {
   // follows the width, and the sheet's handle needs touch.
   test.use({ viewport: { width: 390, height: 664 }, hasTouch: true });
 
+  test("the attribution shows at load and collapses after five seconds", async ({
+    page,
+  }) => {
+    // The OSMF attribution guidelines allow a collapse after five seconds,
+    // not a start collapsed: the credit is shown first.
+    await page.goto("/?mode=vehicles");
+    const attribution = page.locator(
+      ".maplibregl-ctrl-top-left > .maplibregl-ctrl-attrib",
+    );
+    await expect(attribution).toHaveClass(/maplibregl-compact-show/);
+    await expect(attribution).not.toHaveClass(/maplibregl-compact-show/, {
+      timeout: 8000,
+    });
+    // Collapsed, it is one of the stack's buttons in shape: square, and in
+    // line with the zoom buttons above it.
+    const zoom = (await page
+      .locator(".maplibregl-ctrl-top-left > .maplibregl-ctrl-group")
+      .first()
+      .boundingBox())!;
+    const collapsed = (await attribution.boundingBox())!;
+    expect([collapsed.x, collapsed.width, collapsed.height]).toEqual([
+      zoom.x,
+      zoom.width,
+      zoom.width,
+    ]);
+    // Still reachable from its button.
+    await attribution.locator(".maplibregl-ctrl-attrib-button").tap();
+    await expect(attribution).toHaveClass(/maplibregl-compact-show/);
+  });
+
   test("a selected vehicle opens a bottom sheet and stays in view above it", async ({
     page,
   }) => {
@@ -442,6 +472,55 @@ test.describe("on a phone", () => {
       .poll(async () => (await sheet.boundingBox())!.height)
       .toBeGreaterThan(peek.height * 1.5);
     await expect.poll(paddingMismatch).toBe(0);
+
+    // A chase's HUD spans the same width as the sheet under it.
+    await chase.tap();
+    const hud = page.getByRole("status").filter({ hasText: "Stop" });
+    await expect(hud).toBeVisible();
+    const sheetBox = (await sheet.boundingBox())!;
+    await expect
+      .poll(async () => {
+        const hudBox = (await hud.boundingBox())!;
+        return [hudBox.x, hudBox.width];
+      })
+      .toEqual([sheetBox.x, sheetBox.width]);
+
+    // The map's attribution is at the foot of the top-left control stack,
+    // where neither the sheet nor the HUD nor the toolbar can cover it — at
+    // the bottom it went behind the sheet, and lifted above the sheet and
+    // HUD it went under the toolbar. Collapsed to its button, since expanded
+    // it covered the HUD. Checked here, with the map at its shortest.
+    const attribution = page.locator(
+      ".maplibregl-ctrl-top-left > .maplibregl-ctrl-attrib",
+    );
+    await expect(attribution).toBeVisible();
+    await expect(attribution).not.toHaveClass(/maplibregl-compact-show/);
+    const topmostAtCentre = (el: Element) => {
+      const box = el.getBoundingClientRect();
+      return el.contains(
+        document.elementFromPoint(
+          box.x + box.width / 2,
+          box.y + box.height / 2,
+        ),
+      );
+    };
+    expect(
+      await attribution.evaluate((el) => {
+        const top = el.getBoundingClientRect().top;
+        return [...el.parentElement!.children].every(
+          (other) =>
+            other === el || other.getBoundingClientRect().bottom <= top,
+        );
+      }),
+    ).toBe(true);
+    expect(await attribution.evaluate(topmostAtCentre)).toBe(true);
+    // Nor does anything cover the only on-screen way out of a chase.
+    expect(
+      await hud.getByRole("button", { name: "Stop" }).evaluate(topmostAtCentre),
+    ).toBe(true);
+
+    await hud.getByRole("button", { name: "Stop" }).tap();
+    await expect(hud).toBeHidden();
 
     // Closing gives the map back its whole height.
     await sheet.getByRole("button", { name: "Close", exact: true }).tap();

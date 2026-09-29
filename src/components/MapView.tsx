@@ -9,6 +9,7 @@ import { useColorScheme } from "@mui/material/styles";
 import { useMediaQuery } from "@mui/material";
 import { mapSchemeFor } from "../domain/baseMapScheme.ts";
 import { CaptureBoundingBox } from "./CaptureBoundingBox.tsx";
+import { MapAttribution } from "./MapAttribution.tsx";
 import { Filter, MapViewOptions } from "../types.ts";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { setWorkerUrl } from "maplibre-gl";
@@ -275,6 +276,7 @@ export function MapView({
         mapStyle={mapStyle}
         onLoad={handleMapLoad}
         onStyleData={handleStyleData}
+        attributionControl={false}
       >
         <NavigationControl position="top-left" />
         <GeolocateControl position="top-left" />
@@ -283,6 +285,7 @@ export function MapView({
           setDimension={setViewDimension}
         />
         {viewDimension === "3d" && <RotateControl />}
+        <MapAttribution narrow={narrow} collapse={narrow && detailOpen} />
         <ViewDimensionLayers dimension={viewDimension} />
         <BaseMapScheme builtFor={builtScheme} />
         <TransitNetworkLayers visible={showTransitNetwork} />
