@@ -105,12 +105,12 @@ body .maplibregl-map {
     display: none;
   }
 
-  .chase-hud-stop {
+  .chase-hud-button {
     flex: none;
   }
 }
 
-.chase-hud-stop {
+.chase-hud-button {
   padding: 6px 14px;
   border: 1px solid var(--mui-palette-divider);
   border-radius: var(--mui-shape-borderRadius);
@@ -120,7 +120,7 @@ body .maplibregl-map {
   cursor: pointer;
 }
 
-.chase-hud-stop:hover {
+.chase-hud-button:hover {
   background: var(--mui-palette-action-hover);
 }
 

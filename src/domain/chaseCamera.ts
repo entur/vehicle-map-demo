@@ -1,4 +1,5 @@
 import { METRES_PER_DEGREE_LAT, normaliseBearing } from "./vehicleFootprint.ts";
+import { ROTATION_STEP } from "./viewDimension.ts";
 
 /**
  * One position report for the chased vehicle, timed by when it arrived here.
@@ -322,4 +323,117 @@ export const CHASE_TOP_PADDING_SHARE = 0.35;
  */
 export function chaseTopPadding(mapHeight: number, bottom: number): number {
   return Math.round(CHASE_TOP_PADDING_SHARE * Math.max(0, mapHeight - bottom));
+}
+
+/**
+ * The chase camera's pitch, and the steepest an orbit can tilt to. MapLibre's
+ * default maximum: going steeper means raising `maxPitch` for the chase and
+ * lowering it again after the exit animation — a second, delayed restore that
+ * a new chase, or StrictMode's double mount, can land in the middle of,
+ * capping or stranding the pitch.
+ */
+export const CHASE_PITCH = 60;
+
+/**
+ * Where the chase camera looks from, relative to the vehicle: `bearingOffset`
+ * degrees clockwise from its heading, in [0, 360), at `pitch`. Relative, so a
+ * view from the side stays one when the vehicle turns.
+ */
+export type ChaseOrbit = { bearingOffset: number; pitch: number };
+
+/** The chase's own view, from behind the vehicle. */
+export const BEHIND: ChaseOrbit = { bearingOffset: 0, pitch: CHASE_PITCH };
+
+/** Degrees a drag turns or tilts the camera per px, as MapLibre's pitch does. */
+const ORBIT_DEGREES_PER_PX = 0.5;
+/** Degrees one press of the up or down arrow tilts the camera. */
+const TILT_KEY_STEP = 10;
+/** Within this of a step, an offset counts as on it. */
+const ORBIT_TOLERANCE = 0.5;
+
+function wrapDegrees(degrees: number): number {
+  return ((degrees % 360) + 360) % 360;
+}
+
+function clampPitch(pitch: number): number {
+  return Math.min(CHASE_PITCH, Math.max(0, pitch));
+}
+
+/**
+ * The orbit after a drag of `dx`, `dy` px. The signs are MapLibre's own for a
+ * rotate and pitch drag: rightwards turns the map as if grabbed below its
+ * centre, downwards flattens the view.
+ */
+export function orbitByDrag(
+  orbit: ChaseOrbit,
+  dx: number,
+  dy: number,
+): ChaseOrbit {
+  return {
+    bearingOffset: wrapDegrees(orbit.bearingOffset + dx * ORBIT_DEGREES_PER_PX),
+    pitch: clampPitch(orbit.pitch - dy * ORBIT_DEGREES_PER_PX),
+  };
+}
+
+/**
+ * The orbit after an arrow key, or null for any other key. Left and right
+ * step to the next multiple of the rotate buttons' 45°, turning the way a
+ * drag in that direction does; up and down tilt.
+ */
+export function orbitByKey(orbit: ChaseOrbit, key: string): ChaseOrbit | null {
+  const { bearingOffset, pitch } = orbit;
+  switch (key) {
+    case "ArrowRight":
+      return {
+        pitch,
+        bearingOffset: wrapDegrees(
+          (Math.floor((bearingOffset + ORBIT_TOLERANCE) / ROTATION_STEP) + 1) *
+            ROTATION_STEP,
+        ),
+      };
+    case "ArrowLeft":
+      return {
+        pitch,
+        bearingOffset: wrapDegrees(
+          (Math.ceil((bearingOffset - ORBIT_TOLERANCE) / ROTATION_STEP) - 1) *
+            ROTATION_STEP,
+        ),
+      };
+    case "ArrowUp":
+      return { bearingOffset, pitch: clampPitch(pitch + TILT_KEY_STEP) };
+    case "ArrowDown":
+      return { bearingOffset, pitch: clampPitch(pitch - TILT_KEY_STEP) };
+    default:
+      return null;
+  }
+}
+
+/** True when the orbit is, give or take a hair, the view from behind. */
+export function isBehind(orbit: ChaseOrbit): boolean {
+  const offset = Math.min(orbit.bearingOffset, 360 - orbit.bearingOffset);
+  return (
+    offset < ORBIT_TOLERANCE && CHASE_PITCH - orbit.pitch < ORBIT_TOLERANCE
+  );
+}
+
+/** Moves `current` towards `target` by `alpha`, the offset along the shorter arc. */
+export function approachOrbit(
+  current: ChaseOrbit,
+  target: ChaseOrbit,
+  alpha: number,
+): ChaseOrbit {
+  if (alpha >= 1) return target;
+  return {
+    bearingOffset: smoothAngle(
+      current.bearingOffset,
+      target.bearingOffset,
+      alpha,
+    ),
+    pitch: current.pitch + (target.pitch - current.pitch) * alpha,
+  };
+}
+
+/** The map bearing that shows the vehicle, heading `heading`, from `orbit`. */
+export function cameraBearing(heading: number, orbit: ChaseOrbit): number {
+  return wrapDegrees(heading + orbit.bearingOffset);
 }

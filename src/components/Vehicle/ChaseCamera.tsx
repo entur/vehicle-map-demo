@@ -10,13 +10,20 @@ import type { Map as MapLibreMap } from "maplibre-gl";
 import { Filter } from "../../types.ts";
 import { VehicleData } from "../../hooks/useVehiclePositionsData.ts";
 import {
+  BEHIND,
+  ChaseOrbit,
   ChaseSample,
   LngLat,
   addSample,
+  approachOrbit,
+  cameraBearing,
   chaseBoundingBox,
   chaseTopPadding,
   chaseTarget,
   distanceMetres,
+  isBehind,
+  orbitByDrag,
+  orbitByKey,
   positionAt,
   smoothAngle,
   smoothingAlpha,
@@ -27,13 +34,6 @@ import { VEHICLE_MODEL_MIN_ZOOM } from "../mapStyle.ts";
 import { setPaddingInPlace } from "../../utils/setPaddingInPlace.ts";
 
 const CHASE_ZOOM = 17.5;
-/**
- * MapLibre's default maximum. Going steeper means raising `maxPitch` for the
- * chase and lowering it again after the exit animation — a second, delayed
- * restore that a new chase, or StrictMode's double mount, can land in the
- * middle of, capping or stranding the pitch.
- */
-const CHASE_PITCH = 60;
 /**
  * Where the models finish fading in. The chased vehicle has no icon — the
  * markers leave it out — so below this it fades with the models, and at
@@ -47,6 +47,13 @@ const BUFFERED_TIME_CONSTANT_MS = 150;
 /** A sparse vehicle glides to each new report over about this long. */
 const LATEST_TIME_CONSTANT_MS = 1200;
 const HEADING_TIME_CONSTANT_MS = 600;
+/** An arrow key or the Behind button turns the camera over about this long. */
+const ORBIT_TIME_CONSTANT_MS = 250;
+/**
+ * A press that moves less than this is a click, not a drag — MapLibre's own
+ * click tolerance, so a click on another vehicle still opens its popup.
+ */
+const DRAG_THRESHOLD_PX = 3;
 const HUD_REFRESH_MS = 250;
 /**
  * The chase moves the camera at most this often. Every camera move is a full
@@ -118,7 +125,10 @@ const HUD_SHEET_GAP = 12;
 const HUD_VEHICLE_GAP = 12;
 
 /**
- * A camera behind and above one vehicle, turned the way it travels. Vehicles
+ * A camera behind and above one vehicle, turned the way it travels. Dragging
+ * the map, or the arrow keys, orbits the camera around the vehicle — the
+ * angle is kept relative to its heading, so a view from the side stays one
+ * through a turn — and the HUD's Behind button returns it. Vehicles
  * reporting often enough are played back from a buffer a report or two behind
  * real time, so the camera moves continuously instead of jumping from report
  * to report; sparser ones glide to each new report as it arrives. See
@@ -171,6 +181,16 @@ export function ChaseCamera({
    */
   const viewReach = useRef(0);
   const [hud, setHud] = useState<Hud>({ phase: "waiting" });
+
+  // The orbit the user asked for; the camera eases to it frame by frame.
+  // MapView remounts this component for each chase, so every chase starts
+  // from behind.
+  const orbitTarget = useRef<ChaseOrbit>(BEHIND);
+  const [behind, setBehind] = useState(true);
+  const setOrbit = useCallback((orbit: ChaseOrbit) => {
+    orbitTarget.current = orbit;
+    setBehind(isBehind(orbit));
+  }, []);
 
   // Read by the long-lived effects below without restarting them.
   const viewDimensionRef = useRef(viewDimension);
@@ -230,8 +250,10 @@ export function ChaseCamera({
       minZoom: map.getMinZoom(),
       padding: map.getPadding(),
     };
-    // The camera is placed every frame, so panning and rotating would only
-    // fight it. Zoom stays, about the vehicle rather than the pointer.
+    // The camera is placed every frame, and every placement resets MapLibre's
+    // gesture handlers, so its panning and rotating could only fight it. A
+    // drag orbits the camera instead, handled below. Zoom stays, about the
+    // vehicle rather than the pointer.
     map.dragPan.disable();
     map.dragRotate.disable();
     map.keyboard.disable();
@@ -242,11 +264,18 @@ export function ChaseCamera({
     let phase: "waiting" | "flying" | "chasing" = "waiting";
     let camera: LngLat | null = null;
     let heading: number | null = null;
+    /** What the orbit turns from while the vehicle has reported no heading. */
+    let headingFallback = 0;
+    /** The orbit the camera shows, easing towards `orbitTarget`. */
+    let orbit = orbitTarget.current;
+    /** Set when the orbit is moving; the view's reach is measured once it stops. */
+    let reachStale = false;
     /** What the map and the model last showed, to skip frames that change nothing. */
     let shown: {
       lon: number;
       lat: number;
       heading: number | null;
+      orbit: ChaseOrbit;
       report: VehicleData["vehicleUpdate"];
     } | null = null;
     let playbackTime: number | null = null;
@@ -271,6 +300,90 @@ export function ChaseCamera({
     };
     map.on("zoomend", onZoomEnd);
 
+    // A one-finger drag must reach us rather than scroll the page: with
+    // dragPan off, MapLibre's CSS leaves touch-action at "pan-x pan-y".
+    const container = map.getCanvasContainer();
+    const canvas = map.getCanvas();
+    const savedTouchAction = [
+      container.style.touchAction,
+      canvas.style.touchAction,
+    ];
+    container.style.touchAction = "none";
+    canvas.style.touchAction = "none";
+
+    const pointers = new Set<number>();
+    let drag: {
+      pointerId: number;
+      x: number;
+      y: number;
+      moved: boolean;
+    } | null = null;
+    /**
+     * Set when a mouse drag ends, to swallow the click the browser fires
+     * after it. MapLibre tells a click from a drag by where the button went
+     * down, and every camera placement resets that, so the click would reach
+     * the map and clear the selected vehicle.
+     */
+    let swallowClick = false;
+    const onPointerDown = (event: PointerEvent) => {
+      swallowClick = false;
+      pointers.add(event.pointerId);
+      // A second finger is a pinch, which zooms.
+      if (pointers.size > 1) {
+        drag = null;
+        return;
+      }
+      if (event.button !== 0) return;
+      drag = {
+        pointerId: event.pointerId,
+        x: event.clientX,
+        y: event.clientY,
+        moved: false,
+      };
+    };
+    const onPointerMove = (event: PointerEvent) => {
+      if (!drag || event.pointerId !== drag.pointerId) return;
+      const dx = event.clientX - drag.x;
+      const dy = event.clientY - drag.y;
+      if (!drag.moved && Math.hypot(dx, dy) < DRAG_THRESHOLD_PX) return;
+      drag.moved = true;
+      drag.x = event.clientX;
+      drag.y = event.clientY;
+      setOrbit(orbitByDrag(orbitTarget.current, dx, dy));
+    };
+    const onPointerUp = (event: PointerEvent) => {
+      pointers.delete(event.pointerId);
+      if (drag?.pointerId !== event.pointerId) return;
+      swallowClick = drag.moved && event.type === "pointerup";
+      drag = null;
+    };
+    // Captured, so it runs before MapLibre's own listener on the container.
+    const onClick = (event: MouseEvent) => {
+      if (!swallowClick) return;
+      swallowClick = false;
+      event.stopPropagation();
+    };
+    container.addEventListener("pointerdown", onPointerDown);
+    container.addEventListener("click", onClick, true);
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("pointercancel", onPointerUp);
+
+    // MapLibre's keyboard handler is off, so the arrows are free — but only
+    // on the map, not in a list or a menu that has focus.
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
+        return;
+      }
+      const target = event.target as Node | null;
+      if (target !== document.body && !container.contains(target)) return;
+      const next = orbitByKey(orbitTarget.current, event.key);
+      if (!next) return;
+      event.preventDefault();
+      setOrbit(next);
+    };
+    window.addEventListener("keydown", onKeyDown);
+
     const tick = (frameTime: number) => {
       if (frameTime - lastFrame < 1000 / CHASE_FPS - FRAME_SLACK_MS) {
         frame = requestAnimationFrame(tick);
@@ -285,12 +398,13 @@ export function ChaseCamera({
         const newest = positionAt(samples.current, Infinity)!;
         camera = { lon: newest.lon, lat: newest.lat };
         heading = newest.heading;
+        headingFallback = heading ?? map.getBearing();
         phase = "flying";
         map.flyTo({
           center: [newest.lon, newest.lat],
           zoom: Math.max(map.getZoom(), CHASE_ZOOM),
-          pitch: CHASE_PITCH,
-          bearing: heading ?? map.getBearing(),
+          pitch: orbit.pitch,
+          bearing: cameraBearing(headingFallback, orbit),
           // The bottom edge belongs to MapBottomPadding: on a phone it is
           // what the detail sheet hides.
           padding: {
@@ -332,6 +446,14 @@ export function ChaseCamera({
                   smoothingAlpha(dt, HEADING_TIME_CONSTANT_MS),
                 );
         }
+        // A drag is followed as it happens; anything else eases.
+        const next = approachOrbit(
+          orbit,
+          orbitTarget.current,
+          drag?.moved ? 1 : smoothingAlpha(dt, ORBIT_TIME_CONSTANT_MS),
+        );
+        if (!sameOrbit(next, orbit)) reachStale = true;
+        orbit = next;
       }
 
       // A vehicle standing at a stop leaves the camera where it is, and a camera
@@ -347,7 +469,8 @@ export function ChaseCamera({
         (shown.heading === heading ||
           (shown.heading !== null &&
             heading !== null &&
-            Math.abs(shown.heading - heading) < 0.01));
+            Math.abs(shown.heading - heading) < 0.01)) &&
+        sameOrbit(shown.orbit, orbit);
 
       if (report && camera && !unchanged) {
         if (phase === "chasing") {
@@ -355,7 +478,8 @@ export function ChaseCamera({
           // change mid-chase.
           map.jumpTo({
             center: [camera.lon, camera.lat],
-            ...(heading !== null && { bearing: heading }),
+            bearing: cameraBearing(heading ?? headingFallback, orbit),
+            pitch: orbit.pitch,
             padding: {
               top: chaseTopPadding(
                 map.getContainer().clientHeight,
@@ -369,7 +493,20 @@ export function ChaseCamera({
           location: { longitude: camera.lon, latitude: camera.lat },
           bearing: heading,
         });
-        shown = { lon: camera.lon, lat: camera.lat, heading, report };
+        shown = { lon: camera.lon, lat: camera.lat, heading, orbit, report };
+      }
+
+      // The pitch sets how far the view reaches, and so the box it needs;
+      // measured once the orbit settles rather than on every frame of it.
+      if (
+        phase === "chasing" &&
+        reachStale &&
+        !drag?.moved &&
+        sameOrbit(orbit, orbitTarget.current)
+      ) {
+        reachStale = false;
+        viewReach.current = viewReachMetres(map);
+        keepBoxAroundVehicle();
       }
 
       if (frameTime - lastHud >= HUD_REFRESH_MS) {
@@ -399,6 +536,14 @@ export function ChaseCamera({
       cancelAnimationFrame(frame);
       map.off("moveend", onFlightEnd);
       map.off("zoomend", onZoomEnd);
+      container.removeEventListener("pointerdown", onPointerDown);
+      container.removeEventListener("click", onClick, true);
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener("pointercancel", onPointerUp);
+      window.removeEventListener("keydown", onKeyDown);
+      [container.style.touchAction, canvas.style.touchAction] =
+        savedTouchAction;
       map.stop();
       store.set(null);
 
@@ -422,7 +567,7 @@ export function ChaseCamera({
       });
       map.easeTo({ ...cameraFor(viewDimensionRef.current), duration: 800 });
     };
-  }, [mapRef, store, key, keepBoxAroundVehicle]);
+  }, [mapRef, store, key, keepBoxAroundVehicle, setOrbit]);
 
   return (
     <div
@@ -435,10 +580,27 @@ export function ChaseCamera({
     >
       <strong>Chase camera</strong>
       <span>{hudText(hud)}</span>
-      <button type="button" className="chase-hud-stop" onClick={onStop}>
+      {!behind && (
+        <button
+          type="button"
+          className="chase-hud-button"
+          onClick={() => setOrbit(BEHIND)}
+        >
+          Behind
+        </button>
+      )}
+      <button type="button" className="chase-hud-button" onClick={onStop}>
         Stop
       </button>
     </div>
+  );
+}
+
+/** Equal to within what a frame could show: a hundredth of a degree. */
+function sameOrbit(a: ChaseOrbit, b: ChaseOrbit) {
+  const offset = Math.abs(a.bearingOffset - b.bearingOffset);
+  return (
+    Math.min(offset, 360 - offset) < 0.01 && Math.abs(a.pitch - b.pitch) < 0.01
   );
 }
 

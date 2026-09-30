@@ -334,6 +334,7 @@ export function MapView({
             )}
             {chasedVehicle && (
               <ChaseCamera
+                key={chasedVehicleKey}
                 chased={chasedVehicle}
                 data={data}
                 viewDimension={viewDimension}
