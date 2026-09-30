@@ -43,6 +43,11 @@ export function vehicleModelLayers(
     positionTrigger,
   }: ModelLayerOptions,
 ) {
+  // Nothing while the models are hidden. Zoomed out, every vehicle in the feed
+  // is in the subscription, and the signs alone came to over 1,600 layers,
+  // each with a texture to draw and upload — measured, 1.9 fps.
+  if (!visible) return [];
+
   const byMode = new Map<VehicleModeEnumeration, VehicleUpdate[]>();
   const unknownHeading: VehicleUpdate[] = [];
   for (const vehicle of vehicles) {
