@@ -21,6 +21,7 @@ import {
   isBehind,
   orbitByDrag,
   orbitByKey,
+  zoomByPinch,
 } from "./chaseCamera.ts";
 
 const OSLO = { lon: 10.75, lat: 59.91 };
@@ -354,6 +355,22 @@ describe("chaseTopPadding", () => {
 
   it("never goes negative when the bottom hides everything", () => {
     expect(chaseTopPadding(664, 900)).toBe(0);
+  });
+});
+
+describe("zoomByPinch", () => {
+  it("zooms one level in each time the fingers' spread doubles, as MapLibre's pinch does", () => {
+    expect(zoomByPinch(17, 100, 200)).toBe(18);
+    expect(zoomByPinch(17, 100, 400)).toBe(19);
+  });
+
+  it("zooms out as the fingers close", () => {
+    expect(zoomByPinch(17, 200, 100)).toBe(16);
+  });
+
+  it("leaves the zoom alone when either spread is zero", () => {
+    expect(zoomByPinch(17, 0, 100)).toBe(17);
+    expect(zoomByPinch(17, 100, 0)).toBe(17);
   });
 });
 

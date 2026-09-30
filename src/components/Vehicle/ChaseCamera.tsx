@@ -27,6 +27,7 @@ import {
   positionAt,
   smoothAngle,
   smoothingAlpha,
+  zoomByPinch,
 } from "../../domain/chaseCamera.ts";
 import { ViewDimension, cameraFor } from "../../domain/viewDimension.ts";
 import { ChasedVehicle, ChasedVehicleStore } from "./chasedVehicleStore.ts";
@@ -253,11 +254,14 @@ export function ChaseCamera({
     // The camera is placed every frame, and every placement resets MapLibre's
     // gesture handlers, so its panning and rotating could only fight it. A
     // drag orbits the camera instead, handled below. Zoom stays, about the
-    // vehicle rather than the pointer.
+    // vehicle rather than the pointer: the wheel through MapLibre, since each
+    // wheel event starts afresh, but a pinch through our own listeners below —
+    // the reset drops a pinch's first two touches, so MapLibre's ignored every
+    // pinch begun while the vehicle moved.
     map.dragPan.disable();
     map.dragRotate.disable();
     map.keyboard.disable();
-    map.touchZoomRotate.disableRotation();
+    map.touchZoomRotate.disable();
     map.touchPitch.disable();
     map.scrollZoom.enable({ around: "center" });
 
@@ -294,7 +298,8 @@ export function ChaseCamera({
     // Zooming changes how far the view reaches, so the box may need to grow
     // (zooming out) or, well past the needed size, shrink.
     const onZoomEnd = () => {
-      if (phase !== "chasing") return;
+      // A pinch zooms on every move, and is measured once it ends.
+      if (phase !== "chasing" || pinch) return;
       viewReach.current = viewReachMetres(map);
       keepBoxAroundVehicle();
     };
@@ -311,7 +316,17 @@ export function ChaseCamera({
     container.style.touchAction = "none";
     canvas.style.touchAction = "none";
 
-    const pointers = new Set<number>();
+    /** Where each pointer that is down is, by pointer id. */
+    const pointers = new Map<number, { x: number; y: number }>();
+    let pinch: {
+      ids: [number, number];
+      startDistance: number;
+      startZoom: number;
+    } | null = null;
+    const spread = ([a, b]: [number, number]) => {
+      const [p, q] = [pointers.get(a), pointers.get(b)];
+      return p && q ? Math.hypot(p.x - q.x, p.y - q.y) : 0;
+    };
     let drag: {
       pointerId: number;
       x: number;
@@ -327,10 +342,14 @@ export function ChaseCamera({
     let swallowClick = false;
     const onPointerDown = (event: PointerEvent) => {
       swallowClick = false;
-      pointers.add(event.pointerId);
+      pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
       // A second finger is a pinch, which zooms.
       if (pointers.size > 1) {
         drag = null;
+        if (pointers.size === 2 && phase === "chasing") {
+          const ids = [...pointers.keys()] as [number, number];
+          pinch = { ids, startDistance: spread(ids), startZoom: map.getZoom() };
+        }
         return;
       }
       if (event.button !== 0) return;
@@ -342,6 +361,18 @@ export function ChaseCamera({
       };
     };
     const onPointerMove = (event: PointerEvent) => {
+      if (!pointers.has(event.pointerId)) return;
+      pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      if (pinch?.ids.includes(event.pointerId)) {
+        map.jumpTo({
+          zoom: zoomByPinch(
+            pinch.startZoom,
+            pinch.startDistance,
+            spread(pinch.ids),
+          ),
+        });
+        return;
+      }
       if (!drag || event.pointerId !== drag.pointerId) return;
       const dx = event.clientX - drag.x;
       const dy = event.clientY - drag.y;
@@ -353,6 +384,10 @@ export function ChaseCamera({
     };
     const onPointerUp = (event: PointerEvent) => {
       pointers.delete(event.pointerId);
+      if (pinch?.ids.includes(event.pointerId)) {
+        pinch = null;
+        onZoomEnd();
+      }
       if (drag?.pointerId !== event.pointerId) return;
       swallowClick = drag.moved && event.type === "pointerup";
       drag = null;
@@ -551,7 +586,7 @@ export function ChaseCamera({
       map.dragPan.enable();
       map.dragRotate.enable();
       map.keyboard.enable();
-      map.touchZoomRotate.enableRotation();
+      map.touchZoomRotate.enable();
       map.touchPitch.enable();
       map.scrollZoom.enable();
       // The padding goes back at once, not as part of the ease below: when

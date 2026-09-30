@@ -376,6 +376,19 @@ export function orbitByDrag(
 }
 
 /**
+ * The zoom after a pinch that has taken two fingers from `startDistance` px
+ * apart to `distance`: one level per doubling, as MapLibre's own pinch.
+ */
+export function zoomByPinch(
+  startZoom: number,
+  startDistance: number,
+  distance: number,
+): number {
+  if (startDistance <= 0 || distance <= 0) return startZoom;
+  return startZoom + Math.log2(distance / startDistance);
+}
+
+/**
  * The orbit after an arrow key, or null for any other key. Left and right
  * step to the next multiple of the rotate buttons' 45°, turning the way a
  * drag in that direction does; up and down tilt.
