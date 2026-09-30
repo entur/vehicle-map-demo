@@ -1,18 +1,8 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
-## Project
-
-React + TypeScript + Vite SPA that visualizes Entur's realtime vehicle positions on a MapLibre map. Data comes from Entur's GraphQL realtime vehicles API — primarily over a `graphql-ws` subscription, with `graphql-request` used for one-off snapshot queries.
-
 ## Commands
 
-- `npm run check` — Prettier check (a CI gate, like `npm test` and `npm run lint`)
 - `npm run lint` — ESLint; CI runs it with `--max-warnings 0`, so warnings fail the build too
-- `npx playwright test` — run Playwright smoke tests (auto-starts `npm run dev`)
-
-CI (`.github/workflows/build.yml`) runs `npm test` in a `test` job, then `npm run check`, `npm run lint -- --max-warnings 0` and `npm run build` in a `build` job gated on it (`needs: test`) — it does **not** run Playwright. A Husky pre-commit hook runs `lint-staged` → Prettier on staged files.
 
 Playwright runs Chromium, Firefox and WebKit; a browser that is not installed locally (`npx playwright install`) fails its tests rather than skipping them, so `--project=chromium` runs just the one. The phone test sets `viewport` and `hasTouch` in a `test.describe` rather than using a device preset: presets set the browser type, which the project already fixes, and `isMobile`, which Firefox does not support.
 
@@ -30,12 +20,10 @@ When introducing a new config key, update the `Config` interface in `ConfigConte
 ## Data flow
 
 1. `App` holds three pieces of state: `mode: AppMode`, `currentFilter: Filter | null` and `mapViewOptions`. Mode decides which of the two GraphQL subscriptions is open (see `src/domain/appMode.ts`) and is synced to the URL as `?mode=` by `useModeQueryParam`, independently of `useFilterQueryParams`.
-2. `CaptureBoundingBox` (rendered inside `<Map>`) listens to map `moveend` and writes the viewport bbox into `currentFilter.boundingBox` (throttled 500ms).
-3. `useFilterQueryParams` syncs `currentFilter` (minus `boundingBox`) to/from URL query params — so shareable links preserve codespace/operator/maxDataAge but not the viewport. The codespace in such a link narrows situations as well as vehicles.
-4. `useVehiclePositionsData(filter, mapViewOptions, enabled)` opens a `graphql-ws` subscription via `useSubscriptionClient`, gated by `enabled` (`isVehicleFeedEnabled(mode)`) so it only runs in vehicles mode. Incoming `VehicleUpdate`s are written into a `CacheMap` keyed by `vehicleId + "_" + serviceJourney.id`, with a per-entry TTL computed as `maxDataAge - (now - lastUpdated)` so stale vehicles auto-expire. The filter is also re-applied client-side before pushing to state.
-5. `MapView` renders markers (`VehicleMarkers`), optional traces (`VehicleTraces`), popups (`VehiclePopup`), and the `RightMenu` overlay. Selecting a vehicle in the popup can open `useVehicleUpdateCompleteSubscription` for richer per-vehicle details.
-6. Selecting a vehicle also opens `useTimetableSubscription(serviceJourneyId, date)`, whose `timetables` frames carry deviation messages as `Situation` objects in two places: `EstimatedTimetableUpdate.situations` (trip-wide) and `Call.situations` (one stop). Both render through the same `SituationList` component. Situations are shown exactly as delivered — no deduplication, no severity filtering — because the demo exists to expose what the feed actually contains; `situationNumber` and `version` are displayed so a version regression in the eventually-consistent stream stays visible.
-7. Separately from the vehicle pipeline, `SituationsProvider` (wrapping `<MapView>` in `App`) opens an **unfiltered** national `situations` subscription via `useSituationsSubscription`, keyed by `situationNumber` with latest-wins and no TTL. It stays mounted in both modes but only subscribes when `enabled` (`isSituationsFeedEnabled(mode)`) is true — the subscription pauses in vehicles mode rather than unmounting; unmounting is a separate change nobody has made. Everything derived from it is pure and lives in `src/domain/`: `situationFlags` (three lifecycle flags plus the structural `mistypedJourneyRef`, via `journeyRef`), `situationFeatures` (affects → GeoJSON plus the unmappable list), `situationStats` and `situationFilter`. Consumers read the context via `useSituations` and are spread across four surfaces, each with one job: the map layer (`SituationLayers` inside `<Map>`), the situations tool panel (`SituationsPanel` — status line, then the two halves of the filtered set: an "On the map" list and `UnmappableList`), the filter tool panel (`SituationFilters`, beside the codespace dropdown), and the "Feed report" toolbar entry (`SituationStatsTables`). The selected situation's raw detail is a fifth: `SituationDetailPanel`, a floating card on the left of the map, mirroring what `SelectedVehiclePanel` is to a selected vehicle. Both take their geometry from `DETAIL_PANEL_SX` in `src/components/detailDrawer.ts` so the two cannot drift into looking like different kinds of surface. That geometry places the card beside MapLibre's top-left control stack using the stack's 12px inset in `index.css` and its 29px button width — change the inset in one place and the other must follow. Its width also stops short of the right-hand toolbar (whose 44px width it repeats from `RightMenuButtons`), and `RightMenu` sits one z-index above it, so an open tool panel covers the card rather than the reverse. On a phone neither panel is a card at all — see "Phone layout". Keeping these apart is deliberate — one 250px column previously carried the live list, the raw dump, the unmappable list and the whole-feed statistics at once.
+2. `useFilterQueryParams` syncs `currentFilter` (minus `boundingBox`) to/from URL query params — so shareable links preserve codespace/operator/maxDataAge but not the viewport. The codespace in such a link narrows situations as well as vehicles.
+3. `useVehiclePositionsData(filter, mapViewOptions, enabled)` opens a `graphql-ws` subscription via `useSubscriptionClient`, gated by `enabled` (`isVehicleFeedEnabled(mode)`) so it only runs in vehicles mode. Incoming `VehicleUpdate`s are written into a `CacheMap` keyed by `vehicleId + "_" + serviceJourney.id`, with a per-entry TTL computed as `maxDataAge - (now - lastUpdated)` so stale vehicles auto-expire. The filter is also re-applied client-side before pushing to state.
+4. Selecting a vehicle also opens `useTimetableSubscription(serviceJourneyId, date)`, whose `timetables` frames carry deviation messages as `Situation` objects in two places: `EstimatedTimetableUpdate.situations` (trip-wide) and `Call.situations` (one stop). Both render through the same `SituationList` component. Situations are shown exactly as delivered — no deduplication, no severity filtering — because the demo exists to expose what the feed actually contains; `situationNumber` and `version` are displayed so a version regression in the eventually-consistent stream stays visible.
+5. Separately from the vehicle pipeline, `SituationsProvider` (wrapping `<MapView>` in `App`) opens an **unfiltered** national `situations` subscription via `useSituationsSubscription`, keyed by `situationNumber` with latest-wins and no TTL. It stays mounted in both modes but only subscribes when `enabled` (`isSituationsFeedEnabled(mode)`) is true — the subscription pauses in vehicles mode rather than unmounting; unmounting is a separate change nobody has made. Everything derived from it is pure and lives in `src/domain/`: `situationFlags` (three lifecycle flags plus the structural `mistypedJourneyRef`, via `journeyRef`), `situationFeatures` (affects → GeoJSON plus the unmappable list), `situationStats` and `situationFilter`. Consumers read the context via `useSituations` and are spread across four surfaces, each with one job: the map layer (`SituationLayers` inside `<Map>`), the situations tool panel (`SituationsPanel` — status line, then the two halves of the filtered set: an "On the map" list and `UnmappableList`), the filter tool panel (`SituationFilters`, beside the codespace dropdown), and the "Feed report" toolbar entry (`SituationStatsTables`). The selected situation's raw detail is a fifth: `SituationDetailPanel`, a floating card on the left of the map, mirroring what `SelectedVehiclePanel` is to a selected vehicle. Both take their geometry from `DETAIL_PANEL_SX` in `src/components/detailDrawer.ts` so the two cannot drift into looking like different kinds of surface. That geometry places the card beside MapLibre's top-left control stack using the stack's 12px inset in `index.css` and its 29px button width — change the inset in one place and the other must follow. Its width also stops short of the right-hand toolbar (whose 44px width it repeats from `RightMenuButtons`), and `RightMenu` sits one z-index above it, so an open tool panel covers the card rather than the reverse. On a phone neither panel is a card at all — see "Phone layout". Keeping these apart is deliberate — one 250px column previously carried the live list, the raw dump, the unmappable list and the whole-feed statistics at once.
 
 Key invariants worth preserving:
 
@@ -114,8 +102,7 @@ Key invariants worth preserving:
 - `react-map-gl` uses the `maplibre` entry point (`react-map-gl/maplibre`), not Mapbox. The style is built by `buildMapStyle(scheme)` in `src/components/mapStyle.ts` on OpenFreeMap vector tiles — see "Base map". No token is needed.
 - The 2D/3D toggle (`ViewDimension`, `src/domain/viewDimension.ts`) is separate state in `App`, synced to `?view=3d` by `useViewDimensionQueryParam`. It is deliberately **not** a `MapViewOptions` key: those are single-mode layer switches, and changing them re-opens the vehicle subscription. `ViewDimensionLayers` sets terrain imperatively (`<Map terrain>` ignores `undefined` and its types reject the `null` that removes it), reveals `VIEW_3D_LAYERS` and eases the pitch. 3D adds terrain + hillshade from Mapterhorn and building extrusions from the base map's own OpenFreeMap `openmaptiles` source — all keyless. The 3D pitch stays ≤60° because the vehicle subscription's bbox comes from `getBounds()`, which balloons toward the horizon. In 3D, `RotateControl` adds two buttons under the toggle that ease the bearing to the next 45° step (`rotatedBearing`); they are labelled by how the map turns on screen, the opposite of the bearing's sign.
 - During a chase, a plain drag (mouse or one finger) or the arrow keys **orbit** the camera around the vehicle: `ChaseOrbit` in `src/domain/chaseCamera.ts` is a bearing offset from the vehicle's heading plus a pitch (0–`CHASE_PITCH`), so a side view stays one through a turn. The HUD's Behind button resets it; `MapView` keys `ChaseCamera` by vehicle, so every chase starts from behind. The orbit is handled by `ChaseCamera`'s own pointer listeners, not MapLibre's `dragRotate`: the chase's per-frame `jumpTo` stops MapLibre's gesture handlers, so a MapLibre rotate would be cancelled within a frame. The same reset drops a **pinch**: MapLibre's handler forgets its first two touches and ignores the rest, so on a phone every pinch begun while the chased vehicle moved did nothing, while the mouse wheel — each event a fresh start, which is why Chrome's device emulator never showed it — kept working. A pinch is therefore also `ChaseCamera`'s own (`zoomByPinch`, one level per doubling of the fingers' spread, about the vehicle), with MapLibre's `touchZoomRotate` disabled for the chase; the view's reach is re-measured once, when the pinch ends. The same reset clears MapLibre's record of where the mouse went down, which is how it tells a click from a drag, so `ChaseCamera` swallows the click that ends an orbit drag — otherwise it reaches the map and clears the selected vehicle.
-- From `VEHICLE_MODEL_MIN_ZOOM` (16) vehicle icons cross-fade into true-scale 3D models, in both 2D and 3D view. The models are **built in code** (`src/domain/vehicleMeshes.ts`), not loaded from glTF: no licence-clean model pack covers the Norwegian fleet (metro, coach and ferry especially), and building them makes every model match `VEHICLE_DIMENSIONS` in `vehicleFootprint.ts` by construction — the tests hold the two together. deck.gl (`SimpleMeshLayer` in an interleaved `MapLibreOverlay`, `VehicleModels.tsx`) renders them, so buildings and terrain can hide them; that occlusion is accepted. Model space is +y forward, so the layer's yaw is `-bearing` (deck.gl yaw turns counter-clockwise). A vehicle without a usable bearing is drawn as a directionless column rather than a model pointing north. Each model is three meshes: a pure-white **body** whose colour comes entirely from the per-vehicle `getColor` (`paintFor` in `src/domain/vehiclePaint.ts`: the line's published `line.presentation.colour` when there is one, otherwise the mode colour), destination **signs**, and **details** (glass, lights, wheels) in fixed vertex colours drawn with a white `getColor`. deck.gl multiplies `getColor` into vertex colours, so tinting a single mesh would tint headlights too, and the layer's default colour is black. The builder routes a primitive to the body or the signs only when passed the `PAINT` or `SIGN` marker, each compared by identity. Road and rail vehicles carry a sign at each end and on each side, so one is in view from any angle; the ferry has none, and gets no sign layer.
-- The signs show the vehicle's **`destinationName`**, as published, lit in `signColourFor` (the published `textColour`, otherwise a default amber) on a dark display; with no destination the display is blank. In `SimpleMeshLayer` a texture **replaces** the colour rather than being tinted by `getColor`, so the colour is drawn into the texture along with the text (`signTexture.ts`, a canvas cached by text and colour), and since a layer takes one texture, signs are drawn as **one layer per destination and colour** (`signGroups` in `src/domain/destinationSign.ts`). The sign mesh's texture coordinates come from `signUVs` in the builder: every sign face shows the whole texture upright, readable from outside and at `SIGN_TEXTURE_ASPECT`, as large as fits — the rest clamps to the texture's blank edge. The tests check the reading direction per face. The text is legible only from about zoom 20. `vehicleModelLayers` builds **no layers at all while the models are hidden** (below `VEHICLE_MODEL_MIN_ZOOM`): zoomed out, the whole feed is in the subscription, and on dev its signs alone came to 1,672 layers, each with a texture to draw and upload — measured, 1.9 fps against 25. Zoomed in, the subscription's bbox keeps the groups few; the texture cache (256) would thrash if a view ever held more. Measured on dev, 3,482 of 5,709 vehicles carry a destination; rail (VYG, FLT, GOA), the coaches, SKA and VAR publish none, so their signs are dark. Height comes from `map.queryTerrainElevation`, not deck.gl's experimental `TerrainExtension`.
+- 3D vehicle models and their destination signs: see `.claude/rules/vehicle-models.md`, which loads when working on the model files.
 - Line colours come from `line { presentation { colour textColour } }` on the vehicles API, selected by the live subscription only — `Line.presentation` is optional in `types.ts` because the snapshot and timetable queries do not ask for it. Like `situations`, the field is absent from introspection but validates. Colours are shown **as published**: most publishers set a brand colour per product rather than per line, and AKT publishes `000000` (with `FFFF00` text) on every line; neither is corrected or treated as missing. Only about 5% of vehicles carry one (measured on dev: 224 of 4,134), so most models keep their mode colour. Colour therefore does not tell mode apart — the model's shape does. The 2D line-code label on `vehicle-layer` uses the pair too — text in `textColour` on a halo of `colour` — but only when **both** parse (`labelColoursFor`, carried as `lineTextColour`/`lineHaloColour` feature properties); half a pair falls back to black on white, since a text colour is only chosen to be legible against its own line colour. Measured on dev, every line publishing one publishes both.
 - From `VEHICLE_BEARING_MIN_ZOOM` (13) until the models take over, `vehicle-bearing-layer` draws an arrowhead just outside each icon's circle, rotated to the vehicle's normalised `bearing` feature property (null → no arrow). It shares `vehicle-layer`'s source, anchor and `icon-size` expression, and its image is drawn at the icons' pixel ratio (`drawBearingArrow` in `drawVehicleIcon.ts`), so the arrow stays on the circle's edge at every zoom — change the icon size in one place and both follow. It is on the `showVehicles` switch.
 - The line-code label on `vehicle-layer` sits **behind** the vehicle, on whichever of the icon's four sides is opposite the bearing arrow (`src/domain/vehicleLabelPlacement.ts`); a vehicle without a bearing keeps the old spot above the icon. Four sides rather than eight so labels do not swing at every turn. Style expressions cannot read the map's bearing, so `VehicleLabelPlacement` rebuilds `text-anchor`/`text-offset` with it baked in, quantised to `MAP_BEARING_STEP` (15°) — every rebuild makes MapLibre reload the whole `vehicles` source, and the chase camera turns the map continuously. Below `VEHICLE_LABEL_MIN_ZOOM` (13) the label's `text-field` is empty rather than transparent, and no rebuild is done; the placement catches up on `zoomend`. During a chase, rebuilds are held to one per `CHASE_REBUILD_INTERVAL_MS` (500 ms, `rebuildDelay`), with a trailing one so the last bearing lands. `placementFor` is the same rule in plain TypeScript; the tests evaluate the real expressions against it, so change both together.
@@ -124,88 +111,8 @@ Key invariants worth preserving:
 
 ## Situations carry their own geography
 
-The situations feed serves the coordinates it needs. `Affects.vehicleJourneys`
-and `Affects.affectedLines` pair each affected journey and line with the
-**located** stops it is affected at, and both a journey entry and a line entry
-may carry `affectedPointsOnLink`: the span of its route between the first and
-last affected stop, or — when the situation names no stops, meaning it is
-affected as a whole — the entire route. An empty `stops` list is what tells
-those two cases apart.
-
-A line's span carries a caveat a journey's does not: a line has many journey
-patterns, so `affectedLines[].affectedPointsOnLink` is **one representative
-pattern, not the line as a whole** — the API picks the first pattern the
-affected stops locate on, or the longest when the line is affected as a
-whole. Treat it as indicative of where the line is affected, never as the
-line's shape.
-
-Measured on dev (977 situations): 906 map, 71 do not. Spans stay rare on
-journeys — 45 of 9,053 journey entries — but line entries carry one far more
-often: 109 of 695. The API explains why rather than guessing: it withholds a
-span when the entry has no pattern geometry, when exactly one stop is
-affected — a point is not a span (217 line entries affect exactly one stop; 10
-have no stops and no pattern geometry), or when any affected stop cannot be
-located on the route. **Do not "fix" that by interpolating between stops or
-falling back to Journey Planner.** A synthetic line drawn over the wrong part
-of a route is worse than an honest absence in a data-QA tool, which is the
-same reason the API declines to draw it.
-
-`stopPoints` and `stopPlaces` are **not** superseded by the new fields and must
-stay selected: measured, every situation carrying them names no journey and no
-line at all, so dropping them silently unmaps 20 situations.
-
-There was formerly an apparatus that borrowed geometry per ref from elsewhere
-in the same API — a running vehicle's `pointsOnLink` for a line, the planned
-`datedServiceJourneys`/`serviceJourneys` roots for a journey — cached for the
-session. It is gone. It resolved 33 of 90 line refs and 78 of 4,591 journey
-ids, and what it drew for a line was that line's _whole_ shape regardless of
-how little of it was affected. Its removal cost 35 situations their geometry
-and is not a regression to restore.
-
-`pointsOnLink` on `ServiceJourney` is hidden from introspection, exactly like
-`situations`; do not conclude from an introspection dump that it is gone.
-
-### Mistyped journey refs
-
-Some publishers put an id of the wrong NeTEx type in a journey slot, and it
-costs those situations their geometry. `src/domain/journeyRef.ts` detects it
-from the id alone — `<codespace>:<Type>:<value>`, so the slot's expected type is
-readable without any lookup — and raises the `mistypedJourneyRef` warning flag.
-
-Two distinct defects, from two publishers. Measured on dev, 949 situations /
-9,537 journey entries:
-
-- **ATB, 17 situations, 29 refs.** A `ServiceJourney` id in the
-  `datedServiceJourney` slot. These **do** map: the API resolves the id despite
-  the slot it arrived in, and since none of these entries names a stop, the span
-  is the journey's whole route by the API's own rule. They map only because the
-  API was fixed — see below.
-- **SKY, 2 situations, 2 refs.** A bare `15139934_167845` in the
-  `serviceJourney` slot — not a NeTEx id at all, so `actualType` is null and it
-  names nothing any lookup could resolve. These do not map, and no API change
-  can reach them; only the publisher can fix it.
-
-So a flagged situation is **not** necessarily unmappable, and the flag is not a
-proxy for one. It reports a producer defect, which is a separate thing from
-whether the map can draw the result.
-
-The flag is deliberately _all_ this repo does about it. Resolving the ATB ids
-client-side would rebuild the borrowed-geometry apparatus retired above, and the
-API's own `affectedPointsOnLink` doc comment names client-side fallback to
-`serviceJourney { pointsOnLink }` as the thing that resolver exists to prevent.
-
-That was the right call, and it is worth recording why the flag stayed useful.
-Before the API fix, all 18 flagged situations were unmappable — 18 of the 67
-unmappable situations in the feed, over a quarter of them, undrawable for this
-one reason. The fix was made in `AffectedGeometryController.serviceJourneyIdOf`,
-which accepts the mistyped ref, rather than in `SituationMapper.mapAffects`,
-which would have re-routed it into the correct slot. That distinction is what
-keeps this flag alive: the ref is still published in the wrong slot, still
-visible, and still reportable to ATB. Had the mapper been changed instead, the
-geometry would work and the producer's defect would have become invisible to
-every consumer. Feed-wide unmappable fell 67 → 50 as a result.
+Why some situations are drawn and others are not, the line-span caveat, and the mistyped journey refs: see `.claude/rules/situation-geography.md`, which loads when working on the situation files. Never fill a missing span by interpolating between stops or by borrowing geometry from elsewhere in the API.
 
 ## TypeScript / lint conventions
 
 - ESM only (`"type": "module"`). Local imports include the explicit `.ts`/`.tsx` extension — match the existing style when adding imports.
-- Don't add component files that also export non-component values (`react-refresh/only-export-components`).
