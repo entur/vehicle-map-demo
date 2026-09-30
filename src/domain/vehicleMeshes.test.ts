@@ -3,6 +3,7 @@ import { VehicleModeEnumeration } from "../types.ts";
 import { dimensionsFor } from "./vehicleFootprint.ts";
 import {
   MESH_COLOURS,
+  SIGN_TEXTURE_ASPECT,
   VehicleMesh,
   VehicleModel,
   bodyColourFor,
@@ -81,6 +82,9 @@ describe("modelFor", () => {
           expect(part.normals.value.length).toBe(n);
           expect(part.colors.value.length).toBe(n);
         }
+        expect(model.sign.texCoords.value.length).toBe(
+          (model.sign.positions.value.length / 3) * 2,
+        );
       });
 
       // The renderer multiplies getColor into the vertex colours. Pure white is
@@ -174,6 +178,83 @@ describe("modelFor", () => {
         signs.some(([x]) => x < -width * 0.45),
         mode,
       ).toBe(true);
+    }
+  });
+
+  // The texture is drawn to be read from in front. Seen from outside, text
+  // runs to the viewer's right and down the face, and the texture keeps its
+  // proportions whatever the shape of the face it is on.
+  describe("sign texture coordinates", () => {
+    type Face = { normal: Vec3; du: Vec3; dv: Vec3 };
+    type Vec3 = [number, number, number];
+
+    /** Per sign triangle: its normal and how u and v change per metre. */
+    function faces(mesh: VehicleModel["sign"]): Face[] {
+      const p = vertices(mesh);
+      const n = mesh.normals.value;
+      const t = mesh.texCoords.value;
+      const out: Face[] = [];
+      for (let i = 0; i < p.length; i += 3) {
+        const e1 = p[i + 1].map((c, k) => c - p[i][k]) as Vec3;
+        const e2 = p[i + 2].map((c, k) => c - p[i][k]) as Vec3;
+        const dot = (a: Vec3, b: Vec3) =>
+          a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+        const [a, b, c] = [dot(e1, e1), dot(e1, e2), dot(e2, e2)];
+        const det = a * c - b * b;
+        // The in-plane gradient of a value given at the three vertices.
+        const gradient = (value: (j: number) => number): Vec3 => {
+          const [d1, d2] = [value(i + 1) - value(i), value(i + 2) - value(i)];
+          const alpha = (c * d1 - b * d2) / det;
+          const beta = (a * d2 - b * d1) / det;
+          return [0, 1, 2].map((k) => alpha * e1[k] + beta * e2[k]) as Vec3;
+        };
+        out.push({
+          normal: [n[i * 3], n[i * 3 + 1], n[i * 3 + 2]],
+          du: gradient((j) => t[j * 2]),
+          dv: gradient((j) => t[j * 2 + 1]),
+        });
+      }
+      return out;
+    }
+
+    // Right as seen by someone facing each way the signs face.
+    const directions: [string, Vec3, Vec3][] = [
+      ["front", [0, 1, 0], [-1, 0, 0]],
+      ["rear", [0, -1, 0], [1, 0, 0]],
+      ["right side", [1, 0, 0], [0, 1, 0]],
+      ["left side", [-1, 0, 0], [0, -1, 0]],
+    ];
+
+    for (const mode of MODES.filter((m) => m !== "FERRY")) {
+      describe(mode, () => {
+        const all = faces(modelFor(mode).sign);
+
+        for (const [name, outward, right] of directions) {
+          it(`reads left to right and top to bottom on the ${name}`, () => {
+            const facing = all.filter(
+              ({ normal }) =>
+                normal[0] * outward[0] +
+                  normal[1] * outward[1] +
+                  normal[2] * outward[2] >
+                0.7,
+            );
+            expect(facing.length).toBeGreaterThan(0);
+            for (const { du, dv } of facing) {
+              const along = du[0] * right[0] + du[1] * right[1];
+              expect(along).toBeGreaterThan(0);
+              expect(dv[2]).toBeLessThan(0);
+            }
+          });
+        }
+
+        it("keeps the texture's proportions", () => {
+          for (const { normal, du, dv } of all) {
+            if (Math.abs(normal[2]) > 0.7) continue;
+            const ratio = Math.hypot(...dv) / Math.hypot(...du);
+            expect(ratio).toBeCloseTo(SIGN_TEXTURE_ASPECT, 3);
+          }
+        });
+      });
     }
   });
 

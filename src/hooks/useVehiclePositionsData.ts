@@ -18,6 +18,7 @@ const subscriptionQuery = `
       lastUpdated
       mode
       delay
+      destinationName
       line {
         lineRef
         lineName

@@ -10,12 +10,14 @@ import { dimensionsFor } from "./vehicleFootprint.ts";
  * pack covers the Norwegian fleet — metro, coach and ferry in particular — and
  * code makes every model true to `VEHICLE_DIMENSIONS` by construction.
  *
- * Each model is three meshes. The **body** and the destination **sign** are
- * pure white, so the renderer's per-vehicle `getColor` sets each colour exactly
- * — the line's published colour and text colour, or the mode colour and a
- * default amber. The **details** — glass, lights, wheels, underframe — carry
- * fixed vertex colours and are drawn with a white `getColor`, since deck.gl
- * multiplies the two and would tint a headlight as readily as a body panel.
+ * Each model is three meshes. The **body** is pure white, so the renderer's
+ * per-vehicle `getColor` sets its colour exactly — the line's published
+ * colour, or the mode colour. The destination **sign** is textured per
+ * vehicle with its destination, and carries texture coordinates for it; its
+ * vertex colours are white too, and unused. The **details** — glass, lights,
+ * wheels, underframe — carry fixed vertex colours and are drawn with a white
+ * `getColor`, since deck.gl multiplies the two and would tint a headlight as
+ * readily as a body panel.
  *
  * Model space: origin at the vehicle's reported position on the ground,
  * +y forward, +x to the vehicle's right, +z up.
@@ -24,13 +26,18 @@ export type VehicleMesh = {
   positions: { value: Float32Array; size: 3 };
   normals: { value: Float32Array; size: 3 };
   colors: { value: Float32Array; size: 3 };
+  /** Only the sign carries these; see `SIGN_TEXTURE_ASPECT`. */
+  texCoords?: { value: Float32Array; size: 2 };
 };
 
 export type VehicleModel = {
   /** White; coloured per vehicle by the renderer. */
   body: VehicleMesh;
-  /** White; coloured per vehicle by the renderer. Empty for a ferry. */
-  sign: VehicleMesh;
+  /**
+   * Textured per vehicle with its destination by the renderer, so it carries
+   * texture coordinates. Empty for a ferry.
+   */
+  sign: Required<VehicleMesh>;
   /** Fixed colours; drawn untinted. */
   details: VehicleMesh;
 };
@@ -94,10 +101,80 @@ const to255 = ([r, g, b]: RGB): [number, number, number] => [
 /** A sign's colour, as 0–255 RGB, when the line publishes no text colour. */
 export const DEFAULT_SIGN_COLOUR = to255(rgb(0xf0a830));
 
-const sub = (a: Vec3, b: Vec3): Vec3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+/**
+ * Width over height of a destination sign's texture. Every face of a sign is
+ * mapped to show the whole texture at this aspect, as large as fits and
+ * centred, so text keeps its proportions on signs of any shape; what lies
+ * outside the texture clamps to its edge, which the texture keeps blank.
+ */
+export const SIGN_TEXTURE_ASPECT = 5;
 
-type Arrays = { positions: number[]; normals: number[]; colors: number[] };
-const emptyArrays = (): Arrays => ({ positions: [], normals: [], colors: [] });
+type UV = [number, number];
+
+/** A point in the sign texture that is always blank background. */
+const BLANK_UV: UV = [0, 0];
+
+const sub = (a: Vec3, b: Vec3): Vec3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+const dot = (a: Vec3, b: Vec3) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const cross = (a: Vec3, b: Vec3): Vec3 => [
+  a[1] * b[2] - a[2] * b[1],
+  a[2] * b[0] - a[0] * b[2],
+  a[0] * b[1] - a[1] * b[0],
+];
+const unit = (a: Vec3): Vec3 => {
+  const length = Math.hypot(...a);
+  return [a[0] / length, a[1] / length, a[2] / length];
+};
+
+/**
+ * Texture coordinates putting the sign texture upright and readable, seen
+ * from outside, on the planar quad a–b–c–d. Across the face, u runs to the
+ * right of someone facing it; v runs down it, since v = 0 is the texture's
+ * top row. A face turned more up or down than sideways — a sign's top or
+ * underside — shows only blank background.
+ */
+function signUVs(a: Vec3, b: Vec3, c: Vec3, d: Vec3, inside: Vec3): UV[] {
+  const corners = [a, b, c, d];
+  let normal = cross(sub(c, a), sub(d, b));
+  if (Math.hypot(...normal) < 1e-9) return corners.map(() => BLANK_UV);
+  normal = unit(normal);
+  const centre: Vec3 = [0, 1, 2].map(
+    (i) => corners.reduce((sum, p) => sum + p[i], 0) / 4,
+  ) as Vec3;
+  if (dot(normal, sub(centre, inside)) < 0) {
+    normal = [-normal[0], -normal[1], -normal[2]];
+  }
+  if (Math.abs(normal[2]) > 0.7) return corners.map(() => BLANK_UV);
+
+  // Right, as seen by someone facing the face, is (−normal) × up = up × normal.
+  const across = unit([-normal[1], normal[0], 0]);
+  const up = cross(normal, across);
+  const us = corners.map((p) => dot(p, across));
+  const vs = corners.map((p) => dot(p, up));
+  const width = Math.max(...us) - Math.min(...us);
+  const height = Math.max(...vs) - Math.min(...vs);
+  const textureHeight = Math.min(height, width / SIGN_TEXTURE_ASPECT);
+  const textureWidth = textureHeight * SIGN_TEXTURE_ASPECT;
+  const uMid = (Math.max(...us) + Math.min(...us)) / 2;
+  const vMid = (Math.max(...vs) + Math.min(...vs)) / 2;
+  return corners.map((_, i) => [
+    0.5 + (us[i] - uMid) / textureWidth,
+    0.5 - (vs[i] - vMid) / textureHeight,
+  ]);
+}
+
+type Arrays = {
+  positions: number[];
+  normals: number[];
+  colors: number[];
+  texCoords: number[];
+};
+const emptyArrays = (): Arrays => ({
+  positions: [],
+  normals: [],
+  colors: [],
+  texCoords: [],
+});
 
 class MeshBuilder {
   private body = emptyArrays();
@@ -109,7 +186,14 @@ class MeshBuilder {
    * interior point instead of trusting call-site winding keeps every
    * primitive below free of winding bookkeeping.
    */
-  triangle(a: Vec3, b: Vec3, c: Vec3, colour: RGB, inside: Vec3) {
+  triangle(
+    a: Vec3,
+    b: Vec3,
+    c: Vec3,
+    colour: RGB,
+    inside: Vec3,
+    uvs: UV[] = [BLANK_UV, BLANK_UV, BLANK_UV],
+  ) {
     const u = sub(b, a);
     const v = sub(c, a);
     let n: Vec3 = [
@@ -127,24 +211,27 @@ class MeshBuilder {
       (a[2] + b[2] + c[2]) / 3,
     ];
     const outward = sub(centroid, inside);
-    let vertices = [a, b, c];
+    let order = [0, 1, 2];
     if (n[0] * outward[0] + n[1] * outward[1] + n[2] * outward[2] < 0) {
       n = [-n[0], -n[1], -n[2]];
-      vertices = [a, c, b];
+      order = [0, 2, 1];
     }
+    const vertices = [a, b, c];
     const target =
       colour === PAINT ? this.body : colour === SIGN ? this.sign : this.details;
     const stored = colour === PAINT || colour === SIGN ? WHITE : colour;
-    for (const vertex of vertices) {
-      target.positions.push(...vertex);
+    for (const i of order) {
+      target.positions.push(...vertices[i]);
       target.normals.push(...n);
       target.colors.push(...stored);
+      if (target === this.sign) target.texCoords.push(...uvs[i]);
     }
   }
 
   quad(a: Vec3, b: Vec3, c: Vec3, d: Vec3, colour: RGB, inside: Vec3) {
-    this.triangle(a, b, c, colour, inside);
-    this.triangle(a, c, d, colour, inside);
+    const uvs = colour === SIGN ? signUVs(a, b, c, d, inside) : undefined;
+    this.triangle(a, b, c, colour, inside, uvs && [uvs[0], uvs[1], uvs[2]]);
+    this.triangle(a, c, d, colour, inside, uvs && [uvs[0], uvs[2], uvs[3]]);
   }
 
   /** Axis-aligned box centred on (cx, cy), standing on z0. */
@@ -430,7 +517,10 @@ class MeshBuilder {
     });
     return {
       body: mesh(this.body),
-      sign: mesh(this.sign),
+      sign: {
+        ...mesh(this.sign),
+        texCoords: { value: new Float32Array(this.sign.texCoords), size: 2 },
+      },
       details: mesh(this.details),
     };
   }
@@ -899,7 +989,7 @@ function coach(L: number, W: number, H: number): VehicleModel {
  * vehicles like this, and its nominal size is the fallback's. It has a short
  * upright nose under a steeply raked windscreen, hinged cab doors, a sliding
  * door on the kerb side, split rear doors with tall lamp clusters, and a lit
- * roof sign in the sign colour.
+ * roof sign showing the destination like the other signs.
  */
 function van(L: number, W: number, H: number): VehicleModel {
   const { headlight, taillight, indicator, dark, hub } = MESH_COLOURS;
@@ -1014,7 +1104,7 @@ function van(L: number, W: number, H: number): VehicleModel {
     m.box(side * 0.82, -L / 2 - 0.015, 1.37, 0.16, 0.03, 0.12, indicator);
   }
 
-  // The roof sign, lit in the sign colour like the destination signs.
+  // The roof sign, showing the destination like the other signs.
   m.prism(
     [
       [-0.4, axles[0] - 1.6],
