@@ -1,11 +1,17 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useControl, useMap } from "react-map-gl/maplibre";
 import { MapLibreOverlay } from "@deck.gl/maplibre";
 import type { Layer } from "@deck.gl/core";
 import { VehicleUpdate } from "../../types.ts";
 import { ViewDimension } from "../../domain/viewDimension.ts";
 import { VEHICLE_MODEL_MIN_ZOOM } from "../mapStyle.ts";
-import { ModelLayerOptions, vehicleModelLayers } from "./vehicleModelLayers.ts";
+import {
+  MODEL_BEFORE_LAYER,
+  ModelLayerOptions,
+  vehicleModelLayers,
+} from "./vehicleModelLayers.ts";
+import { withLayerAsStyleLoaded } from "../../utils/withLayerAsStyleLoaded.ts";
+import { ViewBounds, vehiclesInView } from "../../domain/vehiclesInView.ts";
 import { ChasedVehicleStore } from "./chasedVehicleStore.ts";
 
 /** Fades the models in over the same half zoom level the icons fade out. */
@@ -49,6 +55,18 @@ export function VehicleModels({
   const chasedLayers = useRef<Layer[]>([]);
   const options = useRef<Omit<ModelLayerOptions, "idPrefix"> | null>(null);
 
+  // Every handover of layers goes through here, so that deck.gl can add its
+  // layer group to the style while vehicle frames keep the map "loading".
+  const handOver = useCallback(() => {
+    const map = mapRef?.getMap();
+    if (!map) return;
+    withLayerAsStyleLoaded(map, MODEL_BEFORE_LAYER, () =>
+      overlay.setProps({
+        layers: [...baseLayers.current, ...chasedLayers.current],
+      }),
+    );
+  }, [mapRef, overlay]);
+
   useEffect(() => {
     const map = mapRef?.getMap();
     if (!map) return;
@@ -60,16 +78,44 @@ export function VehicleModels({
     };
   }, [mapRef]);
 
+  // The view the models are built for, read when a move ends. Not during a
+  // chase: its camera moves every frame, and it keeps the data around the
+  // vehicle itself.
+  const chasing = chasedVehicleKey !== null;
+  const [viewBounds, setViewBounds] = useState<ViewBounds | null>(null);
+  useEffect(() => {
+    const map = mapRef?.getMap();
+    if (!map || chasing) return;
+    const update = () => {
+      const bounds = map.getBounds();
+      setViewBounds([
+        [bounds.getWest(), bounds.getSouth()],
+        [bounds.getEast(), bounds.getNorth()],
+      ]);
+    };
+    update();
+    map.on("moveend", update);
+    return () => {
+      map.off("moveend", update);
+    };
+  }, [mapRef, chasing]);
+
+  // Only vehicles in view get models. The data normally matches the view
+  // already, but straight after a jump from the whole country to one street
+  // it is still the country until the next frame: over a thousand layers,
+  // which froze the page for seconds.
   const unchased = useMemo(
     () =>
-      chasedVehicleKey === null
-        ? data
-        : data.filter(
+      chasing
+        ? data.filter(
             (vehicle) =>
               vehicle.vehicleId + "_" + vehicle.serviceJourney.id !==
               chasedVehicleKey,
-          ),
-    [data, chasedVehicleKey],
+          )
+        : viewBounds
+          ? vehiclesInView(data, viewBounds)
+          : data,
+    [data, chasing, chasedVehicleKey, viewBounds],
   );
 
   // Terrain heights, per vehicle report. The vehicle cache replaces a report's
@@ -110,10 +156,8 @@ export function VehicleModels({
       ...options.current,
       idPrefix: "vehicle-models",
     });
-    overlay.setProps({
-      layers: [...baseLayers.current, ...chasedLayers.current],
-    });
-  }, [overlay, mapRef, unchased, opacity, viewDimension, elevations]);
+    handOver();
+  }, [handOver, mapRef, unchased, opacity, viewDimension, elevations]);
 
   useEffect(() => {
     const publish = () => {
@@ -131,9 +175,7 @@ export function VehicleModels({
               positionTrigger: position,
             })
           : [];
-      overlay.setProps({
-        layers: [...baseLayers.current, ...chasedLayers.current],
-      });
+      handOver();
     };
     publish();
     const unsubscribe = chasedVehicleStore.subscribe(publish);
@@ -141,7 +183,7 @@ export function VehicleModels({
       unsubscribe();
       chasedLayers.current = [];
     };
-  }, [overlay, chasedVehicleStore]);
+  }, [handOver, chasedVehicleStore]);
 
   return null;
 }

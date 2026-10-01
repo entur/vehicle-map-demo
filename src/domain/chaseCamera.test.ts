@@ -22,6 +22,7 @@ import {
   orbitByDrag,
   orbitByKey,
   zoomByPinch,
+  zoomByWheel,
 } from "./chaseCamera.ts";
 
 const OSLO = { lon: 10.75, lat: 59.91 };
@@ -371,6 +372,48 @@ describe("zoomByPinch", () => {
   it("leaves the zoom alone when either spread is zero", () => {
     expect(zoomByPinch(17, 0, 100)).toBe(17);
     expect(zoomByPinch(17, 100, 0)).toBe(17);
+  });
+});
+
+describe("zoomByWheel", () => {
+  // WheelEvent's deltaMode values; the tests run without a DOM.
+  const PIXEL = 0;
+  const LINE = 1;
+  /** MapLibre's scroll zoom: a logistic scale of the delta, at most 2× per event. */
+  const levels = (px: number, rate: number) =>
+    Math.log2(2 / (1 + Math.exp(-Math.abs(px) * rate)));
+
+  it("zooms a mouse wheel notch by MapLibre's wheel rate", () => {
+    expect(zoomByWheel(17, -100, PIXEL)).toBeCloseTo(17 + levels(100, 1 / 450));
+  });
+
+  it("zooms small trackpad deltas by MapLibre's trackpad rate", () => {
+    expect(zoomByWheel(17, -10, PIXEL)).toBeCloseTo(17 + levels(10, 1 / 100));
+  });
+
+  it("treats a multiple of MapLibre's wheel step as a wheel, however small", () => {
+    expect(zoomByWheel(17, -4.000244140625, PIXEL)).toBeCloseTo(
+      17 + levels(4.000244140625, 1 / 450),
+    );
+  });
+
+  it("zooms out by as much as the same delta the other way zooms in", () => {
+    expect(zoomByWheel(17, 100, PIXEL) - 17).toBeCloseTo(
+      17 - zoomByWheel(17, -100, PIXEL),
+    );
+    expect(zoomByWheel(17, 100, PIXEL)).toBeLessThan(17);
+  });
+
+  it("counts a line as 40 px, as MapLibre does", () => {
+    expect(zoomByWheel(17, -3, LINE)).toBeCloseTo(zoomByWheel(17, -120, PIXEL));
+  });
+
+  it("zooms at most a level on one event, MapLibre's 2× cap", () => {
+    expect(zoomByWheel(17, -100_000, PIXEL)).toBeLessThanOrEqual(18);
+  });
+
+  it("leaves the zoom alone without a delta", () => {
+    expect(zoomByWheel(17, 0, PIXEL)).toBe(17);
   });
 });
 

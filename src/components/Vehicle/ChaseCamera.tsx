@@ -28,6 +28,7 @@ import {
   smoothAngle,
   smoothingAlpha,
   zoomByPinch,
+  zoomByWheel,
 } from "../../domain/chaseCamera.ts";
 import { ViewDimension, cameraFor } from "../../domain/viewDimension.ts";
 import { ChasedVehicle, ChasedVehicleStore } from "./chasedVehicleStore.ts";
@@ -56,6 +57,8 @@ const ORBIT_TIME_CONSTANT_MS = 250;
  */
 const DRAG_THRESHOLD_PX = 3;
 const HUD_REFRESH_MS = 250;
+/** A wheel quiet this long has stopped; MapLibre's scroll zoom waits as long. */
+const WHEEL_END_MS = 200;
 /**
  * The chase moves the camera at most this often. Every camera move is a full
  * map redraw with terrain, which dominates the chase's CPU cost, and
@@ -254,16 +257,19 @@ export function ChaseCamera({
     // The camera is placed every frame, and every placement resets MapLibre's
     // gesture handlers, so its panning and rotating could only fight it. A
     // drag orbits the camera instead, handled below. Zoom stays, about the
-    // vehicle rather than the pointer: the wheel through MapLibre, since each
-    // wheel event starts afresh, but a pinch through our own listeners below —
-    // the reset drops a pinch's first two touches, so MapLibre's ignored every
-    // pinch begun while the vehicle moved.
+    // vehicle rather than the pointer, through our own listeners below. A
+    // pinch, because the reset drops a pinch's first two touches, so
+    // MapLibre's ignored every pinch begun while the vehicle moved. The wheel,
+    // because MapLibre's scroll zoom moves the centre even `around: "center"`
+    // — it finds the centre's screen point at sea level, not on the terrain —
+    // and eases it away between the chase's frames while each frame puts it
+    // back: the vehicle shook between two places for as long as the zoom ran.
     map.dragPan.disable();
     map.dragRotate.disable();
     map.keyboard.disable();
     map.touchZoomRotate.disable();
     map.touchPitch.disable();
-    map.scrollZoom.enable({ around: "center" });
+    map.scrollZoom.disable();
 
     let phase: "waiting" | "flying" | "chasing" = "waiting";
     let camera: LngLat | null = null;
@@ -298,8 +304,9 @@ export function ChaseCamera({
     // Zooming changes how far the view reaches, so the box may need to grow
     // (zooming out) or, well past the needed size, shrink.
     const onZoomEnd = () => {
-      // A pinch zooms on every move, and is measured once it ends.
-      if (phase !== "chasing" || pinch) return;
+      // A pinch zooms on every move and the wheel on every event, and each is
+      // measured once it ends.
+      if (phase !== "chasing" || pinch || wheelEnd !== undefined) return;
       viewReach.current = viewReachMetres(map);
       keepBoxAroundVehicle();
     };
@@ -323,6 +330,8 @@ export function ChaseCamera({
       startDistance: number;
       startZoom: number;
     } | null = null;
+    /** Pending while the wheel turns; the zoom it ends at is measured then. */
+    let wheelEnd: ReturnType<typeof setTimeout> | undefined;
     const spread = ([a, b]: [number, number]) => {
       const [p, q] = [pointers.get(a), pointers.get(b)];
       return p && q ? Math.hypot(p.x - q.x, p.y - q.y) : 0;
@@ -392,6 +401,19 @@ export function ChaseCamera({
       swallowClick = drag.moved && event.type === "pointerup";
       drag = null;
     };
+    // A jump that sets only the zoom leaves the centre on the vehicle.
+    const onWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      if (phase !== "chasing") return;
+      clearTimeout(wheelEnd);
+      wheelEnd = setTimeout(() => {
+        wheelEnd = undefined;
+        onZoomEnd();
+      }, WHEEL_END_MS);
+      map.jumpTo({
+        zoom: zoomByWheel(map.getZoom(), event.deltaY, event.deltaMode),
+      });
+    };
     // Captured, so it runs before MapLibre's own listener on the container.
     const onClick = (event: MouseEvent) => {
       if (!swallowClick) return;
@@ -399,6 +421,7 @@ export function ChaseCamera({
       event.stopPropagation();
     };
     container.addEventListener("pointerdown", onPointerDown);
+    container.addEventListener("wheel", onWheel, { passive: false });
     container.addEventListener("click", onClick, true);
     window.addEventListener("pointermove", onPointerMove);
     window.addEventListener("pointerup", onPointerUp);
@@ -572,6 +595,8 @@ export function ChaseCamera({
       map.off("moveend", onFlightEnd);
       map.off("zoomend", onZoomEnd);
       container.removeEventListener("pointerdown", onPointerDown);
+      container.removeEventListener("wheel", onWheel);
+      clearTimeout(wheelEnd);
       container.removeEventListener("click", onClick, true);
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerup", onPointerUp);
