@@ -1,6 +1,6 @@
-import { TextField, InputAdornment } from "@mui/material";
+import { TextField, InputAdornment, IconButton } from "@mui/material";
 import { Filter } from "../types";
-import clearIcon from "../static/images/clear.png";
+import ClearIcon from "@mui/icons-material/Clear";
 import Tooltip from "@mui/material/Tooltip";
 
 type MaxDataAgeFilterProps = {
@@ -49,12 +49,13 @@ export function MaxDataAgeFilter({
           endAdornment: (
             <InputAdornment position="end">
               <Tooltip title={"Clear"}>
-                <button
-                  className="round-icon-button round-icon-button-small"
+                <IconButton
+                  size="small"
+                  aria-label="Clear"
                   onClick={handleClear}
                 >
-                  <img src={clearIcon} alt="Clear" className="icon-small" />
-                </button>
+                  <ClearIcon fontSize="small" />
+                </IconButton>
               </Tooltip>
             </InputAdornment>
           ),

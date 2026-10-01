@@ -9,7 +9,8 @@ import {
   DialogActions,
   Button,
 } from "@mui/material";
-import infoIcon from "../../static/images/info.png";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import Tooltip from "@mui/material/Tooltip";
 
 export function DataInfo() {
   const [infoOpen, setInfoOpen] = useState(false);
@@ -27,14 +28,15 @@ export function DataInfo() {
           alignItems: "center",
         }}
       >
-        <IconButton onClick={handleInfoOpen} size="small">
-          <img
-            src={infoIcon}
-            alt="How is this calculated"
-            title="How is this calculated"
-            style={{ width: "24px", height: "24px" }}
-          />
-        </IconButton>
+        <Tooltip title="How is this calculated">
+          <IconButton
+            onClick={handleInfoOpen}
+            size="small"
+            aria-label="How is this calculated"
+          >
+            <InfoOutlinedIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
       </Box>
 
       <Dialog open={infoOpen} onClose={handleInfoClose}>

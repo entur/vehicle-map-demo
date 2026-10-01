@@ -45,7 +45,7 @@ function TranslationLines({
           fontSize: 9,
           letterSpacing: 0.5,
           textTransform: "uppercase",
-          color: "#999",
+          color: "text.disabled",
         }}
       >
         {label}
@@ -56,7 +56,10 @@ function TranslationLines({
           component="div"
           sx={{ fontSize: 11, lineHeight: 1.4 }}
         >
-          <Box component="span" sx={{ color: "#999", marginRight: 0.5 }}>
+          <Box
+            component="span"
+            sx={{ color: "text.disabled", marginRight: 0.5 }}
+          >
             {entry.language ?? "—"}
           </Box>
           {entry.value}
@@ -93,7 +96,7 @@ function SituationRow({
       sx={{
         borderLeft: `3px solid ${colour}`,
         borderRadius: "0 2px 2px 0",
-        background: "#f7f5f2",
+        background: "var(--mui-palette-action-hover)",
         paddingLeft: 1,
         paddingRight: 0.5,
         paddingY: dense ? 0.25 : 0.5,
@@ -146,7 +149,7 @@ function SituationRow({
         <Box
           component="span"
           aria-hidden="true"
-          sx={{ color: "#999", fontSize: 10, lineHeight: 1.8 }}
+          sx={{ color: "text.disabled", fontSize: 10, lineHeight: 1.8 }}
         >
           {expanded ? "▴" : "▾"}
         </Box>
@@ -172,7 +175,7 @@ function SituationRow({
                 <Typography
                   key={index}
                   component="div"
-                  sx={{ fontSize: 10, color: "#777" }}
+                  sx={{ fontSize: 10, color: "text.secondary" }}
                 >
                   Valid {period}
                 </Typography>
@@ -193,7 +196,7 @@ function SituationRow({
                     href={link.uri ?? undefined}
                     target="_blank"
                     rel="noopener noreferrer"
-                    sx={{ color: "#2980b9" }}
+                    sx={{ color: "text.primary" }}
                   >
                     {pickTranslation(link.labels) ?? link.uri}
                   </Box>
@@ -209,7 +212,7 @@ function SituationRow({
           */}
           <Typography
             component="div"
-            sx={{ marginTop: 0.75, fontSize: 9, color: "#aaa" }}
+            sx={{ marginTop: 0.75, fontSize: 9, color: "text.disabled" }}
           >
             {situation.situationNumber}
             {situation.version !== null && ` · v${situation.version}`}

@@ -3,5 +3,6 @@ export type RightContentType =
   | "info"
   | "layers"
   | "stoplight"
+  | "statistics"
   | "situations"
   | "situationStats";

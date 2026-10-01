@@ -17,13 +17,16 @@ function CountTable({
           fontSize: 11,
           fontWeight: 700,
           textTransform: "uppercase",
-          color: "#666",
+          color: "text.secondary",
         }}
       >
         {title}
       </Typography>
       {entries.length === 0 && (
-        <Typography component="div" sx={{ fontSize: 12, color: "#999" }}>
+        <Typography
+          component="div"
+          sx={{ fontSize: 12, color: "text.disabled" }}
+        >
           —
         </Typography>
       )}
@@ -53,11 +56,11 @@ function CountTable({
  * single row; kept rather than hidden, because a table that disappears reflows
  * the grid and removes the confirmation of what you are scoped to.
  *
- * Laid out as a grid rather than a stack: this opens in a wide drawer (see
+ * Laid out as a grid rather than a stack: this opens in a wide panel (see
  * `isWideTool`), and stacking six tables in one narrow column made the codespace
  * and affects-shape tables unreadable without long scrolling, with no way to
  * compare two of them. `auto-fill` rather than a fixed column count so the
- * layout still collapses to one column if the drawer is ever narrowed.
+ * layout still collapses to one column if the panel is ever narrowed.
  */
 export function SituationStatsTables() {
   const { stats, statsScope } = useSituations();
@@ -70,7 +73,7 @@ export function SituationStatsTables() {
     : `${statsScope.total} situations`;
 
   return (
-    <Box sx={{ padding: 1.5 }}>
+    <Box sx={{ padding: 1.5, fontVariantNumeric: "tabular-nums" }}>
       <Typography
         component="h2"
         sx={{ fontSize: 16, fontWeight: 700, marginBottom: 1.5 }}
@@ -79,7 +82,7 @@ export function SituationStatsTables() {
       </Typography>
       <Typography
         component="div"
-        sx={{ fontSize: 12, color: "#666", marginBottom: 1.5 }}
+        sx={{ fontSize: 12, color: "text.secondary", marginBottom: 1.5 }}
       >
         {scope}
       </Typography>

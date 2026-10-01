@@ -8,7 +8,9 @@ import {
   modelFor,
   unknownHeadingMeshUnit,
 } from "../../domain/vehicleMeshes.ts";
-import { paintFor, signColourFor } from "../../domain/vehiclePaint.ts";
+import { paintFor } from "../../domain/vehiclePaint.ts";
+import { signGroups } from "../../domain/destinationSign.ts";
+import { signTexture } from "./signTexture.ts";
 
 /** Models draw under the icon layer, so line labels and delay lights stay on top. */
 const BEFORE_LAYER = "vehicle-layer";
@@ -41,6 +43,11 @@ export function vehicleModelLayers(
     positionTrigger,
   }: ModelLayerOptions,
 ) {
+  // Nothing while the models are hidden. Zoomed out, every vehicle in the feed
+  // is in the subscription, and the signs alone came to over 1,600 layers,
+  // each with a texture to draw and upload — measured, 1.9 fps.
+  if (!visible) return [];
+
   const byMode = new Map<VehicleModeEnumeration, VehicleUpdate[]>();
   const unknownHeading: VehicleUpdate[] = [];
   for (const vehicle of vehicles) {
@@ -68,9 +75,10 @@ export function vehicleModelLayers(
     0,
   ];
 
-  // Up to three layers per mode, sharing data and transforms: the white body
-  // and signs, each coloured per vehicle, and the details drawn in their own
-  // fixed colours. A ferry has no sign, so no sign layer.
+  // Layers per mode, sharing transforms: the white body coloured per vehicle,
+  // the details drawn in their own fixed colours, and the signs — one layer
+  // per destination and sign colour, since the texture carries both and a
+  // layer takes one. A ferry has no sign, so no sign layers.
   const layers = [...byMode].flatMap(([mode, list]) => {
     const { body, sign, details } = modelFor(mode);
     return [
@@ -83,16 +91,18 @@ export function vehicleModelLayers(
         getColor: paintFor,
       }),
       ...(sign.positions.value.length > 0
-        ? [
-            new SimpleMeshLayer<VehicleUpdate>({
-              ...shared,
-              id: `${idPrefix}-${mode}-sign`,
-              data: list,
-              mesh: sign,
-              getOrientation,
-              getColor: signColourFor,
-            }),
-          ]
+        ? signGroups(list).map(
+            ({ key, text, colour, vehicles }) =>
+              new SimpleMeshLayer<VehicleUpdate>({
+                ...shared,
+                id: `${idPrefix}-${mode}-sign-${key}`,
+                data: vehicles,
+                mesh: sign,
+                texture: signTexture(text, colour),
+                getOrientation,
+                getColor: UNTINTED,
+              }),
+          )
         : []),
       new SimpleMeshLayer<VehicleUpdate>({
         ...shared,

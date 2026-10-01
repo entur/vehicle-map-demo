@@ -57,13 +57,27 @@ const subscriptionQuery = `
   }
 `;
 
+/** Identifies one selected journey; the panel's timeout is keyed the same way. */
+export function timetableJourneyKey(
+  serviceJourneyId: string | null,
+  date: string | null,
+): string {
+  return `${serviceJourneyId}|${date}`;
+}
+
 export function useTimetableSubscription(
   serviceJourneyId: string | null,
   date: string | null,
 ): EstimatedTimetableUpdate | null {
-  const [timetable, setTimetable] = useState<EstimatedTimetableUpdate | null>(
-    null,
-  );
+  // Stored with the journey it arrived for, so a changed selection reads as no
+  // timetable straight away, before the effect's cleanup has cleared it. The
+  // cleanup is still needed: deselecting and reselecting the same journey
+  // gives the same key, and would otherwise bring back the old timetable.
+  const journeyKey = timetableJourneyKey(serviceJourneyId, date);
+  const [received, setReceived] = useState<{
+    journeyKey: string;
+    timetable: EstimatedTimetableUpdate;
+  } | null>(null);
   const subscriptionRef = useRef<AsyncIterableIterator<
     FormattedExecutionResult<SubscriptionData, unknown>
   > | null>(null);
@@ -74,23 +88,26 @@ export function useTimetableSubscription(
     if (subscriptionRef.current?.return) {
       subscriptionRef.current.return();
     }
-    setTimetable(null);
 
     if (!serviceJourneyId || !date) {
       return;
     }
+    const key = timetableJourneyKey(serviceJourneyId, date);
 
     subscriptionRef.current = subscriptionClient.iterate<SubscriptionData>({
       query: subscriptionQuery,
       variables: { serviceJourneyId, date },
     });
 
+    // A frame already in flight when the subscription is closed must not land
+    // after the cleanup has cleared the state.
+    let closed = false;
     const subscribe = async () => {
       if (!subscriptionRef.current) return;
       for await (const event of subscriptionRef.current) {
         const update = event?.data?.timetables?.[0];
-        if (update) {
-          setTimetable(update);
+        if (update && !closed) {
+          setReceived({ journeyKey: key, timetable: update });
         }
       }
     };
@@ -100,9 +117,11 @@ export function useTimetableSubscription(
     });
 
     return () => {
+      closed = true;
       subscriptionRef.current?.return?.();
+      setReceived(null);
     };
   }, [serviceJourneyId, date, subscriptionClient]);
 
-  return timetable;
+  return received?.journeyKey === journeyKey ? received.timetable : null;
 }

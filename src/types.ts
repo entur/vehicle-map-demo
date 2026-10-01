@@ -51,6 +51,8 @@ export type VehicleUpdate = {
   /** Degrees clockwise from north. Measured on dev, some producers send
    * negative values and some send nothing — see vehicleFootprint.ts. */
   bearing: number | null;
+  /** Shown on the models' destination signs, as published. */
+  destinationName: string | null;
 };
 
 export type ServiceJourney = {

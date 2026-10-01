@@ -1,0 +1,45 @@
+import { beforeAll, describe, expect, it, vi } from "vitest";
+import { VehicleUpdate } from "../../types.ts";
+import { vehicleModelLayers } from "./vehicleModelLayers.ts";
+
+const bus = (vehicleId: string, destinationName: string): VehicleUpdate =>
+  ({
+    vehicleId,
+    mode: "BUS",
+    bearing: 90,
+    destinationName,
+    line: { lineRef: "RUT:Line:1", lineName: "", publicCode: "1" },
+    location: { latitude: 59.91, longitude: 10.75 },
+    serviceJourney: { id: "RUT:ServiceJourney:" + vehicleId, date: "" },
+  }) as VehicleUpdate;
+
+const options = (visible: boolean) => ({
+  idPrefix: "models",
+  visible,
+  opacity: visible ? 1 : 0,
+  getPosition: () => [10.75, 59.91, 0] as [number, number, number],
+  positionTrigger: null,
+});
+
+describe("vehicleModelLayers", () => {
+  // The tests run in node: a canvas that cannot draw is enough to count layers.
+  beforeAll(() => {
+    vi.stubGlobal("document", {
+      createElement: () => ({ getContext: () => null }),
+    });
+  });
+
+  // Zoomed out, every vehicle in the feed is in the subscription, and one sign
+  // layer per destination came to over 1,600 layers, each with a texture to
+  // draw and upload, for models nobody could see.
+  it("builds no layers while the models are hidden", () => {
+    const vehicles = [bus("1", "Ullevål"), bus("2", "Kolsås")];
+    expect(vehicleModelLayers(vehicles, options(false))).toEqual([]);
+  });
+
+  it("builds a sign layer per destination once the models show", () => {
+    const vehicles = [bus("1", "Ullevål"), bus("2", "Kolsås")];
+    const ids = vehicleModelLayers(vehicles, options(true)).map((l) => l.id);
+    expect(ids.filter((id) => id.includes("-sign-"))).toHaveLength(2);
+  });
+});

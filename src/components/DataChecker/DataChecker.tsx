@@ -1,5 +1,5 @@
 import { memo, useState } from "react";
-import { Card, CardContent, Typography, Button, Box } from "@mui/material";
+import { Typography, Button, Box } from "@mui/material";
 import { SelectChangeEvent } from "@mui/material";
 import { CodespaceSelector } from "../CodespaceSelector.tsx";
 import { OperatorSelector } from "../OperatorSelector.tsx";
@@ -48,41 +48,36 @@ export const DataChecker = memo(function DataChecker() {
   const codespaceCounts = useVehicleCodespaceCounts();
 
   return (
-    <Card>
-      <CardContent>
-        <Typography variant="h6" gutterBottom>
-          Data report
-        </Typography>
+    <Box>
+      <Typography variant="h6" gutterBottom>
+        Data report
+      </Typography>
 
-        <Box sx={{ mb: 2 }}>
-          <CodespaceSelector
-            value={selectedCodespace}
-            onChange={handleCodespaceChange}
-            options={codespaceOptions(
-              codespaceCounts,
-              selectedCodespace ?? null,
-            )}
-          />
-        </Box>
+      <Box sx={{ mb: 2 }}>
+        <CodespaceSelector
+          value={selectedCodespace}
+          onChange={handleCodespaceChange}
+          options={codespaceOptions(codespaceCounts, selectedCodespace ?? null)}
+        />
+      </Box>
 
-        <Box sx={{ mb: 2 }}>
-          <OperatorSelector
-            value={selectedOperator ?? ""}
-            onChange={handleOperatorChange}
-            codespaceId={selectedCodespace ?? ""}
-          />
-        </Box>
+      <Box sx={{ mb: 2 }}>
+        <OperatorSelector
+          value={selectedOperator ?? ""}
+          onChange={handleOperatorChange}
+          codespaceId={selectedCodespace ?? ""}
+        />
+      </Box>
 
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={runDataTest}
-          disabled={!selectedCodespace}
-          fullWidth
-        >
-          Run data report
-        </Button>
-      </CardContent>
+      <Button
+        variant="contained"
+        color="primary"
+        onClick={runDataTest}
+        disabled={!selectedCodespace}
+        fullWidth
+      >
+        Run data report
+      </Button>
 
       <DataDialog
         data={data}
@@ -92,6 +87,6 @@ export const DataChecker = memo(function DataChecker() {
         selectedCodespace={selectedCodespace}
         selectedOperator={selectedOperator}
       />
-    </Card>
+    </Box>
   );
 });

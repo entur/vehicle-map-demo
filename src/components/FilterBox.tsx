@@ -1,4 +1,4 @@
-import { Box, Card, CardContent, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { CodespaceFilter } from "./CodespaceFilter";
 import { OperatorFilter } from "./OperatorFilter";
 import { Filter as FilterType } from "../types.ts";
@@ -32,37 +32,35 @@ export function FilterBox({
       : codespaceOptions(vehicleCodespaceCounts, selected);
 
   return (
-    <Card>
-      <CardContent>
-        <Typography variant="h5" gutterBottom>
-          Filter
-        </Typography>
-        <CodespaceFilter
-          currentFilter={currentFilter}
-          setCurrentFilter={setCurrentFilter}
-          options={codespaces}
-        />
-        {mode === "vehicles" && (
-          <>
-            <Box sx={{ mt: 2 }} />
-            <OperatorFilter
-              currentFilter={currentFilter}
-              setCurrentFilter={setCurrentFilter}
-            />
-            <Box sx={{ mt: 2 }} />
-            <MaxDataAgeFilter
-              currentFilter={currentFilter}
-              setCurrentFilter={setCurrentFilter}
-            />
-          </>
-        )}
-        {mode === "situations" && (
-          <>
-            <Box sx={{ mt: 2 }} />
-            <SituationFilters />
-          </>
-        )}
-      </CardContent>
-    </Card>
+    <Box>
+      <Typography variant="h5" gutterBottom>
+        Filter
+      </Typography>
+      <CodespaceFilter
+        currentFilter={currentFilter}
+        setCurrentFilter={setCurrentFilter}
+        options={codespaces}
+      />
+      {mode === "vehicles" && (
+        <>
+          <Box sx={{ mt: 2 }} />
+          <OperatorFilter
+            currentFilter={currentFilter}
+            setCurrentFilter={setCurrentFilter}
+          />
+          <Box sx={{ mt: 2 }} />
+          <MaxDataAgeFilter
+            currentFilter={currentFilter}
+            setCurrentFilter={setCurrentFilter}
+          />
+        </>
+      )}
+      {mode === "situations" && (
+        <>
+          <Box sx={{ mt: 2 }} />
+          <SituationFilters />
+        </>
+      )}
+    </Box>
   );
 }

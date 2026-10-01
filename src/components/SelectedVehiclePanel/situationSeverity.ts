@@ -1,8 +1,15 @@
 import { SeverityEnumeration } from "../../types.ts";
 
-export const SEVERITY_SEVERE = "#c0392b";
-export const SEVERITY_MUTED = "#999999";
-export const SEVERITY_NOTABLE = "#e07a1f";
+export {
+  SEVERITY_MUTED,
+  SEVERITY_NOTABLE,
+  SEVERITY_SEVERE,
+} from "../../domain/dataColours.ts";
+import {
+  SEVERITY_MUTED,
+  SEVERITY_NOTABLE,
+  SEVERITY_SEVERE,
+} from "../../domain/dataColours.ts";
 
 /**
  * Colour for a situation's severity marker.

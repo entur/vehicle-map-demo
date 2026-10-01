@@ -4,6 +4,8 @@ import { useSituations } from "../../situations/SituationsContext.ts";
 import { pickTranslation } from "../SelectedVehiclePanel/situationText.ts";
 import { affectsShape } from "../../domain/situationStats.ts";
 import { FLAG_LEVEL } from "../../domain/situationFlags.ts";
+import { SEVERITY_SEVERE } from "../../domain/dataColours.ts";
+import { selectedRowSx } from "./selectedRowSx.ts";
 
 /**
  * Situations that flatten to no map features at all — a small minority on
@@ -39,7 +41,7 @@ export function UnmappableList({
           fontSize: 11,
           fontWeight: 700,
           textTransform: "uppercase",
-          color: "#666",
+          color: "text.secondary",
         }}
       >
         Not on the map ({unmappable.length} of {filtered.length})
@@ -62,8 +64,8 @@ export function UnmappableList({
                 width: "100%",
                 textAlign: "left",
                 border: "none",
-                borderBottom: "1px dotted #eee",
-                background: selected === situationNumber ? "#eef7f7" : "none",
+                borderBottom: "1px dotted var(--mui-palette-divider)",
+                ...selectedRowSx(selected === situationNumber),
                 cursor: "pointer",
                 padding: "4px 0",
                 font: "inherit",
@@ -75,7 +77,7 @@ export function UnmappableList({
               <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
                 <Typography
                   component="span"
-                  sx={{ fontSize: 10, color: "#999" }}
+                  sx={{ fontSize: 10, color: "text.disabled" }}
                 >
                   {situation.codespace?.codespaceId ?? "(no codespace)"} ·{" "}
                   {situation.severity ?? "(no severity)"} ·{" "}
@@ -89,7 +91,9 @@ export function UnmappableList({
                     sx={{
                       fontSize: 10,
                       color:
-                        FLAG_LEVEL[flag] === "warning" ? "#c0392b" : "#999",
+                        FLAG_LEVEL[flag] === "warning"
+                          ? SEVERITY_SEVERE
+                          : "text.disabled",
                     }}
                   >
                     {flag}

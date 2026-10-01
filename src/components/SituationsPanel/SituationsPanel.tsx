@@ -95,23 +95,7 @@ export const SituationsPanel = memo(function SituationsPanel() {
   );
 
   return (
-    <Box
-      sx={{
-        padding: 2,
-        overflowY: "auto",
-        // `.right-menu-container` (src/index.css, shared with the other four
-        // drawer panels) is `position: absolute; top: 0` with no `height`,
-        // so a percentage height here would resolve against an auto-height
-        // ancestor and never actually bound this box — `overflowY: "auto"`
-        // would never engage and content (notably the uncapped affects
-        // groups in SituationDetail) could grow past the bottom of the
-        // screen with no way to scroll to it. Bound against the viewport
-        // instead, which doesn't depend on any ancestor's height, and leave
-        // a margin roughly matching the container's own 20px top offset so
-        // the panel doesn't get clipped by the map's `overflow: hidden`.
-        maxHeight: "calc(100vh - 40px)",
-      }}
-    >
+    <Box>
       <Typography
         component="h2"
         sx={{ fontSize: 16, fontWeight: 700, marginBottom: 0.5 }}
@@ -123,7 +107,7 @@ export const SituationsPanel = memo(function SituationsPanel() {
         sx={{
           fontSize: 12,
           marginBottom: 2,
-          color: feed.status === "error" ? "#c0392b" : "#666",
+          color: feed.status === "error" ? "error.main" : "text.secondary",
         }}
       >
         <StatusLine />
@@ -135,7 +119,7 @@ export const SituationsPanel = memo(function SituationsPanel() {
           fontSize: 11,
           fontWeight: 700,
           textTransform: "uppercase",
-          color: "#666",
+          color: "text.secondary",
         }}
       >
         On the map ({mapped.length} of {filtered.length})

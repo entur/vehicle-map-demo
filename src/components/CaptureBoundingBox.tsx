@@ -3,7 +3,7 @@ import { useMap } from "react-map-gl/maplibre";
 import { Filter } from "../types.ts";
 
 // a simple throttle
-const throttle = <T extends any[]>(
+const throttle = <T extends unknown[]>(
   callback: (...args: T) => void,
   delay: number,
 ) => {

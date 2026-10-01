@@ -26,8 +26,11 @@ export function SituationsProvider({
   const [filter, setFilter] = useState<SituationFilter>(EMPTY_SITUATION_FILTER);
   const [selected, setSelected] = useState<string | null>(null);
 
+  // A selection belongs to one stretch of the feed being enabled: leaving the
+  // mode clears it, so returning does not resurrect it once frames refill.
   useEffect(() => {
-    if (!enabled) setSelected(null);
+    if (!enabled) return;
+    return () => setSelected(null);
   }, [enabled]);
 
   const flagsBySituation = useMemo(() => {

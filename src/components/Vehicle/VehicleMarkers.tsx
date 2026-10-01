@@ -5,6 +5,7 @@ import { GeoJSONSource } from "maplibre-gl";
 import type { Feature, Point, Polygon } from "geojson";
 import {
   dimensionsFor,
+  normaliseBearing,
   vehicleFootprint,
 } from "../../domain/vehicleFootprint.ts";
 import { labelColoursFor } from "../../domain/vehiclePaint.ts";
@@ -26,6 +27,8 @@ type SelectedVehicleProperties = {
   /** The line's published label colours as CSS, or null for the default. */
   lineTextColour: string | null;
   lineHaloColour: string | null;
+  /** Degrees clockwise from north in [0, 360), or null when unusable. */
+  bearing: number | null;
 };
 
 export type SelectedVehicle = {
@@ -59,6 +62,7 @@ const createFeature = (
       occupancyStatus: vehicle.occupancyStatus,
       lineTextColour: labelColours?.text ?? null,
       lineHaloColour: labelColours?.halo ?? null,
+      bearing: normaliseBearing(vehicle.bearing),
     },
   };
 };

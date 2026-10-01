@@ -1,9 +1,11 @@
+import { memo } from "react";
 import { MapLayers } from "../MapLayers.tsx";
 import { RightContentType } from "./types.ts";
 import { Filter, MapViewOptions, VehicleUpdate } from "../../types.ts";
 import { DataChecker } from "../DataChecker/DataChecker.tsx";
 import { FilterBox } from "../FilterBox.tsx";
 import { Legend } from "../Legend.tsx";
+import { InfoBox } from "../InfoBox.tsx";
 import { SituationsPanel } from "../SituationsPanel";
 import { SituationStatsTables } from "../SituationsPanel/SituationStatsTables.tsx";
 import { AppMode } from "../../domain/appMode.ts";
@@ -15,17 +17,22 @@ type DrawerContentProps = {
   setCurrentFilter: (filter: Filter) => void;
   mapViewOptions: MapViewOptions;
   setMapViewOptions: (mapViewOptions: MapViewOptions) => void;
+  showTransitNetwork: boolean;
+  setShowTransitNetwork: (show: boolean) => void;
   data: VehicleUpdate[];
 };
 
-export const DrawerContent = ({
+export const DrawerContent = memo(function DrawerContent({
   mode,
   activeContent,
   currentFilter,
   setCurrentFilter,
   mapViewOptions,
   setMapViewOptions,
-}: DrawerContentProps) => {
+  showTransitNetwork,
+  setShowTransitNetwork,
+  data,
+}: DrawerContentProps) {
   return (
     <>
       {activeContent === "filtering" && currentFilter && (
@@ -42,11 +49,16 @@ export const DrawerContent = ({
           mode={mode}
           mapViewOptions={mapViewOptions}
           setMapViewOptions={setMapViewOptions}
+          showTransitNetwork={showTransitNetwork}
+          setShowTransitNetwork={setShowTransitNetwork}
         />
       )}
       {activeContent === "stoplight" && currentFilter && <DataChecker />}
+      {activeContent === "statistics" && currentFilter && (
+        <InfoBox data={data} />
+      )}
       {activeContent === "situations" && <SituationsPanel />}
       {activeContent === "situationStats" && <SituationStatsTables />}
     </>
   );
-};
+});

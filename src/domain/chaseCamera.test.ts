@@ -12,6 +12,16 @@ import {
   chaseTarget,
   positionAt,
   smoothAngle,
+  chaseTopPadding,
+  BEHIND,
+  CHASE_PITCH,
+  ChaseOrbit,
+  approachOrbit,
+  cameraBearing,
+  isBehind,
+  orbitByDrag,
+  orbitByKey,
+  zoomByPinch,
 } from "./chaseCamera.ts";
 
 const OSLO = { lon: 10.75, lat: 59.91 };
@@ -334,5 +344,127 @@ describe("chaseBoundingBox", () => {
     expect(chaseBoundingBox(viewport, OSLO.lon, OSLO.lat, REACH_M)).not.toBe(
       viewport,
     );
+  });
+});
+
+describe("chaseTopPadding", () => {
+  it("takes its share of the map left above the bottom padding", () => {
+    expect(chaseTopPadding(1000, 0)).toBe(350);
+    expect(chaseTopPadding(664, 498)).toBe(58);
+  });
+
+  it("never goes negative when the bottom hides everything", () => {
+    expect(chaseTopPadding(664, 900)).toBe(0);
+  });
+});
+
+describe("zoomByPinch", () => {
+  it("zooms one level in each time the fingers' spread doubles, as MapLibre's pinch does", () => {
+    expect(zoomByPinch(17, 100, 200)).toBe(18);
+    expect(zoomByPinch(17, 100, 400)).toBe(19);
+  });
+
+  it("zooms out as the fingers close", () => {
+    expect(zoomByPinch(17, 200, 100)).toBe(16);
+  });
+
+  it("leaves the zoom alone when either spread is zero", () => {
+    expect(zoomByPinch(17, 0, 100)).toBe(17);
+    expect(zoomByPinch(17, 100, 0)).toBe(17);
+  });
+});
+
+describe("orbitByDrag", () => {
+  it("turns the camera with a sideways drag, the way MapLibre's rotate does", () => {
+    expect(orbitByDrag(BEHIND, 100, 0)).toEqual({
+      bearingOffset: 50,
+      pitch: CHASE_PITCH,
+    });
+    expect(orbitByDrag(BEHIND, -100, 0).bearingOffset).toBe(310);
+  });
+
+  it("wraps the offset into [0, 360)", () => {
+    const orbit = orbitByDrag({ bearingOffset: 350, pitch: 40 }, 40, 0);
+    expect(orbit.bearingOffset).toBeCloseTo(10);
+  });
+
+  it("flattens the view with a downward drag and steepens it with an upward one", () => {
+    expect(orbitByDrag({ bearingOffset: 0, pitch: 40 }, 0, 20).pitch).toBe(30);
+    expect(orbitByDrag({ bearingOffset: 0, pitch: 40 }, 0, -20).pitch).toBe(50);
+  });
+
+  it("keeps the pitch between straight down and the chase's own pitch", () => {
+    expect(orbitByDrag(BEHIND, 0, -500).pitch).toBe(CHASE_PITCH);
+    expect(orbitByDrag(BEHIND, 0, 500).pitch).toBe(0);
+  });
+});
+
+describe("orbitByKey", () => {
+  it("steps the offset to the next 45° in either direction", () => {
+    expect(orbitByKey(BEHIND, "ArrowRight")?.bearingOffset).toBe(45);
+    expect(orbitByKey(BEHIND, "ArrowLeft")?.bearingOffset).toBe(315);
+    expect(
+      orbitByKey({ bearingOffset: 100, pitch: 60 }, "ArrowRight")
+        ?.bearingOffset,
+    ).toBe(135);
+    expect(
+      orbitByKey({ bearingOffset: 100, pitch: 60 }, "ArrowLeft")?.bearingOffset,
+    ).toBe(90);
+  });
+
+  it("does not stall on a step the offset only nearly reached", () => {
+    expect(
+      orbitByKey({ bearingOffset: 44.8, pitch: 60 }, "ArrowRight")
+        ?.bearingOffset,
+    ).toBe(90);
+  });
+
+  it("tilts with up and down, within the same limits as a drag", () => {
+    expect(orbitByKey({ bearingOffset: 0, pitch: 30 }, "ArrowUp")?.pitch).toBe(
+      40,
+    );
+    expect(
+      orbitByKey({ bearingOffset: 0, pitch: 30 }, "ArrowDown")?.pitch,
+    ).toBe(20);
+    expect(orbitByKey(BEHIND, "ArrowUp")?.pitch).toBe(CHASE_PITCH);
+    expect(orbitByKey({ bearingOffset: 0, pitch: 5 }, "ArrowDown")?.pitch).toBe(
+      0,
+    );
+  });
+
+  it("ignores every other key", () => {
+    expect(orbitByKey(BEHIND, "Enter")).toBeNull();
+  });
+});
+
+describe("isBehind", () => {
+  it("is true only at no offset and the chase's own pitch", () => {
+    expect(isBehind(BEHIND)).toBe(true);
+    expect(isBehind({ bearingOffset: 359.9, pitch: CHASE_PITCH })).toBe(true);
+    expect(isBehind({ bearingOffset: 90, pitch: CHASE_PITCH })).toBe(false);
+    expect(isBehind({ bearingOffset: 0, pitch: 30 })).toBe(false);
+  });
+});
+
+describe("approachOrbit", () => {
+  it("moves the offset along the shorter arc and the pitch linearly", () => {
+    const from: ChaseOrbit = { bearingOffset: 350, pitch: 20 };
+    const to: ChaseOrbit = { bearingOffset: 10, pitch: 60 };
+    const half = approachOrbit(from, to, 0.5);
+    expect(half.bearingOffset).toBeCloseTo(0);
+    expect(half.pitch).toBeCloseTo(40);
+  });
+
+  it("lands on the target at alpha 1", () => {
+    const to: ChaseOrbit = { bearingOffset: 90, pitch: 30 };
+    expect(approachOrbit(BEHIND, to, 1)).toEqual(to);
+  });
+});
+
+describe("cameraBearing", () => {
+  it("adds the offset to the vehicle's heading, so a side view survives a turn", () => {
+    const side: ChaseOrbit = { bearingOffset: 90, pitch: CHASE_PITCH };
+    expect(cameraBearing(0, side)).toBe(90);
+    expect(cameraBearing(300, side)).toBe(30);
   });
 });
