@@ -1,20 +1,7 @@
 import { useEffect } from "react";
 import { useMap } from "react-map-gl/maplibre";
 import { Filter } from "../types.ts";
-
-// a simple throttle
-const throttle = <T extends unknown[]>(
-  callback: (...args: T) => void,
-  delay: number,
-) => {
-  let isWaiting = false;
-  return (...args: T) => {
-    if (isWaiting) return;
-    callback(...args);
-    isWaiting = true;
-    setTimeout(() => (isWaiting = false), delay);
-  };
-};
+import { throttle } from "../utils/throttle.ts";
 
 // Simple boundingBox comparison to avoid unnecessary re-renders
 const arraysAreEqual = (a?: number[][], b?: number[][]) => {
@@ -76,6 +63,9 @@ export function CaptureBoundingBox({
 
     return () => {
       mapInstance.off("moveend", handleMoveEnd);
+      // A trailing capture after this point would overwrite the box the
+      // chase camera owns once it pauses us.
+      handleMoveEnd.cancel();
     };
   }, [map, setCurrentFilter, paused]);
 
