@@ -11,6 +11,7 @@ import {
   vehicleModelLayers,
 } from "./vehicleModelLayers.ts";
 import { withLayerAsStyleLoaded } from "../../utils/withLayerAsStyleLoaded.ts";
+import { ViewBounds, vehiclesInView } from "../../domain/vehiclesInView.ts";
 import { ChasedVehicleStore } from "./chasedVehicleStore.ts";
 
 /** Fades the models in over the same half zoom level the icons fade out. */
@@ -77,16 +78,44 @@ export function VehicleModels({
     };
   }, [mapRef]);
 
+  // The view the models are built for, read when a move ends. Not during a
+  // chase: its camera moves every frame, and it keeps the data around the
+  // vehicle itself.
+  const chasing = chasedVehicleKey !== null;
+  const [viewBounds, setViewBounds] = useState<ViewBounds | null>(null);
+  useEffect(() => {
+    const map = mapRef?.getMap();
+    if (!map || chasing) return;
+    const update = () => {
+      const bounds = map.getBounds();
+      setViewBounds([
+        [bounds.getWest(), bounds.getSouth()],
+        [bounds.getEast(), bounds.getNorth()],
+      ]);
+    };
+    update();
+    map.on("moveend", update);
+    return () => {
+      map.off("moveend", update);
+    };
+  }, [mapRef, chasing]);
+
+  // Only vehicles in view get models. The data normally matches the view
+  // already, but straight after a jump from the whole country to one street
+  // it is still the country until the next frame: over a thousand layers,
+  // which froze the page for seconds.
   const unchased = useMemo(
     () =>
-      chasedVehicleKey === null
-        ? data
-        : data.filter(
+      chasing
+        ? data.filter(
             (vehicle) =>
               vehicle.vehicleId + "_" + vehicle.serviceJourney.id !==
               chasedVehicleKey,
-          ),
-    [data, chasedVehicleKey],
+          )
+        : viewBounds
+          ? vehiclesInView(data, viewBounds)
+          : data,
+    [data, chasing, chasedVehicleKey, viewBounds],
   );
 
   // Terrain heights, per vehicle report. The vehicle cache replaces a report's
