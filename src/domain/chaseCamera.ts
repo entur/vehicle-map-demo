@@ -388,6 +388,32 @@ export function zoomByPinch(
   return startZoom + Math.log2(distance / startDistance);
 }
 
+/** MapLibre's scroll zoom constants (`scroll_zoom.ts`), so a chase zooms as the map does. */
+const WHEEL_STEP_PX = 4.000244140625;
+const WHEEL_ZOOM_RATE = 1 / 450;
+const TRACKPAD_ZOOM_RATE = 1 / 100;
+const LINE_PX = 40;
+const DOM_DELTA_LINE = 1;
+
+/**
+ * The zoom after one wheel event, by MapLibre's scroll zoom formula: a mouse
+ * wheel at the wheel rate, a trackpad's small deltas at the faster one. Told
+ * apart by size, where MapLibre also uses timing — a notch is 100 px or a
+ * multiple of its wheel step, a trackpad event rarely either.
+ */
+export function zoomByWheel(
+  zoom: number,
+  deltaY: number,
+  deltaMode: number,
+): number {
+  const px = deltaMode === DOM_DELTA_LINE ? deltaY * LINE_PX : deltaY;
+  if (px === 0) return zoom;
+  const wheel = px % WHEEL_STEP_PX === 0 || Math.abs(px) >= 100;
+  const rate = wheel ? WHEEL_ZOOM_RATE : TRACKPAD_ZOOM_RATE;
+  const levels = Math.log2(2 / (1 + Math.exp(-Math.abs(px) * rate)));
+  return px < 0 ? zoom + levels : zoom - levels;
+}
+
 /**
  * The orbit after an arrow key, or null for any other key. Left and right
  * step to the next multiple of the rotate buttons' 45°, turning the way a
