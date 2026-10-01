@@ -1,11 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useControl, useMap } from "react-map-gl/maplibre";
 import { MapLibreOverlay } from "@deck.gl/maplibre";
 import type { Layer } from "@deck.gl/core";
 import { VehicleUpdate } from "../../types.ts";
 import { ViewDimension } from "../../domain/viewDimension.ts";
 import { VEHICLE_MODEL_MIN_ZOOM } from "../mapStyle.ts";
-import { ModelLayerOptions, vehicleModelLayers } from "./vehicleModelLayers.ts";
+import {
+  MODEL_BEFORE_LAYER,
+  ModelLayerOptions,
+  vehicleModelLayers,
+} from "./vehicleModelLayers.ts";
+import { withLayerAsStyleLoaded } from "../../utils/withLayerAsStyleLoaded.ts";
 import { ChasedVehicleStore } from "./chasedVehicleStore.ts";
 
 /** Fades the models in over the same half zoom level the icons fade out. */
@@ -48,6 +53,18 @@ export function VehicleModels({
   const baseLayers = useRef<Layer[]>([]);
   const chasedLayers = useRef<Layer[]>([]);
   const options = useRef<Omit<ModelLayerOptions, "idPrefix"> | null>(null);
+
+  // Every handover of layers goes through here, so that deck.gl can add its
+  // layer group to the style while vehicle frames keep the map "loading".
+  const handOver = useCallback(() => {
+    const map = mapRef?.getMap();
+    if (!map) return;
+    withLayerAsStyleLoaded(map, MODEL_BEFORE_LAYER, () =>
+      overlay.setProps({
+        layers: [...baseLayers.current, ...chasedLayers.current],
+      }),
+    );
+  }, [mapRef, overlay]);
 
   useEffect(() => {
     const map = mapRef?.getMap();
@@ -110,10 +127,8 @@ export function VehicleModels({
       ...options.current,
       idPrefix: "vehicle-models",
     });
-    overlay.setProps({
-      layers: [...baseLayers.current, ...chasedLayers.current],
-    });
-  }, [overlay, mapRef, unchased, opacity, viewDimension, elevations]);
+    handOver();
+  }, [handOver, mapRef, unchased, opacity, viewDimension, elevations]);
 
   useEffect(() => {
     const publish = () => {
@@ -131,9 +146,7 @@ export function VehicleModels({
               positionTrigger: position,
             })
           : [];
-      overlay.setProps({
-        layers: [...baseLayers.current, ...chasedLayers.current],
-      });
+      handOver();
     };
     publish();
     const unsubscribe = chasedVehicleStore.subscribe(publish);
@@ -141,7 +154,7 @@ export function VehicleModels({
       unsubscribe();
       chasedLayers.current = [];
     };
-  }, [overlay, chasedVehicleStore]);
+  }, [handOver, chasedVehicleStore]);
 
   return null;
 }

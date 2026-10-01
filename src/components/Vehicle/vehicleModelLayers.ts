@@ -13,7 +13,7 @@ import { signGroups } from "../../domain/destinationSign.ts";
 import { signTexture } from "./signTexture.ts";
 
 /** Models draw under the icon layer, so line labels and delay lights stay on top. */
-const BEFORE_LAYER = "vehicle-layer";
+export const MODEL_BEFORE_LAYER = "vehicle-layer";
 
 /** Untinted: deck.gl multiplies this into the vertex colours, and its default is black. */
 const UNTINTED: [number, number, number] = [255, 255, 255];
@@ -61,7 +61,7 @@ export function vehicleModelLayers(
   }
 
   const shared = {
-    beforeId: BEFORE_LAYER,
+    beforeId: MODEL_BEFORE_LAYER,
     visible,
     opacity,
     getPosition,
