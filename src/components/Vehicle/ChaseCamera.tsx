@@ -31,7 +31,7 @@ import {
   zoomByWheel,
 } from "../../domain/chaseCamera.ts";
 import { ViewDimension, cameraFor } from "../../domain/viewDimension.ts";
-import { ChasedVehicle, ChasedVehicleStore } from "./chasedVehicleStore.ts";
+import { ChasedVehicle, VehicleStore } from "./chasedVehicleStore.ts";
 import { VEHICLE_MODEL_MIN_ZOOM } from "../mapStyle.ts";
 import { setPaddingInPlace } from "../../utils/setPaddingInPlace.ts";
 
@@ -106,7 +106,7 @@ type Props = {
   chased: ChasedVehicle;
   data: VehicleData[];
   viewDimension: ViewDimension;
-  store: ChasedVehicleStore;
+  store: VehicleStore;
   setCurrentFilter: React.Dispatch<React.SetStateAction<Filter | null>>;
   onStop: () => void;
   /**

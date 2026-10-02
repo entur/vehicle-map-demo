@@ -3,10 +3,8 @@ import CloseIcon from "@mui/icons-material/Close";
 import { useEffect, useState } from "react";
 import { SelectedVehicle } from "../Vehicle/VehicleMarkers.tsx";
 import { useVehicleUpdateCompleteSubscription } from "../../hooks/useVehicleUpdateCompleteSubscription.ts";
-import {
-  timetableJourneyKey,
-  useTimetableSubscription,
-} from "../../hooks/useTimetableSubscription.ts";
+import { timetableJourneyKey } from "../../hooks/useTimetableSubscription.ts";
+import { EstimatedTimetableUpdate } from "../../types.ts";
 import { delayBucket, delayColour, formatDelay } from "./delayThresholds.ts";
 import { Timetable } from "./Timetable.tsx";
 import { SituationList } from "./SituationList.tsx";
@@ -19,8 +17,12 @@ import {
 
 type SelectedVehiclePanelProps = {
   selectedVehicle: SelectedVehicle | null;
+  /**
+   * The selected journey's timetable. Subscribed in `MapView`, which the
+   * schedule ghost needs it in too.
+   */
+  timetable: EstimatedTimetableUpdate | null;
   onClose: () => void;
-  onCancellationChange?: (cancelled: boolean) => void;
   layout: DetailLayout;
   /**
    * The map popup's actions. Shown here only in the phone's sheet, where
@@ -34,8 +36,8 @@ const NO_TIMETABLE_TIMEOUT_MS = 3000;
 
 export function SelectedVehiclePanel({
   selectedVehicle,
+  timetable,
   onClose,
-  onCancellationChange,
   layout,
   actions,
 }: SelectedVehiclePanelProps) {
@@ -47,7 +49,6 @@ export function SelectedVehiclePanel({
     vehicleId,
     serviceJourneyId ?? "",
   );
-  const timetable = useTimetableSubscription(serviceJourneyId, date);
 
   // After (NO_TIMETABLE_TIMEOUT_MS) without a timetable frame, surface the
   // "not available" message. The timeout remembers which journey it fired
@@ -73,10 +74,6 @@ export function SelectedVehiclePanel({
   const open = selectedVehicle !== null;
   const currentOrder = vehicleData?.monitoredCall?.order ?? null;
   const tripCancelled = timetable?.cancellation === true;
-
-  useEffect(() => {
-    onCancellationChange?.(tripCancelled);
-  }, [tripCancelled, onCancellationChange]);
 
   const showNotAvailable = !serviceJourneyId || (timedOut && !timetable);
 

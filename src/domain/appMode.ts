@@ -36,6 +36,9 @@ export const MODE_LAYERS: Record<AppMode, string[]> = {
     "service-journey-route-layer",
     "service-journey-route-outer-casing-layer",
     "service-journey-route-casing-layer",
+    "schedule-ghost-layer",
+    "schedule-ghost-link-layer",
+    "schedule-ghost-link-casing-layer",
   ],
   situations: [
     "situation-lines-casing-layer",
@@ -114,6 +117,11 @@ export const MODE_DEFAULT_VISIBLE_LAYERS: Record<AppMode, string[]> = {
     "service-journey-route-outer-casing-layer",
     "service-journey-route-casing-layer",
     "vehicle-follow-layer",
+    // Drawn whenever a selected journey has a ghost; like the route, a
+    // property of the selection rather than a layer to switch.
+    "schedule-ghost-layer",
+    "schedule-ghost-link-layer",
+    "schedule-ghost-link-casing-layer",
   ],
   // The halo layers are the situations-mode counterpart of
   // vehicle-follow-layer: filtered to the selected situation by
@@ -145,6 +153,7 @@ export const MODE_SOURCES: Record<AppMode, string[]> = {
     "vehicleModels",
     "vehicleTraces",
     "serviceJourneyRoute",
+    "scheduleGhost",
   ],
   situations: ["situationLines", "situationPoints"],
 };

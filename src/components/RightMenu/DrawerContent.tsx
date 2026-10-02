@@ -19,6 +19,8 @@ type DrawerContentProps = {
   setMapViewOptions: (mapViewOptions: MapViewOptions) => void;
   showTransitNetwork: boolean;
   setShowTransitNetwork: (show: boolean) => void;
+  showScheduleGhost: boolean;
+  setShowScheduleGhost: (show: boolean) => void;
   data: VehicleUpdate[];
 };
 
@@ -31,6 +33,8 @@ export const DrawerContent = memo(function DrawerContent({
   setMapViewOptions,
   showTransitNetwork,
   setShowTransitNetwork,
+  showScheduleGhost,
+  setShowScheduleGhost,
   data,
 }: DrawerContentProps) {
   return (
@@ -51,6 +55,8 @@ export const DrawerContent = memo(function DrawerContent({
           setMapViewOptions={setMapViewOptions}
           showTransitNetwork={showTransitNetwork}
           setShowTransitNetwork={setShowTransitNetwork}
+          showScheduleGhost={showScheduleGhost}
+          setShowScheduleGhost={setShowScheduleGhost}
         />
       )}
       {activeContent === "stoplight" && currentFilter && <DataChecker />}

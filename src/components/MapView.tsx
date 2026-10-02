@@ -33,6 +33,10 @@ import { VehiclePopup } from "./Vehicle/VehiclePopup.tsx";
 import { useFollowedVehicle } from "../hooks/useFollowedVehicle"; // adjust path as needed
 import { SelectedVehiclePanel } from "./SelectedVehiclePanel";
 import { RouteLayer } from "./RouteLayer.tsx";
+import { ScheduleGhost } from "./Vehicle/ScheduleGhost.tsx";
+import { useTimetableSubscription } from "../hooks/useTimetableSubscription.ts";
+import { useServiceJourneyRoute } from "../hooks/useServiceJourneyRoute.ts";
+import { buildSchedule } from "../domain/scheduleGhost.ts";
 import { SituationLayers } from "./SituationLayers.tsx";
 import { SituationDetailPanel } from "./SituationsPanel/SituationDetailPanel.tsx";
 import { AppMode } from "../domain/appMode.ts";
@@ -44,10 +48,7 @@ import { ViewDimensionLayers } from "./ViewDimensionLayers.tsx";
 import { BaseMapScheme } from "./BaseMapScheme.tsx";
 import { TransitNetworkLayers } from "./TransitNetworkLayers.tsx";
 import { ChaseCamera } from "./Vehicle/ChaseCamera.tsx";
-import {
-  ChasedVehicle,
-  ChasedVehicleStore,
-} from "./Vehicle/chasedVehicleStore.ts";
+import { ChasedVehicle, VehicleStore } from "./Vehicle/chasedVehicleStore.ts";
 import { MapBottomPadding } from "./MapBottomPadding.tsx";
 import { DETAIL_SHEET_MEDIA_QUERY } from "./detailDrawer.ts";
 import { SURFACE_INSET } from "./theme.ts";
@@ -101,7 +102,6 @@ export function MapView({
 
   const [selectedVehicle, setSelectedVehicle] =
     useState<SelectedVehicle | null>(null);
-  const [tripCancelled, setTripCancelled] = useState(false);
   const mapRef = useRef<MapLibreMap | null>(null);
 
   const handleMapLoad = (event: MapLibreEvent) => {
@@ -149,7 +149,11 @@ export function MapView({
   const [chasedVehicle, setChasedVehicle] = useState<ChasedVehicle | null>(
     null,
   );
-  const [chasedVehicleStore] = useState(() => new ChasedVehicleStore());
+  const [chasedVehicleStore] = useState(() => new VehicleStore());
+  const [ghostStore] = useState(() => new VehicleStore());
+  // The "Ghost vehicle" switch in the Layers panel. Off by default: it is
+  // something to switch on and look for, not a mark to explain unasked.
+  const [showScheduleGhost, setShowScheduleGhost] = useState(false);
   const chasedVehicleKey = chasedVehicle
     ? chasedVehicle.vehicleId + "_" + chasedVehicle.serviceJourneyId
     : null;
@@ -270,6 +274,24 @@ export function MapView({
       ? (selectedVehicle.coordinates as [number, number])
       : null;
 
+  // The selected journey's timetable and route, here rather than in the panel
+  // and the route layer because the schedule ghost reads both. A selection
+  // never outlives vehicles mode (switchMode clears it).
+  const selectedJourneyId =
+    selectedVehicle?.properties.serviceJourneyId ?? null;
+  const timetable = useTimetableSubscription(
+    selectedJourneyId,
+    selectedVehicle?.properties.date ?? null,
+  );
+  const route = useServiceJourneyRoute(selectedJourneyId);
+  const ghostSchedule = useMemo(
+    () =>
+      showScheduleGhost
+        ? buildSchedule(route?.coordinates ?? null, timetable)
+        : null,
+    [showScheduleGhost, route, timetable],
+  );
+
   const vehicleUpdates = useMemo(
     () => data.map((vehicle) => vehicle.vehicleUpdate),
     [data],
@@ -305,6 +327,8 @@ export function MapView({
           setMapViewOptions={setMapViewOptions}
           showTransitNetwork={showTransitNetwork}
           setShowTransitNetwork={setShowTransitNetwork}
+          showScheduleGhost={showScheduleGhost}
+          setShowScheduleGhost={setShowScheduleGhost}
         />
         <MapBottomPadding bottom={mapBottomInset} keepInView={keepInView} />
         <RegisterIcons />
@@ -330,6 +354,7 @@ export function MapView({
                 viewDimension={viewDimension}
                 chasedVehicleKey={chasedVehicleKey}
                 chasedVehicleStore={chasedVehicleStore}
+                ghostStore={ghostStore}
               />
             )}
             {chasedVehicle && (
@@ -347,12 +372,15 @@ export function MapView({
             )}
             {mapViewOptions.showVehicleTraces && <VehicleTraces data={data} />}
             <RouteLayer
-              serviceJourneyId={
-                selectedVehicle?.properties.serviceJourneyId ?? null
-              }
-              // The panel reports the cancellation of the selected trip; with
-              // nothing selected, whatever it last reported no longer applies.
-              cancelled={selectedVehicle !== null && tripCancelled}
+              route={route}
+              cancelled={timetable?.cancellation === true}
+            />
+            <ScheduleGhost
+              selectedVehicle={selectedVehicle}
+              schedule={ghostSchedule}
+              data={vehicleUpdates}
+              chasedVehicleStore={chasedVehicleStore}
+              ghostStore={ghostStore}
             />
             {/* The popup would sit at the newest report, ahead of the chased
                 model, and over the road the camera is showing. On a phone
@@ -380,8 +408,8 @@ export function MapView({
       {mode === "vehicles" && (
         <SelectedVehiclePanel
           selectedVehicle={selectedVehicle}
+          timetable={timetable}
           onClose={() => setSelectedVehicle(null)}
-          onCancellationChange={setTripCancelled}
           layout={detailLayout}
           actions={{
             isFollowing:

@@ -2,10 +2,11 @@ import { useEffect } from "react";
 import { useMap } from "react-map-gl/maplibre";
 import { GeoJSONSource } from "maplibre-gl";
 import type { FeatureCollection } from "geojson";
-import { useServiceJourneyRoute } from "../hooks/useServiceJourneyRoute.ts";
+import { RoutePolyline } from "../types.ts";
 
 type RouteLayerProps = {
-  serviceJourneyId: string | null;
+  /** The selected journey's route, fetched in `MapView` for the schedule ghost too. */
+  route: RoutePolyline | null;
   cancelled: boolean;
 };
 
@@ -14,8 +15,7 @@ const EMPTY_FEATURE_COLLECTION: FeatureCollection = {
   features: [],
 };
 
-export function RouteLayer({ serviceJourneyId, cancelled }: RouteLayerProps) {
-  const route = useServiceJourneyRoute(serviceJourneyId);
+export function RouteLayer({ route, cancelled }: RouteLayerProps) {
   const { current: mapRef } = useMap();
 
   useEffect(() => {
