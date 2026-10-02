@@ -86,6 +86,7 @@ export function MapLayers({
                 <Switch
                   checked={mapViewOptions.showVehicles}
                   onChange={handleToggleLayer("showVehicles", [
+                    "vehicle-dot-layer",
                     "vehicle-layer",
                     "vehicle-bearing-layer",
                   ])}

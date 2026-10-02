@@ -10,8 +10,15 @@ import {
 } from "../../domain/vehicleFootprint.ts";
 import { labelColoursFor } from "../../domain/vehiclePaint.ts";
 
-/** Layers a click can select a vehicle from: its icon and, zoomed in, its model. */
-const CLICKABLE_VEHICLE_LAYERS = ["vehicle-layer", "vehicle-model-layer"];
+/**
+ * Layers a click can select a vehicle from: its dot zoomed out, its icon, and
+ * zoomed in, its model.
+ */
+const CLICKABLE_VEHICLE_LAYERS = [
+  "vehicle-dot-layer",
+  "vehicle-layer",
+  "vehicle-model-layer",
+];
 
 type SelectedVehicleProperties = {
   id: string;

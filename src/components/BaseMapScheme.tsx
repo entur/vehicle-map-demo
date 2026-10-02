@@ -54,6 +54,11 @@ export function BaseMapScheme({ builtFor }: { builtFor: MapScheme }) {
         "hillshade-shadow-color",
         paint.hillshadeShadow,
       );
+      map.setPaintProperty(
+        "vehicle-dot-layer",
+        "circle-stroke-color",
+        paint.vehicleDotEdge,
+      );
       for (const [id, property, value] of transitNetworkPaint(scheme)) {
         map.setPaintProperty(id, property as "line-color", value);
       }

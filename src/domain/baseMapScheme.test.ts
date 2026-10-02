@@ -72,6 +72,7 @@ describe("SCHEME_PAINT", () => {
         text: "#3d4452",
         textHalo: "#ffffff",
       },
+      vehicleDotEdge: "#ffffff",
     });
   });
 
@@ -80,6 +81,7 @@ describe("SCHEME_PAINT", () => {
       expect(SCHEME_PAINT[scheme].buildings).toMatch(/^#[0-9a-f]{6}$/);
       expect(SCHEME_PAINT[scheme].hillshadeShadow).toMatch(/^#[0-9a-f]{6}$/);
       expect(SCHEME_PAINT[scheme].sky["sky-color"]).toBeTruthy();
+      expect(SCHEME_PAINT[scheme].vehicleDotEdge).toMatch(/^#[0-9a-f]{6}$/);
       for (const colour of Object.values(SCHEME_PAINT[scheme].transit)) {
         expect(colour).toMatch(/^#[0-9a-f]{6}$/);
       }

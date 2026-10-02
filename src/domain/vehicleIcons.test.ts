@@ -1,7 +1,12 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import type { VehicleModeEnumeration } from "../types.ts";
 import {
+  UNKNOWN_VEHICLE_COLOUR,
   UNKNOWN_VEHICLE_ICON,
+  VEHICLE_COLOUR_BY_MODE,
+  VEHICLE_DOT_COLOUR_MATCH,
+  VEHICLE_DOT_SORT_KEY,
   VEHICLE_ICON_MATCH,
   vehicleIconName,
 } from "./vehicleIcons.ts";
@@ -19,12 +24,18 @@ const EXPECTED: Record<VehicleModeEnumeration, string> = {
   TRAM: "vehicle-tram",
 };
 
-/** Evaluates `["match", ["get", "mode"], k1, v1, …, fallback]` for one mode. */
-function evaluateMatch(mode: string): unknown {
-  const [, , ...rest] = VEHICLE_ICON_MATCH as unknown[];
+/**
+ * Evaluates `["match", ["get", "mode"], k1, v1, …, fallback]` for one mode,
+ * where a key may also be an array of labels.
+ */
+function evaluateMatch(mode: string, match: unknown = VEHICLE_ICON_MATCH) {
+  const [, , ...rest] = match as unknown[];
   const fallback = rest[rest.length - 1];
   for (let i = 0; i < rest.length - 1; i += 2) {
-    if (rest[i] === mode) return rest[i + 1];
+    const key = rest[i];
+    if (Array.isArray(key) ? key.includes(mode) : key === mode) {
+      return rest[i + 1];
+    }
   }
   return fallback;
 }
@@ -57,5 +68,41 @@ describe("VEHICLE_ICON_MATCH", () => {
         vehicleIconName(mode),
       ]);
     }
+  });
+});
+
+describe("vehicle dots", () => {
+  it.each(
+    Object.entries(EXPECTED).filter(
+      ([, icon]) => icon !== UNKNOWN_VEHICLE_ICON,
+    ),
+  )("colours %s like the fill of its icon's SVG", (mode, icon) => {
+    const file = icon.replace("vehicle-", "");
+    const svg = readFileSync(
+      new URL(`../static/images/vehicles/${file}.svg`, import.meta.url),
+      "utf8",
+    );
+    const fill = svg.match(/fill="(#[0-9A-Fa-f]{6})"/)?.[1];
+    expect(fill).toBe(VEHICLE_COLOUR_BY_MODE[mode as VehicleModeEnumeration]);
+    expect(evaluateMatch(mode, VEHICLE_DOT_COLOUR_MATCH)).toBe(fill);
+  });
+
+  it("gives a mode without an icon the unknown colour", () => {
+    for (const mode of ["AIR", "TAXI", "HOVERCRAFT"]) {
+      expect(evaluateMatch(mode, VEHICLE_DOT_COLOUR_MATCH)).toBe(
+        UNKNOWN_VEHICLE_COLOUR,
+      );
+    }
+  });
+
+  it("draws buses and coaches under the other modes, and unknown on top", () => {
+    const key = (mode: string) => evaluateMatch(mode, VEHICLE_DOT_SORT_KEY);
+    expect(key("BUS")).toBe(0);
+    expect(key("COACH")).toBe(0);
+    for (const mode of ["TRAM", "METRO", "RAIL", "FERRY"]) {
+      expect(key(mode)).toBe(1);
+    }
+    expect(key("AIR")).toBe(2);
+    expect(key("HOVERCRAFT")).toBe(2);
   });
 });

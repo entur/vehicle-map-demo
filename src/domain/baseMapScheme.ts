@@ -1,4 +1,5 @@
 import type { SkySpecification } from "@maplibre/maplibre-gl-style-spec";
+import { EDGE_INK, EDGE_WHITE } from "./dataColours.ts";
 import {
   BASE_MAP_SNAPSHOTS,
   MAP_SCHEMES,
@@ -47,6 +48,12 @@ export type SchemePaint = {
   hillshadeShadow: string;
   sky: SkySpecification;
   transit: TransitPaint;
+  /**
+   * The ring round a vehicle dot: the map's own tone, so the mode colour
+   * inside is what reads. White on Positron and ink on Fiord look alike for
+   * that reason; a white ring on Fiord outweighed the darker mode colours.
+   */
+  vehicleDotEdge: string;
 };
 
 /**
@@ -84,6 +91,7 @@ export const SCHEME_PAINT: Record<MapScheme, SchemePaint> = {
       text: "#3d4452",
       textHalo: "#ffffff",
     },
+    vehicleDotEdge: EDGE_WHITE,
   },
   dark: {
     buildings: "#3a4560",
@@ -103,6 +111,7 @@ export const SCHEME_PAINT: Record<MapScheme, SchemePaint> = {
       text: "#d5dbe5",
       textHalo: "#2b3345",
     },
+    vehicleDotEdge: EDGE_INK,
   },
 };
 
