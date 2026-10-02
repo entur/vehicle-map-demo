@@ -66,6 +66,12 @@ const severityColourExpression: ExpressionSpecification = [
 export const VEHICLE_MODEL_MIN_ZOOM = 16;
 
 /**
+ * How solid the schedule ghost is, icon and model alike: faint enough never
+ * to be taken for a vehicle, solid enough to find.
+ */
+export const SCHEDULE_GHOST_OPACITY = 0.45;
+
+/**
  * Zoom from which a vehicle's bearing is drawn as an arrow on its icon's edge.
  * The arrow fades out with the icon, since the 3D model shows heading itself.
  */
@@ -350,6 +356,12 @@ export function buildMapStyle(scheme: MapScheme): StyleSpecification {
         type: "geojson",
         data: { type: "FeatureCollection", features: [] },
       },
+      // The selected vehicle's schedule ghost and the link from it to the
+      // vehicle. Written by ScheduleGhost.
+      scheduleGhost: {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] },
+      },
       situationLines: {
         type: "geojson",
         data: { type: "FeatureCollection", features: [] },
@@ -584,6 +596,53 @@ export function buildMapStyle(scheme: MapScheme): StyleSpecification {
           ],
           "line-opacity": 0.6,
           "line-blur": 0.5,
+        },
+      },
+      // The schedule ghost, under the vehicles so the real one is always on
+      // top. The link is a two-tone edge (dataColours.ts): white under ink
+      // dashes, legible on both base maps without a colour of its own.
+      {
+        id: "schedule-ghost-link-casing-layer",
+        type: "line",
+        source: "scheduleGhost",
+        filter: ["==", ["geometry-type"], "LineString"],
+        layout: { "line-cap": "round" },
+        paint: { "line-color": EDGE_WHITE, "line-width": 4 },
+      },
+      {
+        id: "schedule-ghost-link-layer",
+        type: "line",
+        source: "scheduleGhost",
+        filter: ["==", ["geometry-type"], "LineString"],
+        paint: {
+          "line-color": EDGE_INK,
+          "line-width": 2,
+          "line-dasharray": [2, 2],
+        },
+      },
+      // The vehicle's own icon, faded, and gone where the models take over —
+      // VehicleModels draws the ghost's model from there.
+      {
+        id: "schedule-ghost-layer",
+        type: "symbol",
+        source: "scheduleGhost",
+        filter: ["==", ["geometry-type"], "Point"],
+        layout: {
+          "icon-image": VEHICLE_ICON_MATCH,
+          "icon-size": VEHICLE_ICON_SIZE_EXPRESSION,
+          "icon-allow-overlap": true,
+          "icon-ignore-placement": true,
+        },
+        paint: {
+          "icon-opacity": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            VEHICLE_MODEL_MIN_ZOOM,
+            SCHEDULE_GHOST_OPACITY,
+            VEHICLE_MODEL_MIN_ZOOM + 0.5,
+            0,
+          ],
         },
       },
       // Click target for the 3D vehicle models, which deck.gl draws (see

@@ -4,7 +4,7 @@ import { MapLibreOverlay } from "@deck.gl/maplibre";
 import type { Layer } from "@deck.gl/core";
 import { VehicleUpdate } from "../../types.ts";
 import { ViewDimension } from "../../domain/viewDimension.ts";
-import { VEHICLE_MODEL_MIN_ZOOM } from "../mapStyle.ts";
+import { SCHEDULE_GHOST_OPACITY, VEHICLE_MODEL_MIN_ZOOM } from "../mapStyle.ts";
 import {
   MODEL_BEFORE_LAYER,
   ModelLayerOptions,
@@ -12,7 +12,7 @@ import {
 } from "./vehicleModelLayers.ts";
 import { withLayerAsStyleLoaded } from "../../utils/withLayerAsStyleLoaded.ts";
 import { ViewBounds, vehiclesInView } from "../../domain/vehiclesInView.ts";
-import { ChasedVehicleStore } from "./chasedVehicleStore.ts";
+import { VehicleStore } from "./chasedVehicleStore.ts";
 
 /** Fades the models in over the same half zoom level the icons fade out. */
 function modelOpacity(zoom: number) {
@@ -26,7 +26,9 @@ type Props = {
   viewDimension: ViewDimension;
   /** Cache key of the vehicle the chase camera draws itself, if any. */
   chasedVehicleKey: string | null;
-  chasedVehicleStore: ChasedVehicleStore;
+  chasedVehicleStore: VehicleStore;
+  /** The selected vehicle's schedule ghost, written by ScheduleGhost. */
+  ghostStore: VehicleStore;
 };
 
 /**
@@ -38,13 +40,14 @@ type Props = {
  * A chased vehicle is left out of the ordinary layers and drawn from
  * `chasedVehicleStore` instead, at the position the chase camera interpolated
  * — otherwise its model would sit at the newest report, seconds ahead of the
- * camera.
+ * camera. The schedule ghost is drawn the same way, from `ghostStore`, faded.
  */
 export function VehicleModels({
   data,
   viewDimension,
   chasedVehicleKey,
   chasedVehicleStore,
+  ghostStore,
 }: Props) {
   const overlay = useControl(
     () => new MapLibreOverlay({ interleaved: true, layers: [] }),
@@ -53,6 +56,7 @@ export function VehicleModels({
   const [opacity, setOpacity] = useState(0);
   const baseLayers = useRef<Layer[]>([]);
   const chasedLayers = useRef<Layer[]>([]);
+  const ghostLayers = useRef<Layer[]>([]);
   const options = useRef<Omit<ModelLayerOptions, "idPrefix"> | null>(null);
 
   // Every handover of layers goes through here, so that deck.gl can add its
@@ -62,7 +66,11 @@ export function VehicleModels({
     if (!map) return;
     withLayerAsStyleLoaded(map, MODEL_BEFORE_LAYER, () =>
       overlay.setProps({
-        layers: [...baseLayers.current, ...chasedLayers.current],
+        layers: [
+          ...baseLayers.current,
+          ...chasedLayers.current,
+          ...ghostLayers.current,
+        ],
       }),
     );
   }, [mapRef, overlay]);
@@ -184,6 +192,32 @@ export function VehicleModels({
       chasedLayers.current = [];
     };
   }, [handOver, chasedVehicleStore]);
+
+  useEffect(() => {
+    const publish = () => {
+      const ghost = ghostStore.get();
+      // Nothing to hand over while there was no ghost and still is none.
+      if (!ghost && ghostLayers.current.length === 0) return;
+      const position = ghost && options.current?.getPosition(ghost);
+      ghostLayers.current =
+        ghost && options.current && position
+          ? vehicleModelLayers([ghost], {
+              ...options.current,
+              idPrefix: "vehicle-models-ghost",
+              opacity: options.current.opacity * SCHEDULE_GHOST_OPACITY,
+              getPosition: () => position,
+              positionTrigger: position,
+            })
+          : [];
+      handOver();
+    };
+    publish();
+    const unsubscribe = ghostStore.subscribe(publish);
+    return () => {
+      unsubscribe();
+      ghostLayers.current = [];
+    };
+  }, [handOver, ghostStore]);
 
   return null;
 }

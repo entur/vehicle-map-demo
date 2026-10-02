@@ -1,12 +1,12 @@
 import { VehicleUpdate } from "../../types.ts";
 
 /**
- * The chased vehicle as the chase camera currently sees it: the newest report,
- * with its location and bearing replaced by the interpolated ones. Written
- * every animation frame, so it is a plain subscribable value rather than React
- * state — a state update per frame would re-render the whole map tree.
+ * A vehicle drawn at a position worked out every animation frame: the chased
+ * vehicle as the chase camera interpolates it, or the selected vehicle's
+ * schedule ghost. A plain subscribable value rather than React state — a state
+ * update per frame would re-render the whole map tree.
  */
-export class ChasedVehicleStore {
+export class VehicleStore {
   private value: VehicleUpdate | null = null;
   private readonly listeners = new Set<() => void>();
 
