@@ -10,14 +10,16 @@ import { dimensionsFor } from "./vehicleFootprint.ts";
  * pack covers the Norwegian fleet — metro, coach and ferry in particular — and
  * code makes every model true to `VEHICLE_DIMENSIONS` by construction.
  *
- * Each model is three meshes. The **body** is pure white, so the renderer's
+ * Each model is four meshes. The **body** is pure white, so the renderer's
  * per-vehicle `getColor` sets its colour exactly — the line's published
  * colour, or the mode colour. The destination **sign** is textured per
  * vehicle with its destination, and carries texture coordinates for it; its
- * vertex colours are white too, and unused. The **details** — glass, lights,
- * wheels, underframe — carry fixed vertex colours and are drawn with a white
- * `getColor`, since deck.gl multiplies the two and would tint a headlight as
- * readily as a body panel.
+ * vertex colours are white too, and unused. The **details** — glass, wheels,
+ * underframe — and the **lamps** carry fixed vertex colours and are drawn with
+ * a white `getColor`, since deck.gl multiplies the two and would tint a
+ * headlight as readily as a body panel. The lamps are a mesh of their own so
+ * the renderer can light them differently: in dark mode they are drawn at full
+ * colour whichever way they face, so they read as lit.
  *
  * Model space: origin at the vehicle's reported position on the ground,
  * +y forward, +x to the vehicle's right, +z up.
@@ -40,6 +42,8 @@ export type VehicleModel = {
   sign: Required<VehicleMesh>;
   /** Fixed colours; drawn untinted. */
   details: VehicleMesh;
+  /** Head, tail, indicator and navigation lights: fixed colours, untinted. */
+  lamps: VehicleMesh;
 };
 
 type Vec3 = [number, number, number];
@@ -72,6 +76,18 @@ export const MESH_COLOURS = {
   raft: rgb(0xe9e6dd),
   rescueBoat: rgb(0xf26b1d),
 } as const;
+
+/**
+ * The colours that are lamps, and go to the lamps mesh rather than the
+ * details. Compared by identity, so a detail that happened to share a lamp's
+ * value would stay a detail.
+ */
+const LAMP_COLOURS: ReadonlySet<RGB> = new Set([
+  MESH_COLOURS.headlight,
+  MESH_COLOURS.taillight,
+  MESH_COLOURS.indicator,
+  MESH_COLOURS.starboard,
+]);
 
 /**
  * Marks a primitive as body paint rather than a detail. Compared by identity,
@@ -180,6 +196,7 @@ class MeshBuilder {
   private body = emptyArrays();
   private sign = emptyArrays();
   private details = emptyArrays();
+  private lamps = emptyArrays();
 
   /**
    * One triangle, wound so its normal points away from `inside`. Taking an
@@ -218,7 +235,13 @@ class MeshBuilder {
     }
     const vertices = [a, b, c];
     const target =
-      colour === PAINT ? this.body : colour === SIGN ? this.sign : this.details;
+      colour === PAINT
+        ? this.body
+        : colour === SIGN
+          ? this.sign
+          : LAMP_COLOURS.has(colour)
+            ? this.lamps
+            : this.details;
     const stored = colour === PAINT || colour === SIGN ? WHITE : colour;
     for (const i of order) {
       target.positions.push(...vertices[i]);
@@ -522,6 +545,7 @@ class MeshBuilder {
         texCoords: { value: new Float32Array(this.sign.texCoords), size: 2 },
       },
       details: mesh(this.details),
+      lamps: mesh(this.lamps),
     };
   }
 }
