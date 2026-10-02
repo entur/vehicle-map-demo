@@ -16,6 +16,7 @@ import {
 import {
   SCHEME_PAINT,
   baseLayerVisibility,
+  buildingColour,
   transitNetworkPaint,
 } from "../domain/baseMapScheme.ts";
 import {
@@ -32,6 +33,11 @@ import {
   TRANSIT_LINE_FILTER,
   TRANSIT_LINE_LAYER,
 } from "../domain/transitNetwork.ts";
+import {
+  AERIAL_LAYER_SPEC,
+  AERIAL_SOURCE,
+  AERIAL_SOURCE_SPEC,
+} from "../domain/aerialImagery.ts";
 import {
   BEARING_ARROW_ICON,
   VEHICLE_DOT_COLOUR_MATCH,
@@ -78,6 +84,19 @@ export const SCHEDULE_GHOST_OPACITY = 0.45;
  * The arrow fades out with the icon, since the 3D model shows heading itself.
  */
 export const VEHICLE_BEARING_MIN_ZOOM = 13;
+
+/**
+ * buildings-3d-layer's zoom floor and filter, shared with
+ * AerialBuildingColours so it samples exactly the buildings the layer draws.
+ * OpenMapTiles marks an outline whose `building:part`s are drawn instead
+ * with `hide_3d`.
+ */
+export const BUILDINGS_3D_MIN_ZOOM = 14;
+export const BUILDINGS_3D_FILTER: ExpressionSpecification = [
+  "!=",
+  ["get", "hide_3d"],
+  true,
+];
 
 /**
  * Zoom from which `vehicle-layer` draws line-code labels. Below it the text
@@ -329,6 +348,7 @@ export function buildMapStyle(scheme: MapScheme): StyleSpecification {
     sources: {
       // openmaptiles also feeds buildings-3d-layer.
       ...BASE_MAP_SOURCES,
+      [AERIAL_SOURCE]: AERIAL_SOURCE_SPEC,
       // 3D view only (see src/domain/viewDimension.ts). Both keyless. Terrain and
       // hillshade read the same tiles through two sources, because MapLibre
       // warns that one raster-dem source serving both degrades its tile cache.
@@ -385,6 +405,8 @@ export function buildMapStyle(scheme: MapScheme): StyleSpecification {
 
     layers: [
       ...base.nonSymbol,
+      // Covers the base map's ground, and nothing drawn above it.
+      AERIAL_LAYER_SPEC,
       ...transit.lines,
       // The two 3D-only base layers sit between the base map's ordinary
       // layers and its symbol (label) layers: below every data layer, so
@@ -410,11 +432,11 @@ export function buildMapStyle(scheme: MapScheme): StyleSpecification {
         type: "fill-extrusion",
         source: "openmaptiles",
         "source-layer": "building",
-        minzoom: 14,
-        filter: ["!=", ["get", "hide_3d"], true],
+        minzoom: BUILDINGS_3D_MIN_ZOOM,
+        filter: BUILDINGS_3D_FILTER,
         layout: { visibility: "none" },
         paint: {
-          "fill-extrusion-color": paint.buildings,
+          "fill-extrusion-color": buildingColour(scheme),
           // OpenMapTiles estimates render_height from levels when no height is
           // tagged; 8 m covers footprints with neither.
           "fill-extrusion-height": [

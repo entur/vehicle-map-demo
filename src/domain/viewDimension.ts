@@ -4,6 +4,7 @@ import {
   baseMapLayerIds,
 } from "../components/basemap/basemap.ts";
 import { TRANSIT_NETWORK_LAYERS } from "./transitNetwork.ts";
+import { AERIAL_LAYER, AERIAL_SOURCE } from "./aerialImagery.ts";
 
 /**
  * Whether the map is drawn flat or tilted over terrain with extruded
@@ -36,12 +37,14 @@ export const BASE_LAYERS = [
   ...baseMapLayerIds(),
   ...VIEW_3D_LAYERS,
   ...TRANSIT_NETWORK_LAYERS,
+  AERIAL_LAYER,
 ];
 
 export const BASE_SOURCES = [
   ...Object.keys(BASE_MAP_SOURCES),
   "terrain",
   "hillshade",
+  AERIAL_SOURCE,
 ];
 
 /**
