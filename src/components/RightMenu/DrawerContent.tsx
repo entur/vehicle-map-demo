@@ -19,6 +19,8 @@ type DrawerContentProps = {
   setMapViewOptions: (mapViewOptions: MapViewOptions) => void;
   showTransitNetwork: boolean;
   setShowTransitNetwork: (show: boolean) => void;
+  showAerial: boolean;
+  setShowAerial: (show: boolean) => void;
   showScheduleGhost: boolean;
   setShowScheduleGhost: (show: boolean) => void;
   data: VehicleUpdate[];
@@ -33,6 +35,8 @@ export const DrawerContent = memo(function DrawerContent({
   setMapViewOptions,
   showTransitNetwork,
   setShowTransitNetwork,
+  showAerial,
+  setShowAerial,
   showScheduleGhost,
   setShowScheduleGhost,
   data,
@@ -55,6 +59,8 @@ export const DrawerContent = memo(function DrawerContent({
           setMapViewOptions={setMapViewOptions}
           showTransitNetwork={showTransitNetwork}
           setShowTransitNetwork={setShowTransitNetwork}
+          showAerial={showAerial}
+          setShowAerial={setShowAerial}
           showScheduleGhost={showScheduleGhost}
           setShowScheduleGhost={setShowScheduleGhost}
         />
