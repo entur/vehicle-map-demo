@@ -12,6 +12,8 @@ import {
 import { paintFor } from "../../domain/vehiclePaint.ts";
 import { signGroups } from "../../domain/destinationSign.ts";
 import { signTexture } from "./signTexture.ts";
+import { lightPoolTexture } from "./lightPoolTexture.ts";
+import { hasLightPool, lightPoolMesh } from "../../domain/lightPool.ts";
 import type { MapScheme } from "../basemap/basemap.ts";
 
 /** Models draw under the icon layer, so line labels and delay lights stay on top. */
@@ -64,6 +66,22 @@ export const MODEL_MATERIALS: Record<
     signs: glowing(1),
   },
 };
+
+/**
+ * How the light pools are blended: added to what is under them, so they
+ * brighten the dark road rather than paint over it, and without writing depth,
+ * so the models drawn after them are not hidden behind a transparent quad.
+ */
+const LIGHT_POOL_PARAMETERS = {
+  depthWriteEnabled: false,
+  blend: true,
+  blendColorOperation: "add",
+  blendColorSrcFactor: "src-alpha",
+  blendColorDstFactor: "one",
+  blendAlphaOperation: "add",
+  blendAlphaSrcFactor: "zero",
+  blendAlphaDstFactor: "one",
+} as const;
 
 export type ModelLayerOptions = {
   /** Prefixed to every layer id, so two sets of models can coexist. */
@@ -131,6 +149,28 @@ export function vehicleModelLayers(
   // one layer per destination and sign colour,
   // since the texture carries both and a layer takes one. A ferry has no
   // sign, so no sign layers.
+  // In dark mode, a pool of headlight on the road ahead of every vehicle with
+  // headlights. Drawn first, so the models are drawn over it.
+  const pools =
+    scheme === "dark"
+      ? [...byMode]
+          .filter(([mode]) => hasLightPool(mode))
+          .map(
+            ([mode, list]) =>
+              new SimpleMeshLayer<VehicleUpdate>({
+                ...shared,
+                id: `${idPrefix}-${mode}-light-pool`,
+                data: list,
+                mesh: lightPoolMesh(mode),
+                texture: lightPoolTexture(),
+                getOrientation,
+                getColor: UNTINTED,
+                material: materials.signs,
+                parameters: LIGHT_POOL_PARAMETERS,
+              }),
+          )
+      : [];
+
   const layers = [...byMode].flatMap(([mode, list]) => {
     const { body, sign, details, lamps } = modelFor(mode);
     return [
@@ -179,6 +219,7 @@ export function vehicleModelLayers(
     ];
   });
 
+  layers.unshift(...pools);
   layers.push(
     new SimpleMeshLayer<VehicleUpdate>({
       ...shared,

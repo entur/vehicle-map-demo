@@ -59,4 +59,22 @@ describe("vehicleModelLayers", () => {
       expect(material("-BUS-sign-"), scheme).toBe(expected.signs);
     }
   });
+
+  it("draws light pools in dark mode only, before the models", () => {
+    const vehicles = [bus("1", "Ullevål"), { ...bus("2", ""), mode: "FERRY" }];
+    const ids = (scheme: MapScheme) =>
+      vehicleModelLayers(
+        vehicles as VehicleUpdate[],
+        options(true, scheme),
+      ).map((layer) => layer.id);
+    expect(ids("light").filter((id) => id.endsWith("-light-pool"))).toEqual([]);
+    const dark = ids("dark");
+    // A ferry carries no headlights.
+    expect(dark.filter((id) => id.endsWith("-light-pool"))).toEqual([
+      "models-BUS-light-pool",
+    ]);
+    expect(dark.indexOf("models-BUS-light-pool")).toBeLessThan(
+      dark.indexOf("models-BUS-body"),
+    );
+  });
 });
