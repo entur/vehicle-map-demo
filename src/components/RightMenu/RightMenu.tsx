@@ -21,6 +21,8 @@ interface RightMenuProps {
   setMapViewOptions: (mapViewOptions: MapViewOptions) => void;
   showTransitNetwork: boolean;
   setShowTransitNetwork: (show: boolean) => void;
+  showAerial: boolean;
+  setShowAerial: (show: boolean) => void;
   showScheduleGhost: boolean;
   setShowScheduleGhost: (show: boolean) => void;
   data: VehicleUpdate[];
@@ -36,6 +38,8 @@ export const RightMenu = ({
   setMapViewOptions,
   showTransitNetwork,
   setShowTransitNetwork,
+  showAerial,
+  setShowAerial,
   showScheduleGhost,
   setShowScheduleGhost,
   data,
@@ -123,6 +127,8 @@ export const RightMenu = ({
               setMapViewOptions={setMapViewOptions}
               showTransitNetwork={showTransitNetwork}
               setShowTransitNetwork={setShowTransitNetwork}
+              showAerial={showAerial}
+              setShowAerial={setShowAerial}
               showScheduleGhost={showScheduleGhost}
               setShowScheduleGhost={setShowScheduleGhost}
               data={panelData}

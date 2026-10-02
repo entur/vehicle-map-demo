@@ -27,6 +27,8 @@ type Props = {
   setMapViewOptions: (mapViewOptions: MapViewOptions) => void;
   showTransitNetwork: boolean;
   setShowTransitNetwork: (show: boolean) => void;
+  showAerial: boolean;
+  setShowAerial: (show: boolean) => void;
   showScheduleGhost: boolean;
   setShowScheduleGhost: (show: boolean) => void;
 };
@@ -37,6 +39,8 @@ export function MapLayers({
   setMapViewOptions,
   showTransitNetwork,
   setShowTransitNetwork,
+  showAerial,
+  setShowAerial,
   showScheduleGhost,
   setShowScheduleGhost,
 }: Props) {
@@ -242,6 +246,15 @@ export function MapLayers({
             />
           }
           label={<Typography variant="body2">Transit network</Typography>}
+        />
+        <FormControlLabel
+          control={
+            <Switch
+              checked={showAerial}
+              onChange={(event) => setShowAerial(event.target.checked)}
+            />
+          }
+          label={<Typography variant="body2">Aerial photo</Typography>}
         />
       </FormGroup>
     </Box>

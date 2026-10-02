@@ -67,6 +67,8 @@ import { ViewDimensionControl } from "./ViewDimensionControl.tsx";
 import { ViewDimensionLayers } from "./ViewDimensionLayers.tsx";
 import { BaseMapScheme } from "./BaseMapScheme.tsx";
 import { TransitNetworkLayers } from "./TransitNetworkLayers.tsx";
+import { AerialImageryLayers } from "./AerialImageryLayers.tsx";
+import { AerialBuildingColours } from "./AerialBuildingColours.tsx";
 import { ChaseCamera } from "./Vehicle/ChaseCamera.tsx";
 import { ChasedVehicle, VehicleStore } from "./Vehicle/chasedVehicleStore.ts";
 import { MapBottomPadding } from "./MapBottomPadding.tsx";
@@ -92,6 +94,8 @@ type MapViewProps = {
   setViewDimension: (viewDimension: ViewDimension) => void;
   showTransitNetwork: boolean;
   setShowTransitNetwork: (show: boolean) => void;
+  showAerial: boolean;
+  setShowAerial: (show: boolean) => void;
   data: VehicleData[];
   setCurrentFilter: React.Dispatch<React.SetStateAction<Filter | null>>;
   currentFilter: Filter | null;
@@ -106,6 +110,8 @@ export function MapView({
   setViewDimension,
   showTransitNetwork,
   setShowTransitNetwork,
+  showAerial,
+  setShowAerial,
   data,
   setCurrentFilter,
   currentFilter,
@@ -529,6 +535,8 @@ export function MapView({
         />
         <BaseMapScheme builtFor={builtScheme} />
         <TransitNetworkLayers visible={showTransitNetwork} />
+        <AerialImageryLayers visible={showAerial} />
+        <AerialBuildingColours active={showAerial && viewDimension === "3d"} />
         {!kioskRunning && (
           <RightMenu
             mode={mode}
@@ -540,6 +548,8 @@ export function MapView({
             setMapViewOptions={setMapViewOptions}
             showTransitNetwork={showTransitNetwork}
             setShowTransitNetwork={setShowTransitNetwork}
+            showAerial={showAerial}
+            setShowAerial={setShowAerial}
             showScheduleGhost={showScheduleGhost}
             setShowScheduleGhost={setShowScheduleGhost}
             kiosk={kioskTool}
