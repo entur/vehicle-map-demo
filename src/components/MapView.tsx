@@ -36,6 +36,7 @@ import { RouteLayer } from "./RouteLayer.tsx";
 import { ScheduleGhost } from "./Vehicle/ScheduleGhost.tsx";
 import { useTimetableSubscription } from "../hooks/useTimetableSubscription.ts";
 import { useServiceJourneyRoute } from "../hooks/useServiceJourneyRoute.ts";
+import { buildSchedule } from "../domain/scheduleGhost.ts";
 import { SituationLayers } from "./SituationLayers.tsx";
 import { SituationDetailPanel } from "./SituationsPanel/SituationDetailPanel.tsx";
 import { AppMode } from "../domain/appMode.ts";
@@ -150,6 +151,9 @@ export function MapView({
   );
   const [chasedVehicleStore] = useState(() => new VehicleStore());
   const [ghostStore] = useState(() => new VehicleStore());
+  // The "Ghost vehicle" switch in the Layers panel. Off by default: it is
+  // something to switch on and look for, not a mark to explain unasked.
+  const [showScheduleGhost, setShowScheduleGhost] = useState(false);
   const chasedVehicleKey = chasedVehicle
     ? chasedVehicle.vehicleId + "_" + chasedVehicle.serviceJourneyId
     : null;
@@ -280,6 +284,13 @@ export function MapView({
     selectedVehicle?.properties.date ?? null,
   );
   const route = useServiceJourneyRoute(selectedJourneyId);
+  const ghostSchedule = useMemo(
+    () =>
+      showScheduleGhost
+        ? buildSchedule(route?.coordinates ?? null, timetable)
+        : null,
+    [showScheduleGhost, route, timetable],
+  );
 
   const vehicleUpdates = useMemo(
     () => data.map((vehicle) => vehicle.vehicleUpdate),
@@ -316,6 +327,8 @@ export function MapView({
           setMapViewOptions={setMapViewOptions}
           showTransitNetwork={showTransitNetwork}
           setShowTransitNetwork={setShowTransitNetwork}
+          showScheduleGhost={showScheduleGhost}
+          setShowScheduleGhost={setShowScheduleGhost}
         />
         <MapBottomPadding bottom={mapBottomInset} keepInView={keepInView} />
         <RegisterIcons />
@@ -364,8 +377,7 @@ export function MapView({
             />
             <ScheduleGhost
               selectedVehicle={selectedVehicle}
-              route={route}
-              timetable={timetable}
+              schedule={ghostSchedule}
               data={vehicleUpdates}
               chasedVehicleStore={chasedVehicleStore}
               ghostStore={ghostStore}

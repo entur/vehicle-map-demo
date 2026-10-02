@@ -11,6 +11,7 @@ import { MapViewOptions } from "../types.ts";
 import { AppMode } from "../domain/appMode.ts";
 import { VehicleIconCanvas } from "./VehicleIconCanvas.tsx";
 import { VEHICLE_ICON_URLS } from "./vehicleIconImages.ts";
+import { SCHEDULE_GHOST_OPACITY } from "./mapStyle.ts";
 
 import greenMarker from "../static/images/greenUpdate.png";
 import skullMarker from "../static/images/skull.png";
@@ -26,6 +27,8 @@ type Props = {
   setMapViewOptions: (mapViewOptions: MapViewOptions) => void;
   showTransitNetwork: boolean;
   setShowTransitNetwork: (show: boolean) => void;
+  showScheduleGhost: boolean;
+  setShowScheduleGhost: (show: boolean) => void;
 };
 
 export function MapLayers({
@@ -34,6 +37,8 @@ export function MapLayers({
   setMapViewOptions,
   showTransitNetwork,
   setShowTransitNetwork,
+  showScheduleGhost,
+  setShowScheduleGhost,
 }: Props) {
   const { current: mapRef } = useMap();
 
@@ -93,6 +98,32 @@ export function MapLayers({
                     size={22}
                   />
                   <Typography variant="body2">Vehicles</Typography>
+                </Box>
+              }
+            />
+            {/* MapView state, not a MapViewOptions key: those reopen the
+                vehicle subscription. Off means no schedule for ScheduleGhost,
+                so its layers draw nothing; their visibility is not touched. */}
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={showScheduleGhost}
+                  onChange={(event) =>
+                    setShowScheduleGhost(event.target.checked)
+                  }
+                />
+              }
+              label={
+                <Box sx={{ display: "flex", alignItems: "center" }}>
+                  <Box
+                    sx={{ display: "flex", opacity: SCHEDULE_GHOST_OPACITY }}
+                  >
+                    <VehicleIconCanvas
+                      url={VEHICLE_ICON_URLS["vehicle-bus"]}
+                      size={22}
+                    />
+                  </Box>
+                  <Typography variant="body2">Ghost vehicle</Typography>
                 </Box>
               }
             />

@@ -21,6 +21,8 @@ interface RightMenuProps {
   setMapViewOptions: (mapViewOptions: MapViewOptions) => void;
   showTransitNetwork: boolean;
   setShowTransitNetwork: (show: boolean) => void;
+  showScheduleGhost: boolean;
+  setShowScheduleGhost: (show: boolean) => void;
   data: VehicleUpdate[];
 }
 
@@ -33,6 +35,8 @@ export const RightMenu = ({
   setMapViewOptions,
   showTransitNetwork,
   setShowTransitNetwork,
+  showScheduleGhost,
+  setShowScheduleGhost,
   data,
 }: RightMenuProps) => {
   const [activeContent, setActiveContent] = useState<RightContentType | null>(
@@ -117,6 +121,8 @@ export const RightMenu = ({
               setMapViewOptions={setMapViewOptions}
               showTransitNetwork={showTransitNetwork}
               setShowTransitNetwork={setShowTransitNetwork}
+              showScheduleGhost={showScheduleGhost}
+              setShowScheduleGhost={setShowScheduleGhost}
               data={panelData}
             />
           </FloatingCard>

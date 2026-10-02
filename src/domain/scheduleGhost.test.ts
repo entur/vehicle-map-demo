@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { METRES_PER_DEGREE_LAT } from "./vehicleFootprint.ts";
 import {
   GhostCall,
+  buildSchedule,
   locateCalls,
   measureRoute,
   pointAlong,
@@ -184,5 +185,31 @@ describe("pointAlong", () => {
 
   it("has no heading on a route of one point", () => {
     expect(pointAlong(measureRoute([at(0)]), 0).bearing).toBeNull();
+  });
+});
+
+describe("buildSchedule", () => {
+  const calls = [call(at(0), minutes(0)), call(at(2000), minutes(5))];
+
+  it("follows a running trip with a route and two placed stops", () => {
+    const schedule = buildSchedule(STRAIGHT, { cancellation: false, calls });
+    expect(schedule?.calls).toHaveLength(2);
+  });
+
+  it("is null without a route or a timetable", () => {
+    expect(buildSchedule(null, { cancellation: false, calls })).toBeNull();
+    expect(buildSchedule([at(0)], { cancellation: false, calls })).toBeNull();
+    expect(buildSchedule(STRAIGHT, null)).toBeNull();
+  });
+
+  it("is null for a cancelled trip", () => {
+    expect(buildSchedule(STRAIGHT, { cancellation: true, calls })).toBeNull();
+  });
+
+  it("is null with fewer than two stops on the route", () => {
+    const offRoute = [call(at(0), minutes(0)), call(at(2000, 900), minutes(5))];
+    expect(
+      buildSchedule(STRAIGHT, { cancellation: false, calls: offRoute }),
+    ).toBeNull();
   });
 });

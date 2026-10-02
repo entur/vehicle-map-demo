@@ -202,3 +202,24 @@ export function pointAlong(
     bearing: bearingNear(route, i),
   };
 }
+
+/** A journey's route with its stops placed on it: everything the ghost moves by. */
+export type GhostSchedule = {
+  route: GhostRoute;
+  calls: ScheduledCall[];
+};
+
+/**
+ * The schedule the ghost follows, or null when there is to be no ghost: no
+ * route, a cancelled trip, or fewer than two stops placed on the route.
+ */
+export function buildSchedule(
+  routeCoordinates: number[][] | null,
+  timetable: { cancellation: boolean; calls: GhostCall[] } | null,
+): GhostSchedule | null {
+  if (!routeCoordinates || routeCoordinates.length < 2) return null;
+  if (!timetable || timetable.cancellation) return null;
+  const route = measureRoute(routeCoordinates);
+  const calls = locateCalls(route, timetable.calls);
+  return calls.length < 2 ? null : { route, calls };
+}

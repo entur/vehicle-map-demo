@@ -2,14 +2,9 @@ import { useEffect, useMemo, useRef } from "react";
 import { useMap } from "react-map-gl/maplibre";
 import { GeoJSONSource } from "maplibre-gl";
 import type { Feature, FeatureCollection } from "geojson";
+import { VehicleUpdate } from "../../types.ts";
 import {
-  EstimatedTimetableUpdate,
-  RoutePolyline,
-  VehicleUpdate,
-} from "../../types.ts";
-import {
-  locateCalls,
-  measureRoute,
+  GhostSchedule,
   pointAlong,
   scheduledDistance,
 } from "../../domain/scheduleGhost.ts";
@@ -24,9 +19,8 @@ const EMPTY: FeatureCollection = { type: "FeatureCollection", features: [] };
 
 type Props = {
   selectedVehicle: SelectedVehicle | null;
-  /** The selected journey's route and timetable; null until each arrives. */
-  route: RoutePolyline | null;
-  timetable: EstimatedTimetableUpdate | null;
+  /** What the ghost follows (`buildSchedule`); null for no ghost. */
+  schedule: GhostSchedule | null;
   data: VehicleUpdate[];
   chasedVehicleStore: VehicleStore;
   /** Written every frame while the models show, for VehicleModels to draw. */
@@ -35,26 +29,16 @@ type Props = {
 
 /**
  * Draws where the selected vehicle would be now if it ran exactly to its aimed
- * times (see `scheduleGhost.ts`), joined to the vehicle by a dashed link. No
- * ghost without a route, without a timetable, or for a cancelled trip.
+ * times (see `scheduleGhost.ts`), joined to the vehicle by a dashed link.
  */
 export function ScheduleGhost({
   selectedVehicle,
-  route,
-  timetable,
+  schedule,
   data,
   chasedVehicleStore,
   ghostStore,
 }: Props) {
   const { current: mapRef } = useMap();
-
-  const schedule = useMemo(() => {
-    if (!route || route.coordinates.length < 2) return null;
-    if (!timetable || timetable.cancellation) return null;
-    const measured = measureRoute(route.coordinates);
-    const calls = locateCalls(measured, timetable.calls);
-    return calls.length < 2 ? null : { route: measured, calls };
-  }, [route, timetable]);
 
   const vehicleKey = selectedVehicle
     ? selectedVehicle.properties.id +
