@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useMap } from "react-map-gl/maplibre";
 import { Filter } from "../types.ts";
 import { throttle } from "../utils/throttle.ts";
+import { MODEL_REACH_METRES, padBounds } from "../domain/vehiclesInView.ts";
 
 // Simple boundingBox comparison to avoid unnecessary re-renders
 const arraysAreEqual = (a?: number[][], b?: number[][]) => {
@@ -33,10 +34,16 @@ export function CaptureBoundingBox({
 
     const handleMoveEnd = throttle(() => {
       const bounds = map.getMap().getBounds();
-      const boundingBox = [
-        [bounds.getSouthWest().lng, bounds.getSouthWest().lat],
-        [bounds.getNorthEast().lng, bounds.getNorthEast().lat],
-      ];
+      // Padded by a model's reach: the box tests the vehicle's reported
+      // position, its model's centre, so an unpadded box drops a train whose
+      // front half is still on screen. Zoomed out the padding is nothing.
+      const boundingBox: number[][] = padBounds(
+        [
+          [bounds.getWest(), bounds.getSouth()],
+          [bounds.getEast(), bounds.getNorth()],
+        ],
+        MODEL_REACH_METRES,
+      );
 
       setCurrentFilter((prevFilter) => {
         if (!prevFilter) {
