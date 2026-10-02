@@ -20,17 +20,49 @@ export const MODEL_BEFORE_LAYER = "vehicle-layer";
 /** Untinted: deck.gl multiplies this into the vertex colours, and its default is black. */
 const UNTINTED: [number, number, number] = [255, 255, 255];
 
+/** How much less light the shaded parts of a model take in dark mode. */
+export const DARK_SHADING = 0.7;
+
+/** deck.gl's default Phong material, which `true` selects. */
+const DEFAULT_MATERIAL = {
+  ambient: 0.35,
+  diffuse: 0.6,
+  shininess: 32,
+  specularColor: [38.25, 38.25, 38.25] as [number, number, number],
+};
+
+/** Lit by ambient light alone, so the same from every side. */
+const glowing = (strength: number): Material => ({
+  ambient: strength,
+  diffuse: 0,
+  shininess: 1,
+  specularColor: [0, 0, 0],
+});
+
 /**
- * The lamps' material per scheme. In light mode they are shaded like any other
- * detail. In dark mode they take ambient light only, so they are the same
- * from every side, and at more than full strength: the taillights' own colour
- * is darker than a red body, so at their own colour they did not read as lit.
- * Channels clip at full, so the factor brightens a lamp and shifts its hue
- * towards the clipped channel — amber indicators turn more yellow.
+ * The models' materials per scheme. In light mode everything is shaded
+ * alike. In dark mode the **shaded** parts — body, details and the
+ * directionless column — take less light, so the model reads as night, and
+ * what gives light of its own does not: the **lamps** at more than full
+ * strength, since the taillights' own colour is darker than a red body and at
+ * their own colour did not read as lit (channels clip at full, so amber
+ * indicators turn more yellow), and the destination **signs** at exactly full
+ * strength, which keeps their text as drawn rather than washed out.
  */
-export const LAMP_MATERIAL: Record<MapScheme, Material> = {
-  light: true,
-  dark: { ambient: 1.6, diffuse: 0, shininess: 1, specularColor: [0, 0, 0] },
+export const MODEL_MATERIALS: Record<
+  MapScheme,
+  { shaded: Material; lamps: Material; signs: Material }
+> = {
+  light: { shaded: true, lamps: true, signs: true },
+  dark: {
+    shaded: {
+      ...DEFAULT_MATERIAL,
+      ambient: DEFAULT_MATERIAL.ambient * DARK_SHADING,
+      diffuse: DEFAULT_MATERIAL.diffuse * DARK_SHADING,
+    },
+    lamps: glowing(1.6),
+    signs: glowing(1),
+  },
 };
 
 export type ModelLayerOptions = {
@@ -38,7 +70,7 @@ export type ModelLayerOptions = {
   idPrefix: string;
   visible: boolean;
   opacity: number;
-  /** The colour scheme in force, which decides how the lamps are lit. */
+  /** The colour scheme in force, which decides how the models are lit. */
   scheme: MapScheme;
   getPosition: (vehicle: VehicleUpdate) => [number, number, number];
   /** Changes whenever `getPosition` would return something different. */
@@ -78,6 +110,7 @@ export function vehicleModelLayers(
     byMode.set(vehicle.mode, list);
   }
 
+  const materials = MODEL_MATERIALS[scheme];
   const shared = {
     beforeId: MODEL_BEFORE_LAYER,
     visible,
@@ -94,8 +127,8 @@ export function vehicleModelLayers(
   ];
 
   // Layers per mode, sharing transforms: the white body coloured per vehicle,
-  // the details and the lamps drawn in their own fixed colours — the lamps lit
-  // by the scheme — and the signs, one layer per destination and sign colour,
+  // the details and the lamps drawn in their own fixed colours, and the signs,
+  // one layer per destination and sign colour,
   // since the texture carries both and a layer takes one. A ferry has no
   // sign, so no sign layers.
   const layers = [...byMode].flatMap(([mode, list]) => {
@@ -108,6 +141,7 @@ export function vehicleModelLayers(
         mesh: body,
         getOrientation,
         getColor: paintFor,
+        material: materials.shaded,
       }),
       ...(sign.positions.value.length > 0
         ? signGroups(list).map(
@@ -120,6 +154,7 @@ export function vehicleModelLayers(
                 texture: signTexture(text, colour),
                 getOrientation,
                 getColor: UNTINTED,
+                material: materials.signs,
               }),
           )
         : []),
@@ -130,6 +165,7 @@ export function vehicleModelLayers(
         mesh: details,
         getOrientation,
         getColor: UNTINTED,
+        material: materials.shaded,
       }),
       new SimpleMeshLayer<VehicleUpdate>({
         ...shared,
@@ -138,7 +174,7 @@ export function vehicleModelLayers(
         mesh: lamps,
         getOrientation,
         getColor: UNTINTED,
-        material: LAMP_MATERIAL[scheme],
+        material: materials.lamps,
       }),
     ];
   });
@@ -154,6 +190,7 @@ export function vehicleModelLayers(
         return [width * 0.75, width * 0.75, height];
       },
       getColor: paintFor,
+      material: materials.shaded,
     }),
   );
 
