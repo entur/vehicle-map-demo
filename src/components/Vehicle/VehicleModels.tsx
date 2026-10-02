@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useControl, useMap } from "react-map-gl/maplibre";
 import { MapLibreOverlay } from "@deck.gl/maplibre";
+import { useColorScheme } from "@mui/material/styles";
 import type { Layer } from "@deck.gl/core";
 import { VehicleUpdate } from "../../types.ts";
 import { ViewDimension } from "../../domain/viewDimension.ts";
+import { mapSchemeFor } from "../../domain/baseMapScheme.ts";
 import { SCHEDULE_GHOST_OPACITY, VEHICLE_MODEL_MIN_ZOOM } from "../mapStyle.ts";
 import {
   MODEL_BEFORE_LAYER,
@@ -53,6 +55,7 @@ export function VehicleModels({
     () => new MapLibreOverlay({ interleaved: true, layers: [] }),
   );
   const { current: mapRef } = useMap();
+  const scheme = mapSchemeFor(useColorScheme().colorScheme);
   const [opacity, setOpacity] = useState(0);
   const baseLayers = useRef<Layer[]>([]);
   const chasedLayers = useRef<Layer[]>([]);
@@ -157,6 +160,7 @@ export function VehicleModels({
     options.current = {
       visible: opacity > 0,
       opacity,
+      scheme,
       getPosition,
       positionTrigger: viewDimension,
     };
@@ -165,7 +169,7 @@ export function VehicleModels({
       idPrefix: "vehicle-models",
     });
     handOver();
-  }, [handOver, mapRef, unchased, opacity, viewDimension, elevations]);
+  }, [handOver, mapRef, unchased, opacity, scheme, viewDimension, elevations]);
 
   useEffect(() => {
     const publish = () => {

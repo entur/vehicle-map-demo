@@ -31,8 +31,8 @@ function vertices(mesh: VehicleMesh): [number, number, number][] {
 }
 
 /** Every part as one mesh, for checks about the model as a whole. */
-function whole({ body, sign, details }: VehicleModel): VehicleMesh {
-  const parts = [body, sign, details];
+function whole({ body, sign, details, lamps }: VehicleModel): VehicleMesh {
+  const parts = [body, sign, details, lamps];
   const join = (pick: (mesh: VehicleMesh) => Float32Array) => {
     const arrays = parts.map(pick);
     const out = new Float32Array(arrays.reduce((n, a) => n + a.length, 0));
@@ -73,10 +73,15 @@ describe("modelFor", () => {
       const mesh = whole(model);
 
       it("has one normal and one colour per vertex, in whole triangles, in every mesh", () => {
-        for (const part of [model.body, model.details]) {
+        for (const part of [model.body, model.details, model.lamps]) {
           expect(part.positions.value.length).toBeGreaterThan(0);
         }
-        for (const part of [model.body, model.sign, model.details]) {
+        for (const part of [
+          model.body,
+          model.sign,
+          model.details,
+          model.lamps,
+        ]) {
           const n = part.positions.value.length;
           expect(n % 9).toBe(0);
           expect(part.normals.value.length).toBe(n);
@@ -104,6 +109,25 @@ describe("modelFor", () => {
         for (let i = 0; i < c.length; i += 3) {
           expect(c[i] === 1 && c[i + 1] === 1 && c[i + 2] === 1).toBe(false);
         }
+      });
+
+      // The renderer lights the lamps differently in dark mode, so a lamp left
+      // among the details would stay unlit, and a detail among the lamps
+      // would glow.
+      it("puts every lamp, and nothing else, in the lamps mesh", () => {
+        const lampColours = [
+          MESH_COLOURS.headlight,
+          MESH_COLOURS.taillight,
+          MESH_COLOURS.indicator,
+          MESH_COLOURS.starboard,
+        ];
+        const count = (part: VehicleMesh) =>
+          lampColours.reduce(
+            (n, colour) => n + verticesColoured(part, colour).length,
+            0,
+          );
+        expect(count(model.details)).toBe(0);
+        expect(count(model.lamps)).toBe(model.lamps.positions.value.length / 3);
       });
 
       it("has unit normals and finite positions", () => {
@@ -148,7 +172,7 @@ describe("modelFor", () => {
   it("puts every road and rail vehicle's headlights at the +y end", () => {
     for (const mode of MODES.filter((m) => m !== "FERRY")) {
       const lights = verticesColoured(
-        modelFor(mode).details,
+        modelFor(mode).lamps,
         MESH_COLOURS.headlight,
       );
       expect(lights.length, mode).toBeGreaterThan(0);

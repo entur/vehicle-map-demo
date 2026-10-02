@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { VehicleUpdate } from "../../types.ts";
-import { vehicleModelLayers } from "./vehicleModelLayers.ts";
+import { LAMP_MATERIAL, vehicleModelLayers } from "./vehicleModelLayers.ts";
+import type { MapScheme } from "../basemap/basemap.ts";
 
 const bus = (vehicleId: string, destinationName: string): VehicleUpdate =>
   ({
@@ -13,10 +14,11 @@ const bus = (vehicleId: string, destinationName: string): VehicleUpdate =>
     serviceJourney: { id: "RUT:ServiceJourney:" + vehicleId, date: "" },
   }) as VehicleUpdate;
 
-const options = (visible: boolean) => ({
+const options = (visible: boolean, scheme: MapScheme = "light") => ({
   idPrefix: "models",
   visible,
   opacity: visible ? 1 : 0,
+  scheme,
   getPosition: () => [10.75, 59.91, 0] as [number, number, number],
   positionTrigger: null,
 });
@@ -41,5 +43,15 @@ describe("vehicleModelLayers", () => {
     const vehicles = [bus("1", "Ullevål"), bus("2", "Kolsås")];
     const ids = vehicleModelLayers(vehicles, options(true)).map((l) => l.id);
     expect(ids.filter((id) => id.includes("-sign-"))).toHaveLength(2);
+  });
+
+  it("lights the lamps by the colour scheme", () => {
+    const vehicles = [bus("1", "Ullevål")];
+    for (const scheme of ["light", "dark"] as const) {
+      const lamps = vehicleModelLayers(vehicles, options(true, scheme)).find(
+        (layer) => layer.id === "models-BUS-lamps",
+      );
+      expect(lamps?.props.material, scheme).toBe(LAMP_MATERIAL[scheme]);
+    }
   });
 });

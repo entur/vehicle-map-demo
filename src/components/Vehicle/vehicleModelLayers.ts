@@ -1,4 +1,5 @@
 import { SimpleMeshLayer } from "@deck.gl/mesh-layers";
+import type { Material } from "@deck.gl/core";
 import { VehicleModeEnumeration, VehicleUpdate } from "../../types.ts";
 import {
   dimensionsFor,
@@ -11,6 +12,7 @@ import {
 import { paintFor } from "../../domain/vehiclePaint.ts";
 import { signGroups } from "../../domain/destinationSign.ts";
 import { signTexture } from "./signTexture.ts";
+import type { MapScheme } from "../basemap/basemap.ts";
 
 /** Models draw under the icon layer, so line labels and delay lights stay on top. */
 export const MODEL_BEFORE_LAYER = "vehicle-layer";
@@ -18,11 +20,26 @@ export const MODEL_BEFORE_LAYER = "vehicle-layer";
 /** Untinted: deck.gl multiplies this into the vertex colours, and its default is black. */
 const UNTINTED: [number, number, number] = [255, 255, 255];
 
+/**
+ * The lamps' material per scheme. In light mode they are shaded like any other
+ * detail. In dark mode they take ambient light only, so they are the same
+ * from every side, and at more than full strength: the taillights' own colour
+ * is darker than a red body, so at their own colour they did not read as lit.
+ * Channels clip at full, so the factor brightens a lamp and shifts its hue
+ * towards the clipped channel — amber indicators turn more yellow.
+ */
+export const LAMP_MATERIAL: Record<MapScheme, Material> = {
+  light: true,
+  dark: { ambient: 1.6, diffuse: 0, shininess: 1, specularColor: [0, 0, 0] },
+};
+
 export type ModelLayerOptions = {
   /** Prefixed to every layer id, so two sets of models can coexist. */
   idPrefix: string;
   visible: boolean;
   opacity: number;
+  /** The colour scheme in force, which decides how the lamps are lit. */
+  scheme: MapScheme;
   getPosition: (vehicle: VehicleUpdate) => [number, number, number];
   /** Changes whenever `getPosition` would return something different. */
   positionTrigger: unknown;
@@ -39,6 +56,7 @@ export function vehicleModelLayers(
     idPrefix,
     visible,
     opacity,
+    scheme,
     getPosition,
     positionTrigger,
   }: ModelLayerOptions,
@@ -76,11 +94,12 @@ export function vehicleModelLayers(
   ];
 
   // Layers per mode, sharing transforms: the white body coloured per vehicle,
-  // the details drawn in their own fixed colours, and the signs — one layer
-  // per destination and sign colour, since the texture carries both and a
-  // layer takes one. A ferry has no sign, so no sign layers.
+  // the details and the lamps drawn in their own fixed colours — the lamps lit
+  // by the scheme — and the signs, one layer per destination and sign colour,
+  // since the texture carries both and a layer takes one. A ferry has no
+  // sign, so no sign layers.
   const layers = [...byMode].flatMap(([mode, list]) => {
-    const { body, sign, details } = modelFor(mode);
+    const { body, sign, details, lamps } = modelFor(mode);
     return [
       new SimpleMeshLayer<VehicleUpdate>({
         ...shared,
@@ -111,6 +130,15 @@ export function vehicleModelLayers(
         mesh: details,
         getOrientation,
         getColor: UNTINTED,
+      }),
+      new SimpleMeshLayer<VehicleUpdate>({
+        ...shared,
+        id: `${idPrefix}-${mode}-lamps`,
+        data: list,
+        mesh: lamps,
+        getOrientation,
+        getColor: UNTINTED,
+        material: LAMP_MATERIAL[scheme],
       }),
     ];
   });
