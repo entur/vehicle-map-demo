@@ -17,7 +17,7 @@ export const VEHICLE_DIMENSIONS: Partial<
   COACH: { length: 13, width: 2.55, height: 3.6 },
   TRAM: { length: 32, width: 2.65, height: 3.6 },
   METRO: { length: 60, width: 3.2, height: 3.7 },
-  RAIL: { length: 150, width: 3.2, height: 4.2 },
+  RAIL: { length: 75, width: 3.2, height: 4.2 },
   FERRY: { length: 50, width: 12, height: 6 },
 };
 
