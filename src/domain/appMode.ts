@@ -22,6 +22,7 @@ export const APP_MODES: AppMode[] = ["vehicles", "situations"];
  */
 export const MODE_LAYERS: Record<AppMode, string[]> = {
   vehicles: [
+    "vehicle-dot-layer",
     "vehicle-layer",
     "vehicle-bearing-layer",
     "vehicle-model-layer",
@@ -67,6 +68,8 @@ export const MODE_SWITCHED_LAYERS: Record<
 > = {
   vehicles: {
     "vehicle-layer": "showVehicles",
+    // Same switch: the dot is the icon's zoomed-out form.
+    "vehicle-dot-layer": "showVehicles",
     // Same switch: the model is the icon's zoomed-in form, not a separate layer.
     "vehicle-model-layer": "showVehicles",
     // Same switch: the arrow is part of the icon.

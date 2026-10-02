@@ -1,4 +1,5 @@
 import { EDGE_INK, EDGE_WHITE } from "../domain/dataColours.ts";
+import { UNKNOWN_VEHICLE_COLOUR } from "../domain/vehicleIcons.ts";
 
 /** Pixels across a drawn icon: 2× the SVGs' 52px viewBox. */
 export const VEHICLE_ICON_SIZE = 104;
@@ -7,7 +8,6 @@ export const VEHICLE_ICON_PIXEL_RATIO = 2;
 
 /** 2 logical px: the white half of the two-tone edge (dataColours.ts). */
 const RING_WIDTH = 4;
-const UNKNOWN_FILL = "#5b6272";
 const UNKNOWN_DOT_RADIUS = 12;
 
 /**
@@ -31,7 +31,7 @@ export function drawVehicleIcon(
   if (image) {
     ctx.drawImage(image, 0, 0, size, size);
   } else {
-    ctx.fillStyle = UNKNOWN_FILL;
+    ctx.fillStyle = UNKNOWN_VEHICLE_COLOUR;
     ctx.fillRect(0, 0, size, size);
     ctx.fillStyle = "#ffffff";
     ctx.beginPath();

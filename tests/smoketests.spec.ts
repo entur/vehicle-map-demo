@@ -27,8 +27,9 @@ test("selecting a vehicle shows the timetable panel", async ({ page }) => {
         if (!map?.getLayer("vehicle-layer")) return null;
         const { width, height } = map.getCanvas().getBoundingClientRect();
         const points: { x: number; y: number }[] = [];
+        // Dots at the starting zoom, icons once zoomed in.
         for (const feature of map.queryRenderedFeatures({
-          layers: ["vehicle-layer"],
+          layers: ["vehicle-dot-layer", "vehicle-layer"],
         })) {
           if (feature.geometry.type !== "Point") continue;
           const { x, y } = map.project(feature.geometry.coordinates);

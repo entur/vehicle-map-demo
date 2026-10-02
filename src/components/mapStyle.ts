@@ -34,6 +34,8 @@ import {
 } from "../domain/transitNetwork.ts";
 import {
   BEARING_ARROW_ICON,
+  VEHICLE_DOT_COLOUR_MATCH,
+  VEHICLE_DOT_SORT_KEY,
   VEHICLE_ICON_MATCH,
 } from "../domain/vehicleIcons.ts";
 import {
@@ -83,6 +85,15 @@ export const VEHICLE_BEARING_MIN_ZOOM = 13;
  * shape and place thousands of labels nobody can see on every vehicle frame.
  */
 export const VEHICLE_LABEL_MIN_ZOOM = 13;
+
+/**
+ * Zoom below which vehicles are dots coloured by mode instead of icons, and
+ * across whose last half level the two cross-fade. Zoomed out, thousands of
+ * icons pile into one mass that shows neither how many vehicles there are nor
+ * which modes; dots keep every vehicle where it is, unlike clustering, which
+ * would hide the positions a look at the feed is for.
+ */
+export const VEHICLE_DOT_MAX_ZOOM = 10;
 
 /** `vehicle-layer`'s icon-size, shared so the arrow stays at the circle's edge. */
 const VEHICLE_ICON_SIZE_EXPRESSION: ExpressionSpecification = [
@@ -660,6 +671,45 @@ export function buildMapStyle(scheme: MapScheme): StyleSpecification {
           "fill-extrusion-opacity": 0,
         },
       },
+      {
+        id: "vehicle-dot-layer",
+        type: "circle",
+        source: "vehicles",
+        maxzoom: VEHICLE_DOT_MAX_ZOOM,
+        layout: { "circle-sort-key": VEHICLE_DOT_SORT_KEY },
+        paint: {
+          "circle-color": VEHICLE_DOT_COLOUR_MATCH,
+          "circle-radius": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            4,
+            3.5,
+            VEHICLE_DOT_MAX_ZOOM,
+            5.5,
+          ],
+          "circle-stroke-color": paint.vehicleDotEdge,
+          "circle-stroke-width": 1,
+          "circle-opacity": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            VEHICLE_DOT_MAX_ZOOM - 0.5,
+            1,
+            VEHICLE_DOT_MAX_ZOOM,
+            0,
+          ],
+          "circle-stroke-opacity": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            VEHICLE_DOT_MAX_ZOOM - 0.5,
+            1,
+            VEHICLE_DOT_MAX_ZOOM,
+            0,
+          ],
+        },
+      },
       // Below vehicle-layer and centred on the same point at the same size, so
       // the arrowhead sits just outside the icon's circle. Vehicles without a
       // usable bearing (a null property, set by VehicleMarkers) get no arrow.
@@ -699,6 +749,7 @@ export function buildMapStyle(scheme: MapScheme): StyleSpecification {
         id: "vehicle-layer",
         type: "symbol",
         source: "vehicles",
+        minzoom: VEHICLE_DOT_MAX_ZOOM - 0.5,
         layout: {
           "icon-image": VEHICLE_ICON_MATCH,
           // Icons are 52 logical px across at size 1 (drawVehicleIcon.ts):
@@ -725,6 +776,10 @@ export function buildMapStyle(scheme: MapScheme): StyleSpecification {
             "interpolate",
             ["linear"],
             ["zoom"],
+            VEHICLE_DOT_MAX_ZOOM - 0.5,
+            0,
+            VEHICLE_DOT_MAX_ZOOM,
+            1,
             VEHICLE_MODEL_MIN_ZOOM,
             1,
             VEHICLE_MODEL_MIN_ZOOM + 0.5,
