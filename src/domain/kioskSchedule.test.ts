@@ -11,6 +11,7 @@ import {
   ABSENT_GRACE_MS,
   ARRIVE_TIMEOUT_MS,
   DEFAULT_DWELL_MS,
+  IDLE_MS,
   INITIAL_KIOSK_STATE,
   KioskConfig,
   KioskEvent,
@@ -25,9 +26,11 @@ import {
   formatCountdown,
   kioskView,
   parseKioskParam,
+  parseKioskSettings,
   restoredFilter,
   step,
   targetOf,
+  withKioskParams,
 } from "./kioskSchedule.ts";
 
 const T0 = Date.parse("2026-10-05T12:00:00Z");
@@ -124,6 +127,79 @@ describe("parseKioskParam", () => {
     ]) {
       expect(parseKioskParam(search)).toBe(DEFAULT_DWELL_MS);
     }
+  });
+});
+
+describe("parseKioskSettings", () => {
+  it("is off without the kiosk param, whatever kioskIdle says", () => {
+    expect(parseKioskSettings("")).toBeNull();
+    expect(parseKioskSettings("?kioskIdle=30")).toBeNull();
+  });
+
+  it("uses the default idle time when kioskIdle is absent", () => {
+    expect(parseKioskSettings("?kiosk=60")).toEqual({
+      dwellMs: 60_000,
+      idleMs: IDLE_MS,
+    });
+  });
+
+  it("reads kioskIdle as whole seconds", () => {
+    expect(parseKioskSettings("?kiosk=60&kioskIdle=30")).toEqual({
+      dwellMs: 60_000,
+      idleMs: 30_000,
+    });
+  });
+
+  it("falls back to the defaults on anything else", () => {
+    for (const raw of ["", "0", "-5", "abc", "1.5"]) {
+      expect(parseKioskSettings(`?kiosk=x&kioskIdle=${raw}`)).toEqual({
+        dwellMs: DEFAULT_DWELL_MS,
+        idleMs: IDLE_MS,
+      });
+    }
+  });
+});
+
+describe("withKioskParams", () => {
+  const BASE = "https://example.test/?mode=vehicles&codespaceId=ATB";
+
+  it("sets the dwell in seconds and omits the default idle time", () => {
+    expect(withKioskParams(BASE, { dwellMs: 180_000, idleMs: IDLE_MS })).toBe(
+      `${BASE}&kiosk=180`,
+    );
+  });
+
+  it("keeps an idle time that is not the default", () => {
+    expect(withKioskParams(BASE, { dwellMs: 60_000, idleMs: 30_000 })).toBe(
+      `${BASE}&kiosk=60&kioskIdle=30`,
+    );
+  });
+
+  it("drops kioskIdle when the idle time goes back to the default", () => {
+    expect(
+      withKioskParams(`${BASE}&kiosk=60&kioskIdle=30`, {
+        dwellMs: 60_000,
+        idleMs: IDLE_MS,
+      }),
+    ).toBe(`${BASE}&kiosk=60`);
+  });
+
+  it("removes both keys without a session, keeping every other key", () => {
+    expect(
+      withKioskParams(
+        "https://example.test/?mode=vehicles&kiosk=20&codespaceId=ATB&kioskIdle=30",
+        null,
+      ),
+    ).toBe(BASE);
+  });
+
+  it("returns the href unchanged when it already says so", () => {
+    const href = "https://example.test/?operatorRef=ATB%3AOperator%3A1";
+    expect(withKioskParams(href, null)).toBe(href);
+    const running = `${BASE}&kiosk=60&kioskIdle=30`;
+    expect(withKioskParams(running, { dwellMs: 60_000, idleMs: 30_000 })).toBe(
+      running,
+    );
   });
 });
 

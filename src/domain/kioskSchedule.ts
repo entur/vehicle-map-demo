@@ -39,12 +39,65 @@ export const INPUT_COALESCE_MS = 1_000;
 export function parseKioskParam(search: string): number | null {
   const params = new URLSearchParams(search);
   if (!params.has("kiosk")) return null;
-  const raw = params.get("kiosk") ?? "";
+  return secondsParam(params, "kiosk") ?? DEFAULT_DWELL_MS;
+}
+
+/** A positive whole number of seconds as ms, or null for anything else. */
+function secondsParam(params: URLSearchParams, key: string): number | null {
+  const raw = params.get(key) ?? "";
   const seconds = /^\d+$/.test(raw) ? Number(raw) : 0;
-  return seconds > 0 ? seconds * 1000 : DEFAULT_DWELL_MS;
+  return seconds > 0 ? seconds * 1000 : null;
 }
 
 export type KioskConfig = { dwellMs: number; idleMs: number };
+
+/**
+ * A kiosk run, from a Start in the Kiosk tool or a `?kiosk` link loaded cold.
+ * `id` is new for every run, so `useKiosk` can tell a fresh start from a
+ * re-render of the same one.
+ */
+export type KioskSession = KioskConfig & { id: number };
+
+/**
+ * `?kiosk=<seconds>&kioskIdle=<seconds>` as the kiosk's settings; null when
+ * kiosk mode is off. `kioskIdle` is read like `kiosk`: anything but a
+ * positive whole number of seconds, or none at all, means IDLE_MS.
+ */
+export function parseKioskSettings(search: string): KioskConfig | null {
+  const dwellMs = parseKioskParam(search);
+  if (dwellMs === null) return null;
+  const idleMs = secondsParam(new URLSearchParams(search), "kioskIdle");
+  return { dwellMs, idleMs: idleMs ?? IDLE_MS };
+}
+
+/**
+ * `href` with the kiosk's two keys set from `settings`, or both removed when
+ * it is null. `kioskIdle` is written only when it is not the default, so a
+ * plain link stays `?kiosk=180`. Every other key is left as it is, and when
+ * nothing changes `href` comes back as given, re-encoding nothing.
+ */
+export function withKioskParams(
+  href: string,
+  settings: KioskConfig | null,
+): string {
+  const url = new URL(href);
+  const params = url.searchParams;
+  const wanted: Record<string, string | null> = {
+    kiosk: settings ? String(Math.round(settings.dwellMs / 1000)) : null,
+    kioskIdle:
+      settings && settings.idleMs !== IDLE_MS
+        ? String(Math.round(settings.idleMs / 1000))
+        : null,
+  };
+  let changed = false;
+  for (const [key, value] of Object.entries(wanted)) {
+    if (params.get(key) === value) continue;
+    changed = true;
+    if (value === null) params.delete(key);
+    else params.set(key, value);
+  }
+  return changed ? url.toString() : href;
+}
 
 export type WaitReason = "noSnapshot" | "noMatch" | "misses";
 
