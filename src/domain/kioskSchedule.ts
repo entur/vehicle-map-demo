@@ -196,14 +196,24 @@ export function step(
 export type KioskEffect =
   "restoreSetup" | "leave" | "flyToTarget" | "startChase";
 
-/** What has to happen in the app for the kiosk to go from `prev` to `next`. */
+/**
+ * What has to happen in the app for the kiosk to go from `prev` to `next`.
+ * "leave" runs on entering `leaving` and also on any move to `picking` from a
+ * phase that had a target, so a chase that ends early is stopped even when
+ * nothing is found to replace it.
+ */
 export function effectsOf(prev: KioskPhase, next: KioskPhase): KioskEffect[] {
   if (prev === next) return [];
   const effects: KioskEffect[] = [];
   if (prev.kind === "paused" && next.kind !== "paused") {
     effects.push("restoreSetup");
   }
-  if (next.kind === "leaving") effects.push("leave");
+  if (
+    next.kind === "leaving" ||
+    (next.kind === "picking" && targetOf(prev) !== null)
+  ) {
+    effects.push("leave");
+  }
   if (next.kind === "arriving") effects.push("flyToTarget");
   if (next.kind === "chasing" && prev.kind === "lockingOn") {
     effects.push("startChase");

@@ -231,9 +231,8 @@ describe("step: locking on", () => {
   });
 
   it("picks again after LOCK_ON_TIMEOUT_MS, counting a miss", () => {
-    expect(
-      step(lockingOn(0), tick(T0 + LOCK_ON_TIMEOUT_MS - 1), CONFIG),
-    ).toEqual(lockingOn(0));
+    const held = lockingOn(0);
+    expect(step(held, tick(T0 + LOCK_ON_TIMEOUT_MS - 1), CONFIG)).toBe(held);
     const state = step(lockingOn(0), tick(T0 + LOCK_ON_TIMEOUT_MS), CONFIG);
     expect(state.phase).toEqual({ kind: "picking", misses: 1 });
     expect(state.recent).toEqual([]);
@@ -385,6 +384,22 @@ describe("effectsOf", () => {
     expect(effectsOf(picking, leaving)).toEqual(["leave"]);
     expect(effectsOf(leaving, arriving)).toEqual(["flyToTarget"]);
     expect(effectsOf(lockingOn, chasing)).toEqual(["startChase"]);
+  });
+
+  it("stops the chase when a switch begins, even if nothing is found", () => {
+    const waitingForStop: KioskPhase = {
+      kind: "waitingForStop",
+      target: TARGET,
+      chaseSince: T0,
+      since: T0,
+    };
+    expect(effectsOf(chasing, picking)).toEqual(["leave"]);
+    expect(effectsOf(waitingForStop, picking)).toEqual(["leave"]);
+    expect(effectsOf(lockingOn, picking)).toEqual(["leave"]);
+    expect(
+      effectsOf({ kind: "waiting", reason: "misses", since: T0 }, picking),
+    ).toEqual([]);
+    expect(effectsOf(paused, picking)).toEqual(["restoreSetup"]);
   });
 
   it("does nothing on pausing, on more input, or without a change", () => {
