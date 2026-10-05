@@ -23,6 +23,14 @@ export const STOP_WAIT_CAP_MS = 120_000;
 export const STATIONARY_MS = 90_000;
 /** Resume after this long without input. */
 export const IDLE_MS = 120_000;
+/**
+ * Switch early once the target has been gone from the live data this long.
+ * The live cache drops a vehicle after maxDataAge (30 s by default), and some
+ * operators report only once a minute.
+ */
+export const ABSENT_GRACE_MS = 60_000;
+/** Input this soon after the last is not recorded again, sparing a render. */
+export const INPUT_COALESCE_MS = 1_000;
 
 /**
  * `?kiosk=<seconds>` as a dwell in ms; null when kiosk mode is off. Anything
@@ -74,7 +82,9 @@ export type KioskEvent =
   /** The flight to the target ended. */
   | { type: "arrived"; now: number }
   /** A person touched the screen, the mouse or the keyboard. */
-  | { type: "input"; now: number };
+  | { type: "input"; now: number }
+  /** A person asked it to resume now rather than after the idle period. */
+  | { type: "resume"; now: number };
 
 export const INITIAL_KIOSK_STATE: KioskState = {
   phase: { kind: "waiting", reason: "noSnapshot", since: -Infinity },
@@ -89,11 +99,13 @@ const PICK_AFRESH: KioskPhase = { kind: "picking", misses: 0 };
 
 function shouldLeaveEarly(world: KioskWorld) {
   return (
-    !world.targetInFeed ||
+    world.absentForMs >= ABSENT_GRACE_MS ||
     world.journeyEnded ||
     world.stillForMs >= STATIONARY_MS
   );
 }
+
+type TickEvent = Extract<KioskEvent, { type: "tick" }>;
 
 /**
  * The kiosk's next state. Returns `state` itself when nothing changes, so a
@@ -106,7 +118,18 @@ export function step(
 ): KioskState {
   const { phase } = state;
   if (event.type === "input") {
+    if (
+      phase.kind === "paused" &&
+      event.now - phase.lastInputAt < INPUT_COALESCE_MS
+    ) {
+      return state;
+    }
     return withPhase(state, { kind: "paused", lastInputAt: event.now });
+  }
+  if (event.type === "resume") {
+    // No pool here, so the pick waits for the next tick. Nothing is being
+    // chased, so that one tick of "Finding a vehicle…" cancels no ease.
+    return phase.kind === "paused" ? withPhase(state, PICK_AFRESH) : state;
   }
   if (event.type === "arrived") {
     return phase.kind === "arriving"
@@ -119,6 +142,21 @@ export function step(
       : state;
   }
 
+  const next = tickStep(state, event, config);
+  // A tick that ends something picks the next in the same tick, so the band
+  // goes straight to "Next: …" (or to waiting) with no "Finding a vehicle…"
+  // in between, and the switch is one transition with one "leave".
+  return next !== state && next.phase.kind === "picking"
+    ? tickStep(next, event, config)
+    : next;
+}
+
+function tickStep(
+  state: KioskState,
+  event: TickEvent,
+  config: KioskConfig,
+): KioskState {
+  const { phase } = state;
   const { now, world, pool, random } = event;
   const snapshotAt = pool.current?.fetchedAt ?? -Infinity;
   switch (phase.kind) {
@@ -198,9 +236,9 @@ export type KioskEffect =
 
 /**
  * What has to happen in the app for the kiosk to go from `prev` to `next`.
- * "leave" runs on entering `leaving` and also on any move to `picking` from a
- * phase that had a target, so a chase that ends early is stopped even when
- * nothing is found to replace it. "holdCamera" runs when a visitor pauses
+ * "leave" runs on entering `leaving` and also on any move from a phase with a
+ * target to one without (a pause aside), so a chase that ends early is
+ * stopped even when nothing is found to replace it. "holdCamera" runs when a visitor pauses
  * mid-flight, so the camera stays where it is; only `arriving` has a flight of
  * the kiosk's own to stop (leaving's move is the chase's exit ease).
  */
@@ -212,7 +250,9 @@ export function effectsOf(prev: KioskPhase, next: KioskPhase): KioskEffect[] {
   }
   if (
     next.kind === "leaving" ||
-    (next.kind === "picking" && targetOf(prev) !== null)
+    (targetOf(prev) !== null &&
+      targetOf(next) === null &&
+      next.kind !== "paused")
   ) {
     effects.push("leave");
   }

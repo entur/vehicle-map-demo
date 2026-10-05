@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Call, EstimatedTimetableUpdate } from "../types.ts";
 import {
+  NO_TRACK,
   callsFor,
   journeyEnded,
   kioskWorld,
@@ -140,21 +141,36 @@ describe("callsFor", () => {
 
 describe("kioskWorld", () => {
   it("reports a vehicle missing from the feed", () => {
-    const { world, stillness } = kioskWorld(null, null, null, NOW);
+    const { world, track } = kioskWorld(null, null, NO_TRACK, NOW);
     expect(world).toEqual({
       targetInFeed: false,
       stillForMs: 0,
+      absentForMs: Infinity,
       journeyEnded: false,
       lastArrivalAt: null,
     });
-    expect(stillness).toBeNull();
+    expect(track).toEqual(NO_TRACK);
   });
 
   it("measures how long the vehicle has stood still", () => {
-    const first = kioskWorld(HERE, null, null, NOW);
-    const later = kioskWorld(near, null, first.stillness, NOW + 30_000);
+    const first = kioskWorld(HERE, null, NO_TRACK, NOW);
+    const later = kioskWorld(near, null, first.track, NOW + 30_000);
     expect(later.world.stillForMs).toBe(30_000);
     expect(later.world.targetInFeed).toBe(true);
+  });
+
+  it("measures how long the vehicle has been gone from the feed", () => {
+    const seen = kioskWorld(HERE, null, NO_TRACK, NOW);
+    expect(seen.world.absentForMs).toBe(0);
+    const gone = kioskWorld(null, null, seen.track, NOW + 59_000);
+    expect(gone.world).toMatchObject({
+      targetInFeed: false,
+      absentForMs: 59_000,
+    });
+    const still = kioskWorld(null, null, gone.track, NOW + 60_000);
+    expect(still.world.absentForMs).toBe(60_000);
+    const back = kioskWorld(HERE, null, still.track, NOW + 61_000);
+    expect(back.world.absentForMs).toBe(0);
   });
 
   it("reads journey end and last arrival from the calls", () => {
@@ -162,7 +178,7 @@ describe("kioskWorld", () => {
       call(1, { actualArrivalTime: "2026-10-05T11:58:00Z" }),
       call(2, { actualArrivalTime: "2026-10-05T11:59:00Z" }),
     ];
-    const { world } = kioskWorld(HERE, calls, null, NOW);
+    const { world } = kioskWorld(HERE, calls, NO_TRACK, NOW);
     expect(world.journeyEnded).toBe(true);
     expect(world.lastArrivalAt).toBe(Date.parse("2026-10-05T11:59:00Z"));
   });

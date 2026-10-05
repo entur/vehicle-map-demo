@@ -8,6 +8,7 @@ import {
 } from "./kioskCandidates.ts";
 import type { KioskWorld } from "./kioskJourney.ts";
 import {
+  ABSENT_GRACE_MS,
   ARRIVE_TIMEOUT_MS,
   DEFAULT_DWELL_MS,
   INITIAL_KIOSK_STATE,
@@ -53,10 +54,13 @@ const TARGET = vehicle("a");
 const NO_WORLD: KioskWorld = {
   targetInFeed: false,
   stillForMs: 0,
+  absentForMs: Infinity,
   journeyEnded: false,
   lastArrivalAt: null,
 };
-const IN_FEED: KioskWorld = { ...NO_WORLD, targetInFeed: true };
+const IN_FEED: KioskWorld = { ...NO_WORLD, targetInFeed: true, absentForMs: 0 };
+/** Gone from the live data for a moment, as a slow reporter often is. */
+const BRIEFLY_GONE: KioskWorld = { ...NO_WORLD, absentForMs: 1_000 };
 const EMPTY_POOL: CandidatePool = {
   current: null,
   previous: null,
@@ -93,6 +97,11 @@ const WAITING_FOR_STOP = at({
   since: T0 + CONFIG.dwellMs,
 });
 
+/** Where a switch made at `now` lands when the pool holds TARGET. */
+function leavingAt(now: number, misses = 0): KioskPhase {
+  return { kind: "leaving", target: TARGET, since: now, misses };
+}
+
 describe("parseKioskParam", () => {
   it("is off without the param", () => {
     expect(parseKioskParam("")).toBeNull();
@@ -126,10 +135,14 @@ describe("step: finding a vehicle", () => {
       CONFIG,
     );
     expect(state).toBe(INITIAL_KIOSK_STATE);
-    expect(step(INITIAL_KIOSK_STATE, tick(T0), CONFIG).phase).toEqual({
-      kind: "picking",
-      misses: 0,
-    });
+    // Picked in the same tick the snapshot arrives: no "Finding…" in between.
+    expect(step(INITIAL_KIOSK_STATE, tick(T0), CONFIG).phase).toEqual(
+      leavingAt(T0),
+    );
+    expect(
+      step(INITIAL_KIOSK_STATE, tick(T0, NO_WORLD, NO_MATCH_POOL), CONFIG)
+        .phase,
+    ).toEqual({ kind: "waiting", reason: "noMatch", since: T0 });
   });
 
   it("after no match, waits for a newer snapshot", () => {
@@ -137,11 +150,14 @@ describe("step: finding a vehicle", () => {
     expect(step(waiting, tick(T0 + 1_000), CONFIG)).toBe(waiting);
     const newer: CandidatePool = {
       ...POOL,
-      current: { fetchedAt: T0 + 60_000, vehicles: [TARGET] },
+      current: {
+        fetchedAt: T0 + 60_000,
+        vehicles: [{ ...TARGET, lastUpdated: T0 + 59_000 }],
+      },
     };
     expect(
       step(waiting, tick(T0 + 61_000, NO_WORLD, newer), CONFIG).phase.kind,
-    ).toBe("picking");
+    ).toBe("leaving");
   });
 
   it("picks a vehicle and leaves for it", () => {
@@ -239,8 +255,20 @@ describe("step: locking on", () => {
     const held = lockingOn(0);
     expect(step(held, tick(T0 + LOCK_ON_TIMEOUT_MS - 1), CONFIG)).toBe(held);
     const state = step(lockingOn(0), tick(T0 + LOCK_ON_TIMEOUT_MS), CONFIG);
-    expect(state.phase).toEqual({ kind: "picking", misses: 1 });
+    expect(state.phase).toEqual(leavingAt(T0 + LOCK_ON_TIMEOUT_MS, 1));
     expect(state.recent).toEqual([]);
+    expect(
+      step(
+        lockingOn(0),
+        tick(T0 + LOCK_ON_TIMEOUT_MS, NO_WORLD, NO_MATCH_POOL),
+        CONFIG,
+      ).phase,
+    ).toEqual({ kind: "waiting", reason: "noMatch", since: T0 });
+  });
+
+  it("needs the target in the feed now, however briefly it was gone", () => {
+    const held = lockingOn(0);
+    expect(step(held, tick(T0 + 2_000, BRIEFLY_GONE), CONFIG)).toBe(held);
   });
 
   it(`waits for a new snapshot after ${MAX_MISSES} misses`, () => {
@@ -273,21 +301,32 @@ describe("step: chasing", () => {
   });
 
   it.each([
-    ["the vehicle left the feed", NO_WORLD],
+    [
+      "the vehicle left the feed",
+      { ...NO_WORLD, absentForMs: ABSENT_GRACE_MS },
+    ],
     ["the journey ended", { ...IN_FEED, journeyEnded: true }],
     ["it stood still too long", { ...IN_FEED, stillForMs: STATIONARY_MS }],
   ])("moves on early when %s", (_, world) => {
-    expect(step(CHASING, tick(T0 + 5_000, world), CONFIG).phase).toEqual({
-      kind: "picking",
-      misses: 0,
-    });
+    const later = T0 + CONFIG.dwellMs + 5_000;
+    expect(step(CHASING, tick(T0 + 5_000, world), CONFIG).phase).toEqual(
+      leavingAt(T0 + 5_000),
+    );
+    expect(step(WAITING_FOR_STOP, tick(later, world), CONFIG).phase).toEqual(
+      leavingAt(later),
+    );
+    // With nothing to pick, it waits — and effectsOf still stops the chase.
     expect(
-      step(WAITING_FOR_STOP, tick(T0 + CONFIG.dwellMs + 5_000, world), CONFIG)
-        .phase,
-    ).toEqual({
-      kind: "picking",
-      misses: 0,
-    });
+      step(CHASING, tick(T0 + 5_000, world, NO_MATCH_POOL), CONFIG).phase,
+    ).toEqual({ kind: "waiting", reason: "noMatch", since: T0 });
+  });
+
+  it("keeps chasing a vehicle gone from the feed a little less than the grace", () => {
+    const world = { ...NO_WORLD, absentForMs: ABSENT_GRACE_MS - 1_000 };
+    expect(step(CHASING, tick(T0 + 59_000, world), CONFIG)).toBe(CHASING);
+    expect(
+      step(WAITING_FOR_STOP, tick(T0 + CONFIG.dwellMs + 59_000, world), CONFIG),
+    ).toBe(WAITING_FOR_STOP);
   });
 
   it("keeps chasing a vehicle that has stood still a little less", () => {
@@ -303,10 +342,14 @@ describe("step: waiting for a stop", () => {
     const world = { ...IN_FEED, lastArrivalAt: waitStart + 10_000 };
     expect(
       step(WAITING_FOR_STOP, tick(waitStart + 12_000, world), CONFIG).phase,
-    ).toEqual({
-      kind: "picking",
-      misses: 0,
-    });
+    ).toEqual(leavingAt(waitStart + 12_000));
+    expect(
+      step(
+        WAITING_FOR_STOP,
+        tick(waitStart + 12_000, world, NO_MATCH_POOL),
+        CONFIG,
+      ).phase,
+    ).toEqual({ kind: "waiting", reason: "noMatch", since: T0 });
   });
 
   it("does not count an arrival from before the wait", () => {
@@ -321,9 +364,13 @@ describe("step: waiting for a stop", () => {
     expect(step(WAITING_FOR_STOP, tick(cap - 1, IN_FEED), CONFIG)).toBe(
       WAITING_FOR_STOP,
     );
-    expect(step(WAITING_FOR_STOP, tick(cap, IN_FEED), CONFIG).phase.kind).toBe(
-      "picking",
+    expect(step(WAITING_FOR_STOP, tick(cap, IN_FEED), CONFIG).phase).toEqual(
+      leavingAt(cap),
     );
+    expect(
+      step(WAITING_FOR_STOP, tick(cap, IN_FEED, NO_MATCH_POOL), CONFIG).phase
+        .kind,
+    ).toBe("waiting");
   });
 });
 
@@ -348,13 +395,37 @@ describe("step: pause and resume", () => {
     },
   );
 
+  it("coalesces input less than a second after the last", () => {
+    const paused = at({ kind: "paused", lastInputAt: T0 });
+    expect(step(paused, { type: "input", now: T0 + 999 }, CONFIG)).toBe(paused);
+    expect(
+      step(paused, { type: "input", now: T0 + 1_000 }, CONFIG).phase,
+    ).toEqual({ kind: "paused", lastInputAt: T0 + 1_000 });
+  });
+
   it("resumes after the idle period, picking afresh", () => {
     const paused = at({ kind: "paused", lastInputAt: T0 });
-    expect(step(paused, tick(T0 + CONFIG.idleMs - 1), CONFIG)).toBe(paused);
-    expect(step(paused, tick(T0 + CONFIG.idleMs), CONFIG).phase).toEqual({
-      kind: "picking",
-      misses: 0,
-    });
+    const idle = T0 + CONFIG.idleMs;
+    expect(step(paused, tick(idle - 1), CONFIG)).toBe(paused);
+    expect(step(paused, tick(idle), CONFIG).phase).toEqual(leavingAt(idle));
+    expect(
+      step(paused, tick(idle, NO_WORLD, EMPTY_POOL), CONFIG).phase,
+    ).toEqual({ kind: "waiting", reason: "noSnapshot", since: -Infinity });
+  });
+
+  it("resumes at once on resume, picking on the next tick", () => {
+    const paused = at({ kind: "paused", lastInputAt: T0 });
+    const resumed = step(paused, { type: "resume", now: T0 + 2_000 }, CONFIG);
+    expect(resumed.phase).toEqual({ kind: "picking", misses: 0 });
+    expect(step(resumed, tick(T0 + 3_000), CONFIG).phase).toEqual(
+      leavingAt(T0 + 3_000),
+    );
+  });
+
+  it("ignores resume when not paused", () => {
+    for (const state of [CHASING, WAITING_FOR_STOP, INITIAL_KIOSK_STATE]) {
+      expect(step(state, { type: "resume", now: T0 + 1 }, CONFIG)).toBe(state);
+    }
   });
 });
 
@@ -411,6 +482,34 @@ describe("effectsOf", () => {
       effectsOf({ kind: "waiting", reason: "misses", since: T0 }, picking),
     ).toEqual([]);
     expect(effectsOf(paused, picking)).toEqual(["restoreSetup"]);
+  });
+
+  it("leaves once when a switch goes straight to the next vehicle", () => {
+    const next: KioskPhase = {
+      kind: "leaving",
+      target: vehicle("b"),
+      since: T0,
+      misses: 0,
+    };
+    expect(effectsOf(chasing, next)).toEqual(["leave"]);
+    expect(effectsOf(lockingOn, next)).toEqual(["leave"]);
+    expect(
+      effectsOf({ kind: "waiting", reason: "noMatch", since: T0 }, next),
+    ).toEqual(["leave"]);
+  });
+
+  it("stops the chase when a switch finds nothing", () => {
+    const waiting: KioskPhase = {
+      kind: "waiting",
+      reason: "noMatch",
+      since: T0,
+    };
+    expect(effectsOf(chasing, waiting)).toEqual(["leave"]);
+    expect(effectsOf(lockingOn, waiting)).toEqual(["leave"]);
+  });
+
+  it("restores, then leaves, when resuming straight to a vehicle", () => {
+    expect(effectsOf(paused, leaving)).toEqual(["restoreSetup", "leave"]);
   });
 
   it("does nothing on pausing, on more input, or without a change", () => {

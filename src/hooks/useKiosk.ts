@@ -10,7 +10,12 @@ import { VehicleData } from "./useVehiclePositionsData.ts";
 import { useKioskCandidates } from "./useKioskCandidates.ts";
 import { filterFromQueryParams } from "../domain/filterQueryParams.ts";
 import { vehicleKey } from "../domain/kioskCandidates.ts";
-import { Stillness, callsFor, kioskWorld } from "../domain/kioskJourney.ts";
+import {
+  KioskTrack,
+  NO_TRACK,
+  callsFor,
+  kioskWorld,
+} from "../domain/kioskJourney.ts";
 import {
   DEFAULT_DWELL_MS,
   IDLE_MS,
@@ -82,7 +87,12 @@ export function useKiosk({
   timetable,
   actions,
   initialSetup,
-}: UseKioskArgs): { state: KioskState | null; config: KioskConfig } {
+}: UseKioskArgs): {
+  state: KioskState | null;
+  config: KioskConfig;
+  /** Resume now rather than after the idle period; ignored unless paused. */
+  resume: () => void;
+} {
   const enabled = dwellMs !== null;
   const [config] = useState<KioskConfig>(() => ({
     dwellMs: dwellMs ?? DEFAULT_DWELL_MS,
@@ -100,7 +110,7 @@ export function useKiosk({
 
   const [state, setState] = useState<KioskState>(INITIAL_KIOSK_STATE);
   const stateRef = useRef(state);
-  const stillness = useRef<Stillness | null>(null);
+  const track = useRef<KioskTrack>(NO_TRACK);
   const latest = useRef({ data, timetable, actions, pool });
   useEffect(() => {
     latest.current = { data, timetable, actions, pool };
@@ -128,7 +138,7 @@ export function useKiosk({
             mapRef.current?.stop();
             return;
           case "leave":
-            stillness.current = null;
+            track.current = NO_TRACK;
             actions.leave();
             return;
           case "flyToTarget": {
@@ -137,7 +147,9 @@ export function useKiosk({
             map.flyTo({
               center: [target.lon, target.lat],
               zoom: ARRIVE_ZOOM,
+              // Level whatever ease a band or padding change cancelled.
               bearing: 0,
+              pitch: 0,
               essential: true,
               maxDuration: MAX_FLIGHT_MS,
             });
@@ -159,6 +171,12 @@ export function useKiosk({
     [config, setup, mapRef],
   );
 
+  // Vehicles mode from the start, as on every resume: with `?mode=situations`
+  // the first pick could be a long way off when nothing matches.
+  useEffect(() => {
+    if (enabled) latest.current.actions.restore(setup);
+  }, [enabled, setup]);
+
   useEffect(() => {
     if (!enabled) return;
     const id = window.setInterval(() => {
@@ -166,15 +184,15 @@ export function useKiosk({
       const { data, timetable, pool } = latest.current;
       const target = targetOf(stateRef.current.phase);
       const vehicle = target && liveVehicle(data, target.key);
-      const { world, stillness: next } = kioskWorld(
+      const { world, track: next } = kioskWorld(
         vehicle
           ? { lon: vehicle.location.longitude, lat: vehicle.location.latitude }
           : null,
         target ? callsFor(timetable, target.serviceJourneyId) : null,
-        stillness.current,
+        track.current,
         now,
       );
-      stillness.current = next;
+      track.current = next;
       send({ type: "tick", now, world, pool, random: Math.random() });
     }, TICK_MS);
     return () => window.clearInterval(id);
@@ -203,7 +221,12 @@ export function useKiosk({
     };
   }, [enabled, state]);
 
-  return { state: enabled ? state : null, config };
+  const resume = useCallback(
+    () => send({ type: "resume", now: Date.now() }),
+    [send],
+  );
+
+  return { state: enabled ? state : null, config, resume };
 }
 
 /** A shorter idle period for the Playwright tests. Development builds only. */

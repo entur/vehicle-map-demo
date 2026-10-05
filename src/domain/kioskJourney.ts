@@ -12,6 +12,12 @@ export type KioskWorld = {
   targetInFeed: boolean;
   /** How long it has stayed within STATIONARY_METRES; 0 when unknown. */
   stillForMs: number;
+  /**
+   * How long since it was last in the live data: 0 while it is, Infinity if
+   * it never was. The live cache drops a vehicle after maxDataAge, sooner
+   * than many operators report, so a moment's absence means little.
+   */
+  absentForMs: number;
   /** Its journey's last call has an actual arrival. */
   journeyEnded: boolean;
   /** The latest actual arrival on its journey, ms; null without one. */
@@ -72,21 +78,38 @@ export function callsFor(
     : null;
 }
 
-/** One tick's world, and the stillness to carry to the next tick. */
+/** What the kiosk carries about its target from one tick to the next. */
+export type KioskTrack = {
+  stillness: Stillness | null;
+  /** When it was last in the live data, ms; null if never. */
+  lastSeenAt: number | null;
+};
+
+/** A new target's track: never seen, never still. */
+export const NO_TRACK: KioskTrack = { stillness: null, lastSeenAt: null };
+
+/** One tick's world, and the track to carry to the next tick. */
 export function kioskWorld(
   position: LngLat | null,
   calls: Call[] | null,
-  stillness: Stillness | null,
+  track: KioskTrack,
   now: number,
-): { world: KioskWorld; stillness: Stillness | null } {
-  const next = position ? trackStillness(stillness, position, now) : stillness;
+): { world: KioskWorld; track: KioskTrack } {
+  const stillness = position
+    ? trackStillness(track.stillness, position, now)
+    : track.stillness;
+  const lastSeenAt = position ? now : track.lastSeenAt;
   return {
     world: {
       targetInFeed: position !== null,
-      stillForMs: position && next ? now - next.since : 0,
+      stillForMs: position && stillness ? now - stillness.since : 0,
+      absentForMs: lastSeenAt === null ? Infinity : now - lastSeenAt,
       journeyEnded: calls ? journeyEnded(calls) : false,
       lastArrivalAt: calls ? lastArrivalAt(calls) : null,
     },
-    stillness: next,
+    track:
+      stillness === track.stillness && lastSeenAt === track.lastSeenAt
+        ? track
+        : { stillness, lastSeenAt },
   };
 }
