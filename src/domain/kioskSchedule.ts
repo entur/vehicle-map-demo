@@ -129,7 +129,7 @@ export function step(
     case "waiting":
       return snapshotAt > phase.since ? withPhase(state, PICK_AFRESH) : state;
     case "picking": {
-      const target = pickCandidate(pool, state.recent, now, random);
+      const target = pickCandidate(pool, state.recent, random);
       if (!target) {
         return withPhase(state, {
           kind: "waiting",

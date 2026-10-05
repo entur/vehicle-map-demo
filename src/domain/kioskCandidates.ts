@@ -121,17 +121,20 @@ export function isGoodCandidate(
  * The next vehicle to chase: a random good candidate, else a random eligible
  * vehicle, else null. Recent picks are left out unless nothing else is
  * eligible. `random` is in [0, 1), passed in so tests are deterministic.
+ *
+ * Eligibility is maxDataAge measured at the snapshot's own fetch, not at the
+ * pick: the snapshot is polled every 60 s and maxDataAge defaults to 30 s, so
+ * measured against the pick's clock half of all picks would find nothing.
  */
 export function pickCandidate(
   pool: CandidatePool,
   recent: readonly string[],
-  now: number,
   random: number,
 ): KioskVehicle | null {
   const { current, previous, maxDataAgeSeconds } = pool;
   if (!current) return null;
   const eligible = current.vehicles.filter(
-    (v) => now - v.lastUpdated <= maxDataAgeSeconds * 1000,
+    (v) => current.fetchedAt - v.lastUpdated <= maxDataAgeSeconds * 1000,
   );
   const unseen = eligible.filter((v) => !recent.includes(v.key));
   const fresh = unseen.length > 0 ? unseen : eligible;

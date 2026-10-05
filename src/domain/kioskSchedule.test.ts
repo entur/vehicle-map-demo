@@ -154,6 +154,11 @@ describe("step: finding a vehicle", () => {
     });
   });
 
+  it("still picks from a snapshot fetched 40 s ago", () => {
+    const picking = at({ kind: "picking", misses: 0 });
+    expect(step(picking, tick(T0 + 40_000), CONFIG).phase.kind).toBe("leaving");
+  });
+
   it("waits when nothing matches, keyed to that snapshot", () => {
     const picking = at({ kind: "picking", misses: 0 });
     expect(

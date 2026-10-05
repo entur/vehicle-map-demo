@@ -176,12 +176,27 @@ describe("isGoodCandidate", () => {
 
 describe("pickCandidate", () => {
   it("returns null with no snapshot", () => {
-    expect(pickCandidate(pool(null), [], NOW, 0)).toBeNull();
+    expect(pickCandidate(pool(null), [], 0)).toBeNull();
   });
 
   it("returns null when nothing is younger than maxDataAge", () => {
     const stale = vehicle("a", { lastUpdated: NOW - 31_000 });
-    expect(pickCandidate(pool([stale]), [], NOW, 0)).toBeNull();
+    expect(pickCandidate(pool([stale]), [], 0)).toBeNull();
+  });
+
+  it("judges age against the snapshot's fetch, not the time of the pick", () => {
+    // The pick is made 40 s after this fetch: the snapshot is polled every
+    // 60 s, so a pick usually is. Ages are what they were when fetched.
+    const fetchedAt = NOW - 40_000;
+    const recent = vehicle("a", { lastUpdated: fetchedAt - 5_000 });
+    const old = vehicle("b", { lastUpdated: fetchedAt - 31_000 });
+    const fetched = (vehicles: KioskVehicle[]): CandidatePool => ({
+      current: { fetchedAt, vehicles },
+      previous: null,
+      maxDataAgeSeconds: 30,
+    });
+    expect(pickCandidate(fetched([recent]), [], 0)?.key).toBe(recent.key);
+    expect(pickCandidate(fetched([old]), [], 0)).toBeNull();
   });
 
   it("prefers a good candidate over a vehicle standing still", () => {
@@ -190,35 +205,35 @@ describe("pickCandidate", () => {
     const current = [still, moved(going, 0.001)];
     for (const random of [0, 0.5, 0.999]) {
       expect(
-        pickCandidate(pool(current, [still, going]), [], NOW, random)?.key,
+        pickCandidate(pool(current, [still, going]), [], random)?.key,
       ).toBe(going.key);
     }
   });
 
   it("falls back to any eligible vehicle when none is good", () => {
     const current = [vehicle("a"), vehicle("b")];
-    expect(pickCandidate(pool(current), [], NOW, 0)?.vehicleId).toBe("a");
-    expect(pickCandidate(pool(current), [], NOW, 0.5)?.vehicleId).toBe("b");
-    expect(pickCandidate(pool(current), [], NOW, 0.999)?.vehicleId).toBe("b");
+    expect(pickCandidate(pool(current), [], 0)?.vehicleId).toBe("a");
+    expect(pickCandidate(pool(current), [], 0.5)?.vehicleId).toBe("b");
+    expect(pickCandidate(pool(current), [], 0.999)?.vehicleId).toBe("b");
   });
 
   it("skips recent picks while anything else is eligible", () => {
     const a = vehicle("a");
     const b = vehicle("b");
-    expect(pickCandidate(pool([a, b]), [a.key], NOW, 0)?.key).toBe(b.key);
+    expect(pickCandidate(pool([a, b]), [a.key], 0)?.key).toBe(b.key);
   });
 
   it("allows a recent pick back when it is all there is", () => {
     const a = vehicle("a");
-    expect(pickCandidate(pool([a]), [a.key], NOW, 0)?.key).toBe(a.key);
+    expect(pickCandidate(pool([a]), [a.key], 0)?.key).toBe(a.key);
   });
 
   it("never picks a vehicle older than maxDataAge, however good", () => {
     const before = vehicle("a", { lastUpdated: NOW - 70_000 });
     const after = moved({ ...before, lastUpdated: NOW - 40_000 }, 0.001);
     const fallback = vehicle("b");
-    expect(
-      pickCandidate(pool([after, fallback], [before]), [], NOW, 0)?.key,
-    ).toBe(fallback.key);
+    expect(pickCandidate(pool([after, fallback], [before]), [], 0)?.key).toBe(
+      fallback.key,
+    );
   });
 });
