@@ -79,4 +79,41 @@ test.describe("kiosk mode", () => {
     await expect(situations).toHaveCount(0, { timeout: 3000 });
     await expect(page.getByText(/Kiosk paused/)).toHaveCount(0);
   });
+
+  test("starts and stops from the Kiosk tool", async ({ page }) => {
+    await page.goto("/");
+
+    const situations = page.getByRole("button", {
+      name: "Situations",
+      exact: true,
+    });
+    await expect(situations).toBeVisible();
+    await page.getByRole("button", { name: "Kiosk", exact: true }).click();
+    const panel = page.getByRole("region", { name: "Kiosk" });
+    await expect(panel.getByText("All vehicles")).toBeVisible();
+
+    // The click that presses Start must not pause the run it starts.
+    await panel.getByRole("button", { name: "Start" }).click();
+    await expect(page).toHaveURL(/[?&]kiosk=180(&|$)/);
+    await expect(page).not.toHaveURL(/kioskIdle/);
+    await expect(situations).toHaveCount(0);
+    await expect(page.getByText(/Kiosk paused/)).toHaveCount(0);
+
+    // Paused, the controls come back, and Stop is in the tool — not the pill.
+    // Every click is input too, so the 6 s idle period restarts with each.
+    await page.keyboard.press("Shift");
+    await expect(page.getByText(/Kiosk paused/)).toBeVisible();
+    await page.getByRole("button", { name: "Kiosk", exact: true }).click();
+    await page
+      .getByRole("region", { name: "Kiosk" })
+      .getByRole("button", { name: "Stop" })
+      .click();
+    await expect(page).not.toHaveURL(/kiosk=/);
+    await expect(page.getByText(/Kiosk paused/)).toHaveCount(0);
+
+    // Longer than the idle period: nothing resumes.
+    await page.waitForTimeout(8000);
+    await expect(situations).toBeVisible();
+    await expect(page).not.toHaveURL(/kiosk=/);
+  });
 });

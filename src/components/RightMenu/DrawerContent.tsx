@@ -1,6 +1,7 @@
 import { memo } from "react";
 import { MapLayers } from "../MapLayers.tsx";
-import { RightContentType } from "./types.ts";
+import { KioskTool, RightContentType } from "./types.ts";
+import { KioskPanel } from "../KioskPanel.tsx";
 import { Filter, MapViewOptions, VehicleUpdate } from "../../types.ts";
 import { DataChecker } from "../DataChecker/DataChecker.tsx";
 import { FilterBox } from "../FilterBox.tsx";
@@ -22,6 +23,7 @@ type DrawerContentProps = {
   showScheduleGhost: boolean;
   setShowScheduleGhost: (show: boolean) => void;
   data: VehicleUpdate[];
+  kiosk: KioskTool;
 };
 
 export const DrawerContent = memo(function DrawerContent({
@@ -36,6 +38,7 @@ export const DrawerContent = memo(function DrawerContent({
   showScheduleGhost,
   setShowScheduleGhost,
   data,
+  kiosk,
 }: DrawerContentProps) {
   return (
     <>
@@ -65,6 +68,7 @@ export const DrawerContent = memo(function DrawerContent({
       )}
       {activeContent === "situations" && <SituationsPanel />}
       {activeContent === "situationStats" && <SituationStatsTables />}
+      {activeContent === "kiosk" && <KioskPanel {...kiosk} />}
     </>
   );
 });

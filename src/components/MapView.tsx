@@ -26,6 +26,7 @@ import { SelectedVehicle, VehicleMarkers } from "./Vehicle/VehicleMarkers.tsx";
 import { RegisterIcons } from "./RegisterIcons.tsx";
 import { VehicleLabelPlacement } from "./Vehicle/VehicleLabelPlacement.tsx";
 import { RightMenu } from "./RightMenu";
+import { KioskTool } from "./RightMenu/types.ts";
 import { VehicleData } from "../hooks/useVehiclePositionsData.ts";
 import { VehicleTraces } from "./Vehicle/VehicleTraces.tsx";
 import { VehicleModels } from "./Vehicle/VehicleModels.tsx";
@@ -38,7 +39,7 @@ import { useTimetableSubscription } from "../hooks/useTimetableSubscription.ts";
 import { useServiceJourneyRoute } from "../hooks/useServiceJourneyRoute.ts";
 import { buildSchedule } from "../domain/scheduleGhost.ts";
 import { KioskActions, useKiosk } from "../hooks/useKiosk.ts";
-import { useKioskQueryParam } from "../hooks/useKioskQueryParam.ts";
+import { useKioskSession } from "../hooks/useKioskSession.ts";
 import { restoredFilter, targetOf } from "../domain/kioskSchedule.ts";
 import { KioskOverlay } from "./KioskOverlay.tsx";
 import { vehicleKey } from "../domain/kioskCandidates.ts";
@@ -257,10 +258,11 @@ export function MapView({
     [showScheduleGhost, route, timetable],
   );
 
-  // Kiosk mode (`?kiosk=<seconds>`): the kiosk drives the same selection and
-  // chase a person does, through these, so everything that follows a chase —
-  // 3D, padding, route, timetable — behaves as it does for a person.
-  const kioskDwellMs = useKioskQueryParam();
+  // Kiosk mode (`?kiosk=<seconds>`, or Start in the Kiosk tool): the kiosk
+  // drives the same selection and chase a person does, through these, so
+  // everything that follows a chase — 3D, padding, route, timetable — behaves
+  // as it does for a person.
+  const kioskSession = useKioskSession();
   const kioskActions: KioskActions = {
     leave: () => {
       switchMode("vehicles");
@@ -284,13 +286,34 @@ export function MapView({
     },
   };
   const kiosk = useKiosk({
-    dwellMs: kioskDwellMs,
+    session: kioskSession.session,
+    beginSession: kioskSession.start,
+    endSession: kioskSession.stop,
     mapRef,
     data,
     timetable,
     actions: kioskActions,
-    initialSetup: { mapViewOptions, showTransitNetwork },
+    currentSetup: { mapViewOptions, showTransitNetwork },
   });
+  // What the Kiosk tool shows and does. Memoised, so the memoised tool panel
+  // skips the vehicle frames.
+  const kioskRun = kioskSession.session;
+  const {
+    setupFilter: kioskFilter,
+    start: startKiosk,
+    stop: stopKiosk,
+  } = kiosk;
+  const kioskTool = useMemo<KioskTool>(
+    () => ({
+      session: kioskRun,
+      // While a run exists, what it chases is its own setup, which a
+      // visitor's filter change while it is paused does not alter.
+      filter: kioskRun ? kioskFilter : currentFilter,
+      onStart: startKiosk,
+      onStop: stopKiosk,
+    }),
+    [kioskRun, kioskFilter, currentFilter, startKiosk, stopKiosk],
+  );
   // Running and not paused: the app's own controls are hidden.
   const kioskRunning =
     kiosk.state !== null && kiosk.state.phase.kind !== "paused";
@@ -403,6 +426,7 @@ export function MapView({
             setShowTransitNetwork={setShowTransitNetwork}
             showScheduleGhost={showScheduleGhost}
             setShowScheduleGhost={setShowScheduleGhost}
+            kiosk={kioskTool}
           />
         )}
         <MapBottomPadding bottom={mapBottomInset} keepInView={keepInView} />

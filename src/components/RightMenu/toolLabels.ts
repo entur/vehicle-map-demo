@@ -14,4 +14,5 @@ export const TOOL_LABELS: Record<RightContentType, string> = {
   // Deliberately not "Situations": that is the mode toggle's label, and two
   // controls with the same accessible name cannot be told apart.
   situations: "Situations panel",
+  kiosk: "Kiosk",
 };

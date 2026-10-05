@@ -3,7 +3,7 @@ import { Box } from "@mui/material";
 import { Filter, MapViewOptions, VehicleUpdate } from "../../types.ts";
 import { RightMenuButtons } from "./RightMenuButtons.tsx";
 import { DrawerContent } from "./DrawerContent.tsx";
-import { RightContentType } from "./types.ts";
+import { KioskTool, RightContentType } from "./types.ts";
 import { TOOL_LABELS } from "./toolLabels.ts";
 import { ModeSwitch } from "../ModeSwitch.tsx";
 import { FloatingCard } from "../FloatingCard.tsx";
@@ -24,6 +24,7 @@ interface RightMenuProps {
   showScheduleGhost: boolean;
   setShowScheduleGhost: (show: boolean) => void;
   data: VehicleUpdate[];
+  kiosk: KioskTool;
 }
 
 export const RightMenu = ({
@@ -38,6 +39,7 @@ export const RightMenu = ({
   showScheduleGhost,
   setShowScheduleGhost,
   data,
+  kiosk,
 }: RightMenuProps) => {
   const [activeContent, setActiveContent] = useState<RightContentType | null>(
     null,
@@ -124,6 +126,7 @@ export const RightMenu = ({
               showScheduleGhost={showScheduleGhost}
               setShowScheduleGhost={setShowScheduleGhost}
               data={panelData}
+              kiosk={kiosk}
             />
           </FloatingCard>
         )}

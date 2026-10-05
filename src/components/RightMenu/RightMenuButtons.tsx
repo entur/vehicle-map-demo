@@ -6,6 +6,7 @@ import FactCheckIcon from "@mui/icons-material/FactCheck";
 import BarChartIcon from "@mui/icons-material/BarChart";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import AssessmentIcon from "@mui/icons-material/Assessment";
+import TvIcon from "@mui/icons-material/Tv";
 import { memo, ReactElement } from "react";
 import { AppMode, rightRailTools } from "../../domain/appMode.ts";
 import { FloatingCard } from "../FloatingCard.tsx";
@@ -20,6 +21,7 @@ const ICONS: Record<RightContentType, ReactElement> = {
   statistics: <BarChartIcon fontSize="small" />,
   situations: <WarningAmberIcon fontSize="small" />,
   situationStats: <AssessmentIcon fontSize="small" />,
+  kiosk: <TvIcon fontSize="small" />,
 };
 
 type RightMenuButtonsProps = {

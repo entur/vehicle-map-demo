@@ -1,4 +1,11 @@
-import { RefObject, useCallback, useEffect, useRef, useState } from "react";
+import {
+  RefObject,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type { Map as MapLibreMap } from "maplibre-gl";
 import {
   EstimatedTimetableUpdate,
@@ -24,6 +31,7 @@ import {
   KioskEffect,
   KioskEvent,
   KioskPhase,
+  KioskSession,
   KioskState,
   effectsOf,
   step,
@@ -54,15 +62,36 @@ export type KioskActions = {
 };
 
 type UseKioskArgs = {
-  /** From `useKioskQueryParam`; null turns everything off. */
-  dwellMs: number | null;
+  /**
+   * From `useKioskSession`; null turns everything off. A new `id` starts a
+   * fresh run.
+   */
+  session: KioskSession | null;
+  /** Begins a session; called by the returned `start`. */
+  beginSession: (dwellMs: number, idleMs: number) => void;
+  /** Ends the session; called by the returned `stop`. */
+  endSession: () => void;
   mapRef: RefObject<MapLibreMap | null>;
   data: VehicleData[];
   timetable: EstimatedTimetableUpdate | null;
   actions: KioskActions;
-  /** Read once, on the first render. */
-  initialSetup: Omit<KioskSetup, "filter">;
+  /** Read when a session starts: what the kiosk restores on every resume. */
+  currentSetup: Omit<KioskSetup, "filter">;
 };
+
+/**
+ * The setup a run puts back: the filter from the URL, which the filter state
+ * is synced to — and on a cold load is only filled from in an effect after
+ * the first render.
+ */
+function readSetup(currentSetup: Omit<KioskSetup, "filter">): KioskSetup {
+  return {
+    ...currentSetup,
+    filter: filterFromQueryParams(
+      Object.fromEntries(new URLSearchParams(window.location.search)),
+    ),
+  };
+}
 
 function liveVehicle(data: VehicleData[], key: string) {
   return (
@@ -81,43 +110,73 @@ function liveVehicle(data: VehicleData[], key: string) {
  * callback — rather than in a React effect, so each happens exactly once.
  */
 export function useKiosk({
-  dwellMs,
+  session,
+  beginSession,
+  endSession,
   mapRef,
   data,
   timetable,
   actions,
-  initialSetup,
+  currentSetup,
 }: UseKioskArgs): {
   state: KioskState | null;
   config: KioskConfig;
+  /** The filter the run restores, and so chases from. */
+  setupFilter: Partial<Filter>;
   /** Resume now rather than after the idle period; ignored unless paused. */
   resume: () => void;
+  /** Begin a run from a clean slate: a person's chase and selection end. */
+  start: (dwellMs: number, idleMs: number) => void;
+  /** End the run: the last chase stops and the selection clears. */
+  stop: () => void;
 } {
-  const enabled = dwellMs !== null;
-  const [config] = useState<KioskConfig>(() => ({
-    dwellMs: dwellMs ?? DEFAULT_DWELL_MS,
-    idleMs: devIdleOverride() ?? IDLE_MS,
-  }));
-  // The setup the screen was loaded with: the filter from the URL, since the
-  // filter state is only filled from it in an effect after this render.
-  const [setup] = useState<KioskSetup>(() => ({
-    ...initialSetup,
-    filter: filterFromQueryParams(
-      Object.fromEntries(new URLSearchParams(window.location.search)),
-    ),
-  }));
+  const sessionId = session?.id ?? null;
+  const enabled = sessionId !== null;
+  const dwellMs = session?.dwellMs ?? DEFAULT_DWELL_MS;
+  const idleMs = session?.idleMs ?? IDLE_MS;
+  // The dev override wins over the session's idle time, as it did over the
+  // default before runs could be started in the app.
+  const config = useMemo<KioskConfig>(
+    () => ({ dwellMs, idleMs: devIdleOverride() ?? idleMs }),
+    [dwellMs, idleMs],
+  );
+  const [setup, setSetup] = useState<KioskSetup>(() => readSetup(currentSetup));
+  const [state, setState] = useState<KioskState>(INITIAL_KIOSK_STATE);
+  // A new run starts from scratch with the setup in force at its start.
+  // Adjusted during render, so no frame shows the last run's phase.
+  const [runId, setRunId] = useState(sessionId);
+  if (sessionId !== runId) {
+    setRunId(sessionId);
+    setState(INITIAL_KIOSK_STATE);
+    if (sessionId !== null) setSetup(readSetup(currentSetup));
+  }
   const pool = useKioskCandidates(setup.filter, enabled);
 
-  const [state, setState] = useState<KioskState>(INITIAL_KIOSK_STATE);
   const stateRef = useRef(state);
   const track = useRef<KioskTrack>(NO_TRACK);
+  // The run the listeners, the tick and a flight's moveend belong to. A
+  // callback from a stopped run — a flight still landing — finds it gone.
+  const liveRun = useRef<number | null>(null);
   const latest = useRef({ data, timetable, actions, pool });
   useEffect(() => {
     latest.current = { data, timetable, actions, pool };
   });
 
+  // Declared before the tick and the listeners, so their run is live before
+  // they can send anything.
+  useEffect(() => {
+    if (sessionId === null) return;
+    liveRun.current = sessionId;
+    stateRef.current = INITIAL_KIOSK_STATE;
+    track.current = NO_TRACK;
+    return () => {
+      if (liveRun.current === sessionId) liveRun.current = null;
+    };
+  }, [sessionId]);
+
   const send = useCallback(
     function send(event: KioskEvent) {
+      if (sessionId === null || liveRun.current !== sessionId) return;
       const prev = stateRef.current;
       const next = step(prev, event, config);
       if (next === prev) return;
@@ -168,11 +227,12 @@ export function useKiosk({
         }
       }
     },
-    [config, setup, mapRef],
+    [sessionId, config, setup, mapRef],
   );
 
-  // Vehicles mode from the start, as on every resume: with `?mode=situations`
-  // the first pick could be a long way off when nothing matches.
+  // Vehicles mode from the start of a run, as on every resume: with
+  // `?mode=situations` the first pick could be a long way off when nothing
+  // matches. `setup` is new for every run.
   useEffect(() => {
     if (enabled) latest.current.actions.restore(setup);
   }, [enabled, setup]);
@@ -215,10 +275,10 @@ export function useKiosk({
 
   // Lets the Playwright tests see the phase. Development builds only.
   useEffect(() => {
-    if (!import.meta.env.DEV || !enabled) return;
-    (window as unknown as { __kiosk?: { phase: string } }).__kiosk = {
-      phase: state.phase.kind,
-    };
+    if (!import.meta.env.DEV) return;
+    (window as unknown as { __kiosk?: { phase: string } }).__kiosk = enabled
+      ? { phase: state.phase.kind }
+      : undefined;
   }, [enabled, state]);
 
   const resume = useCallback(
@@ -226,7 +286,35 @@ export function useKiosk({
     [send],
   );
 
-  return { state: enabled ? state : null, config, resume };
+  // Both done here, where the run begins or ends, rather than in an effect on
+  // the session, so each `leave` happens exactly once. At a start it ends a
+  // chase the person left running, which would otherwise go on under
+  // "Waiting for vehicles…" until the first pick — indefinitely when nothing
+  // matches. A link loaded cold has nothing to end.
+  const start = useCallback(
+    (dwellMs: number, idleMs: number) => {
+      latest.current.actions.leave();
+      beginSession(dwellMs, idleMs);
+    },
+    [beginSession],
+  );
+  // At a stop the run's callbacks are cut off at once, and the chase it left
+  // running is stopped.
+  const stop = useCallback(() => {
+    if (sessionId === null) return;
+    liveRun.current = null;
+    latest.current.actions.leave();
+    endSession();
+  }, [sessionId, endSession]);
+
+  return {
+    state: enabled ? state : null,
+    config,
+    setupFilter: setup.filter,
+    resume,
+    start,
+    stop,
+  };
 }
 
 /** A shorter idle period for the Playwright tests. Development builds only. */
