@@ -458,8 +458,15 @@ describe("effectsOf", () => {
     expect(effectsOf(leaving, paused)).toEqual([]);
   });
 
-  it("restores the setup on resume", () => {
-    expect(effectsOf(paused, picking)).toEqual(["restoreSetup"]);
+  it("restores the setup and leaves the visitor's chase on resume", () => {
+    // Leaving once, after the restore, wherever the resume lands: a resume
+    // into `waiting` would otherwise leave the visitor's chase running under
+    // "No vehicles match".
+    expect(effectsOf(paused, picking)).toEqual(["restoreSetup", "leave"]);
+    expect(
+      effectsOf(paused, { kind: "waiting", reason: "noMatch", since: T0 }),
+    ).toEqual(["restoreSetup", "leave"]);
+    expect(effectsOf(paused, leaving)).toEqual(["restoreSetup", "leave"]);
   });
 
   it("leaves, flies and chases on the way to a vehicle", () => {
@@ -481,7 +488,7 @@ describe("effectsOf", () => {
     expect(
       effectsOf({ kind: "waiting", reason: "misses", since: T0 }, picking),
     ).toEqual([]);
-    expect(effectsOf(paused, picking)).toEqual(["restoreSetup"]);
+    expect(effectsOf(paused, picking)).toEqual(["restoreSetup", "leave"]);
   });
 
   it("leaves once when a switch goes straight to the next vehicle", () => {

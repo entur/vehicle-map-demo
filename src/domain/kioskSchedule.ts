@@ -236,19 +236,21 @@ export type KioskEffect =
 
 /**
  * What has to happen in the app for the kiosk to go from `prev` to `next`.
- * "leave" runs on entering `leaving` and also on any move from a phase with a
- * target to one without (a pause aside), so a chase that ends early is
- * stopped even when nothing is found to replace it. "holdCamera" runs when a visitor pauses
+ * "leave" runs on entering `leaving`, on any move from a phase with a target
+ * to one without (a pause aside), so a chase that ends early is stopped even
+ * when nothing is found to replace it, and on every resume, after the
+ * restore: a resume that lands in `waiting` would otherwise leave the
+ * visitor's chase running under "No vehicles match". Once per transition. "holdCamera" runs when a visitor pauses
  * mid-flight, so the camera stays where it is; only `arriving` has a flight of
  * the kiosk's own to stop (leaving's move is the chase's exit ease).
  */
 export function effectsOf(prev: KioskPhase, next: KioskPhase): KioskEffect[] {
   if (prev === next) return [];
   const effects: KioskEffect[] = [];
-  if (prev.kind === "paused" && next.kind !== "paused") {
-    effects.push("restoreSetup");
-  }
+  const resuming = prev.kind === "paused" && next.kind !== "paused";
+  if (resuming) effects.push("restoreSetup");
   if (
+    resuming ||
     next.kind === "leaving" ||
     (targetOf(prev) !== null &&
       targetOf(next) === null &&
