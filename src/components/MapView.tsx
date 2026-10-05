@@ -39,7 +39,10 @@ import { useServiceJourneyRoute } from "../hooks/useServiceJourneyRoute.ts";
 import { buildSchedule } from "../domain/scheduleGhost.ts";
 import { KioskActions, useKiosk } from "../hooks/useKiosk.ts";
 import { useKioskQueryParam } from "../hooks/useKioskQueryParam.ts";
-import { restoredFilter } from "../domain/kioskSchedule.ts";
+import { restoredFilter, targetOf } from "../domain/kioskSchedule.ts";
+import { KioskOverlay } from "./KioskOverlay.tsx";
+import { vehicleKey } from "../domain/kioskCandidates.ts";
+import { callsFor } from "../domain/kioskJourney.ts";
 import { selectedVehicleFrom } from "./Vehicle/vehicleFeature.ts";
 import { SituationLayers } from "./SituationLayers.tsx";
 import { SituationDetailPanel } from "./SituationsPanel/SituationDetailPanel.tsx";
@@ -277,6 +280,7 @@ export function MapView({
       setCurrentFilter((prev) => restoredFilter(prev, setup.filter));
       setMapViewOptions(setup.mapViewOptions);
       setShowTransitNetwork(setup.showTransitNetwork);
+      setSheetSnap("peek");
     },
   };
   const kiosk = useKiosk({
@@ -326,9 +330,16 @@ export function MapView({
   // there is none) and hides more of the map than the sheet alone. Read only
   // while chasing, so the value the HUD last reported cannot outlive it.
   const [chaseHudCovered, setChaseHudCovered] = useState(0);
-  const mapBottomInset = chasedVehicle
+  const chaseBottomInset = chasedVehicle
     ? Math.max(sheetBottomInset, chaseHudCovered)
     : sheetBottomInset;
+  // The kiosk's band hides the bottom of the map on a wide screen. Read only
+  // while it is drawn, like the HUD's value.
+  const [kioskBandCovered, setKioskBandCovered] = useState(0);
+  const kioskBand = kioskRunning && !narrow;
+  const mapBottomInset = kioskBand
+    ? Math.max(chaseBottomInset, kioskBandCovered)
+    : chaseBottomInset;
   // The chase places the camera itself every frame, and a fully open sheet
   // leaves too thin a strip of map to bring anything into.
   const keepInView =
@@ -345,6 +356,16 @@ export function MapView({
     [data],
   );
 
+  const kioskTarget = kiosk.state ? targetOf(kiosk.state.phase) : null;
+  const kioskVehicle = kioskTarget
+    ? (data.find(
+        ({ vehicleUpdate: v }) =>
+          vehicleKey(v.vehicleId, v.serviceJourney.id) === kioskTarget.key,
+      )?.vehicleUpdate ?? null)
+    : null;
+  const kioskCalls = kioskTarget
+    ? callsFor(timetable, kioskTarget.serviceJourneyId)
+    : null;
   return (
     <>
       <Map
@@ -460,7 +481,7 @@ export function MapView({
           />
         )}
       </Map>
-      {mode === "vehicles" && !(kioskRunning && !narrow) && (
+      {mode === "vehicles" && !kioskBand && (
         <SelectedVehiclePanel
           selectedVehicle={selectedVehicle}
           timetable={timetable}
@@ -476,6 +497,17 @@ export function MapView({
         />
       )}
       {mode === "situations" && <SituationDetailPanel layout={detailLayout} />}
+      {kiosk.state && (
+        <KioskOverlay
+          state={kiosk.state}
+          config={kiosk.config}
+          vehicle={kioskVehicle}
+          calls={kioskCalls}
+          narrow={narrow}
+          bottom={sheetBottomEdge}
+          onCoveredChange={setKioskBandCovered}
+        />
+      )}
     </>
   );
 }
