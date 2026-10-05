@@ -27,7 +27,7 @@ test.describe("kiosk mode", () => {
     // absence below is asserted.
     await expect(page.locator(".maplibregl-ctrl-attrib")).toBeVisible();
     await expect(situations).toHaveCount(0);
-    // The first pick switches modes; it waits for the first snapshot.
+    // Vehicles mode is forced at start, before the first pick.
     await expect(page).toHaveURL(/mode=vehicles/, { timeout: 30000 });
     // In vehicles mode the mode pill would otherwise always show.
     await expect(situations).toHaveCount(0);

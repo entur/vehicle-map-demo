@@ -395,7 +395,12 @@ function KioskPill({
         gap: 1,
       }}
     >
-      <Typography variant="body2" noWrap>
+      {/* Tabular figures, so the countdown does not move the button. */}
+      <Typography
+        variant="body2"
+        noWrap
+        sx={{ fontVariantNumeric: "tabular-nums" }}
+      >
         {children}
       </Typography>
       {action}
