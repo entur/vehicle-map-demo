@@ -33,7 +33,7 @@ export function trackStillness(
 }
 
 export function journeyEnded(calls: Call[]): boolean {
-  const last = calls.at(-1);
+  const last = calls[calls.length - 1];
   return last !== undefined && last.actualArrivalTime !== null;
 }
 
