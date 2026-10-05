@@ -37,6 +37,10 @@ import { ScheduleGhost } from "./Vehicle/ScheduleGhost.tsx";
 import { useTimetableSubscription } from "../hooks/useTimetableSubscription.ts";
 import { useServiceJourneyRoute } from "../hooks/useServiceJourneyRoute.ts";
 import { buildSchedule } from "../domain/scheduleGhost.ts";
+import { KioskActions, useKiosk } from "../hooks/useKiosk.ts";
+import { useKioskQueryParam } from "../hooks/useKioskQueryParam.ts";
+import { restoredFilter } from "../domain/kioskSchedule.ts";
+import { selectedVehicleFrom } from "./Vehicle/vehicleFeature.ts";
 import { SituationLayers } from "./SituationLayers.tsx";
 import { SituationDetailPanel } from "./SituationsPanel/SituationDetailPanel.tsx";
 import { AppMode } from "../domain/appMode.ts";
@@ -177,6 +181,21 @@ export function MapView({
     }
   }, [setViewDimension]);
 
+  // A chase is a view from behind the vehicle, which only reads with terrain
+  // and buildings. ViewDimensionLayers' pitch ease is superseded by the
+  // chase's own fly-in, which starts on the next animation frame.
+  const startChase = useCallback(
+    (vehicle: ChasedVehicle) => {
+      clearFollowedVehicle();
+      if (viewDimension !== "3d") {
+        chaseSwitchedTo3d.current = true;
+        setViewDimension("3d");
+      }
+      setChasedVehicle(vehicle);
+    },
+    [clearFollowedVehicle, viewDimension, setViewDimension],
+  );
+
   const handleChaseToggle = () => {
     if (!selectedVehicle) return;
     const { id, serviceJourneyId } = selectedVehicle.properties;
@@ -187,15 +206,7 @@ export function MapView({
       stopChase();
       return;
     }
-    clearFollowedVehicle();
-    // A chase is a view from behind the vehicle, which only reads with terrain
-    // and buildings. ViewDimensionLayers' pitch ease is superseded by the
-    // chase's own fly-in, which starts on the next animation frame.
-    if (viewDimension !== "3d") {
-      chaseSwitchedTo3d.current = true;
-      setViewDimension("3d");
-    }
-    setChasedVehicle({ vehicleId: id, serviceJourneyId });
+    startChase({ vehicleId: id, serviceJourneyId });
   };
 
   const handleFollow = () => {
@@ -224,6 +235,61 @@ export function MapView({
     },
     [mode, clearFollowedVehicle, stopChase, setMode],
   );
+
+  // The selected journey's timetable and route, here rather than in the panel
+  // and the route layer because the schedule ghost reads both. A selection
+  // never outlives vehicles mode (switchMode clears it).
+  const selectedJourneyId =
+    selectedVehicle?.properties.serviceJourneyId ?? null;
+  const timetable = useTimetableSubscription(
+    selectedJourneyId,
+    selectedVehicle?.properties.date ?? null,
+  );
+  const route = useServiceJourneyRoute(selectedJourneyId);
+  const ghostSchedule = useMemo(
+    () =>
+      showScheduleGhost
+        ? buildSchedule(route?.coordinates ?? null, timetable)
+        : null,
+    [showScheduleGhost, route, timetable],
+  );
+
+  // Kiosk mode (`?kiosk=<seconds>`): the kiosk drives the same selection and
+  // chase a person does, through these, so everything that follows a chase —
+  // 3D, padding, route, timetable — behaves as it does for a person.
+  const kioskDwellMs = useKioskQueryParam();
+  const kioskActions: KioskActions = {
+    leave: () => {
+      switchMode("vehicles");
+      setSelectedVehicle(null);
+      clearFollowedVehicle();
+      stopChase();
+    },
+    chase: (vehicle) => {
+      setSelectedVehicle(selectedVehicleFrom(vehicle));
+      startChase({
+        vehicleId: vehicle.vehicleId,
+        serviceJourneyId: vehicle.serviceJourney.id,
+      });
+    },
+    restore: (setup) => {
+      switchMode("vehicles");
+      setCurrentFilter((prev) => restoredFilter(prev, setup.filter));
+      setMapViewOptions(setup.mapViewOptions);
+      setShowTransitNetwork(setup.showTransitNetwork);
+    },
+  };
+  const kiosk = useKiosk({
+    dwellMs: kioskDwellMs,
+    mapRef,
+    data,
+    timetable,
+    actions: kioskActions,
+    initialSetup: { mapViewOptions, showTransitNetwork },
+  });
+  // Running and not paused: the app's own controls are hidden.
+  const kioskRunning =
+    kiosk.state !== null && kiosk.state.phase.kind !== "paused";
 
   // On a phone the detail panels are a bottom sheet. Its snap lives here rather
   // than in the sheet because the map is padded by its height too, and the
@@ -274,24 +340,6 @@ export function MapView({
       ? (selectedVehicle.coordinates as [number, number])
       : null;
 
-  // The selected journey's timetable and route, here rather than in the panel
-  // and the route layer because the schedule ghost reads both. A selection
-  // never outlives vehicles mode (switchMode clears it).
-  const selectedJourneyId =
-    selectedVehicle?.properties.serviceJourneyId ?? null;
-  const timetable = useTimetableSubscription(
-    selectedJourneyId,
-    selectedVehicle?.properties.date ?? null,
-  );
-  const route = useServiceJourneyRoute(selectedJourneyId);
-  const ghostSchedule = useMemo(
-    () =>
-      showScheduleGhost
-        ? buildSchedule(route?.coordinates ?? null, timetable)
-        : null,
-    [showScheduleGhost, route, timetable],
-  );
-
   const vehicleUpdates = useMemo(
     () => data.map((vehicle) => vehicle.vehicleUpdate),
     [data],
@@ -306,30 +354,36 @@ export function MapView({
         onStyleData={handleStyleData}
         attributionControl={false}
       >
-        <NavigationControl position="top-left" />
-        <GeolocateControl position="top-left" />
-        <ViewDimensionControl
-          dimension={viewDimension}
-          setDimension={setViewDimension}
-        />
-        {viewDimension === "3d" && <RotateControl />}
+        {!kioskRunning && (
+          <>
+            <NavigationControl position="top-left" />
+            <GeolocateControl position="top-left" />
+            <ViewDimensionControl
+              dimension={viewDimension}
+              setDimension={setViewDimension}
+            />
+            {viewDimension === "3d" && <RotateControl />}
+          </>
+        )}
         <MapAttribution onHeightChange={setAttributionHeight} />
         <ViewDimensionLayers dimension={viewDimension} />
         <BaseMapScheme builtFor={builtScheme} />
         <TransitNetworkLayers visible={showTransitNetwork} />
-        <RightMenu
-          mode={mode}
-          setMode={switchMode}
-          data={vehicleUpdates}
-          setCurrentFilter={setCurrentFilter}
-          currentFilter={currentFilter}
-          mapViewOptions={mapViewOptions}
-          setMapViewOptions={setMapViewOptions}
-          showTransitNetwork={showTransitNetwork}
-          setShowTransitNetwork={setShowTransitNetwork}
-          showScheduleGhost={showScheduleGhost}
-          setShowScheduleGhost={setShowScheduleGhost}
-        />
+        {!kioskRunning && (
+          <RightMenu
+            mode={mode}
+            setMode={switchMode}
+            data={vehicleUpdates}
+            setCurrentFilter={setCurrentFilter}
+            currentFilter={currentFilter}
+            mapViewOptions={mapViewOptions}
+            setMapViewOptions={setMapViewOptions}
+            showTransitNetwork={showTransitNetwork}
+            setShowTransitNetwork={setShowTransitNetwork}
+            showScheduleGhost={showScheduleGhost}
+            setShowScheduleGhost={setShowScheduleGhost}
+          />
+        )}
         <MapBottomPadding bottom={mapBottomInset} keepInView={keepInView} />
         <RegisterIcons />
         <VehicleLabelPlacement chasing={chasedVehicle !== null} />
@@ -368,6 +422,7 @@ export function MapView({
                 onStop={stopChase}
                 bottomInset={sheetBottomInset}
                 onCoveredChange={setChaseHudCovered}
+                hudHidden={kioskRunning}
               />
             )}
             {mapViewOptions.showVehicleTraces && <VehicleTraces data={data} />}
@@ -405,7 +460,7 @@ export function MapView({
           />
         )}
       </Map>
-      {mode === "vehicles" && (
+      {mode === "vehicles" && !(kioskRunning && !narrow) && (
         <SelectedVehiclePanel
           selectedVehicle={selectedVehicle}
           timetable={timetable}
