@@ -19,12 +19,18 @@ test.describe("kiosk mode", () => {
   }) => {
     await page.goto("/?mode=situations&kiosk=20");
 
-    await expect(
-      page.getByRole("button", { name: "Situations", exact: true }),
-    ).toHaveCount(0);
+    const situations = page.getByRole("button", {
+      name: "Situations",
+      exact: true,
+    });
+    // The attribution renders with the map, so the app is up before the
+    // absence below is asserted.
     await expect(page.locator(".maplibregl-ctrl-attrib")).toBeVisible();
+    await expect(situations).toHaveCount(0);
     // The first pick switches modes; it waits for the first snapshot.
     await expect(page).toHaveURL(/mode=vehicles/, { timeout: 30000 });
+    // In vehicles mode the mode pill would otherwise always show.
+    await expect(situations).toHaveCount(0);
   });
 
   test("chases, pauses on input and restores its setup on resume", async ({
