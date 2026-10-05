@@ -376,6 +376,12 @@ describe("effectsOf", () => {
   };
   const chasing: KioskPhase = { kind: "chasing", target: TARGET, since: T0 };
 
+  it("holds the camera only when paused mid-flight", () => {
+    expect(effectsOf(arriving, paused)).toEqual(["holdCamera"]);
+    expect(effectsOf(chasing, paused)).toEqual([]);
+    expect(effectsOf(leaving, paused)).toEqual([]);
+  });
+
   it("restores the setup on resume", () => {
     expect(effectsOf(paused, picking)).toEqual(["restoreSetup"]);
   });

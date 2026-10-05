@@ -84,9 +84,16 @@ export function useKioskCandidates(
             .filter((v): v is KioskVehicle => v !== null),
         };
         setSnapshots((prev) => ({ current: snapshot, previous: prev.current }));
-      } catch {
-        // Keep the snapshots already held; the next poll tries again. Also
-        // reached when the effect is torn down mid-request.
+      } catch (error) {
+        // Keep the snapshots already held; the next poll tries again. Logged,
+        // so a broken query is not hidden behind an endless "Waiting for
+        // vehicles…". Teardown mid-request aborts, which is not a failure.
+        if (!controller.signal.aborted) {
+          console.warn(
+            "Kiosk: vehicle snapshot failed; keeping the previous one",
+            error,
+          );
+        }
       }
     };
     fetchSnapshot();

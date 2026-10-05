@@ -124,6 +124,9 @@ export function useKiosk({
           case "restoreSetup":
             actions.restore(setup);
             return;
+          case "holdCamera":
+            mapRef.current?.stop();
+            return;
           case "leave":
             stillness.current = null;
             actions.leave();

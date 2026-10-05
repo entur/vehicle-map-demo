@@ -194,13 +194,15 @@ export function step(
 }
 
 export type KioskEffect =
-  "restoreSetup" | "leave" | "flyToTarget" | "startChase";
+  "restoreSetup" | "leave" | "flyToTarget" | "startChase" | "holdCamera";
 
 /**
  * What has to happen in the app for the kiosk to go from `prev` to `next`.
  * "leave" runs on entering `leaving` and also on any move to `picking` from a
  * phase that had a target, so a chase that ends early is stopped even when
- * nothing is found to replace it.
+ * nothing is found to replace it. "holdCamera" runs when a visitor pauses
+ * mid-flight, so the camera stays where it is; only `arriving` has a flight of
+ * the kiosk's own to stop (leaving's move is the chase's exit ease).
  */
 export function effectsOf(prev: KioskPhase, next: KioskPhase): KioskEffect[] {
   if (prev === next) return [];
@@ -213,6 +215,9 @@ export function effectsOf(prev: KioskPhase, next: KioskPhase): KioskEffect[] {
     (next.kind === "picking" && targetOf(prev) !== null)
   ) {
     effects.push("leave");
+  }
+  if (prev.kind === "arriving" && next.kind === "paused") {
+    effects.push("holdCamera");
   }
   if (next.kind === "arriving") effects.push("flyToTarget");
   if (next.kind === "chasing" && prev.kind === "lockingOn") {
