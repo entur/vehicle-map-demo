@@ -1,4 +1,5 @@
-import { Box, Typography } from "@mui/material";
+import { Box, IconButton, Typography } from "@mui/material";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import { SEVERITY_SEVERE } from "../domain/dataColours.ts";
 import { ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Call, VehicleUpdate } from "../types.ts";
@@ -30,6 +31,14 @@ const CLOCK_MS = 1000;
 /** Clear space kept between the band's top edge and the chased vehicle. */
 const BAND_VEHICLE_GAP = 12;
 const ICON_SIZE = 56;
+/**
+ * The band's height, fixed so that what it shows never changes it: its height
+ * is the map's bottom padding, and every padding change jumps the camera,
+ * which cancels the chase's exit ease and the 2D ease running at a switch.
+ * Fits the caption (overline, h4, h6) and the stop strip inside the card's
+ * padding.
+ */
+const BAND_HEIGHT = 128;
 
 type KioskOverlayProps = {
   state: KioskState;
@@ -43,6 +52,8 @@ type KioskOverlayProps = {
   bottom: number;
   /** px of the map's bottom edge the band hides, 0 when it is gone. */
   onCoveredChange: (px: number) => void;
+  /** Resume the kiosk now, from the paused pill. */
+  onResume: () => void;
 };
 
 /**
@@ -59,13 +70,25 @@ export function KioskOverlay({
   narrow,
   bottom,
   onCoveredChange,
+  onResume,
 }: KioskOverlayProps) {
   const now = useNow(CLOCK_MS);
   const view = kioskView(state, now, config);
 
   if (view.kind === "paused") {
     return (
-      <KioskPill>
+      <KioskPill
+        action={
+          <IconButton
+            size="small"
+            aria-label="Resume kiosk"
+            onClick={onResume}
+            sx={{ my: -0.5, mr: -1 }}
+          >
+            <PlayArrowIcon fontSize="small" />
+          </IconButton>
+        }
+      >
         Kiosk paused · resumes in {formatCountdown(view.resumesInMs)}
       </KioskPill>
     );
@@ -166,7 +189,7 @@ function KioskBand({
           display: "flex",
           alignItems: "center",
           gap: 4,
-          minHeight: 96,
+          height: BAND_HEIGHT,
           px: 3,
           py: 2.5,
           boxSizing: "border-box",
@@ -229,14 +252,19 @@ function Caption({
         size={ICON_SIZE}
       />
       <Box sx={{ minWidth: 0 }}>
-        {next && (
-          <Typography
-            variant="overline"
-            sx={{ color: "text.secondary", lineHeight: 1.2 }}
-          >
-            Next
-          </Typography>
-        )}
+        {/* Its line is kept while chasing, so the caption does not move. */}
+        <Typography
+          variant="overline"
+          aria-hidden={!next}
+          sx={{
+            display: "block",
+            color: "text.secondary",
+            lineHeight: 1.2,
+            visibility: next ? "visible" : "hidden",
+          }}
+        >
+          Next
+        </Typography>
         <Box sx={{ display: "flex", alignItems: "baseline", gap: 1.5 }}>
           <Typography
             component="span"
@@ -341,7 +369,13 @@ function StopStrip({ calls }: { calls: Call[] }) {
   );
 }
 
-function KioskPill({ children }: { children: ReactNode }) {
+function KioskPill({
+  children,
+  action,
+}: {
+  children: ReactNode;
+  action?: ReactNode;
+}) {
   return (
     <FloatingCard
       role="status"
@@ -356,11 +390,15 @@ function KioskPill({ children }: { children: ReactNode }) {
         zIndex: 4,
         px: 2,
         py: 1,
+        display: "flex",
+        alignItems: "center",
+        gap: 1,
       }}
     >
       <Typography variant="body2" noWrap>
         {children}
       </Typography>
+      {action}
     </FloatingCard>
   );
 }

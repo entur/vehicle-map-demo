@@ -71,5 +71,12 @@ test.describe("kiosk mode", () => {
     // 6 s later the kiosk resumes and puts its own setup back.
     await expect(page).toHaveURL(/mode=vehicles/, { timeout: 15000 });
     await expect(situations).toHaveCount(0);
+
+    // Paused again, the pill's button resumes at once, well inside the 6 s.
+    await page.keyboard.press("Shift");
+    await expect(situations).toBeVisible();
+    await page.getByRole("button", { name: "Resume kiosk" }).click();
+    await expect(situations).toHaveCount(0, { timeout: 3000 });
+    await expect(page.getByText(/Kiosk paused/)).toHaveCount(0);
   });
 });

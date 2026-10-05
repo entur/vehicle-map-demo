@@ -506,6 +506,7 @@ export function MapView({
           narrow={narrow}
           bottom={sheetBottomEdge}
           onCoveredChange={setKioskBandCovered}
+          onResume={kiosk.resume}
         />
       )}
     </>
