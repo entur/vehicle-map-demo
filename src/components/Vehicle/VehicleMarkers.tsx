@@ -1,14 +1,19 @@
 import { useEffect } from "react";
 import { useMap } from "react-map-gl/maplibre";
-import { VehicleModeEnumeration, VehicleUpdate } from "../../types.ts";
+import { VehicleUpdate } from "../../types.ts";
 import { GeoJSONSource } from "maplibre-gl";
 import type { Feature, Point, Polygon } from "geojson";
 import {
   dimensionsFor,
-  normaliseBearing,
   vehicleFootprint,
 } from "../../domain/vehicleFootprint.ts";
-import { labelColoursFor } from "../../domain/vehiclePaint.ts";
+import {
+  SelectedVehicle,
+  SelectedVehicleProperties,
+  createVehicleFeature,
+} from "./vehicleFeature.ts";
+
+export type { SelectedVehicle } from "./vehicleFeature.ts";
 
 /**
  * Layers a click can select a vehicle from: its dot zoomed out, its icon, and
@@ -19,60 +24,6 @@ const CLICKABLE_VEHICLE_LAYERS = [
   "vehicle-layer",
   "vehicle-model-layer",
 ];
-
-type SelectedVehicleProperties = {
-  id: string;
-  mode: VehicleModeEnumeration;
-  lineCode: string;
-  codespaceId: string;
-  delay: number;
-  followed: boolean;
-  updateInterval: number;
-  serviceJourneyId: string;
-  date: string;
-  occupancyStatus: string;
-  /** The line's published label colours as CSS, or null for the default. */
-  lineTextColour: string | null;
-  lineHaloColour: string | null;
-  /** Degrees clockwise from north in [0, 360), or null when unusable. */
-  bearing: number | null;
-};
-
-export type SelectedVehicle = {
-  coordinates: number[];
-  properties: SelectedVehicleProperties;
-};
-
-const createFeature = (
-  vehicle: VehicleUpdate,
-  isFollowed: boolean,
-): Feature<Point, SelectedVehicleProperties & { followed: boolean }> => {
-  const lastUpdateTimestamp = Date.parse(vehicle.lastUpdated);
-  const updateInterval = Date.now() - lastUpdateTimestamp;
-  const labelColours = labelColoursFor(vehicle.line);
-  return {
-    type: "Feature",
-    geometry: {
-      type: "Point",
-      coordinates: [vehicle.location.longitude, vehicle.location.latitude],
-    },
-    properties: {
-      id: vehicle.vehicleId,
-      mode: vehicle.mode,
-      lineCode: vehicle.line.publicCode,
-      codespaceId: vehicle.codespace.codespaceId,
-      delay: vehicle.delay,
-      followed: isFollowed,
-      updateInterval: updateInterval,
-      serviceJourneyId: vehicle.serviceJourney.id,
-      date: vehicle.serviceJourney.date,
-      occupancyStatus: vehicle.occupancyStatus,
-      lineTextColour: labelColours?.text ?? null,
-      lineHaloColour: labelColours?.halo ?? null,
-      bearing: normaliseBearing(vehicle.bearing),
-    },
-  };
-};
 
 /**
  * The model carries the icon's properties plus the reported position, because
@@ -131,7 +82,7 @@ export function VehicleMarkers({
               hiddenVehicleKey,
           );
     const features = shown.map((vehicle) =>
-      createFeature(vehicle, vehicle.vehicleId === followedVehicleId),
+      createVehicleFeature(vehicle, vehicle.vehicleId === followedVehicleId),
     );
     // The source is declared in mapStyle, but getSource() returns undefined
     // until the style has finished loading — and this effect runs on the first
