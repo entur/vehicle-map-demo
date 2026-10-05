@@ -6,7 +6,7 @@ import { useSubscriptionClient } from "./useSubscriptionClient.ts";
 
 const subscriptionQuery = `
   subscription($minLat: Float!, $minLon: Float!, $maxLat: Float!, $maxLon: Float!, $codespaceId: String, $operatorRef: String, $maxDataAge: Duration) {
-    vehicles (boundingBox: {minLat: $minLat, minLon: $minLon, maxLat: $maxLat, maxLon: $maxLon}, codespaceId: $codespaceId, operatorRef: $operatorRef, maxDataAge: $maxDataAge) {
+    vehicles (boundingBox: {minLat: $minLat, minLon: $minLon, maxLat: $maxLat, maxLon: $maxLon}, codespaceId: $codespaceId, operatorRef: $operatorRef, maxDataAge: $maxDataAge, includeInvalidLocations: true) {
       vehicleId
       codespace {
         codespaceId
@@ -18,10 +18,15 @@ const subscriptionQuery = `
       lastUpdated
       mode
       delay
+      destinationName
       line {
         lineRef
         lineName
         publicCode
+        presentation {
+          colour
+          textColour
+        }
       }
       location {
         latitude
@@ -32,6 +37,7 @@ const subscriptionQuery = `
         date
       }
       occupancyStatus
+      bearing
     }
   }
 `;
@@ -75,6 +81,7 @@ function getVehicleTtl(vehicle: VehicleUpdate, maxDataAge: number) {
 export const useVehiclePositionsData = (
   filter: Filter | null,
   mapViewOptions: MapViewOptions,
+  enabled: boolean,
 ) => {
   const map = useRef<CacheMap<string, VehicleData>>(new CacheMap());
   const [data, setData] = useState<VehicleData[]>([]);
@@ -89,16 +96,37 @@ export const useVehiclePositionsData = (
       subscription.current.return();
     }
 
-    let boundingBoxParams = {};
+    // A frame already resolved in the iterator's queue when `.return()` is
+    // called above can still run one more loop iteration; `cancelled` closes
+    // that hole so no data reaches state after this effect is torn down.
+    let cancelled = false;
 
-    if (filter?.boundingBox) {
-      boundingBoxParams = {
-        minLon: filter?.boundingBox[0][0],
-        minLat: filter?.boundingBox[0][1],
-        maxLon: filter?.boundingBox[1][0],
-        maxLat: filter?.boundingBox[1][1],
+    if (!enabled || !filter?.boundingBox) {
+      // Guarded so the disabled branch is idempotent: `CaptureBoundingBox`
+      // keeps writing bounding boxes (and therefore re-running this effect)
+      // while disabled, and resetting unconditionally would allocate a new
+      // CacheMap and call `setData([])` with a new array identity on every
+      // one of those re-runs, re-rendering the whole vehicles prop tree for
+      // nothing.
+      if (map.current.size > 0) {
+        // A fresh instance rather than `.clear()`: CacheMap extends Map and
+        // overrides `delete` to cancel each entry's timeout, but does not
+        // override `clear`, so clearing would drop the entries and leave the
+        // timers pending. Mirrors how useSituationsSubscription resets.
+        map.current = new CacheMap();
+        setData([]);
+      }
+      return () => {
+        cancelled = true;
       };
     }
+
+    const boundingBoxParams = {
+      minLon: filter.boundingBox[0][0],
+      minLat: filter.boundingBox[0][1],
+      maxLon: filter.boundingBox[1][0],
+      maxLat: filter.boundingBox[1][1],
+    };
 
     const maxDataAge = filter?.maxDataAge ? filter?.maxDataAge : 30; // default 30 seconds
 
@@ -113,11 +141,18 @@ export const useVehiclePositionsData = (
     });
     const subscribe = async () => {
       for await (const event of subscription.current!) {
+        if (cancelled) break;
         event?.data?.vehicles.forEach((vehicle) => {
+          // `location` itself is nullable in the schema and everything
+          // downstream dereferences it, so that check stays. The coordinates
+          // are checked against null rather than for truthiness: latitude or
+          // longitude of exactly 0 is the most common invalid position the
+          // feed carries, and a truthiness test would discard precisely the
+          // vehicles `includeInvalidLocations: true` was turned on to show.
           if (
             vehicle.location &&
-            vehicle.location.latitude &&
-            vehicle.location.longitude
+            vehicle.location.latitude != null &&
+            vehicle.location.longitude != null
           ) {
             let trace = map.current.get(
               vehicle.vehicleId + "_" + vehicle.serviceJourney.id,
@@ -150,9 +185,12 @@ export const useVehiclePositionsData = (
         setData(filterVehicles(filter, Array.from(map.current.values())));
       }
     };
-    if (filter && filter.boundingBox) {
-      subscribe();
-    }
-  }, [filter, subscriptionClient, mapViewOptions]);
+    subscribe();
+
+    return () => {
+      cancelled = true;
+      subscription.current?.return?.();
+    };
+  }, [filter, subscriptionClient, mapViewOptions, enabled]);
   return data;
 };

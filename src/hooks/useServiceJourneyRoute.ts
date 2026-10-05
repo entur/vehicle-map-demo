@@ -28,18 +28,21 @@ type Response = {
 export function useServiceJourneyRoute(
   serviceJourneyId: string | null,
 ): RoutePolyline | null {
-  const [route, setRoute] = useState<RoutePolyline | null>(null);
+  // Stored with the journey it was fetched for, so a changed id reads as no
+  // route straight away instead of being cleared by the effect.
+  const [fetched, setFetched] = useState<{
+    serviceJourneyId: string;
+    route: RoutePolyline | null;
+  } | null>(null);
   const config = useConfig();
   const requestHeaders = useRequestHeaders();
 
   useEffect(() => {
-    if (!serviceJourneyId) {
-      setRoute(null);
-      return;
-    }
+    if (!serviceJourneyId) return;
 
     const controller = new AbortController();
-    setRoute(null);
+    const setRoute = (route: RoutePolyline | null) =>
+      setFetched({ serviceJourneyId, route });
 
     request<Response>({
       url: config["vehicle-positions-graphql-endpoint"],
@@ -66,7 +69,10 @@ export function useServiceJourneyRoute(
       });
 
     return () => controller.abort();
-  }, [serviceJourneyId, config]);
+  }, [serviceJourneyId, config, requestHeaders]);
 
-  return route;
+  return serviceJourneyId !== null &&
+    fetched?.serviceJourneyId === serviceJourneyId
+    ? fetched.route
+    : null;
 }

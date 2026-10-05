@@ -1,25 +1,45 @@
-import { Box, Drawer, IconButton, Typography } from "@mui/material";
+import { Alert, Box, IconButton, Typography } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
 import { useEffect, useState } from "react";
 import { SelectedVehicle } from "../Vehicle/VehicleMarkers.tsx";
 import { useVehicleUpdateCompleteSubscription } from "../../hooks/useVehicleUpdateCompleteSubscription.ts";
-import { useTimetableSubscription } from "../../hooks/useTimetableSubscription.ts";
+import { timetableJourneyKey } from "../../hooks/useTimetableSubscription.ts";
+import { EstimatedTimetableUpdate } from "../../types.ts";
 import { delayBucket, delayColour, formatDelay } from "./delayThresholds.ts";
 import { Timetable } from "./Timetable.tsx";
+import { SituationList } from "./SituationList.tsx";
+import { DetailSheet } from "../DetailSheet.tsx";
+import { DetailLayout } from "../../domain/bottomSheet.ts";
+import {
+  VehicleActionHandlers,
+  VehicleActions,
+} from "../Vehicle/VehicleActions.tsx";
 
 type SelectedVehiclePanelProps = {
   selectedVehicle: SelectedVehicle | null;
+  /**
+   * The selected journey's timetable. Subscribed in `MapView`, which the
+   * schedule ghost needs it in too.
+   */
+  timetable: EstimatedTimetableUpdate | null;
   onClose: () => void;
-  onCancellationChange?: (cancelled: boolean) => void;
+  layout: DetailLayout;
+  /**
+   * The map popup's actions. Shown here only in the phone's sheet, where
+   * `MapView` does not draw the popup: over a phone-sized map it covered
+   * about as much as the sheet does, and repeated its header.
+   */
+  actions: VehicleActionHandlers;
 };
 
-const DRAWER_WIDTH = "min(320px, 90vw)";
-const DRAWER_TOP_OFFSET = 220;
 const NO_TIMETABLE_TIMEOUT_MS = 3000;
 
 export function SelectedVehiclePanel({
   selectedVehicle,
+  timetable,
   onClose,
-  onCancellationChange,
+  layout,
+  actions,
 }: SelectedVehiclePanelProps) {
   const serviceJourneyId = selectedVehicle?.properties.serviceJourneyId ?? null;
   const date = selectedVehicle?.properties.date ?? null;
@@ -29,28 +49,31 @@ export function SelectedVehiclePanel({
     vehicleId,
     serviceJourneyId ?? "",
   );
-  const timetable = useTimetableSubscription(serviceJourneyId, date);
 
   // After (NO_TIMETABLE_TIMEOUT_MS) without a timetable frame, surface the
-  // "not available" message. Reset whenever the selection changes.
-  const [timedOut, setTimedOut] = useState(false);
+  // "not available" message. The timeout remembers which journey it fired
+  // for, so a new selection starts un-timed-out on its first render; the
+  // cleanup clears it too, since reselecting the same journey gives the same
+  // key and would otherwise skip "Loading timetable…".
+  const journeyKey = timetableJourneyKey(serviceJourneyId, date);
+  const [timedOutFor, setTimedOutFor] = useState<string | null>(null);
+  const timedOut = timedOutFor === journeyKey;
   useEffect(() => {
-    setTimedOut(false);
     if (!serviceJourneyId) return;
+    const key = timetableJourneyKey(serviceJourneyId, date);
     const id = window.setTimeout(
-      () => setTimedOut(true),
+      () => setTimedOutFor(key),
       NO_TIMETABLE_TIMEOUT_MS,
     );
-    return () => window.clearTimeout(id);
+    return () => {
+      window.clearTimeout(id);
+      setTimedOutFor(null);
+    };
   }, [serviceJourneyId, date]);
 
   const open = selectedVehicle !== null;
   const currentOrder = vehicleData?.monitoredCall?.order ?? null;
   const tripCancelled = timetable?.cancellation === true;
-
-  useEffect(() => {
-    onCancellationChange?.(tripCancelled);
-  }, [tripCancelled, onCancellationChange]);
 
   const showNotAvailable = !serviceJourneyId || (timedOut && !timetable);
 
@@ -65,25 +88,10 @@ export function SelectedVehiclePanel({
         .join(" ")
     : "Loading…";
 
+  if (!open) return null;
+
   return (
-    <Drawer
-      anchor="left"
-      variant="persistent"
-      open={open}
-      slotProps={{
-        paper: {
-          sx: {
-            width: DRAWER_WIDTH,
-            top: DRAWER_TOP_OFFSET,
-            height: `calc(100% - ${DRAWER_TOP_OFFSET}px)`,
-            padding: 2,
-            boxSizing: "border-box",
-            display: "flex",
-            flexDirection: "column",
-          },
-        },
-      }}
-    >
+    <DetailSheet layout={layout} aria-label="Selected vehicle">
       <Box
         sx={{
           display: "flex",
@@ -103,39 +111,46 @@ export function SelectedVehiclePanel({
           )}
         </Box>
         <IconButton aria-label="Close" onClick={onClose} size="small">
-          <Box component="span" sx={{ fontSize: 20, lineHeight: 1 }}>
-            ×
-          </Box>
+          <CloseIcon fontSize="small" />
         </IconButton>
       </Box>
 
       {tripCancelled && (
+        <Alert severity="error" sx={{ marginTop: 1, paddingY: 0 }}>
+          Trip cancelled
+        </Alert>
+      )}
+
+      <SituationList
+        key={serviceJourneyId}
+        situations={timetable?.situations ?? null}
+      />
+
+      {/* The actions share the delay's row, which has width to spare, so the
+          collapsed sheet shows them without growing. */}
+      {vehicleData && (
         <Box
           sx={{
             marginTop: 1,
-            padding: 1,
-            background: "#fde8e6",
-            color: "#c0392b",
-            borderRadius: 1,
-            fontSize: 13,
-            fontWeight: 600,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 1,
           }}
         >
-          Trip cancelled
+          <Typography
+            variant="body2"
+            sx={{
+              color: delayColour(delayBucket(vehicleData.delay)),
+              fontWeight: 600,
+            }}
+          >
+            {formatDelay(vehicleData.delay)}
+          </Typography>
+          {layout.kind === "sheet" && (
+            <VehicleActions vehicleData={vehicleData} {...actions} />
+          )}
         </Box>
-      )}
-
-      {vehicleData && (
-        <Typography
-          variant="body2"
-          sx={{
-            marginTop: 1,
-            color: delayColour(delayBucket(vehicleData.delay)),
-            fontWeight: 600,
-          }}
-        >
-          {formatDelay(vehicleData.delay)}
-        </Typography>
       )}
 
       <Box
@@ -161,6 +176,6 @@ export function SelectedVehiclePanel({
           </Typography>
         )}
       </Box>
-    </Drawer>
+    </DetailSheet>
   );
 }

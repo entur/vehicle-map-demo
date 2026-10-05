@@ -1,10 +1,16 @@
 import { useEffect } from "react";
 import { useMap } from "react-map-gl/maplibre";
 
-import busIcon from "../static/images/bus.png";
-import ferryIcon from "../static/images/ferry.png";
-import trainIcon from "../static/images/train.png";
-import tramIcon from "../static/images/tram.png";
+import {
+  BEARING_ARROW_ICON,
+  UNKNOWN_VEHICLE_ICON,
+} from "../domain/vehicleIcons.ts";
+import {
+  VEHICLE_ICON_PIXEL_RATIO,
+  bearingArrowImageData,
+  vehicleIconImageData,
+} from "./drawVehicleIcon.ts";
+import { VEHICLE_ICON_URLS } from "./vehicleIconImages.ts";
 import greenMarkerIcon from "../static/images/markerGreen.png";
 import redMarker from "../static/images/redUpdate.png";
 import orangeMarker from "../static/images/yellowUpdate.png";
@@ -23,10 +29,6 @@ import occupancy6 from "../static/images/occupancy6.png";
 import redSkull from "../static/images/skullRed.png";
 
 const images = [
-  { name: "bus-icon", url: busIcon },
-  { name: "ferry-icon", url: ferryIcon },
-  { name: "train-icon", url: trainIcon },
-  { name: "tram-icon", url: tramIcon },
   { name: "green-marker-icon", url: greenMarkerIcon },
   { name: "red-marker", url: redMarker },
   { name: "orange-marker", url: orangeMarker },
@@ -45,22 +47,72 @@ const images = [
   { name: "red-skull-marker", url: redSkull },
 ];
 
+const vehicleIcons: [name: string, url: string | null][] = [
+  ...Object.entries(VEHICLE_ICON_URLS),
+  [UNKNOWN_VEHICLE_ICON, null],
+];
+
+/**
+ * Names this app has registered, per map. An image that exists under one of
+ * our names before we register it came from the base map sprite — the app's
+ * icon would silently never show — so that is warned about. Kept per map
+ * rather than per module so a new map instance (a remount, a hot reload) is
+ * checked afresh instead of inheriting names registered on an old one.
+ */
+const registeredByMap = new WeakMap<object, Set<string>>();
+
+/** True when `name` still has to be added; warns if the sprite has taken it. */
+function needsRegistering(
+  map: { hasImage(name: string): boolean },
+  registered: Set<string>,
+  name: string,
+) {
+  if (!map.hasImage(name)) return true;
+  if (!registered.has(name)) {
+    console.warn(
+      `Map image "${name}" already exists before the app registered it; the base map sprite probably uses the same name, so the app's icon will not show.`,
+    );
+  }
+  return false;
+}
+
 export function RegisterIcons() {
   const { current: mapRef } = useMap();
 
   useEffect(() => {
     if (!mapRef) return;
     const map = mapRef.getMap();
+    let registered = registeredByMap.get(map);
+    if (!registered) {
+      registered = new Set();
+      registeredByMap.set(map, registered);
+    }
 
     const handleMapLoad = () => {
       images.forEach(async ({ name, url }) => {
-        if (!map.hasImage(name)) {
-          const response = await map.loadImage(url);
-          if (response.data) {
-            map.addImage(name, response.data);
-          }
+        if (!needsRegistering(map, registered, name)) return;
+        const response = await map.loadImage(url);
+        if (response.data && !map.hasImage(name)) {
+          map.addImage(name, response.data);
+          registered.add(name);
         }
       });
+      for (const [name, url] of vehicleIcons) {
+        if (!needsRegistering(map, registered, name)) continue;
+        vehicleIconImageData(url)
+          .then((data) => {
+            if (map.hasImage(name)) return;
+            map.addImage(name, data, { pixelRatio: VEHICLE_ICON_PIXEL_RATIO });
+            registered.add(name);
+          })
+          .catch((error: unknown) => console.error(error));
+      }
+      if (needsRegistering(map, registered, BEARING_ARROW_ICON)) {
+        map.addImage(BEARING_ARROW_ICON, bearingArrowImageData(), {
+          pixelRatio: VEHICLE_ICON_PIXEL_RATIO,
+        });
+        registered.add(BEARING_ARROW_ICON);
+      }
     };
 
     if (map.isStyleLoaded()) {

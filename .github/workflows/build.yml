@@ -23,6 +23,7 @@ jobs:
           node-version: 22
       - run: npm ci
       - run: npm run check
+      - run: npm run lint -- --max-warnings 0
       - run: npm run build
       - name: Archive production artifacts
         uses: actions/upload-artifact@v7

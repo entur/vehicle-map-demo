@@ -1,8 +1,9 @@
-import Tooltip from "@mui/material/Tooltip";
-import detailsIcon from "../../static/images/details.png";
+import { IconButton, Tooltip } from "@mui/material";
+import ListAltIcon from "@mui/icons-material/ListAlt";
 import { useState } from "react";
 import { VehicleDetailsDialog } from "./VehicleDetailsDialog.tsx";
 import { VehicleUpdateComplete } from "../../types.ts";
+import { POPUP_ACTION_SX } from "./popupAction.ts";
 
 type DetailsButtonProps = {
   vehicleData: VehicleUpdateComplete | null;
@@ -15,13 +16,14 @@ export function DetailsButton({ vehicleData }: DetailsButtonProps) {
   }
   return (
     <>
-      <Tooltip title={"Show details"}>
-        <button
-          className="round-icon-button"
+      <Tooltip title="Show details">
+        <IconButton
+          aria-label="Show details"
           onClick={() => setDetailsOpen(true)}
+          sx={POPUP_ACTION_SX}
         >
-          <img src={detailsIcon} alt="Detail" className="icon" />
-        </button>
+          <ListAltIcon fontSize="small" />
+        </IconButton>
       </Tooltip>
 
       <VehicleDetailsDialog

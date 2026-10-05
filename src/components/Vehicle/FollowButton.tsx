@@ -1,6 +1,7 @@
-import Tooltip from "@mui/material/Tooltip";
-import followIcon from "../../static/images/follow.png";
-import stopFollowIcon from "../../static/images/stopFollow.png";
+import { IconButton, Tooltip } from "@mui/material";
+import MyLocationIcon from "@mui/icons-material/MyLocation";
+import LocationDisabledIcon from "@mui/icons-material/LocationDisabled";
+import { POPUP_ACTION_SX } from "./popupAction.ts";
 
 type FollowButtonProps = {
   isFollowing: boolean;
@@ -8,15 +9,16 @@ type FollowButtonProps = {
 };
 
 export function FollowButton({ isFollowing, onClick }: FollowButtonProps) {
+  const label = isFollowing ? "Stop Following" : "Follow";
   return (
-    <Tooltip title={isFollowing ? "Stop Following" : "Follow"}>
-      <button className="round-icon-button" onClick={onClick}>
-        <img
-          src={isFollowing ? stopFollowIcon : followIcon}
-          alt={isFollowing ? "Stop Following" : "Follow"}
-          className="icon"
-        />
-      </button>
+    <Tooltip title={label}>
+      <IconButton aria-label={label} onClick={onClick} sx={POPUP_ACTION_SX}>
+        {isFollowing ? (
+          <LocationDisabledIcon fontSize="small" />
+        ) : (
+          <MyLocationIcon fontSize="small" />
+        )}
+      </IconButton>
     </Tooltip>
   );
 }

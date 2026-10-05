@@ -6,7 +6,11 @@ import { useRequestHeaders } from "./useRequestHeaders.ts";
 
 const query = gql`
   query ($codespaceId: String, $operatorRef: String) {
-    vehicles(codespaceId: $codespaceId, operatorRef: $operatorRef) {
+    vehicles(
+      codespaceId: $codespaceId
+      operatorRef: $operatorRef
+      includeInvalidLocations: true
+    ) {
       direction
       serviceJourney {
         id
@@ -77,7 +81,7 @@ export function useVehiclePositionsSnapshotFetcher() {
       operatorRef?: string;
     }) => {
       setLoading(true);
-      const response: any = await request(
+      const response = await request<{ vehicles: VehicleUpdateComplete[] }>(
         config["vehicle-positions-graphql-endpoint"],
         query,
         { codespaceId, operatorRef },
@@ -87,7 +91,7 @@ export function useVehiclePositionsSnapshotFetcher() {
       setLoading(false);
       return response;
     },
-    [config],
+    [config, requestHeaders],
   );
 
   return { data, loading, fetchSnapshot };
