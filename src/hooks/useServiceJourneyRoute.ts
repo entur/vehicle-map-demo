@@ -1,11 +1,11 @@
-import { gql, request } from "graphql-request";
 import { useEffect, useState } from "react";
 import { useConfig } from "../config/ConfigContext.ts";
 import { RoutePolyline } from "../types.ts";
 import { useRequestHeaders } from "./useRequestHeaders.ts";
 import { decodePolyline } from "../utils/decodePolyline.ts";
+import { graphqlRequest } from "../utils/graphqlRequest.ts";
 
-const query = gql`
+const query = `
   query ($id: String!) {
     serviceJourney(id: $id) {
       pointsOnLink {
@@ -44,11 +44,11 @@ export function useServiceJourneyRoute(
     const setRoute = (route: RoutePolyline | null) =>
       setFetched({ serviceJourneyId, route });
 
-    request<Response>({
+    graphqlRequest<Response>({
       url: config["vehicle-positions-graphql-endpoint"],
-      document: query,
+      query,
       variables: { id: serviceJourneyId },
-      requestHeaders,
+      headers: requestHeaders,
       signal: controller.signal,
     })
       .then((response) => {

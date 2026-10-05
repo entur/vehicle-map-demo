@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { gql, request } from "graphql-request";
 import { useConfig } from "../config/ConfigContext.ts";
 import { useRequestHeaders } from "./useRequestHeaders.ts";
 import { Operator } from "../types.ts";
+import { graphqlRequest } from "../utils/graphqlRequest.ts";
 
-const query = gql`
+const query = `
   query ($codespaceId: String!) {
     operators(codespaceId: $codespaceId) {
       operatorRef
@@ -19,12 +19,12 @@ export function useOperators(codespaceId: string) {
   const requestHeaders = useRequestHeaders();
   useEffect(() => {
     const fetchOperators = async () => {
-      const response = await request<{ operators: Operator[] }>(
-        config["vehicle-positions-graphql-endpoint"],
+      const response = await graphqlRequest<{ operators: Operator[] }>({
+        url: config["vehicle-positions-graphql-endpoint"],
         query,
-        { codespaceId },
-        requestHeaders,
-      );
+        variables: { codespaceId },
+        headers: requestHeaders,
+      });
       setOperators(response.operators);
     };
     fetchOperators();

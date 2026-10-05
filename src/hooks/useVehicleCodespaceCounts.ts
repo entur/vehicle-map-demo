@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
-import { gql, request } from "graphql-request";
 import { useConfig } from "../config/ConfigContext.ts";
 import { useRequestHeaders } from "./useRequestHeaders.ts";
 import { CountEntry, countBy } from "../domain/situationStats.ts";
+import { graphqlRequest } from "../utils/graphqlRequest.ts";
 
 // Deliberately not the API's `codespaces` root. That now lists every codespace
 // in the NeTEx planned data — measured on dev, 61 codespaces against 21 in the
 // vehicle feed — and it still misses SKA, VAR and VOT, which publish about 30%
 // of the vehicles. The only list that matches the feed is a tally of the feed.
-const query = gql`
+const query = `
   {
     vehicles {
       codespace {
@@ -33,12 +33,11 @@ export function useVehicleCodespaceCounts() {
   const requestHeaders = useRequestHeaders();
   useEffect(() => {
     const fetchCounts = async () => {
-      const response = await request<Response>(
-        config["vehicle-positions-graphql-endpoint"],
+      const response = await graphqlRequest<Response>({
+        url: config["vehicle-positions-graphql-endpoint"],
         query,
-        {},
-        requestHeaders,
-      );
+        headers: requestHeaders,
+      });
       setCounts(
         countBy(
           response.vehicles,
