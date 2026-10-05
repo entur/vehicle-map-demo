@@ -1,4 +1,5 @@
 import { Box, Typography } from "@mui/material";
+import { SEVERITY_SEVERE } from "../domain/dataColours.ts";
 import { ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Call, VehicleUpdate } from "../types.ts";
 import { FloatingCard } from "./FloatingCard.tsx";
@@ -180,7 +181,7 @@ function KioskBand({
               left: 0,
               height: 3,
               width: `${progress * 100}%`,
-              bgcolor: "selection.main",
+              bgcolor: "text.secondary",
               transition: "width 1s linear",
               ...(pulsing && {
                 animation: "kiosk-pulse 1.6s ease-in-out infinite",
@@ -277,6 +278,8 @@ function Caption({
 
 function StopStrip({ calls }: { calls: Call[] }) {
   if (calls.length === 0) return null;
+  // The stop being approached: the first one still served.
+  const approached = calls.find((call) => call.cancellation !== true);
   return (
     <Box
       component="ol"
@@ -291,9 +294,10 @@ function StopStrip({ calls }: { calls: Call[] }) {
         overflow: "hidden",
       }}
     >
-      {calls.map((call, i) => {
+      {calls.map((call) => {
         const times = resolveCallTimes(call);
-        const current = i === 0;
+        const cancelled = call.cancellation === true;
+        const current = call === approached;
         return (
           <Box
             component="li"
@@ -310,13 +314,23 @@ function StopStrip({ calls }: { calls: Call[] }) {
               }),
             }}
           >
-            <Typography variant="h6" noWrap>
-              {formatTime(times.realtime ?? times.aimed) ?? "–"}
+            <Typography
+              variant="h6"
+              noWrap
+              sx={cancelled ? { color: SEVERITY_SEVERE } : undefined}
+            >
+              {cancelled
+                ? "—"
+                : (formatTime(times.realtime ?? times.aimed) ?? "–")}
             </Typography>
             <Typography
               variant="body1"
               noWrap
-              sx={{ color: current ? "inherit" : "text.secondary" }}
+              sx={
+                cancelled
+                  ? { color: SEVERITY_SEVERE, textDecoration: "line-through" }
+                  : { color: current ? "inherit" : "text.secondary" }
+              }
             >
               {call.stopPoint.name}
             </Typography>
