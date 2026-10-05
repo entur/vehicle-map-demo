@@ -1,89 +1,75 @@
-import filterIcon from "../../static/images/filter.png";
-import infoIcon from "../../static/images/info.png";
-import layersIcon from "../../static/images/layers.png";
-import stoplightIcon from "../../static/images/stoplight.png";
+import { IconButton, Tooltip } from "@mui/material";
+import LayersIcon from "@mui/icons-material/Layers";
+import FilterListIcon from "@mui/icons-material/FilterList";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import FactCheckIcon from "@mui/icons-material/FactCheck";
+import BarChartIcon from "@mui/icons-material/BarChart";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import AssessmentIcon from "@mui/icons-material/Assessment";
+import { memo, ReactElement } from "react";
+import { AppMode, rightRailTools } from "../../domain/appMode.ts";
+import { FloatingCard } from "../FloatingCard.tsx";
 import { RightContentType } from "./types.ts";
+import { TOOL_LABELS } from "./toolLabels.ts";
+
+const ICONS: Record<RightContentType, ReactElement> = {
+  layers: <LayersIcon fontSize="small" />,
+  filtering: <FilterListIcon fontSize="small" />,
+  info: <InfoOutlinedIcon fontSize="small" />,
+  stoplight: <FactCheckIcon fontSize="small" />,
+  statistics: <BarChartIcon fontSize="small" />,
+  situations: <WarningAmberIcon fontSize="small" />,
+  situationStats: <AssessmentIcon fontSize="small" />,
+};
 
 type RightMenuButtonsProps = {
+  mode: AppMode;
   activeContent: RightContentType | null;
   setActiveContent: (contentType: RightContentType | null) => void;
 };
 
-export const RightMenuButtons = ({
+export const RightMenuButtons = memo(function RightMenuButtons({
+  mode,
   activeContent,
   setActiveContent,
-}: RightMenuButtonsProps) => {
-  const toggleSidebar = (newActiveContent: RightContentType) => {
-    if (newActiveContent === activeContent) {
-      setActiveContent(null);
-    } else {
-      setActiveContent(newActiveContent);
-    }
-  };
-
+}: RightMenuButtonsProps) {
   return (
-    <>
-      <button
-        onClick={() => toggleSidebar("layers")}
-        className={`sidebar-button right ${activeContent === "layers" ? "active" : ""} ${
-          activeContent ? "open" : ""
-        }`}
-        style={{
-          top: "20px",
-        }}
-      >
-        <img
-          src={layersIcon}
-          alt="Layers"
-          title="Layers"
-          style={{ width: "40px", height: "40px" }}
-        />
-      </button>
-      <button
-        onClick={() => toggleSidebar("filtering")}
-        className={`sidebar-button right ${activeContent === "filtering" ? "active" : ""} ${
-          activeContent ? "open" : ""
-        }`}
-        style={{
-          top: "75px",
-        }}
-      >
-        <img
-          src={filterIcon}
-          alt="Filter"
-          title="Filter"
-          style={{ width: "40px", height: "40px" }}
-        />
-      </button>
-
-      <button
-        onClick={() => toggleSidebar("info")}
-        className={`sidebar-button right ${activeContent === "info" ? "active" : ""} ${
-          activeContent ? "open" : ""
-        }`}
-        style={{
-          top: "130px",
-        }}
-      >
-        <img src={infoIcon} alt="Info" title="Info" className="icon" />
-      </button>
-
-      <button
-        onClick={() => toggleSidebar("stoplight")}
-        className={`sidebar-button right ${activeContent === "stoplight" ? "active" : ""} ${
-          activeContent ? "open" : ""
-        }`}
-        style={{
-          top: "185px",
-        }}
-      >
-        <img
-          src={stoplightIcon}
-          alt="Data report"
-          title="Data report"
-          style={{ width: "40px", height: "40px" }}
-        />
-      </button>
-    </>
+    <FloatingCard
+      role="group"
+      aria-label="Tools"
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 0.25,
+        padding: 0.5,
+        flexShrink: 0,
+      }}
+    >
+      {rightRailTools(mode).map((content) => {
+        const label = TOOL_LABELS[content];
+        const active = activeContent === content;
+        return (
+          <Tooltip key={content} title={label} placement="left">
+            <IconButton
+              aria-label={label}
+              aria-pressed={active}
+              onClick={() => setActiveContent(active ? null : content)}
+              sx={{
+                width: 36,
+                height: 36,
+                borderRadius: "6px",
+                color: active ? "selection.main" : "text.secondary",
+                bgcolor: active ? "selection.bg" : "transparent",
+                "&:hover": {
+                  bgcolor: active ? "selection.bg" : "action.hover",
+                },
+              }}
+            >
+              {ICONS[content]}
+            </IconButton>
+          </Tooltip>
+        );
+      })}
+    </FloatingCard>
   );
-};
+});

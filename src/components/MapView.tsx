@@ -1,25 +1,77 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Map,
   NavigationControl,
   GeolocateControl,
 } from "react-map-gl/maplibre";
-import { mapStyle } from "./mapStyle.ts";
+import { buildMapStyle } from "./mapStyle.ts";
+import { useColorScheme } from "@mui/material/styles";
+import { useMediaQuery } from "@mui/material";
+import { mapSchemeFor } from "../domain/baseMapScheme.ts";
 import { CaptureBoundingBox } from "./CaptureBoundingBox.tsx";
+import { MapAttribution } from "./MapAttribution.tsx";
 import { Filter, MapViewOptions } from "../types.ts";
 import "maplibre-gl/dist/maplibre-gl.css";
+import { setWorkerUrl } from "maplibre-gl";
+import type {
+  Map as MapLibreMap,
+  MapLibreEvent,
+  MapStyleDataEvent,
+} from "maplibre-gl";
+// MapLibre 6 cannot locate its worker from inside a bundle. `?worker&url`
+// rather than `?url`: the worker imports a sibling chunk that `?url` leaves
+// out of production builds, so no tiles would load.
+import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import { SelectedVehicle, VehicleMarkers } from "./Vehicle/VehicleMarkers.tsx";
 import { RegisterIcons } from "./RegisterIcons.tsx";
+import { VehicleLabelPlacement } from "./Vehicle/VehicleLabelPlacement.tsx";
 import { RightMenu } from "./RightMenu";
-import { LeftMenu } from "./LeftMenu";
 import { VehicleData } from "../hooks/useVehiclePositionsData.ts";
 import { VehicleTraces } from "./Vehicle/VehicleTraces.tsx";
+import { VehicleModels } from "./Vehicle/VehicleModels.tsx";
 import { VehiclePopup } from "./Vehicle/VehiclePopup.tsx";
 import { useFollowedVehicle } from "../hooks/useFollowedVehicle"; // adjust path as needed
 import { SelectedVehiclePanel } from "./SelectedVehiclePanel";
 import { RouteLayer } from "./RouteLayer.tsx";
+import { ScheduleGhost } from "./Vehicle/ScheduleGhost.tsx";
+import { useTimetableSubscription } from "../hooks/useTimetableSubscription.ts";
+import { useServiceJourneyRoute } from "../hooks/useServiceJourneyRoute.ts";
+import { buildSchedule } from "../domain/scheduleGhost.ts";
+import { SituationLayers } from "./SituationLayers.tsx";
+import { SituationDetailPanel } from "./SituationsPanel/SituationDetailPanel.tsx";
+import { AppMode } from "../domain/appMode.ts";
+import { ModeLayers } from "./ModeLayers.tsx";
+import { ViewDimension } from "../domain/viewDimension.ts";
+import { RotateControl } from "./RotateControl.tsx";
+import { ViewDimensionControl } from "./ViewDimensionControl.tsx";
+import { ViewDimensionLayers } from "./ViewDimensionLayers.tsx";
+import { BaseMapScheme } from "./BaseMapScheme.tsx";
+import { TransitNetworkLayers } from "./TransitNetworkLayers.tsx";
+import { ChaseCamera } from "./Vehicle/ChaseCamera.tsx";
+import { ChasedVehicle, VehicleStore } from "./Vehicle/chasedVehicleStore.ts";
+import { MapBottomPadding } from "./MapBottomPadding.tsx";
+import { DETAIL_SHEET_MEDIA_QUERY } from "./detailDrawer.ts";
+import { SURFACE_INSET } from "./theme.ts";
+import {
+  DetailLayout,
+  SheetSnap,
+  clampSnap,
+  maxSnapFor,
+  sheetBottom,
+  sheetMapInset,
+} from "../domain/bottomSheet.ts";
+import { useViewportHeight } from "../hooks/useViewportHeight.ts";
+import { useSituations } from "../situations/SituationsContext.ts";
+
+setWorkerUrl(workerUrl);
 
 type MapViewProps = {
+  mode: AppMode;
+  setMode: (mode: AppMode) => void;
+  viewDimension: ViewDimension;
+  setViewDimension: (viewDimension: ViewDimension) => void;
+  showTransitNetwork: boolean;
+  setShowTransitNetwork: (show: boolean) => void;
   data: VehicleData[];
   setCurrentFilter: React.Dispatch<React.SetStateAction<Filter | null>>;
   currentFilter: Filter | null;
@@ -28,31 +80,221 @@ type MapViewProps = {
 };
 
 export function MapView({
+  mode,
+  setMode,
+  viewDimension,
+  setViewDimension,
+  showTransitNetwork,
+  setShowTransitNetwork,
   data,
   setCurrentFilter,
   currentFilter,
   mapViewOptions,
   setMapViewOptions,
 }: MapViewProps) {
+  const { colorScheme } = useColorScheme();
+  // Built once, for the scheme in force at mount, and never replaced: a new
+  // style object makes react-map-gl call setStyle, which resets GeoJSON data,
+  // layer visibility and registered images. Scheme changes after mount go
+  // through BaseMapScheme.
+  const [builtScheme] = useState(() => mapSchemeFor(colorScheme));
+  const [mapStyle] = useState(() => buildMapStyle(builtScheme));
+
   const [selectedVehicle, setSelectedVehicle] =
     useState<SelectedVehicle | null>(null);
-  const [tripCancelled, setTripCancelled] = useState(false);
-  const mapRef = useRef<any>(null);
+  const mapRef = useRef<MapLibreMap | null>(null);
 
-  useEffect(() => {
-    if (selectedVehicle === null) {
-      setTripCancelled(false);
-    }
-  }, [selectedVehicle]);
-
-  const handleMapLoad = (event: any) => {
+  const handleMapLoad = (event: MapLibreEvent) => {
     mapRef.current = event.target;
+    // Lets the Playwright smoke tests read layer state, which the canvas hides.
+    // Development builds only.
+    if (import.meta.env.DEV) {
+      (window as unknown as { __vehicleMap?: unknown }).__vehicleMap =
+        event.target;
+    }
   };
 
-  const { followedVehicle, handleFollowToggle } = useFollowedVehicle(
-    data,
-    selectedVehicle,
-    mapRef,
+  // `onStyleData` fires on the map instance's first 'styledata' — set up by
+  // react-map-gl (@vis.gl/react-maplibre's Map component) while constructing
+  // the underlying maplibregl.Map, strictly before any child of <Map>
+  // (including BaseMapScheme) even mounts: the Map component only renders its
+  // children once its own map-instance state is set, one render after the
+  // instance — and this listener — are created. So this always observes the
+  // style exactly as buildMapStyle baked it, before BaseMapScheme's own
+  // 'styledata' listener (registered later, from its own effect) can correct
+  // a wrongly-built scheme. Lets the Playwright dark-load smoke test detect a
+  // flash of the wrong base map that a check at 'load' time would miss.
+  const capturedInitialBaseVisibility = useRef(false);
+  const handleStyleData = (event: MapStyleDataEvent) => {
+    if (!import.meta.env.DEV || capturedInitialBaseVisibility.current) return;
+    capturedInitialBaseVisibility.current = true;
+    const map = event.target;
+    (
+      window as unknown as {
+        __vehicleMapInitialBaseVisibility?: {
+          light: unknown;
+          dark: unknown;
+        };
+      }
+    ).__vehicleMapInitialBaseVisibility = {
+      light: map.getLayoutProperty("light/background", "visibility"),
+      dark: map.getLayoutProperty("dark/background", "visibility"),
+    };
+  };
+
+  const { followedVehicle, handleFollowToggle, clearFollowedVehicle } =
+    useFollowedVehicle(data, selectedVehicle, mapRef);
+
+  // Chasing and following both move the camera, so starting one stops the other.
+  const [chasedVehicle, setChasedVehicle] = useState<ChasedVehicle | null>(
+    null,
+  );
+  const [chasedVehicleStore] = useState(() => new VehicleStore());
+  const [ghostStore] = useState(() => new VehicleStore());
+  // The "Ghost vehicle" switch in the Layers panel. Off by default: it is
+  // something to switch on and look for, not a mark to explain unasked.
+  const [showScheduleGhost, setShowScheduleGhost] = useState(false);
+  const chasedVehicleKey = chasedVehicle
+    ? chasedVehicle.vehicleId + "_" + chasedVehicle.serviceJourneyId
+    : null;
+
+  // Set when starting a chase is what switched the map to 3D, so stopping it
+  // can switch back. Cleared if the user leaves 3D during the chase: from then
+  // on the dimension is theirs, even if they return to 3D before stopping.
+  const chaseSwitchedTo3d = useRef(false);
+  useEffect(() => {
+    if (viewDimension !== "3d") chaseSwitchedTo3d.current = false;
+  }, [viewDimension]);
+
+  // Every way a chase ends goes through here. Both updates land in one render,
+  // so the chase's exit ease and the 2D ease run in the same commit and the
+  // camera goes straight to 2D rather than via the 3D pitch.
+  const stopChase = useCallback(() => {
+    setChasedVehicle(null);
+    if (chaseSwitchedTo3d.current) {
+      chaseSwitchedTo3d.current = false;
+      setViewDimension("2d");
+    }
+  }, [setViewDimension]);
+
+  const handleChaseToggle = () => {
+    if (!selectedVehicle) return;
+    const { id, serviceJourneyId } = selectedVehicle.properties;
+    if (
+      chasedVehicle?.vehicleId === id &&
+      chasedVehicle.serviceJourneyId === serviceJourneyId
+    ) {
+      stopChase();
+      return;
+    }
+    clearFollowedVehicle();
+    // A chase is a view from behind the vehicle, which only reads with terrain
+    // and buildings. ViewDimensionLayers' pitch ease is superseded by the
+    // chase's own fly-in, which starts on the next animation frame.
+    if (viewDimension !== "3d") {
+      chaseSwitchedTo3d.current = true;
+      setViewDimension("3d");
+    }
+    setChasedVehicle({ vehicleId: id, serviceJourneyId });
+  };
+
+  const handleFollow = () => {
+    stopChase();
+    handleFollowToggle();
+  };
+
+  // A selection has no rendering in the other mode, and returning to a stale
+  // one — pointing at a journey whose vehicle expired while away — is worse
+  // than returning to none. The followed vehicle is cleared alongside it:
+  // otherwise the first vehicle frame after returning to Vehicles mode would
+  // flyTo a follow target with no popup and no on-screen sign a follow is
+  // active. Done where the mode is switched rather than in an effect on
+  // `mode`, so the reset lands in the same render as the switch. The mode
+  // read from `?mode=` on load needs no reset: nothing is selected yet. A
+  // callback so it stays stable between mode changes, and the memoised mode
+  // pill in RightMenu skips the vehicle frames.
+  const switchMode = useCallback(
+    (next: AppMode) => {
+      if (next !== mode) {
+        setSelectedVehicle(null);
+        clearFollowedVehicle();
+        stopChase();
+      }
+      setMode(next);
+    },
+    [mode, clearFollowedVehicle, stopChase, setMode],
+  );
+
+  // On a phone the detail panels are a bottom sheet. Its snap lives here rather
+  // than in the sheet because the map is padded by its height too, and the
+  // two must agree on it in the same render. Kept across selections: someone
+  // who opened the sheet to read timetables wants the next one open as well.
+  const narrow = useMediaQuery(DETAIL_SHEET_MEDIA_QUERY, { noSsr: true });
+  const viewportHeight = useViewportHeight();
+  const [chosenSheetSnap, setSheetSnap] = useState<SheetSnap>("peek");
+  // Capped rather than overwritten, so the user's choice returns when the
+  // chase ends.
+  const maxSheetSnap = maxSnapFor(chasedVehicle !== null);
+  const sheetSnap = clampSnap(chosenSheetSnap, maxSheetSnap);
+  // The sheet stands clear above the attribution strip in the corner, which
+  // wraps onto more lines as layers add their credits.
+  const [attributionHeight, setAttributionHeight] = useState(0);
+  const sheetBottomEdge = sheetBottom(SURFACE_INSET, attributionHeight);
+  const detailLayout: DetailLayout = narrow
+    ? {
+        kind: "sheet",
+        snap: sheetSnap,
+        maxSnap: maxSheetSnap,
+        setSnap: setSheetSnap,
+        bottom: sheetBottomEdge,
+      }
+    : { kind: "card" };
+  const { selected: selectedSituation } = useSituations();
+  const detailOpen =
+    mode === "vehicles" ? selectedVehicle !== null : selectedSituation !== null;
+  const sheetBottomInset =
+    narrow && detailOpen
+      ? sheetMapInset(sheetSnap, viewportHeight, sheetBottomEdge)
+      : 0;
+  // During a chase the HUD sits above the sheet (or near the bottom edge when
+  // there is none) and hides more of the map than the sheet alone. Read only
+  // while chasing, so the value the HUD last reported cannot outlive it.
+  const [chaseHudCovered, setChaseHudCovered] = useState(0);
+  const mapBottomInset = chasedVehicle
+    ? Math.max(sheetBottomInset, chaseHudCovered)
+    : sheetBottomInset;
+  // The chase places the camera itself every frame, and a fully open sheet
+  // leaves too thin a strip of map to bring anything into.
+  const keepInView =
+    narrow &&
+    mode === "vehicles" &&
+    sheetSnap !== "full" &&
+    selectedVehicle &&
+    !chasedVehicle
+      ? (selectedVehicle.coordinates as [number, number])
+      : null;
+
+  // The selected journey's timetable and route, here rather than in the panel
+  // and the route layer because the schedule ghost reads both. A selection
+  // never outlives vehicles mode (switchMode clears it).
+  const selectedJourneyId =
+    selectedVehicle?.properties.serviceJourneyId ?? null;
+  const timetable = useTimetableSubscription(
+    selectedJourneyId,
+    selectedVehicle?.properties.date ?? null,
+  );
+  const route = useServiceJourneyRoute(selectedJourneyId);
+  const ghostSchedule = useMemo(
+    () =>
+      showScheduleGhost
+        ? buildSchedule(route?.coordinates ?? null, timetable)
+        : null,
+    [showScheduleGhost, route, timetable],
+  );
+
+  const vehicleUpdates = useMemo(
+    () => data.map((vehicle) => vehicle.vehicleUpdate),
+    [data],
   );
 
   return (
@@ -61,53 +303,124 @@ export function MapView({
         initialViewState={{ longitude: 10.0, latitude: 64.0, zoom: 4 }}
         mapStyle={mapStyle}
         onLoad={handleMapLoad}
+        onStyleData={handleStyleData}
+        attributionControl={false}
       >
         <NavigationControl position="top-left" />
         <GeolocateControl position="top-left" />
-        <LeftMenu
-          data={data.map((vehicle) => vehicle.vehicleUpdate)}
-          setCurrentFilter={setCurrentFilter}
-          currentFilter={currentFilter}
-          mapViewOptions={mapViewOptions}
-          setMapViewOptions={setMapViewOptions}
+        <ViewDimensionControl
+          dimension={viewDimension}
+          setDimension={setViewDimension}
         />
+        {viewDimension === "3d" && <RotateControl />}
+        <MapAttribution onHeightChange={setAttributionHeight} />
+        <ViewDimensionLayers dimension={viewDimension} />
+        <BaseMapScheme builtFor={builtScheme} />
+        <TransitNetworkLayers visible={showTransitNetwork} />
         <RightMenu
-          data={data.map((vehicle) => vehicle.vehicleUpdate)}
+          mode={mode}
+          setMode={switchMode}
+          data={vehicleUpdates}
           setCurrentFilter={setCurrentFilter}
           currentFilter={currentFilter}
           mapViewOptions={mapViewOptions}
           setMapViewOptions={setMapViewOptions}
+          showTransitNetwork={showTransitNetwork}
+          setShowTransitNetwork={setShowTransitNetwork}
+          showScheduleGhost={showScheduleGhost}
+          setShowScheduleGhost={setShowScheduleGhost}
         />
+        <MapBottomPadding bottom={mapBottomInset} keepInView={keepInView} />
         <RegisterIcons />
-        <CaptureBoundingBox setCurrentFilter={setCurrentFilter} />
-        <VehicleMarkers
-          data={data.map((vehicle) => vehicle.vehicleUpdate)}
-          setSelectedVehicle={setSelectedVehicle}
-          followedVehicleId={
-            followedVehicle ? followedVehicle.properties.id : null
-          }
+        <VehicleLabelPlacement chasing={chasedVehicle !== null} />
+        <ModeLayers mode={mode} mapViewOptions={mapViewOptions} />
+        <CaptureBoundingBox
+          setCurrentFilter={setCurrentFilter}
+          paused={chasedVehicle !== null}
         />
-        {mapViewOptions.showVehicleTraces && <VehicleTraces data={data} />}
-        <RouteLayer
-          serviceJourneyId={
-            selectedVehicle?.properties.serviceJourneyId ?? null
-          }
-          cancelled={tripCancelled}
-        />
-        {selectedVehicle && (
-          <VehiclePopup
-            vehicle={selectedVehicle}
-            onClose={() => setSelectedVehicle(null)}
-            onFollow={handleFollowToggle}
-            followedVehicle={followedVehicle}
+        {mode === "vehicles" && (
+          <>
+            <VehicleMarkers
+              data={vehicleUpdates}
+              setSelectedVehicle={setSelectedVehicle}
+              followedVehicleId={
+                followedVehicle ? followedVehicle.properties.id : null
+              }
+              hiddenVehicleKey={chasedVehicleKey}
+            />
+            {mapViewOptions.showVehicles && (
+              <VehicleModels
+                data={vehicleUpdates}
+                viewDimension={viewDimension}
+                chasedVehicleKey={chasedVehicleKey}
+                chasedVehicleStore={chasedVehicleStore}
+                ghostStore={ghostStore}
+              />
+            )}
+            {chasedVehicle && (
+              <ChaseCamera
+                key={chasedVehicleKey}
+                chased={chasedVehicle}
+                data={data}
+                viewDimension={viewDimension}
+                store={chasedVehicleStore}
+                setCurrentFilter={setCurrentFilter}
+                onStop={stopChase}
+                bottomInset={sheetBottomInset}
+                onCoveredChange={setChaseHudCovered}
+              />
+            )}
+            {mapViewOptions.showVehicleTraces && <VehicleTraces data={data} />}
+            <RouteLayer
+              route={route}
+              cancelled={timetable?.cancellation === true}
+            />
+            <ScheduleGhost
+              selectedVehicle={selectedVehicle}
+              schedule={ghostSchedule}
+              data={vehicleUpdates}
+              chasedVehicleStore={chasedVehicleStore}
+              ghostStore={ghostStore}
+            />
+            {/* The popup would sit at the newest report, ahead of the chased
+                model, and over the road the camera is showing. On a phone
+                it is not drawn at all: its actions are in the detail sheet. */}
+            {selectedVehicle && !chasedVehicle && !narrow && (
+              <VehiclePopup
+                vehicle={selectedVehicle}
+                onClose={() => setSelectedVehicle(null)}
+                onFollow={handleFollow}
+                followedVehicle={followedVehicle}
+                onChase={handleChaseToggle}
+              />
+            )}
+          </>
+        )}
+        {mode === "situations" && (
+          <SituationLayers
+            visible={
+              mapViewOptions.showAffectedStops ||
+              mapViewOptions.showAffectedLines
+            }
           />
         )}
       </Map>
-      <SelectedVehiclePanel
-        selectedVehicle={selectedVehicle}
-        onClose={() => setSelectedVehicle(null)}
-        onCancellationChange={setTripCancelled}
-      />
+      {mode === "vehicles" && (
+        <SelectedVehiclePanel
+          selectedVehicle={selectedVehicle}
+          timetable={timetable}
+          onClose={() => setSelectedVehicle(null)}
+          layout={detailLayout}
+          actions={{
+            isFollowing:
+              followedVehicle !== null &&
+              followedVehicle.properties.id === selectedVehicle?.properties.id,
+            onFollow: handleFollow,
+            onChase: handleChaseToggle,
+          }}
+        />
+      )}
+      {mode === "situations" && <SituationDetailPanel layout={detailLayout} />}
     </>
   );
 }

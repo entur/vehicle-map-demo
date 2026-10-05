@@ -1,11 +1,11 @@
-import { gql, request } from "graphql-request";
 import { useEffect, useState } from "react";
 import { useConfig } from "../config/ConfigContext.ts";
 import { RoutePolyline } from "../types.ts";
 import { useRequestHeaders } from "./useRequestHeaders.ts";
 import { decodePolyline } from "../utils/decodePolyline.ts";
+import { graphqlRequest } from "../utils/graphqlRequest.ts";
 
-const query = gql`
+const query = `
   query ($id: String!) {
     serviceJourney(id: $id) {
       pointsOnLink {
@@ -28,24 +28,27 @@ type Response = {
 export function useServiceJourneyRoute(
   serviceJourneyId: string | null,
 ): RoutePolyline | null {
-  const [route, setRoute] = useState<RoutePolyline | null>(null);
+  // Stored with the journey it was fetched for, so a changed id reads as no
+  // route straight away instead of being cleared by the effect.
+  const [fetched, setFetched] = useState<{
+    serviceJourneyId: string;
+    route: RoutePolyline | null;
+  } | null>(null);
   const config = useConfig();
   const requestHeaders = useRequestHeaders();
 
   useEffect(() => {
-    if (!serviceJourneyId) {
-      setRoute(null);
-      return;
-    }
+    if (!serviceJourneyId) return;
 
     const controller = new AbortController();
-    setRoute(null);
+    const setRoute = (route: RoutePolyline | null) =>
+      setFetched({ serviceJourneyId, route });
 
-    request<Response>({
+    graphqlRequest<Response>({
       url: config["vehicle-positions-graphql-endpoint"],
-      document: query,
+      query,
       variables: { id: serviceJourneyId },
-      requestHeaders,
+      headers: requestHeaders,
       signal: controller.signal,
     })
       .then((response) => {
@@ -66,7 +69,10 @@ export function useServiceJourneyRoute(
       });
 
     return () => controller.abort();
-  }, [serviceJourneyId, config]);
+  }, [serviceJourneyId, config, requestHeaders]);
 
-  return route;
+  return serviceJourneyId !== null &&
+    fetched?.serviceJourneyId === serviceJourneyId
+    ? fetched.route
+    : null;
 }

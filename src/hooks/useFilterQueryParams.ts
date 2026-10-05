@@ -1,5 +1,6 @@
 import { Filter } from "../types.ts";
 import { useEffect, useRef } from "react";
+import { filterFromQueryParams } from "../domain/filterQueryParams.ts";
 
 function getQueryParams() {
   if (!window.location.search) return {};
@@ -23,10 +24,9 @@ export function useFilterQueryParams(
   useEffect(() => {
     if (!loadState.current.loaded) {
       loadState.current.loaded = true;
-      const queryParams = getQueryParams();
       setFilter({
         ...(filter || {}),
-        ...queryParams,
+        ...filterFromQueryParams(getQueryParams()),
       } as Filter);
     }
   }, [filter, setFilter]);

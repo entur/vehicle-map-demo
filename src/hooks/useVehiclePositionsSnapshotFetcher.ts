@@ -1,12 +1,16 @@
 import { useCallback, useState } from "react";
-import { gql, request } from "graphql-request";
 import { useConfig } from "../config/ConfigContext.ts";
 import { VehicleUpdateComplete } from "../types.ts";
 import { useRequestHeaders } from "./useRequestHeaders.ts";
+import { graphqlRequest } from "../utils/graphqlRequest.ts";
 
-const query = gql`
+const query = `
   query ($codespaceId: String, $operatorRef: String) {
-    vehicles(codespaceId: $codespaceId, operatorRef: $operatorRef) {
+    vehicles(
+      codespaceId: $codespaceId
+      operatorRef: $operatorRef
+      includeInvalidLocations: true
+    ) {
       direction
       serviceJourney {
         id
@@ -77,17 +81,19 @@ export function useVehiclePositionsSnapshotFetcher() {
       operatorRef?: string;
     }) => {
       setLoading(true);
-      const response: any = await request(
-        config["vehicle-positions-graphql-endpoint"],
+      const response = await graphqlRequest<{
+        vehicles: VehicleUpdateComplete[];
+      }>({
+        url: config["vehicle-positions-graphql-endpoint"],
         query,
-        { codespaceId, operatorRef },
-        requestHeaders,
-      );
+        variables: { codespaceId, operatorRef },
+        headers: requestHeaders,
+      });
       setData(response.vehicles);
       setLoading(false);
       return response;
     },
-    [config],
+    [config, requestHeaders],
   );
 
   return { data, loading, fetchSnapshot };
