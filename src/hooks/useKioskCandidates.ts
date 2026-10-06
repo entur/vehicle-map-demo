@@ -47,6 +47,8 @@ type Snapshots = {
   previous: KioskSnapshot | null;
 };
 
+const NO_SNAPSHOTS: Snapshots = { current: null, previous: null };
+
 /**
  * The vehicles the kiosk may pick from: the filter's codespace and operator,
  * anywhere, refetched every SNAPSHOT_INTERVAL_MS. The previous snapshot is
@@ -59,11 +61,22 @@ export function useKioskCandidates(
 ): CandidatePool {
   const config = useConfig();
   const requestHeaders = useRequestHeaders();
-  const [snapshots, setSnapshots] = useState<Snapshots>({
-    current: null,
-    previous: null,
-  });
+  const [snapshots, setSnapshots] = useState<Snapshots>(NO_SNAPSHOTS);
   const { codespaceId, operatorRef } = filter;
+  // A run picks only from snapshots fetched for it. Held across a stop, a
+  // start or a filter change, the last run's `current` — possibly hours old,
+  // for another codespace or operator — would look new to the first tick
+  // (`waiting` starts at `since: -Infinity`) and be picked from, and its
+  // `previous` would skew the "moved" test. Dropped during render, so the
+  // new run's first tick already sees nothing.
+  const runKey = enabled
+    ? JSON.stringify([codespaceId ?? null, operatorRef ?? null])
+    : null;
+  const [heldFor, setHeldFor] = useState(runKey);
+  if (runKey !== heldFor) {
+    setHeldFor(runKey);
+    setSnapshots(NO_SNAPSHOTS);
+  }
 
   useEffect(() => {
     if (!enabled) return;
@@ -77,6 +90,10 @@ export function useKioskCandidates(
           headers: requestHeaders,
           signal: controller.signal,
         });
+        // The effect was torn down — the run ended or its filter changed —
+        // after this response arrived but before it was handled. It belongs
+        // to a run that no longer exists.
+        if (controller.signal.aborted) return;
         const snapshot: KioskSnapshot = {
           fetchedAt: Date.now(),
           vehicles: response.vehicles

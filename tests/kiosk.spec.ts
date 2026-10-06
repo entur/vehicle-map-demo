@@ -6,6 +6,11 @@ type KioskWindow = {
 };
 
 test.describe("kiosk mode", () => {
+  // One after another: three WebGL maps at once on a loaded machine delayed
+  // the chase test's click past its 6 s idle period. Not "serial", which
+  // would skip the rest after a failure.
+  test.describe.configure({ mode: "default" });
+
   test.beforeEach(async ({ page }) => {
     // Resume 6 s after the last input instead of 2 minutes. Read once, when
     // the kiosk starts; development builds only.
