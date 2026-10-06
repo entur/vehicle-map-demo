@@ -20,6 +20,7 @@ const options = (visible: boolean, scheme: MapScheme = "light") => ({
   opacity: visible ? 1 : 0,
   scheme,
   getPosition: () => [10.75, 59.91, 0] as [number, number, number],
+  getTilt: () => ({ pitch: 0, poolPitch: 0 }),
   positionTrigger: null,
 });
 
@@ -76,5 +77,24 @@ describe("vehicleModelLayers", () => {
     expect(dark.indexOf("models-BUS-light-pool")).toBeLessThan(
       dark.indexOf("models-BUS-body"),
     );
+  });
+
+  // Flat models on a slope buried the light pool in an uphill street. The
+  // model points along +y, so deck.gl's roll (the third angle) lifts the nose.
+  it("leans the body and its light pool each by their own slope", () => {
+    const layers = vehicleModelLayers([bus("1", "Ullevål")], {
+      ...options(true, "dark"),
+      getTilt: () => ({ pitch: 4, poolPitch: 9 }),
+    });
+    const orientation = (id: string) => {
+      const layer = layers.find((l) => l.id === id)!;
+      const get = layer.props.getOrientation as unknown as (
+        v: VehicleUpdate,
+      ) => number[];
+      return get(bus("1", "Ullevål"));
+    };
+    expect(orientation("models-BUS-body")).toEqual([0, -90, 4]);
+    expect(orientation("models-BUS-lamps")).toEqual([0, -90, 4]);
+    expect(orientation("models-BUS-light-pool")).toEqual([0, -90, 9]);
   });
 });

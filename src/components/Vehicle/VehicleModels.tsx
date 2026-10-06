@@ -15,6 +15,19 @@ import {
 import { withLayerAsStyleLoaded } from "../../utils/withLayerAsStyleLoaded.ts";
 import { ViewBounds, vehiclesInView } from "../../domain/vehiclesInView.ts";
 import { VehicleStore } from "./chasedVehicleStore.ts";
+import { VehicleGround, vehicleGround } from "../../domain/vehicleGround.ts";
+import {
+  dimensionsFor,
+  normaliseBearing,
+} from "../../domain/vehicleFootprint.ts";
+import { LIGHT_POOL_REACH } from "../../domain/lightPool.ts";
+
+const LEVEL: VehicleGround = {
+  elevation: 0,
+  pitch: 0,
+  poolPitch: 0,
+  complete: false,
+};
 
 /** Fades the models in over the same half zoom level the icons fade out. */
 function modelOpacity(zoom: number) {
@@ -129,12 +142,16 @@ export function VehicleModels({
     [data, chasing, chasedVehicleKey, viewBounds],
   );
 
-  // Terrain heights, per vehicle report. The vehicle cache replaces a report's
-  // object only when a new one arrives, so a vehicle that has not reported
-  // since the last frame is not looked up again — and each report is looked up
-  // once, not once per model layer. Started afresh when terrain comes or goes.
-  const elevations = useMemo(
-    () => ({ viewDimension, heights: new WeakMap<VehicleUpdate, number>() }),
+  // The ground under each vehicle report — its height and slope. The vehicle
+  // cache replaces a report's object only when a new one arrives, so a vehicle
+  // that has not reported since the last frame is not looked up again — and
+  // each report is looked up once, not once per model layer. Started afresh
+  // when terrain comes or goes.
+  const grounds = useMemo(
+    () => ({
+      viewDimension,
+      byReport: new WeakMap<VehicleUpdate, VehicleGround>(),
+    }),
     [viewDimension],
   );
 
@@ -142,26 +159,32 @@ export function VehicleModels({
     const map = mapRef?.getMap();
     if (!map) return;
 
-    // Terrain height at the vehicle, or sea level when there is no terrain
-    // (2D) or its tiles have not loaded yet — the next vehicle frame retries,
-    // since only a found height is cached.
-    const getPosition = (vehicle: VehicleUpdate): [number, number, number] => {
-      const { longitude, latitude } = vehicle.location;
-      let elevation = elevations.heights.get(vehicle);
-      if (elevation === undefined) {
-        const found = map.queryTerrainElevation([longitude, latitude]);
-        if (found !== null && found !== undefined) {
-          elevation = found;
-          elevations.heights.set(vehicle, found);
-        }
-      }
-      return [longitude, latitude, elevation ?? 0];
+    // The terrain under the vehicle, or level at sea level when there is no
+    // terrain (2D) or its tiles have not loaded yet — the next vehicle frame
+    // retries, since only a complete result is cached.
+    const getGround = (vehicle: VehicleUpdate): VehicleGround => {
+      const cached = grounds.byReport.get(vehicle);
+      if (cached) return cached;
+      const found = vehicleGround(
+        (lngLat) => map.queryTerrainElevation(lngLat),
+        [vehicle.location.longitude, vehicle.location.latitude],
+        normaliseBearing(vehicle.bearing),
+        dimensionsFor(vehicle.mode).length,
+        LIGHT_POOL_REACH,
+      );
+      if (found?.complete) grounds.byReport.set(vehicle, found);
+      return found ?? LEVEL;
     };
     options.current = {
       visible: opacity > 0,
       opacity,
       scheme,
-      getPosition,
+      getPosition: (vehicle) => [
+        vehicle.location.longitude,
+        vehicle.location.latitude,
+        getGround(vehicle).elevation,
+      ],
+      getTilt: getGround,
       positionTrigger: viewDimension,
     };
     baseLayers.current = vehicleModelLayers(unchased, {
@@ -169,20 +192,22 @@ export function VehicleModels({
       idPrefix: "vehicle-models",
     });
     handOver();
-  }, [handOver, mapRef, unchased, opacity, scheme, viewDimension, elevations]);
+  }, [handOver, mapRef, unchased, opacity, scheme, viewDimension, grounds]);
 
   useEffect(() => {
     const publish = () => {
       const vehicle = chasedVehicleStore.get();
-      // A new object every frame, so the cache never hits; look the position up
+      // A new object every frame, so the cache never hits; look the ground up
       // once here rather than once per model layer.
       const position = vehicle && options.current?.getPosition(vehicle);
+      const tilt = vehicle && options.current?.getTilt(vehicle);
       chasedLayers.current =
-        vehicle && options.current && position
+        vehicle && options.current && position && tilt
           ? vehicleModelLayers([vehicle], {
               ...options.current,
               idPrefix: "vehicle-models-chased",
               getPosition: () => position,
+              getTilt: () => tilt,
               // A new position every frame, so a new trigger every frame.
               positionTrigger: position,
             })
@@ -203,13 +228,15 @@ export function VehicleModels({
       // Nothing to hand over while there was no ghost and still is none.
       if (!ghost && ghostLayers.current.length === 0) return;
       const position = ghost && options.current?.getPosition(ghost);
+      const tilt = ghost && options.current?.getTilt(ghost);
       ghostLayers.current =
-        ghost && options.current && position
+        ghost && options.current && position && tilt
           ? vehicleModelLayers([ghost], {
               ...options.current,
               idPrefix: "vehicle-models-ghost",
               opacity: options.current.opacity * SCHEDULE_GHOST_OPACITY,
               getPosition: () => position,
+              getTilt: () => tilt,
               positionTrigger: position,
             })
           : [];
