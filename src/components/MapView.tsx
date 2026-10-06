@@ -277,6 +277,8 @@ export function MapView({
         serviceJourneyId: vehicle.serviceJourney.id,
       });
     },
+    watchArea: (boundingBox) =>
+      setCurrentFilter((prev) => ({ ...prev, boundingBox })),
     restore: (setup) => {
       switchMode("vehicles");
       setCurrentFilter((prev) => restoredFilter(prev, setup.filter));
@@ -314,6 +316,10 @@ export function MapView({
     }),
     [kioskRun, kioskFilter, currentFilter, startKiosk, stopKiosk],
   );
+  // The kiosk's flight owns the bounding box, as a chase does: it set the box
+  // to where the flight lands, and the moves on the way would replace it.
+  // Unpausing on arrival captures the view the flight landed on.
+  const kioskFlying = kiosk.state?.phase.kind === "arriving";
   // Running and not paused: the app's own controls are hidden.
   const kioskRunning =
     kiosk.state !== null && kiosk.state.phase.kind !== "paused";
@@ -435,7 +441,7 @@ export function MapView({
         <ModeLayers mode={mode} mapViewOptions={mapViewOptions} />
         <CaptureBoundingBox
           setCurrentFilter={setCurrentFilter}
-          paused={chasedVehicle !== null}
+          paused={chasedVehicle !== null || kioskFlying}
         />
         {mode === "vehicles" && (
           <>

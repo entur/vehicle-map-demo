@@ -18,6 +18,12 @@ import { useKioskCandidates } from "./useKioskCandidates.ts";
 import { filterFromQueryParams } from "../domain/filterQueryParams.ts";
 import { vehicleKey } from "../domain/kioskCandidates.ts";
 import {
+  MODEL_REACH_METRES,
+  ViewBounds,
+  padBounds,
+  viewBoundsAt,
+} from "../domain/vehiclesInView.ts";
+import {
   KioskTrack,
   NO_TRACK,
   callsFor,
@@ -58,6 +64,12 @@ export type KioskActions = {
   leave: () => void;
   /** Select `vehicle` and chase it. */
   chase: (vehicle: VehicleUpdate) => void;
+  /**
+   * Point the vehicle subscription at `boundingBox`: the view a flight is
+   * headed for, so the target and its neighbours are on the map before the
+   * camera gets there rather than only once it has landed.
+   */
+  watchArea: (boundingBox: ViewBounds) => void;
   restore: (setup: KioskSetup) => void;
 };
 
@@ -216,6 +228,22 @@ export function useKiosk({
             // in progress, and that move's moveend is not this arrival.
             map.once("moveend", () =>
               send({ type: "arrived", now: Date.now() }),
+            );
+            // After flyTo too: the moveend of the move it stopped has been
+            // captured by now, and would otherwise overwrite this box.
+            const container = map.getContainer();
+            actions.watchArea(
+              padBounds(
+                viewBoundsAt({
+                  longitude: target.lon,
+                  latitude: target.lat,
+                  zoom: ARRIVE_ZOOM,
+                  width: container.clientWidth,
+                  height: container.clientHeight,
+                  padding: map.getPadding(),
+                }),
+                MODEL_REACH_METRES,
+              ),
             );
             return;
           }
