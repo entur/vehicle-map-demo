@@ -6,11 +6,11 @@ import type { VehicleMesh } from "./vehicleMeshes.ts";
  * The pool of headlight on the road in front of a vehicle, drawn in dark mode
  * only. It is no light at all: a flat quad at the vehicle's own height,
  * textured with a soft wedge (`lightPoolTexture`) whose alpha does the
- * fading, since the mesh's vertex colours carry none. On a slope it clips into
- * the terrain on one side and floats on the other (`LIGHT_POOL_LIFT` keeps
- * that rare on ordinary streets); that is accepted, because
- * fitting it to the ground would mean several terrain lookups per vehicle,
- * every frame for a chased one.
+ * fading, since the mesh's vertex colours carry none. The layer tilts it to
+ * the slope from the vehicle to its far end (`poolPitch` in
+ * `vehicleGround.ts`), which fits a straight grade; a road that bends up or
+ * down within those metres still clips or floats a little, which
+ * `LIGHT_POOL_LIFT` covers.
  *
  * Same model space as the vehicle: +y forward, origin on the ground at the
  * reported position.

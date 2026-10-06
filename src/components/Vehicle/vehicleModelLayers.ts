@@ -91,9 +91,13 @@ export type ModelLayerOptions = {
   /** The colour scheme in force, which decides how the models are lit. */
   scheme: MapScheme;
   getPosition: (vehicle: VehicleUpdate) => [number, number, number];
-  /** Changes whenever `getPosition` would return something different. */
+  /** How far the body and its light pool lean, nose up, in degrees. */
+  getTilt: (vehicle: VehicleUpdate) => Tilt;
+  /** Changes whenever `getPosition` or `getTilt` would return something different. */
   positionTrigger: unknown;
 };
+
+export type Tilt = { pitch: number; poolPitch: number };
 
 /**
  * The deck.gl layers drawing `vehicles` as models: split by mode, since each
@@ -108,6 +112,7 @@ export function vehicleModelLayers(
     opacity,
     scheme,
     getPosition,
+    getTilt,
     positionTrigger,
   }: ModelLayerOptions,
 ) {
@@ -134,15 +139,25 @@ export function vehicleModelLayers(
     visible,
     opacity,
     getPosition,
-    updateTriggers: { getPosition: positionTrigger },
+    updateTriggers: {
+      getPosition: positionTrigger,
+      getOrientation: positionTrigger,
+    },
   };
 
   // deck.gl yaw turns counter-clockwise; bearing is clockwise from north.
+  // What deck.gl calls roll turns about the model's x axis, which with the
+  // model pointing along +y is what lifts the nose: a slope goes there.
+  const yaw = (vehicle: VehicleUpdate) =>
+    -(normaliseBearing(vehicle.bearing) ?? 0);
   const getOrientation = (vehicle: VehicleUpdate): [number, number, number] => [
     0,
-    -(normaliseBearing(vehicle.bearing) ?? 0),
-    0,
+    yaw(vehicle),
+    getTilt(vehicle).pitch,
   ];
+  const getPoolOrientation = (
+    vehicle: VehicleUpdate,
+  ): [number, number, number] => [0, yaw(vehicle), getTilt(vehicle).poolPitch];
 
   // Layers per mode, sharing transforms: the white body coloured per vehicle,
   // the details and the lamps drawn in their own fixed colours, and the signs,
@@ -163,7 +178,7 @@ export function vehicleModelLayers(
                 data: list,
                 mesh: lightPoolMesh(mode),
                 texture: lightPoolTexture(),
-                getOrientation,
+                getOrientation: getPoolOrientation,
                 getColor: UNTINTED,
                 material: materials.signs,
                 parameters: LIGHT_POOL_PARAMETERS,
