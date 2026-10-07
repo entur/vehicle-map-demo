@@ -52,7 +52,8 @@ export type SnapshotVehicle = {
   serviceJourney: { id: string; date: string };
   codespace: { codespaceId: string } | null;
   mode: VehicleModeEnumeration;
-  line: { publicCode: string } | null;
+  /** Null for whole codespaces, despite the schema. */
+  line: { publicCode: string | null } | null;
   destinationName: string | null;
   lastUpdated: string;
   monitored: boolean | null;
@@ -118,9 +119,20 @@ export function isGoodCandidate(
 }
 
 /**
- * The next vehicle to chase: a random good candidate, else a random eligible
- * vehicle, else null. Recent picks are left out unless nothing else is
- * eligible. `random` is in [0, 1), passed in so tests are deterministic.
+ * Publishes a line code. About a third of the feed does not — whole
+ * codespaces, which send no destination either — and the caption is then
+ * only a codespace.
+ */
+export function hasLineCode(vehicle: KioskVehicle): boolean {
+  return vehicle.lineCode !== "";
+}
+
+/**
+ * The next vehicle to chase, at random from the first non-empty narrowing of
+ * the eligible vehicles: not picked recently, then publishing a line code,
+ * then good. Else null. A line code comes before moving because a caption
+ * without one tells a passer-by nothing. `random` is in [0, 1), passed in so
+ * tests are deterministic.
  *
  * Eligibility is maxDataAge measured at the snapshot's own fetch, not at the
  * pick: the snapshot is polled every 60 s and maxDataAge defaults to 30 s, so
@@ -138,13 +150,15 @@ export function pickCandidate(
   );
   const unseen = eligible.filter((v) => !recent.includes(v.key));
   const fresh = unseen.length > 0 ? unseen : eligible;
+  const labelled = fresh.filter(hasLineCode);
+  const captioned = labelled.length > 0 ? labelled : fresh;
   const before = previous
     ? new Map(previous.vehicles.map((v) => [v.key, v]))
     : null;
-  const good = fresh.filter((v) =>
+  const good = captioned.filter((v) =>
     isGoodCandidate(v, before, current.fetchedAt),
   );
-  const from = good.length > 0 ? good : fresh;
+  const from = good.length > 0 ? good : captioned;
   if (from.length === 0) return null;
   return from[Math.min(from.length - 1, Math.floor(random * from.length))];
 }

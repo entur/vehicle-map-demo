@@ -32,6 +32,11 @@ const CLOCK_MS = 1000;
 const BAND_VEHICLE_GAP = 12;
 const ICON_SIZE = 56;
 /**
+ * In place of the line code, which a third of the feed does not publish. The
+ * kiosk picks such a vehicle only when nothing that publishes one matches.
+ */
+const NO_LINE_CODE = "No line published";
+/**
  * The band's height, fixed so that what it shows never changes it: its height
  * is the map's bottom padding, and every padding change jumps the camera,
  * which cancels the chase's exit ease and the 2D ease running at a switch.
@@ -98,7 +103,8 @@ export function KioskOverlay({
     if (view.kind === "travelling") {
       return (
         <KioskPill>
-          Next: {view.target.lineCode} {view.target.destinationName ?? ""}
+          Next: {view.target.lineCode || NO_LINE_CODE}{" "}
+          {view.target.destinationName ?? ""}
         </KioskPill>
       );
     }
@@ -266,21 +272,32 @@ function Caption({
           Next
         </Typography>
         <Box sx={{ display: "flex", alignItems: "baseline", gap: 1.5 }}>
-          <Typography
-            component="span"
-            variant="h4"
-            sx={{
-              fontWeight: 700,
-              px: 1,
-              borderRadius: "var(--mui-shape-borderRadius)",
-              ...(colours && {
-                color: colours.text,
-                backgroundColor: colours.halo,
-              }),
-            }}
-          >
-            {lineCode}
-          </Typography>
+          {lineCode ? (
+            <Typography
+              component="span"
+              variant="h4"
+              sx={{
+                fontWeight: 700,
+                px: 1,
+                borderRadius: "var(--mui-shape-borderRadius)",
+                ...(colours && {
+                  color: colours.text,
+                  backgroundColor: colours.halo,
+                }),
+              }}
+            >
+              {lineCode}
+            </Typography>
+          ) : (
+            <Typography
+              component="span"
+              variant="h4"
+              noWrap
+              sx={{ color: "text.secondary" }}
+            >
+              {NO_LINE_CODE}
+            </Typography>
+          )}
           <Typography component="span" variant="h4" noWrap>
             {destination ?? ""}
           </Typography>

@@ -228,6 +228,45 @@ describe("pickCandidate", () => {
     expect(pickCandidate(pool([a]), [a.key], 0)?.key).toBe(a.key);
   });
 
+  // About a third of the feed publishes no line code, whole codespaces at a
+  // time, and a caption without one says nothing to a passer-by.
+  it("prefers a vehicle that publishes a line code", () => {
+    const unlabelled = vehicle("a", { lineCode: "", destinationName: null });
+    const labelled = vehicle("b");
+    for (const random of [0, 0.5, 0.999]) {
+      expect(pickCandidate(pool([unlabelled, labelled]), [], random)?.key).toBe(
+        labelled.key,
+      );
+    }
+  });
+
+  it("prefers a line code over moving", () => {
+    const unlabelled = vehicle("a", { lineCode: "" });
+    const still = vehicle("b");
+    const current = [moved(unlabelled, 0.001), still];
+    expect(pickCandidate(pool(current, [unlabelled, still]), [], 0)?.key).toBe(
+      still.key,
+    );
+  });
+
+  it("prefers a moving vehicle among those with a line code", () => {
+    const unlabelled = vehicle("a", { lineCode: "" });
+    const still = vehicle("b");
+    const going = vehicle("c");
+    const current = [moved(unlabelled, 0.001), still, moved(going, 0.001)];
+    const previous = [unlabelled, still, going];
+    for (const random of [0, 0.5, 0.999]) {
+      expect(pickCandidate(pool(current, previous), [], random)?.key).toBe(
+        going.key,
+      );
+    }
+  });
+
+  it("falls back to a vehicle without a line code when it is all there is", () => {
+    const unlabelled = vehicle("a", { lineCode: "" });
+    expect(pickCandidate(pool([unlabelled]), [], 0)?.key).toBe(unlabelled.key);
+  });
+
   it("never picks a vehicle older than maxDataAge, however good", () => {
     const before = vehicle("a", { lastUpdated: NOW - 70_000 });
     const after = moved({ ...before, lastUpdated: NOW - 40_000 }, 0.001);
