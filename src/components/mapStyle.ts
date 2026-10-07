@@ -360,6 +360,12 @@ export function buildMapStyle(scheme: MapScheme): StyleSpecification {
         type: "geojson",
         data: { type: "FeatureCollection", features: [] },
       },
+      // The same outlines a metre larger, ringing the selected model. Written
+      // alongside `vehicles` by VehicleMarkers; filtered by SelectedVehicleHalo.
+      vehicleOutlines: {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] },
+      },
       vehicleTraces: {
         type: "geojson",
         data: { type: "FeatureCollection", features: [] },
@@ -657,6 +663,52 @@ export function buildMapStyle(scheme: MapScheme): StyleSpecification {
           ],
         },
       },
+      // The selection on a model: its footprint a metre larger, flat on the
+      // ground under it, turning with it and true to scale, where the screen-
+      // sized circle of vehicle-selected-halo-layer no longer fits. Fades in as
+      // that circle and the icons fade out. Filtered to the selection by
+      // SelectedVehicleHalo; declared before the models' beforeId, so it is
+      // drawn under them.
+      {
+        id: "vehicle-selected-outline-fill-layer",
+        type: "fill",
+        source: "vehicleOutlines",
+        minzoom: VEHICLE_MODEL_MIN_ZOOM,
+        paint: {
+          "fill-color": SELECTION_HALO,
+          "fill-opacity": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            VEHICLE_MODEL_MIN_ZOOM,
+            0,
+            VEHICLE_MODEL_MIN_ZOOM + 0.5,
+            0.25,
+          ],
+        },
+        filter: ["boolean", false],
+      },
+      {
+        id: "vehicle-selected-outline-layer",
+        type: "line",
+        source: "vehicleOutlines",
+        minzoom: VEHICLE_MODEL_MIN_ZOOM,
+        layout: { "line-join": "round" },
+        paint: {
+          "line-color": SELECTION_HALO,
+          "line-width": 3,
+          "line-opacity": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            VEHICLE_MODEL_MIN_ZOOM,
+            0,
+            VEHICLE_MODEL_MIN_ZOOM + 0.5,
+            1,
+          ],
+        },
+        filter: ["boolean", false],
+      },
       // Click target for the 3D vehicle models, which deck.gl draws (see
       // VehicleModels). Never visible: at opacity 0 MapLibre skips drawing it but
       // still hit-tests the extruded footprint, so a click on a model selects the
@@ -711,7 +763,7 @@ export function buildMapStyle(scheme: MapScheme): StyleSpecification {
           ],
         },
       },
-      // Rings the selected vehicle. Above the dots, so a selection in a dense
+      // Rings the selected vehicle's dot or icon. Above the dots, so a selection in a dense
       // cluster is not buried under its neighbours, and below the icons, the
       // arrows and the line-code labels, which the ring's radius — a few
       // pixels outside the dot, then the icon — keeps clear of. Filtered to the
@@ -735,9 +787,27 @@ export function buildMapStyle(scheme: MapScheme): StyleSpecification {
             22,
           ],
           "circle-color": SELECTION_HALO,
-          "circle-opacity": 0.2,
+          "circle-opacity": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            VEHICLE_MODEL_MIN_ZOOM,
+            0.2,
+            VEHICLE_MODEL_MIN_ZOOM + 0.5,
+            0,
+          ],
           "circle-stroke-width": 3,
           "circle-stroke-color": SELECTION_HALO,
+          // Hands over to the footprint outline as the models take over.
+          "circle-stroke-opacity": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            VEHICLE_MODEL_MIN_ZOOM,
+            1,
+            VEHICLE_MODEL_MIN_ZOOM + 0.5,
+            0,
+          ],
           "circle-pitch-alignment": "viewport",
         },
         filter: ["boolean", false],

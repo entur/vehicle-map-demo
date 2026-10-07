@@ -27,6 +27,9 @@ export function dimensionsFor(mode: VehicleModeEnumeration): Dimensions {
   return VEHICLE_DIMENSIONS[mode] ?? DEFAULT_DIMENSIONS;
 }
 
+/** Metres the selection outline stands clear of a model on every side. */
+export const SELECTION_OUTLINE_MARGIN = 1;
+
 /** Degrees clockwise from north in [0, 360), or null when unknown. */
 export function normaliseBearing(bearing: number | null): number | null {
   if (bearing === null || !Number.isFinite(bearing)) return null;
@@ -39,6 +42,9 @@ export function normaliseBearing(bearing: number | null): number | null {
  * regular octagon instead, so that "direction unknown" can never be mistaken
  * for "heading north".
  *
+ * `margin` grows the outline by that many metres on every side, and
+ * `nose: false` leaves the box square-ended — both for `selectionOutline`.
+ *
  * Local offsets use an equirectangular approximation, which is exact enough
  * over the tens of metres a vehicle spans.
  */
@@ -46,8 +52,11 @@ export function vehicleFootprint(
   [lon, lat]: [number, number],
   bearing: number | null,
   mode: VehicleModeEnumeration,
+  { margin = 0, nose = true }: { margin?: number; nose?: boolean } = {},
 ): Polygon {
-  const { length, width } = dimensionsFor(mode);
+  const dimensions = dimensionsFor(mode);
+  const length = dimensions.length + 2 * margin;
+  const width = dimensions.width + 2 * margin;
   const metresPerDegreeLon =
     METRES_PER_DEGREE_LAT * Math.cos((lat * Math.PI) / 180);
   const toLonLat = (east: number, north: number) => [
@@ -67,14 +76,21 @@ export function vehicleFootprint(
   } else {
     // x is to the vehicle's right, y is forward.
     const half = length / 2;
-    const nose = Math.min(width, length * 0.15);
-    const local: [number, number][] = [
-      [-width / 2, -half],
-      [width / 2, -half],
-      [width / 2, half - nose],
-      [0, half],
-      [-width / 2, half - nose],
-    ];
+    const noseLength = Math.min(width, length * 0.15);
+    const local: [number, number][] = nose
+      ? [
+          [-width / 2, -half],
+          [width / 2, -half],
+          [width / 2, half - noseLength],
+          [0, half],
+          [-width / 2, half - noseLength],
+        ]
+      : [
+          [-width / 2, -half],
+          [width / 2, -half],
+          [width / 2, half],
+          [-width / 2, half],
+        ];
     const rad = (heading * Math.PI) / 180;
     const sin = Math.sin(rad);
     const cos = Math.cos(rad);
@@ -84,4 +100,21 @@ export function vehicleFootprint(
   }
 
   return { type: "Polygon", coordinates: [[...ring, ring[0]]] };
+}
+
+/**
+ * The ring drawn under a selected model: a plain rectangle a little larger
+ * than the vehicle, so it stands clear of the model on every side. The
+ * model shows which way it faces; the ring only says which one it is. With
+ * no bearing it is the same directionless octagon as the footprint.
+ */
+export function selectionOutline(
+  position: [number, number],
+  bearing: number | null,
+  mode: VehicleModeEnumeration,
+): Polygon {
+  return vehicleFootprint(position, bearing, mode, {
+    margin: SELECTION_OUTLINE_MARGIN,
+    nose: false,
+  });
 }

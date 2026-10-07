@@ -23,6 +23,8 @@ export const APP_MODES: AppMode[] = ["vehicles", "situations"];
 export const MODE_LAYERS: Record<AppMode, string[]> = {
   vehicles: [
     "vehicle-selected-halo-layer",
+    "vehicle-selected-outline-layer",
+    "vehicle-selected-outline-fill-layer",
     "vehicle-dot-layer",
     "vehicle-layer",
     "vehicle-bearing-layer",
@@ -123,6 +125,8 @@ export const MODE_DEFAULT_VISIBLE_LAYERS: Record<AppMode, string[]> = {
     "vehicle-follow-layer",
     // Filtered to the selected vehicle by SelectedVehicleHalo, never toggled.
     "vehicle-selected-halo-layer",
+    "vehicle-selected-outline-layer",
+    "vehicle-selected-outline-fill-layer",
     // Drawn whenever a selected journey has a ghost; like the route, a
     // property of the selection rather than a layer to switch.
     "schedule-ghost-layer",
@@ -157,6 +161,7 @@ export const MODE_SOURCES: Record<AppMode, string[]> = {
   vehicles: [
     "vehicles",
     "vehicleModels",
+    "vehicleOutlines",
     "vehicleTraces",
     "serviceJourneyRoute",
     "scheduleGhost",
