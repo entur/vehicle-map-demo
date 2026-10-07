@@ -34,6 +34,7 @@ import {
 } from "../domain/transitNetwork.ts";
 import {
   BEARING_ARROW_ICON,
+  FOLLOW_BADGE_ICON,
   VEHICLE_DOT_COLOUR_MATCH,
   VEHICLE_DOT_SORT_KEY,
   VEHICLE_ICON_MATCH,
@@ -827,20 +828,14 @@ export function buildMapStyle(scheme: MapScheme): StyleSpecification {
         id: "vehicle-follow-layer",
         type: "symbol",
         source: "vehicles",
+        // Same size and centre as vehicle-layer's icon, so the badge stays on
+        // its edge (drawFollowBadge) at every zoom.
         layout: {
-          "icon-image": "green-marker-icon",
-          "icon-size": 0.25,
-          "icon-anchor": "bottom",
-          "icon-offset": [
-            "interpolate",
-            ["linear"],
-            ["zoom"],
-            4,
-            ["literal", [0, -30]], // At zoom 4, offset is [0, -30]
-            18,
-            ["literal", [0, -180]], // At zoom 18, offset is [0, -80]
-          ],
+          "icon-image": FOLLOW_BADGE_ICON,
+          "icon-size": VEHICLE_ICON_SIZE_EXPRESSION,
+          "icon-pitch-alignment": "viewport",
           "icon-allow-overlap": true,
+          "icon-ignore-placement": true,
         },
         filter: ["==", ["get", "followed"], true],
       },

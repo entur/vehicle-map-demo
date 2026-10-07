@@ -212,7 +212,7 @@ test("switching to dark swaps the base map and keeps app state", async ({
         dark: map.getLayoutProperty("dark/background", "visibility"),
         vehicleLayer:
           map.getLayoutProperty("vehicle-layer", "visibility") ?? "visible",
-        icon: map.hasImage("green-marker-icon"),
+        icon: map.hasImage("red-marker"),
         vehicleIcon: map.hasImage("vehicle-bus"),
         features: map.querySourceFeatures("vehicles").length,
       };

@@ -2,11 +2,15 @@ import { describe, expect, it } from "vitest";
 import { EDGE_INK, EDGE_WHITE } from "../domain/dataColours.ts";
 import {
   BEARING_ARROW_SIZE,
+  FOLLOW_BADGE_RADIUS,
+  FOLLOW_BADGE_SIZE,
   VEHICLE_ICON_PIXEL_RATIO,
   VEHICLE_ICON_SIZE,
   bearingArrowPoints,
   drawBearingArrow,
+  drawFollowBadge,
   drawVehicleIcon,
+  followBadgeCentre,
 } from "./drawVehicleIcon.ts";
 
 /** Records the calls and style assignments drawVehicleIcon makes. */
@@ -102,5 +106,37 @@ describe("bearing arrow", () => {
       calls.indexOf(`fillStyle=${EDGE_INK}`),
     );
     expect(calls.indexOf("stroke()")).toBeLessThan(calls.indexOf("fill()"));
+  });
+});
+
+describe("follow badge", () => {
+  const centre = FOLLOW_BADGE_SIZE / 2;
+
+  it("sits on the icon's circle, at its top-right", () => {
+    const [x, y] = followBadgeCentre();
+    expect(Math.hypot(x - centre, y - centre)).toBeCloseTo(
+      VEHICLE_ICON_SIZE / 2,
+    );
+    expect(x).toBeGreaterThan(centre);
+    expect(y).toBeLessThan(centre);
+    expect(x - centre).toBeCloseTo(centre - y);
+  });
+
+  it("stays inside its image, edge included", () => {
+    const [x, y] = followBadgeCentre();
+    const reach = FOLLOW_BADGE_RADIUS + 5;
+    expect(Math.min(x, y) - reach).toBeGreaterThanOrEqual(0);
+    expect(Math.max(x, y) + reach).toBeLessThanOrEqual(FOLLOW_BADGE_SIZE);
+  });
+
+  it("draws an ink disc over a white edge, then a white glyph", () => {
+    const { calls, ctx } = recordingContext();
+    drawFollowBadge(ctx);
+    const edge = calls.indexOf(`fillStyle=${EDGE_WHITE}`);
+    const ink = calls.indexOf(`fillStyle=${EDGE_INK}`);
+    const glyph = calls.indexOf(`strokeStyle=${EDGE_WHITE}`);
+    expect(edge).toBeGreaterThanOrEqual(0);
+    expect(edge).toBeLessThan(ink);
+    expect(ink).toBeLessThan(glyph);
   });
 });

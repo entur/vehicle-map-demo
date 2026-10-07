@@ -1,6 +1,5 @@
 import { VehicleIconCanvas } from "./VehicleIconCanvas.tsx";
 import { VEHICLE_ICON_URLS } from "./vehicleIconImages.ts";
-import greenMarkerIcon from "../static/images/markerGreen.png";
 import greenMarker from "../static/images/greenUpdate.png";
 import orangeMarker from "../static/images/yellowUpdate.png";
 import redMarker from "../static/images/redUpdate.png";
@@ -36,7 +35,6 @@ const VEHICLE_LEGEND: { url: string | null; label: string }[] = [
 
 export function Legend() {
   const legendItems: LegendItems[] = [
-    { icon: greenMarkerIcon, label: "Follow vehicle marker", height: 20 },
     { icon: greenMarker, label: "Update frequency < 2s", height: 17 },
     { icon: orangeMarker, label: "Update frequency < 15s", height: 18 },
     { icon: redMarker, label: "Update frequency < 30s", height: 16 },
@@ -89,6 +87,15 @@ export function Legend() {
           <Typography variant="body2">{item.label}</Typography>
         </Box>
       ))}
+
+      <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+        <VehicleIconCanvas
+          url={VEHICLE_ICON_URLS["vehicle-bus"]}
+          size={24}
+          followed
+        />
+        <Typography variant="body2">Followed vehicle</Typography>
+      </Box>
 
       {legendItems.map((item, index) => (
         <Box key={index} sx={{ display: "flex", alignItems: "center", mb: 1 }}>

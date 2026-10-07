@@ -111,6 +111,90 @@ export function bearingArrowImageData(): ImageData {
   return ctx.getImageData(0, 0, BEARING_ARROW_SIZE, BEARING_ARROW_SIZE);
 }
 
+/**
+ * Pixels across the follow badge image. Like the bearing arrow, drawn at the
+ * icons' pixel ratio and centred on the vehicle, so at an equal icon-size the
+ * badge sits on the icon's edge at every zoom.
+ */
+export const FOLLOW_BADGE_SIZE = 160;
+
+/**
+ * Device-pixel radius of the badge's ink disc: a bit over half the icon's
+ * radius, so the glyph still reads at the icon's smallest size.
+ */
+export const FOLLOW_BADGE_RADIUS = 30;
+/** 2.5 logical px: the white outside of the two-tone edge. */
+const BADGE_EDGE_WIDTH = 5;
+const GLYPH_RING_RADIUS = 12;
+const GLYPH_TICK_END = 21;
+const GLYPH_DOT_RADIUS = 5;
+const GLYPH_LINE_WIDTH = 4.5;
+
+/**
+ * Where the badge is centred: on the icon's circle, at its top-right. The
+ * line-code label only ever takes one of the icon's four sides, so a corner
+ * stays clear of it.
+ */
+export function followBadgeCentre(
+  size: number = FOLLOW_BADGE_SIZE,
+): [x: number, y: number] {
+  const c = size / 2;
+  const offset = (VEHICLE_ICON_SIZE / 2) * Math.SQRT1_2;
+  return [c + offset, c - offset];
+}
+
+/**
+ * Draws the follow badge: an ink disc edged in white, like the other map
+ * marks, holding the Follow button's crosshair in white. Neutral rather than
+ * a data colour: following is a state of the view, not something the feed
+ * says.
+ */
+export function drawFollowBadge(
+  ctx: CanvasRenderingContext2D,
+  size: number = FOLLOW_BADGE_SIZE,
+): void {
+  const [x, y] = followBadgeCentre(size);
+  ctx.beginPath();
+  ctx.arc(x, y, FOLLOW_BADGE_RADIUS + BADGE_EDGE_WIDTH, 0, Math.PI * 2);
+  ctx.fillStyle = EDGE_WHITE;
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(x, y, FOLLOW_BADGE_RADIUS, 0, Math.PI * 2);
+  ctx.fillStyle = EDGE_INK;
+  ctx.fill();
+
+  ctx.strokeStyle = EDGE_WHITE;
+  ctx.lineWidth = GLYPH_LINE_WIDTH;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.arc(x, y, GLYPH_RING_RADIUS, 0, Math.PI * 2);
+  for (const [dx, dy] of [
+    [0, -1],
+    [1, 0],
+    [0, 1],
+    [-1, 0],
+  ]) {
+    ctx.moveTo(x + dx * GLYPH_RING_RADIUS, y + dy * GLYPH_RING_RADIUS);
+    ctx.lineTo(x + dx * GLYPH_TICK_END, y + dy * GLYPH_TICK_END);
+  }
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(x, y, GLYPH_DOT_RADIUS, 0, Math.PI * 2);
+  ctx.fillStyle = EDGE_WHITE;
+  ctx.fill();
+}
+
+/** The follow badge as map image data. */
+export function followBadgeImageData(): ImageData {
+  const canvas = document.createElement("canvas");
+  canvas.width = FOLLOW_BADGE_SIZE;
+  canvas.height = FOLLOW_BADGE_SIZE;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("No 2D canvas context for the follow badge");
+  drawFollowBadge(ctx);
+  return ctx.getImageData(0, 0, FOLLOW_BADGE_SIZE, FOLLOW_BADGE_SIZE);
+}
+
 /** Loads a vehicle icon SVG at the size it is drawn from; rejects if it fails. */
 export function loadVehicleIconImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {

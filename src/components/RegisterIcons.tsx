@@ -3,15 +3,16 @@ import { useMap } from "react-map-gl/maplibre";
 
 import {
   BEARING_ARROW_ICON,
+  FOLLOW_BADGE_ICON,
   UNKNOWN_VEHICLE_ICON,
 } from "../domain/vehicleIcons.ts";
 import {
   VEHICLE_ICON_PIXEL_RATIO,
   bearingArrowImageData,
+  followBadgeImageData,
   vehicleIconImageData,
 } from "./drawVehicleIcon.ts";
 import { VEHICLE_ICON_URLS } from "./vehicleIconImages.ts";
-import greenMarkerIcon from "../static/images/markerGreen.png";
 import redMarker from "../static/images/redUpdate.png";
 import orangeMarker from "../static/images/yellowUpdate.png";
 import greenMarker from "../static/images/greenUpdate.png";
@@ -29,7 +30,6 @@ import occupancy6 from "../static/images/occupancy6.png";
 import redSkull from "../static/images/skullRed.png";
 
 const images = [
-  { name: "green-marker-icon", url: greenMarkerIcon },
   { name: "red-marker", url: redMarker },
   { name: "orange-marker", url: orangeMarker },
   { name: "green-marker", url: greenMarker },
@@ -107,11 +107,13 @@ export function RegisterIcons() {
           })
           .catch((error: unknown) => console.error(error));
       }
-      if (needsRegistering(map, registered, BEARING_ARROW_ICON)) {
-        map.addImage(BEARING_ARROW_ICON, bearingArrowImageData(), {
-          pixelRatio: VEHICLE_ICON_PIXEL_RATIO,
-        });
-        registered.add(BEARING_ARROW_ICON);
+      for (const [name, draw] of [
+        [BEARING_ARROW_ICON, bearingArrowImageData],
+        [FOLLOW_BADGE_ICON, followBadgeImageData],
+      ] as const) {
+        if (!needsRegistering(map, registered, name)) continue;
+        map.addImage(name, draw(), { pixelRatio: VEHICLE_ICON_PIXEL_RATIO });
+        registered.add(name);
       }
     };
 
