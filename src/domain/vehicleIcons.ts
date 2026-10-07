@@ -7,6 +7,9 @@ export const UNKNOWN_VEHICLE_ICON = "vehicle-unknown";
 /** The arrowhead drawn around a vehicle icon, rotated to its bearing. */
 export const BEARING_ARROW_ICON = "vehicle-bearing-arrow";
 
+/** The badge on a followed vehicle's icon, carrying the Follow button's glyph. */
+export const FOLLOW_BADGE_ICON = "vehicle-follow-badge";
+
 /** The map image each mode is drawn with. Modes absent here get the generic icon. */
 export const VEHICLE_ICON_BY_MODE: Partial<
   Record<VehicleModeEnumeration, string>

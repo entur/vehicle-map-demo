@@ -3,6 +3,8 @@ import {
   METRES_PER_DEGREE_LAT,
   dimensionsFor,
   normaliseBearing,
+  SELECTION_OUTLINE_MARGIN,
+  selectionOutline,
   vehicleFootprint,
 } from "./vehicleFootprint.ts";
 
@@ -73,6 +75,35 @@ describe("vehicleFootprint", () => {
       3,
     );
     expect(Math.max(...norths)).toBeCloseTo(-Math.min(...norths), 3);
+  });
+
+  describe("selectionOutline", () => {
+    it("is a rectangle the margin larger on every side, keeping its centre", () => {
+      const ring = selectionOutline(OSLO, 0, "BUS").coordinates[0];
+      expect(ring).toHaveLength(5);
+      const norths = ring.map((vertex) => metresFrom(OSLO, vertex).north);
+      const easts = ring.map((vertex) => metresFrom(OSLO, vertex).east);
+      const { length, width } = dimensionsFor("BUS");
+      const grow = 2 * SELECTION_OUTLINE_MARGIN;
+      expect(Math.max(...norths) - Math.min(...norths)).toBeCloseTo(
+        length + grow,
+        3,
+      );
+      expect(Math.max(...easts) - Math.min(...easts)).toBeCloseTo(
+        width + grow,
+        3,
+      );
+      expect(Math.max(...norths)).toBeCloseTo(-Math.min(...norths), 3);
+      // Square-ended: every corner sits at the full half-width.
+      for (const east of easts) {
+        expect(Math.abs(east)).toBeCloseTo((width + grow) / 2, 3);
+      }
+    });
+
+    it("stays directionless without a bearing", () => {
+      const ring = selectionOutline(OSLO, null, "BUS").coordinates[0];
+      expect(ring).toHaveLength(9);
+    });
   });
 
   // A vehicle with no bearing must not be drawn pointing somewhere: a nose

@@ -25,9 +25,9 @@ type SelectedVehiclePanelProps = {
   onClose: () => void;
   layout: DetailLayout;
   /**
-   * The map popup's actions. Shown here only in the phone's sheet, where
-   * `MapView` does not draw the popup: over a phone-sized map it covered
-   * about as much as the sheet does, and repeated its header.
+   * Follow, chase, details. Here rather than in a popup at the vehicle: the
+   * popup covered the map around the vehicle — the schedule ghost, the route
+   * ahead — and repeated the panel's header.
    */
   actions: VehicleActionHandlers;
 };
@@ -127,7 +127,7 @@ export function SelectedVehiclePanel({
       />
 
       {/* The actions share the delay's row, which has width to spare, so the
-          collapsed sheet shows them without growing. */}
+          phone's collapsed sheet shows them without growing. */}
       {vehicleData && (
         <Box
           sx={{
@@ -147,9 +147,7 @@ export function SelectedVehiclePanel({
           >
             {formatDelay(vehicleData.delay)}
           </Typography>
-          {layout.kind === "sheet" && (
-            <VehicleActions vehicleData={vehicleData} {...actions} />
-          )}
+          <VehicleActions vehicleData={vehicleData} {...actions} />
         </Box>
       )}
 

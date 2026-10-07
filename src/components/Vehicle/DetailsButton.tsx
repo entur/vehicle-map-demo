@@ -3,7 +3,7 @@ import ListAltIcon from "@mui/icons-material/ListAlt";
 import { useState } from "react";
 import { VehicleDetailsDialog } from "./VehicleDetailsDialog.tsx";
 import { VehicleUpdateComplete } from "../../types.ts";
-import { POPUP_ACTION_SX } from "./popupAction.ts";
+import { VEHICLE_ACTION_SX } from "./vehicleAction.ts";
 
 type DetailsButtonProps = {
   vehicleData: VehicleUpdateComplete | null;
@@ -20,7 +20,7 @@ export function DetailsButton({ vehicleData }: DetailsButtonProps) {
         <IconButton
           aria-label="Show details"
           onClick={() => setDetailsOpen(true)}
-          sx={POPUP_ACTION_SX}
+          sx={VEHICLE_ACTION_SX}
         >
           <ListAltIcon fontSize="small" />
         </IconButton>

@@ -1,6 +1,6 @@
 import { IconButton, Tooltip } from "@mui/material";
 import VideocamIcon from "@mui/icons-material/Videocam";
-import { POPUP_ACTION_SX } from "./popupAction.ts";
+import { VEHICLE_ACTION_SX } from "./vehicleAction.ts";
 
 type ChaseButtonProps = {
   onClick: () => void;
@@ -13,7 +13,7 @@ export function ChaseButton({ onClick }: ChaseButtonProps) {
       <IconButton
         aria-label="Chase camera"
         onClick={onClick}
-        sx={POPUP_ACTION_SX}
+        sx={VEHICLE_ACTION_SX}
       >
         <VideocamIcon fontSize="small" />
       </IconButton>
