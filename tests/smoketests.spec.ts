@@ -66,6 +66,11 @@ test("selecting a vehicle shows the timetable panel", async ({ page }) => {
   for (const target of targets!) {
     await page.mouse.click(box!.x + target.x, box!.y + target.y);
     await expect(panel).toBeVisible({ timeout: 5000 });
+    // No popup over the map around the vehicle: its actions are in the card.
+    await expect(
+      panel.getByRole("button", { name: "Chase camera" }),
+    ).toBeVisible({ timeout: 5000 });
+    await expect(page.locator(".maplibregl-popup")).toHaveCount(0);
     await expect(stopTime.or(notAvailable).first()).toBeVisible({
       timeout: 8000,
     });
@@ -465,9 +470,8 @@ test.describe("on a phone", () => {
       ),
     ).toBe(true);
 
-    // No map popup on a phone: its actions are in the sheet, inside the
-    // collapsed height rather than clipped below it.
-    await expect(page.locator(".vehicle-popup")).toHaveCount(0);
+    // The vehicle's actions are in the sheet, inside the collapsed height
+    // rather than clipped below it.
     const chase = sheet.getByRole("button", { name: "Chase camera" });
     await expect(chase).toBeVisible();
     const chaseBox = (await chase.boundingBox())!;

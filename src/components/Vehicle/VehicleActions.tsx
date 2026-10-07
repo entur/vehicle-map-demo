@@ -16,8 +16,7 @@ type VehicleActionsProps = VehicleActionHandlers & {
 
 /**
  * What can be done with the selected vehicle: follow it, chase it, open its
- * raw details. One row, shown in the map popup on a wide screen and in the
- * detail sheet on a phone, where the popup is not drawn.
+ * raw details. One row in the selected vehicle's panel, on every screen.
  */
 export function VehicleActions({
   vehicleData,

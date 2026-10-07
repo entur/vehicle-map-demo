@@ -710,6 +710,37 @@ export function buildMapStyle(scheme: MapScheme): StyleSpecification {
           ],
         },
       },
+      // Rings the selected vehicle. Above the dots, so a selection in a dense
+      // cluster is not buried under its neighbours, and below the icons, the
+      // arrows and the line-code labels, which the ring's radius — a few
+      // pixels outside the dot, then the icon — keeps clear of. Filtered to the
+      // selection by SelectedVehicleHalo.
+      {
+        id: "vehicle-selected-halo-layer",
+        type: "circle",
+        source: "vehicles",
+        paint: {
+          "circle-radius": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            4,
+            9,
+            VEHICLE_DOT_MAX_ZOOM - 0.5,
+            11,
+            VEHICLE_DOT_MAX_ZOOM,
+            20,
+            12,
+            22,
+          ],
+          "circle-color": SELECTION_HALO,
+          "circle-opacity": 0.2,
+          "circle-stroke-width": 3,
+          "circle-stroke-color": SELECTION_HALO,
+          "circle-pitch-alignment": "viewport",
+        },
+        filter: ["boolean", false],
+      },
       // Below vehicle-layer and centred on the same point at the same size, so
       // the arrowhead sits just outside the icon's circle. Vehicles without a
       // usable bearing (a null property, set by VehicleMarkers) get no arrow.

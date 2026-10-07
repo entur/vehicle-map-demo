@@ -76,7 +76,7 @@ const createFeature = (
 
 /**
  * The model carries the icon's properties plus the reported position, because
- * a click on a polygon has no point geometry to anchor the popup to.
+ * a click on a polygon has no point geometry to anchor a selection to.
  */
 const createModelFeature = (
   point: Feature<Point, SelectedVehicleProperties>,

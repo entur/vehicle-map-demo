@@ -16,21 +16,6 @@ body {
   margin: 0;
 }
 
-.vehicle-popup-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-}
-
-.vehicle-popup-actions {
-  margin-top: 8px;
-  display: flex;
-  justify-content: center;
-  gap: 4px;
-  width: 100%;
-}
-
 /* maplibre-gl.css sets `.maplibregl-map { font: 12px/20px Helvetica Neue,
    Arial… }`, which everything inside the map (tool panels, popups, the chase
    HUD) would otherwise inherit instead of the app's Inter body font. This

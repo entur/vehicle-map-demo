@@ -29,11 +29,11 @@ import { RightMenu } from "./RightMenu";
 import { VehicleData } from "../hooks/useVehiclePositionsData.ts";
 import { VehicleTraces } from "./Vehicle/VehicleTraces.tsx";
 import { VehicleModels } from "./Vehicle/VehicleModels.tsx";
-import { VehiclePopup } from "./Vehicle/VehiclePopup.tsx";
 import { useFollowedVehicle } from "../hooks/useFollowedVehicle"; // adjust path as needed
 import { SelectedVehiclePanel } from "./SelectedVehiclePanel";
 import { RouteLayer } from "./RouteLayer.tsx";
 import { ScheduleGhost } from "./Vehicle/ScheduleGhost.tsx";
+import { SelectedVehicleHalo } from "./Vehicle/SelectedVehicleHalo.tsx";
 import { useTimetableSubscription } from "../hooks/useTimetableSubscription.ts";
 import { useServiceJourneyRoute } from "../hooks/useServiceJourneyRoute.ts";
 import { buildSchedule } from "../domain/scheduleGhost.ts";
@@ -207,7 +207,7 @@ export function MapView({
   // one — pointing at a journey whose vehicle expired while away — is worse
   // than returning to none. The followed vehicle is cleared alongside it:
   // otherwise the first vehicle frame after returning to Vehicles mode would
-  // flyTo a follow target with no popup and no on-screen sign a follow is
+  // flyTo a follow target with no panel and no on-screen sign a follow is
   // active. Done where the mode is switched rather than in an effect on
   // `mode`, so the reset lands in the same render as the switch. The mode
   // read from `?mode=` on load needs no reset: nothing is selected yet. A
@@ -375,6 +375,14 @@ export function MapView({
               route={route}
               cancelled={timetable?.cancellation === true}
             />
+            <SelectedVehicleHalo
+              selection={
+                selectedVehicle && {
+                  vehicleId: selectedVehicle.properties.id,
+                  serviceJourneyId: selectedVehicle.properties.serviceJourneyId,
+                }
+              }
+            />
             <ScheduleGhost
               selectedVehicle={selectedVehicle}
               schedule={ghostSchedule}
@@ -382,18 +390,6 @@ export function MapView({
               chasedVehicleStore={chasedVehicleStore}
               ghostStore={ghostStore}
             />
-            {/* The popup would sit at the newest report, ahead of the chased
-                model, and over the road the camera is showing. On a phone
-                it is not drawn at all: its actions are in the detail sheet. */}
-            {selectedVehicle && !chasedVehicle && !narrow && (
-              <VehiclePopup
-                vehicle={selectedVehicle}
-                onClose={() => setSelectedVehicle(null)}
-                onFollow={handleFollow}
-                followedVehicle={followedVehicle}
-                onChase={handleChaseToggle}
-              />
-            )}
           </>
         )}
         {mode === "situations" && (
