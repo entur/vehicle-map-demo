@@ -22,6 +22,9 @@ export const APP_MODES: AppMode[] = ["vehicles", "situations"];
  */
 export const MODE_LAYERS: Record<AppMode, string[]> = {
   vehicles: [
+    "vehicle-selected-halo-layer",
+    "vehicle-selected-outline-layer",
+    "vehicle-selected-outline-fill-layer",
     "vehicle-dot-layer",
     "vehicle-layer",
     "vehicle-bearing-layer",
@@ -104,7 +107,7 @@ export const MODE_SWITCHED_LAYERS: Record<
  * is driven instead by `filter: ["==", ["get", "followed"], true]` — a
  * feature-level filter, not a layout toggle. `VehicleMarkers` sets
  * `followed` on every feature, `useFollowedVehicle` owns which vehicle id is
- * followed, and `VehiclePopup` wires a follow button to it, so the layer is
+ * followed, and `VehicleActions` wires a follow button to it, so the layer is
  * live and fed continuously; it just draws nothing until a vehicle is
  * followed. Because it carries no visibility toggle, grepping for its layer
  * id finds no reference outside mapStyle — that absence does NOT mean the
@@ -120,6 +123,10 @@ export const MODE_DEFAULT_VISIBLE_LAYERS: Record<AppMode, string[]> = {
     "service-journey-route-outer-casing-layer",
     "service-journey-route-casing-layer",
     "vehicle-follow-layer",
+    // Filtered to the selected vehicle by SelectedVehicleHalo, never toggled.
+    "vehicle-selected-halo-layer",
+    "vehicle-selected-outline-layer",
+    "vehicle-selected-outline-fill-layer",
     // Drawn whenever a selected journey has a ghost; like the route, a
     // property of the selection rather than a layer to switch.
     "schedule-ghost-layer",
@@ -154,6 +161,7 @@ export const MODE_SOURCES: Record<AppMode, string[]> = {
   vehicles: [
     "vehicles",
     "vehicleModels",
+    "vehicleOutlines",
     "vehicleTraces",
     "serviceJourneyRoute",
     "scheduleGhost",

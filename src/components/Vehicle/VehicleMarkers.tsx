@@ -5,6 +5,7 @@ import { GeoJSONSource } from "maplibre-gl";
 import type { Feature, Point, Polygon } from "geojson";
 import {
   dimensionsFor,
+  selectionOutline,
   vehicleFootprint,
 } from "../../domain/vehicleFootprint.ts";
 import {
@@ -27,8 +28,29 @@ const CLICKABLE_VEHICLE_LAYERS = [
 
 /**
  * The model carries the icon's properties plus the reported position, because
- * a click on a polygon has no point geometry to anchor the popup to.
+ * a click on a polygon has no point geometry to anchor a selection to.
  */
+/**
+ * The selected model's ring, a rectangle a little larger than its footprint. Every vehicle
+ * gets one and the halo layers' filter picks the selection, so selecting never
+ * rewrites the source. Only the two keys that filter reads are carried.
+ */
+const createOutlineFeature = (
+  point: Feature<Point, SelectedVehicleProperties>,
+  vehicle: VehicleUpdate,
+): Feature<Polygon, { id: string; serviceJourneyId: string }> => ({
+  type: "Feature",
+  geometry: selectionOutline(
+    point.geometry.coordinates as [number, number],
+    vehicle.bearing,
+    vehicle.mode,
+  ),
+  properties: {
+    id: point.properties.id,
+    serviceJourneyId: point.properties.serviceJourneyId,
+  },
+});
+
 const createModelFeature = (
   point: Feature<Point, SelectedVehicleProperties>,
   vehicle: VehicleUpdate,
@@ -100,6 +122,14 @@ export function VehicleMarkers({
       type: "FeatureCollection",
       features: features.map((feature, i) =>
         createModelFeature(feature, shown[i]),
+      ),
+    });
+    const outlineSource = map.getSource("vehicleOutlines") as
+      GeoJSONSource | undefined;
+    outlineSource?.setData({
+      type: "FeatureCollection",
+      features: features.map((feature, i) =>
+        createOutlineFeature(feature, shown[i]),
       ),
     });
 

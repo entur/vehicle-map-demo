@@ -53,7 +53,7 @@ const HEADING_TIME_CONSTANT_MS = 600;
 const ORBIT_TIME_CONSTANT_MS = 250;
 /**
  * A press that moves less than this is a click, not a drag — MapLibre's own
- * click tolerance, so a click on another vehicle still opens its popup.
+ * click tolerance, so a click on another vehicle still selects it.
  */
 const DRAG_THRESHOLD_PX = 3;
 const HUD_REFRESH_MS = 250;
