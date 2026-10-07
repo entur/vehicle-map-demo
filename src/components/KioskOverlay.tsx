@@ -343,6 +343,14 @@ function StopStrip({ calls }: { calls: Call[] }) {
         const times = resolveCallTimes(call);
         const cancelled = call.cancellation === true;
         const current = call === approached;
+        const realtimeLabel = formatTime(times.realtime);
+        const aimedLabel = formatTime(times.aimed);
+        // The scheduled time beside the expected one, as the timetable shows
+        // it, only when the two differ on the clock.
+        const showAimed =
+          realtimeLabel !== null &&
+          aimedLabel !== null &&
+          realtimeLabel !== aimedLabel;
         return (
           <Box
             component="li"
@@ -359,14 +367,35 @@ function StopStrip({ calls }: { calls: Call[] }) {
               }),
             }}
           >
+            {/* Coloured by this stop's own delay, as in the timetable, never
+                by the card: the approached stop's selection colour is a
+                green that reads as "on time". */}
             <Typography
               variant="h6"
               noWrap
-              sx={cancelled ? { color: SEVERITY_SEVERE } : undefined}
+              sx={{
+                color: cancelled
+                  ? SEVERITY_SEVERE
+                  : realtimeLabel !== null
+                    ? delayColour(delayBucket(times.delaySeconds))
+                    : "inherit",
+              }}
             >
-              {cancelled
-                ? "—"
-                : (formatTime(times.realtime ?? times.aimed) ?? "–")}
+              {cancelled ? "—" : (realtimeLabel ?? aimedLabel ?? "–")}
+              {!cancelled && showAimed && (
+                <Box
+                  component="span"
+                  sx={{
+                    ml: 1,
+                    fontSize: "0.75em",
+                    fontWeight: 400,
+                    color: "text.secondary",
+                    textDecoration: "line-through",
+                  }}
+                >
+                  {aimedLabel}
+                </Box>
+              )}
             </Typography>
             <Typography
               variant="body1"
