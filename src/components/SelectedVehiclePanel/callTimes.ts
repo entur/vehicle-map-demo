@@ -60,3 +60,15 @@ export function resolveCallTimes(call: Call): ResolvedCallTimes {
     delaySeconds: secondsBetween(chosen.aimed, chosen.realtime),
   };
 }
+
+/** `HH:MM` in the viewer's locale, 24-hour; null for a missing or bad time. */
+export function formatTime(iso: string | null): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}

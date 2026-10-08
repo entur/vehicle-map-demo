@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useMap } from "react-map-gl/maplibre";
 import {
   VIEW_3D_LAYERS,
@@ -15,13 +15,26 @@ import { whenLayerExists } from "../utils/whenLayerExists.ts";
  *
  * The camera only moves when the pitch or bearing differs, so a 2D first load
  * does not fire a spurious moveend (and with it a bounding-box update).
+ *
+ * `camera`, while a fixed-view kiosk runs, replaces the dimension's own pitch
+ * and bearing, which would otherwise tilt its view to 55° when a `?view=3d`
+ * link is read after the map opened on the kiosk's camera. Read when the
+ * dimension changes and not otherwise, so a kiosk pausing or resuming moves
+ * nothing by itself.
  */
 export function ViewDimensionLayers({
   dimension,
+  camera,
 }: {
   dimension: ViewDimension;
+  camera?: { pitch: number; bearing: number };
 }) {
   const { current: mapRef } = useMap();
+  const cameraOverride = useRef(camera);
+  // Declared first, so it lands before the effect below in the same commit.
+  useEffect(() => {
+    cameraOverride.current = camera;
+  });
 
   useEffect(() => {
     const map = mapRef?.getMap();
@@ -35,12 +48,12 @@ export function ViewDimensionLayers({
           map.setLayoutProperty(id, "visibility", visibility);
         }
       }
-      const camera = cameraFor(dimension);
+      const target = cameraOverride.current ?? cameraFor(dimension);
       if (
-        map.getPitch() !== camera.pitch ||
-        (camera.bearing !== undefined && map.getBearing() !== camera.bearing)
+        map.getPitch() !== target.pitch ||
+        (target.bearing !== undefined && map.getBearing() !== target.bearing)
       ) {
-        map.easeTo({ ...camera, duration: 800 });
+        map.easeTo({ ...target, duration: 800 });
       }
     };
 

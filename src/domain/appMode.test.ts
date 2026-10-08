@@ -162,6 +162,7 @@ const KNOWN_CONTENT_TYPES: RightContentType[] = [
   "statistics",
   "situations",
   "situationStats",
+  "kiosk",
 ];
 
 describe("rightRailTools", () => {
@@ -172,6 +173,7 @@ describe("rightRailTools", () => {
       "info",
       "stoplight",
       "statistics",
+      "kiosk",
     ]);
     expect(rightRailTools("situations")).toEqual([
       "layers",
@@ -192,6 +194,13 @@ describe("rightRailTools", () => {
   it("offers statistics in vehicles mode only", () => {
     expect(rightRailTools("vehicles")).toContain("statistics");
     expect(rightRailTools("situations")).not.toContain("statistics");
+  });
+
+  it("offers the kiosk in vehicles mode only, in the default width", () => {
+    // The kiosk chases vehicles; it has nothing to run in situations mode.
+    expect(rightRailTools("vehicles")).toContain("kiosk");
+    expect(rightRailTools("situations")).not.toContain("kiosk");
+    expect(isWideTool("kiosk")).toBe(false);
   });
 });
 

@@ -121,6 +121,11 @@ type Props = {
    * what is left, and on a phone the HUD otherwise sits right over it.
    */
   onCoveredChange: (px: number) => void;
+  /**
+   * The kiosk hides the HUD while it runs; its caption band says what is
+   * chased. Hidden, the HUD covers nothing and reports 0.
+   */
+  hudHidden: boolean;
 };
 
 /** Gap between the HUD and the sheet below it, the same as between cards. */
@@ -151,6 +156,7 @@ export function ChaseCamera({
   onStop,
   bottomInset,
   onCoveredChange,
+  hudHidden,
 }: Props) {
   const { current: mapRef } = useMap();
 
@@ -161,6 +167,10 @@ export function ChaseCamera({
   useLayoutEffect(() => {
     const hud = hudRef.current;
     if (!hud) return;
+    if (hudHidden) {
+      onCoveredChange(0);
+      return;
+    }
     const report = () =>
       onCoveredChange(
         Math.ceil(
@@ -173,7 +183,7 @@ export function ChaseCamera({
     const observer = new ResizeObserver(report);
     observer.observe(hud);
     return () => observer.disconnect();
-  }, [bottomInset, onCoveredChange]);
+  }, [bottomInset, onCoveredChange, hudHidden]);
 
   const key = chased.vehicleId + "_" + chased.serviceJourneyId;
   const samples = useRef<ChaseSample[]>([]);
@@ -634,9 +644,11 @@ export function ChaseCamera({
       ref={hudRef}
       className="chase-hud"
       role="status"
-      style={
-        bottomInset > 0 ? { bottom: bottomInset + HUD_SHEET_GAP } : undefined
-      }
+      style={{
+        ...(bottomInset > 0 && { bottom: bottomInset + HUD_SHEET_GAP }),
+        // Not the `hidden` attribute: `.chase-hud` sets display, which wins.
+        ...(hudHidden && { display: "none" }),
+      }}
     >
       <strong>Chase camera</strong>
       <span>{hudText(hud)}</span>

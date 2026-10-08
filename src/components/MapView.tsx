@@ -26,6 +26,7 @@ import { SelectedVehicle, VehicleMarkers } from "./Vehicle/VehicleMarkers.tsx";
 import { RegisterIcons } from "./RegisterIcons.tsx";
 import { VehicleLabelPlacement } from "./Vehicle/VehicleLabelPlacement.tsx";
 import { RightMenu } from "./RightMenu";
+import { KioskTool } from "./RightMenu/types.ts";
 import { VehicleData } from "../hooks/useVehiclePositionsData.ts";
 import { VehicleTraces } from "./Vehicle/VehicleTraces.tsx";
 import { VehicleModels } from "./Vehicle/VehicleModels.tsx";
@@ -37,6 +38,19 @@ import { SelectedVehicleHalo } from "./Vehicle/SelectedVehicleHalo.tsx";
 import { useTimetableSubscription } from "../hooks/useTimetableSubscription.ts";
 import { useServiceJourneyRoute } from "../hooks/useServiceJourneyRoute.ts";
 import { buildSchedule } from "../domain/scheduleGhost.ts";
+import { KioskActions, useKiosk } from "../hooks/useKiosk.ts";
+import { useKioskSession } from "../hooks/useKioskSession.ts";
+import {
+  parseKioskSettings,
+  restoredFilter,
+  targetOf,
+} from "../domain/kioskSchedule.ts";
+import { FixedViewKioskOverlay, KioskOverlay } from "./KioskOverlay.tsx";
+import { useFixedViewKiosk } from "../hooks/useFixedViewKiosk.ts";
+import { roundCamera } from "../domain/fixedCamera.ts";
+import { vehicleKey } from "../domain/kioskCandidates.ts";
+import { callsFor } from "../domain/kioskJourney.ts";
+import { selectedVehicleFrom } from "./Vehicle/vehicleFeature.ts";
 import { SituationLayers } from "./SituationLayers.tsx";
 import { SituationDetailPanel } from "./SituationsPanel/SituationDetailPanel.tsx";
 import { AppMode } from "../domain/appMode.ts";
@@ -99,6 +113,15 @@ export function MapView({
   // through BaseMapScheme.
   const [builtScheme] = useState(() => mapSchemeFor(colorScheme));
   const [mapStyle] = useState(() => buildMapStyle(builtScheme));
+
+  // A fixed-view kiosk link loaded cold opens on its camera, so the first
+  // frame is already the wall screen's view.
+  const [initialViewState] = useState(() => {
+    const settings = parseKioskSettings(window.location.search);
+    return settings?.kind === "fixed"
+      ? { ...settings.camera }
+      : { longitude: 10.0, latitude: 64.0, zoom: 4 };
+  });
 
   const [selectedVehicle, setSelectedVehicle] =
     useState<SelectedVehicle | null>(null);
@@ -177,6 +200,21 @@ export function MapView({
     }
   }, [setViewDimension]);
 
+  // A chase is a view from behind the vehicle, which only reads with terrain
+  // and buildings. ViewDimensionLayers' pitch ease is superseded by the
+  // chase's own fly-in, which starts on the next animation frame.
+  const startChase = useCallback(
+    (vehicle: ChasedVehicle) => {
+      clearFollowedVehicle();
+      if (viewDimension !== "3d") {
+        chaseSwitchedTo3d.current = true;
+        setViewDimension("3d");
+      }
+      setChasedVehicle(vehicle);
+    },
+    [clearFollowedVehicle, viewDimension, setViewDimension],
+  );
+
   const handleChaseToggle = () => {
     if (!selectedVehicle) return;
     const { id, serviceJourneyId } = selectedVehicle.properties;
@@ -187,15 +225,7 @@ export function MapView({
       stopChase();
       return;
     }
-    clearFollowedVehicle();
-    // A chase is a view from behind the vehicle, which only reads with terrain
-    // and buildings. ViewDimensionLayers' pitch ease is superseded by the
-    // chase's own fly-in, which starts on the next animation frame.
-    if (viewDimension !== "3d") {
-      chaseSwitchedTo3d.current = true;
-      setViewDimension("3d");
-    }
-    setChasedVehicle({ vehicleId: id, serviceJourneyId });
+    startChase({ vehicleId: id, serviceJourneyId });
   };
 
   const handleFollow = () => {
@@ -224,6 +254,157 @@ export function MapView({
     },
     [mode, clearFollowedVehicle, stopChase, setMode],
   );
+
+  // The selected journey's timetable and route, here rather than in the panel
+  // and the route layer because the schedule ghost reads both. A selection
+  // never outlives vehicles mode (switchMode clears it).
+  const selectedJourneyId =
+    selectedVehicle?.properties.serviceJourneyId ?? null;
+  const timetable = useTimetableSubscription(
+    selectedJourneyId,
+    selectedVehicle?.properties.date ?? null,
+  );
+  const route = useServiceJourneyRoute(selectedJourneyId);
+  const ghostSchedule = useMemo(
+    () =>
+      showScheduleGhost
+        ? buildSchedule(route?.coordinates ?? null, timetable)
+        : null,
+    [showScheduleGhost, route, timetable],
+  );
+
+  // Kiosk mode (`?kiosk=<seconds>`, `?kioskView=<camera>`, or Start in the
+  // Kiosk tool): the kiosk drives the same selection and chase a person does,
+  // through these, so everything that follows a chase — 3D, padding, route,
+  // timetable — behaves as it does for a person.
+  const kioskSession = useKioskSession();
+  const { start: startSession, stop: endSession } = kioskSession;
+  const chaseSession =
+    kioskSession.session?.kind === "chase" ? kioskSession.session : null;
+  const fixedSession =
+    kioskSession.session?.kind === "fixed" ? kioskSession.session : null;
+  const beginChaseSession = useCallback(
+    (dwellMs: number, idleMs: number) =>
+      startSession({ kind: "chase", dwellMs, idleMs }),
+    [startSession],
+  );
+  const kioskActions: KioskActions = {
+    leave: () => {
+      switchMode("vehicles");
+      setSelectedVehicle(null);
+      clearFollowedVehicle();
+      stopChase();
+    },
+    chase: (vehicle) => {
+      setSelectedVehicle(selectedVehicleFrom(vehicle));
+      startChase({
+        vehicleId: vehicle.vehicleId,
+        serviceJourneyId: vehicle.serviceJourney.id,
+      });
+    },
+    watchArea: (boundingBox) =>
+      setCurrentFilter((prev) => ({ ...prev, boundingBox })),
+    restore: (setup) => {
+      switchMode("vehicles");
+      setCurrentFilter((prev) => restoredFilter(prev, setup.filter));
+      setMapViewOptions(setup.mapViewOptions);
+      setShowTransitNetwork(setup.showTransitNetwork);
+      setSheetSnap("peek");
+    },
+  };
+  const kiosk = useKiosk({
+    session: chaseSession,
+    beginSession: beginChaseSession,
+    endSession,
+    mapRef,
+    data,
+    timetable,
+    actions: kioskActions,
+    currentSetup: { mapViewOptions, showTransitNetwork },
+  });
+  const fixedView = useFixedViewKiosk({
+    session: fixedSession,
+    beginSession: startSession,
+    endSession,
+    mapRef,
+    actions: {
+      leave: kioskActions.leave,
+      restore: kioskActions.restore,
+      setDimension: setViewDimension,
+    },
+    currentSetup: { mapViewOptions, showTransitNetwork },
+  });
+  // What the Kiosk tool shows and does. Memoised, so the memoised tool panel
+  // skips the vehicle frames.
+  const kioskRun = kioskSession.session;
+  const {
+    setupFilter: kioskFilter,
+    start: startKiosk,
+    stop: stopKiosk,
+  } = kiosk;
+  const {
+    setupFilter: fixedViewFilter,
+    start: startFixedView,
+    stop: stopFixedView,
+  } = fixedView;
+  const kioskTool = useMemo<KioskTool>(
+    () => ({
+      session: kioskRun,
+      // While a run exists, what it shows is its own setup, which a
+      // visitor's filter change while it is paused does not alter.
+      filter: !kioskRun
+        ? currentFilter
+        : kioskRun.kind === "fixed"
+          ? fixedViewFilter
+          : kioskFilter,
+      onStart: (settings) =>
+        settings.kind === "fixed"
+          ? startFixedView(settings.camera, settings.dimension, settings.idleMs)
+          : startKiosk(settings.dwellMs, settings.idleMs),
+      // Each ignores a run that is not its own.
+      onStop: () => {
+        stopKiosk();
+        stopFixedView();
+      },
+      readCamera: () => {
+        const map = mapRef.current;
+        if (!map) return null;
+        const { lat, lng } = map.getCenter();
+        return roundCamera({
+          latitude: lat,
+          longitude: lng,
+          zoom: map.getZoom(),
+          pitch: map.getPitch(),
+          bearing: map.getBearing(),
+        });
+      },
+      dimension: viewDimension,
+    }),
+    [
+      kioskRun,
+      kioskFilter,
+      fixedViewFilter,
+      currentFilter,
+      startKiosk,
+      stopKiosk,
+      startFixedView,
+      stopFixedView,
+      viewDimension,
+    ],
+  );
+  // The kiosk's flight owns the bounding box, as a chase does: it set the box
+  // to where the flight lands, and the moves on the way would replace it.
+  // Unpausing on arrival captures the view the flight landed on.
+  const kioskFlying = kiosk.state?.phase.kind === "arriving";
+  // A fixed view running and not paused holds its camera: see
+  // ViewDimensionLayers.
+  const fixedViewRunning = fixedView.state?.lastInputAt === null;
+  // Running and not paused: the app's own controls are hidden.
+  const kioskRunning =
+    (kiosk.state !== null && kiosk.state.phase.kind !== "paused") ||
+    fixedViewRunning;
+  // The band is the chasing kiosk's; a fixed view leaves the map whole.
+  const chaseKioskRunning = kioskRunning && !fixedViewRunning;
 
   // On a phone the detail panels are a bottom sheet. Its snap lives here rather
   // than in the sheet because the map is padded by its height too, and the
@@ -260,9 +441,16 @@ export function MapView({
   // there is none) and hides more of the map than the sheet alone. Read only
   // while chasing, so the value the HUD last reported cannot outlive it.
   const [chaseHudCovered, setChaseHudCovered] = useState(0);
-  const mapBottomInset = chasedVehicle
+  const chaseBottomInset = chasedVehicle
     ? Math.max(sheetBottomInset, chaseHudCovered)
     : sheetBottomInset;
+  // The kiosk's band hides the bottom of the map on a wide screen. Read only
+  // while it is drawn, like the HUD's value.
+  const [kioskBandCovered, setKioskBandCovered] = useState(0);
+  const kioskBand = chaseKioskRunning && !narrow;
+  const mapBottomInset = kioskBand
+    ? Math.max(chaseBottomInset, kioskBandCovered)
+    : chaseBottomInset;
   // The chase places the camera itself every frame, and a fully open sheet
   // leaves too thin a strip of map to bring anything into.
   const keepInView =
@@ -274,69 +462,71 @@ export function MapView({
       ? (selectedVehicle.coordinates as [number, number])
       : null;
 
-  // The selected journey's timetable and route, here rather than in the panel
-  // and the route layer because the schedule ghost reads both. A selection
-  // never outlives vehicles mode (switchMode clears it).
-  const selectedJourneyId =
-    selectedVehicle?.properties.serviceJourneyId ?? null;
-  const timetable = useTimetableSubscription(
-    selectedJourneyId,
-    selectedVehicle?.properties.date ?? null,
-  );
-  const route = useServiceJourneyRoute(selectedJourneyId);
-  const ghostSchedule = useMemo(
-    () =>
-      showScheduleGhost
-        ? buildSchedule(route?.coordinates ?? null, timetable)
-        : null,
-    [showScheduleGhost, route, timetable],
-  );
-
   const vehicleUpdates = useMemo(
     () => data.map((vehicle) => vehicle.vehicleUpdate),
     [data],
   );
 
+  const kioskTarget = kiosk.state ? targetOf(kiosk.state.phase) : null;
+  const kioskVehicle = kioskTarget
+    ? (data.find(
+        ({ vehicleUpdate: v }) =>
+          vehicleKey(v.vehicleId, v.serviceJourney.id) === kioskTarget.key,
+      )?.vehicleUpdate ?? null)
+    : null;
+  const kioskCalls = kioskTarget
+    ? callsFor(timetable, kioskTarget.serviceJourneyId)
+    : null;
   return (
     <>
       <Map
-        initialViewState={{ longitude: 10.0, latitude: 64.0, zoom: 4 }}
+        initialViewState={initialViewState}
         mapStyle={mapStyle}
         onLoad={handleMapLoad}
         onStyleData={handleStyleData}
         attributionControl={false}
       >
-        <NavigationControl position="top-left" />
-        <GeolocateControl position="top-left" />
-        <ViewDimensionControl
-          dimension={viewDimension}
-          setDimension={setViewDimension}
-        />
-        {viewDimension === "3d" && <RotateControl />}
+        {!kioskRunning && (
+          <>
+            <NavigationControl position="top-left" />
+            <GeolocateControl position="top-left" />
+            <ViewDimensionControl
+              dimension={viewDimension}
+              setDimension={setViewDimension}
+            />
+            {viewDimension === "3d" && <RotateControl />}
+          </>
+        )}
         <MapAttribution onHeightChange={setAttributionHeight} />
-        <ViewDimensionLayers dimension={viewDimension} />
+        <ViewDimensionLayers
+          dimension={viewDimension}
+          camera={fixedViewRunning ? fixedSession?.camera : undefined}
+        />
         <BaseMapScheme builtFor={builtScheme} />
         <TransitNetworkLayers visible={showTransitNetwork} />
-        <RightMenu
-          mode={mode}
-          setMode={switchMode}
-          data={vehicleUpdates}
-          setCurrentFilter={setCurrentFilter}
-          currentFilter={currentFilter}
-          mapViewOptions={mapViewOptions}
-          setMapViewOptions={setMapViewOptions}
-          showTransitNetwork={showTransitNetwork}
-          setShowTransitNetwork={setShowTransitNetwork}
-          showScheduleGhost={showScheduleGhost}
-          setShowScheduleGhost={setShowScheduleGhost}
-        />
+        {!kioskRunning && (
+          <RightMenu
+            mode={mode}
+            setMode={switchMode}
+            data={vehicleUpdates}
+            setCurrentFilter={setCurrentFilter}
+            currentFilter={currentFilter}
+            mapViewOptions={mapViewOptions}
+            setMapViewOptions={setMapViewOptions}
+            showTransitNetwork={showTransitNetwork}
+            setShowTransitNetwork={setShowTransitNetwork}
+            showScheduleGhost={showScheduleGhost}
+            setShowScheduleGhost={setShowScheduleGhost}
+            kiosk={kioskTool}
+          />
+        )}
         <MapBottomPadding bottom={mapBottomInset} keepInView={keepInView} />
         <RegisterIcons />
         <VehicleLabelPlacement chasing={chasedVehicle !== null} />
         <ModeLayers mode={mode} mapViewOptions={mapViewOptions} />
         <CaptureBoundingBox
           setCurrentFilter={setCurrentFilter}
-          paused={chasedVehicle !== null}
+          paused={chasedVehicle !== null || kioskFlying}
         />
         {mode === "vehicles" && (
           <>
@@ -368,6 +558,7 @@ export function MapView({
                 onStop={stopChase}
                 bottomInset={sheetBottomInset}
                 onCoveredChange={setChaseHudCovered}
+                hudHidden={kioskRunning}
               />
             )}
             {mapViewOptions.showVehicleTraces && <VehicleTraces data={data} />}
@@ -401,7 +592,7 @@ export function MapView({
           />
         )}
       </Map>
-      {mode === "vehicles" && (
+      {mode === "vehicles" && !kioskBand && (
         <SelectedVehiclePanel
           selectedVehicle={selectedVehicle}
           timetable={timetable}
@@ -417,6 +608,25 @@ export function MapView({
         />
       )}
       {mode === "situations" && <SituationDetailPanel layout={detailLayout} />}
+      {fixedView.state && (
+        <FixedViewKioskOverlay
+          state={fixedView.state}
+          idleMs={fixedView.idleMs}
+          onResume={fixedView.resume}
+        />
+      )}
+      {kiosk.state && (
+        <KioskOverlay
+          state={kiosk.state}
+          config={kiosk.config}
+          vehicle={kioskVehicle}
+          calls={kioskCalls}
+          narrow={narrow}
+          bottom={sheetBottomEdge}
+          onCoveredChange={setKioskBandCovered}
+          onResume={kiosk.resume}
+        />
+      )}
     </>
   );
 }

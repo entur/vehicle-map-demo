@@ -9,7 +9,7 @@ import {
   SEVERITY_SEVERE,
 } from "../../domain/dataColours.ts";
 import { Call } from "../../types.ts";
-import { resolveCallTimes } from "./callTimes.ts";
+import { formatTime, resolveCallTimes } from "./callTimes.ts";
 import { delayBucket, delayColour } from "./delayThresholds.ts";
 import { SituationList } from "./SituationList.tsx";
 import { severityColour, worstSeverity } from "./situationSeverity.ts";
@@ -39,17 +39,6 @@ const OCCUPANCY_DISPLAY: Record<string, { label: string; colour: string }> = {
     colour: OCCUPANCY_NOT_BOARDING,
   },
 };
-
-function formatTime(iso: string | null): string | null {
-  if (!iso) return null;
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return null;
-  return d.toLocaleTimeString(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
-}
 
 export function StopRow({ call, isCurrent }: StopRowProps) {
   const isPast = call.callType === "RECORDED";

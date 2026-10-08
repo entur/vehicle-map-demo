@@ -174,7 +174,7 @@ export const otherMode = (mode: AppMode): AppMode =>
 
 /** The right-rail tools available in each mode, in display order. */
 const RIGHT_RAIL_TOOLS: Record<AppMode, RightContentType[]> = {
-  vehicles: ["layers", "filtering", "info", "stoplight", "statistics"],
+  vehicles: ["layers", "filtering", "info", "stoplight", "statistics", "kiosk"],
   situations: ["layers", "filtering", "situations", "situationStats"],
 };
 

@@ -4,6 +4,7 @@ import {
   MODEL_REACH_METRES,
   ViewBounds,
   padBounds,
+  viewBoundsAt,
   vehiclesInView,
 } from "./vehiclesInView.ts";
 
@@ -88,5 +89,60 @@ describe("padBounds", () => {
 
   it("reaches half the longest vehicle", () => {
     expect(MODEL_REACH_METRES).toBe(37.5);
+  });
+});
+
+describe("viewBoundsAt", () => {
+  // A 512 px world at zoom 0, so 2^zoom × 512 px span the equator.
+  const metresPerPixel = (latitude: number, zoom: number) =>
+    (40_075_016.686 * Math.cos((latitude * Math.PI) / 180)) / (512 * 2 ** zoom);
+  const NO_PADDING = { top: 0, bottom: 0, left: 0, right: 0 };
+
+  it("centres an unpadded view on the camera", () => {
+    const [[west, south], [east, north]] = viewBoundsAt({
+      longitude: 10,
+      latitude: 63,
+      zoom: 14,
+      width: 1000,
+      height: 600,
+      padding: NO_PADDING,
+    });
+    expect((west + east) / 2).toBeCloseTo(10, 9);
+    expect((south + north) / 2).toBeCloseTo(63, 9);
+  });
+
+  it("spans the canvas at the camera's zoom", () => {
+    const [[west, south], [east, north]] = viewBoundsAt({
+      longitude: 10,
+      latitude: 60,
+      zoom: 14,
+      width: 1000,
+      height: 600,
+      padding: NO_PADDING,
+    });
+    const mpp = metresPerPixel(60, 14);
+    expect((north - south) * METRES_PER_DEGREE_LAT).toBeCloseTo(600 * mpp, 3);
+    expect(
+      (east - west) * METRES_PER_DEGREE_LAT * Math.cos((60 * Math.PI) / 180),
+    ).toBeCloseTo(1000 * mpp, 3);
+  });
+
+  // MapLibre puts the camera's centre in the middle of the unpadded part, so
+  // the canvas reaches further on the padded side.
+  it("reaches further on a padded side", () => {
+    const [[west, south], [east, north]] = viewBoundsAt({
+      longitude: 10,
+      latitude: 60,
+      zoom: 14,
+      width: 1000,
+      height: 600,
+      padding: { top: 0, bottom: 200, left: 100, right: 0 },
+    });
+    const mpp = metresPerPixel(60, 14);
+    const lonMetres = METRES_PER_DEGREE_LAT * Math.cos((60 * Math.PI) / 180);
+    expect((north - 60) * METRES_PER_DEGREE_LAT).toBeCloseTo(200 * mpp, 3);
+    expect((60 - south) * METRES_PER_DEGREE_LAT).toBeCloseTo(400 * mpp, 3);
+    expect((10 - west) * lonMetres).toBeCloseTo(550 * mpp, 3);
+    expect((east - 10) * lonMetres).toBeCloseTo(450 * mpp, 3);
   });
 });
