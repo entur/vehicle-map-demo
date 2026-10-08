@@ -1,4 +1,7 @@
 import type { Filter } from "../types.ts";
+import type { KioskSettings } from "./kioskSchedule.ts";
+import type { ViewDimension } from "./viewDimension.ts";
+import { FixedCamera, roundCamera } from "./fixedCamera.ts";
 
 /** "Time per vehicle" in the Kiosk tool; DEFAULT_DWELL_MS is among them. */
 export const KIOSK_DWELL_CHOICES_MS = [
@@ -50,4 +53,22 @@ export function kioskFilterSummary(
   return rows.length > 0
     ? rows
     : [{ label: "Vehicles", value: "All vehicles" }];
+}
+
+/** What the Kiosk tool can run, with the names it shows for them. */
+export const KIOSK_KIND_LABELS: Record<KioskSettings["kind"], string> = {
+  chase: "Chase vehicles",
+  fixed: "Fixed view",
+};
+
+/**
+ * A fixed view's camera and dimension in one line, as the Kiosk tool shows
+ * it: "59.911, 10.755 · zoom 17.5 · 3D".
+ */
+export function formatFixedView(
+  camera: FixedCamera,
+  dimension: ViewDimension,
+): string {
+  const { latitude, longitude, zoom } = roundCamera(camera);
+  return `${latitude}, ${longitude} · zoom ${zoom} · ${dimension.toUpperCase()}`;
 }

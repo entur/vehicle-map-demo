@@ -121,4 +121,111 @@ test.describe("kiosk mode", () => {
     await expect(situations).toBeVisible();
     await expect(page).not.toHaveURL(/kiosk=/);
   });
+
+  test.describe("fixed view", () => {
+    type MapWindow = KioskWindow & {
+      __vehicleMap?: {
+        getCenter(): { lng: number; lat: number };
+        getZoom(): number;
+        getPitch(): number;
+        getBearing(): number;
+        isMoving(): boolean;
+        jumpTo(options: { center: [number, number]; zoom: number }): void;
+      };
+    };
+    const FIXED = {
+      lat: 59.911,
+      lng: 10.755,
+      zoom: 16,
+      pitch: 45,
+      bearing: -30,
+    };
+    const LINK = `/?kioskView=${FIXED.lat},${FIXED.lng},${FIXED.zoom},${FIXED.pitch},${FIXED.bearing}&view=3d`;
+
+    // Settled: not mid-ease, and on the fixed camera. Runs in the page.
+    const onFixedCamera = (expected: typeof FIXED): boolean => {
+      const map = (window as unknown as MapWindow).__vehicleMap;
+      if (!map || map.isMoving()) return false;
+      const { lng, lat } = map.getCenter();
+      return (
+        Math.abs(lat - expected.lat) < 1e-4 &&
+        Math.abs(lng - expected.lng) < 1e-4 &&
+        Math.abs(map.getZoom() - expected.zoom) < 0.01 &&
+        Math.abs(map.getPitch() - expected.pitch) < 0.5 &&
+        Math.abs(map.getBearing() - expected.bearing) < 0.5
+      );
+    };
+
+    test("holds its camera, hides the controls and flies back after a visitor", async ({
+      page,
+    }) => {
+      await page.goto(LINK);
+
+      // On its own pitch, not the 3D view's 55°, once the dimension settles.
+      await page.waitForFunction(onFixedCamera, FIXED, { timeout: 20000 });
+      await expect(page.locator(".maplibregl-ctrl-attrib")).toBeVisible();
+      const situations = page.getByRole("button", {
+        name: "Situations",
+        exact: true,
+      });
+      await expect(situations).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "Zoom in" })).toHaveCount(
+        0,
+      );
+      await expect
+        .poll(() =>
+          page.evaluate(
+            () => (window as unknown as KioskWindow).__kiosk?.phase,
+          ),
+        )
+        .toBe("fixed");
+      // No band: the map is the whole screen.
+      await expect(page.getByRole("region", { name: "Kiosk" })).toHaveCount(0);
+
+      // A visitor pauses it and moves the map elsewhere.
+      await page.keyboard.press("Shift");
+      await expect(page.getByText(/Kiosk paused/)).toBeVisible();
+      await expect(situations).toBeVisible();
+      await page.evaluate(() =>
+        (window as unknown as MapWindow).__vehicleMap?.jumpTo({
+          center: [10.4, 63.43],
+          zoom: 12,
+        }),
+      );
+
+      // 6 s later it resumes and flies back to its own view.
+      await page.waitForFunction(onFixedCamera, FIXED, { timeout: 20000 });
+      await expect(situations).toHaveCount(0);
+      await expect(page.getByText(/Kiosk paused/)).toHaveCount(0);
+    });
+
+    test("starts from the Kiosk tool on the current view", async ({ page }) => {
+      await page.goto("/");
+      const situations = page.getByRole("button", {
+        name: "Situations",
+        exact: true,
+      });
+      await expect(situations).toBeVisible();
+      await page.waitForFunction(
+        () => (window as unknown as MapWindow).__vehicleMap !== undefined,
+      );
+      await page.evaluate(() =>
+        (window as unknown as MapWindow).__vehicleMap?.jumpTo({
+          center: [10.755, 59.911],
+          zoom: 15,
+        }),
+      );
+
+      await page.getByRole("button", { name: "Kiosk", exact: true }).click();
+      const panel = page.getByRole("region", { name: "Kiosk" });
+      await panel.getByRole("combobox", { name: "Kind" }).click();
+      await page.getByRole("option", { name: "Fixed view" }).click();
+      await panel.getByRole("button", { name: "Start" }).click();
+
+      await expect(page).toHaveURL(/[?&]kioskView=59\.911,10\.755,15,0,0(&|$)/);
+      await expect(page).not.toHaveURL(/[?&]kiosk=/);
+      await expect(situations).toHaveCount(0);
+      await expect(page.getByText(/Kiosk paused/)).toHaveCount(0);
+    });
+  });
 });

@@ -6,6 +6,12 @@ import {
   pickCandidate,
 } from "./kioskCandidates.ts";
 import type { KioskWorld } from "./kioskJourney.ts";
+import {
+  FixedCamera,
+  formatFixedCamera,
+  parseFixedCamera,
+} from "./fixedCamera.ts";
+import { ViewDimension, parseViewDimension } from "./viewDimension.ts";
 
 /** Dwell when `?kiosk` has no usable value. */
 export const DEFAULT_DWELL_MS = 180_000;
@@ -52,38 +58,75 @@ function secondsParam(params: URLSearchParams, key: string): number | null {
 export type KioskConfig = { dwellMs: number; idleMs: number };
 
 /**
- * A kiosk run, from a Start in the Kiosk tool or a `?kiosk` link loaded cold.
- * `id` is new for every run, so `useKiosk` can tell a fresh start from a
- * re-render of the same one.
+ * What a kiosk run does: chase one vehicle after another (`?kiosk`), or hold
+ * one view and show every vehicle in it (`?kioskView`). Both pause on input
+ * and resume after `idleMs`.
  */
-export type KioskSession = KioskConfig & { id: number };
+export type KioskSettings = ChaseKioskSettings | FixedKioskSettings;
+export type ChaseKioskSettings = { kind: "chase" } & KioskConfig;
+export type FixedKioskSettings = {
+  kind: "fixed";
+  idleMs: number;
+  camera: FixedCamera;
+  /** Restored with the camera on every resume. */
+  dimension: ViewDimension;
+};
 
 /**
- * `?kiosk=<seconds>&kioskIdle=<seconds>` as the kiosk's settings; null when
- * kiosk mode is off. `kioskIdle` is read like `kiosk`: anything but a
- * positive whole number of seconds, or none at all, means IDLE_MS.
+ * A kiosk run, from a Start in the Kiosk tool or a kiosk link loaded cold.
+ * `id` is new for every run, so the kiosk hooks can tell a fresh start from a
+ * re-render of the same one.
  */
-export function parseKioskSettings(search: string): KioskConfig | null {
+export type KioskSession = KioskSettings & { id: number };
+
+/**
+ * The kiosk's settings from a URL; null when kiosk mode is off.
+ *
+ * `?kioskView=<lat>,<lon>,<zoom>,<pitch>,<bearing>` is a fixed view, in the
+ * dimension `?view` names, and wins over `?kiosk` when a link has both; a
+ * malformed one is ignored. `?kiosk=<seconds>` is a chase. `kioskIdle` is
+ * read the same way for both: anything but a positive whole number of
+ * seconds, or none at all, means IDLE_MS.
+ */
+export function parseKioskSettings(search: string): KioskSettings | null {
+  const params = new URLSearchParams(search);
+  const idleMs = secondsParam(params, "kioskIdle") ?? IDLE_MS;
+  const camera = parseFixedCamera(params.get("kioskView"));
+  if (camera) {
+    return {
+      kind: "fixed",
+      idleMs,
+      camera,
+      dimension: parseViewDimension(params.get("view")),
+    };
+  }
   const dwellMs = parseKioskParam(search);
   if (dwellMs === null) return null;
-  const idleMs = secondsParam(new URLSearchParams(search), "kioskIdle");
-  return { dwellMs, idleMs: idleMs ?? IDLE_MS };
+  return { kind: "chase", dwellMs, idleMs };
 }
 
 /**
- * `href` with the kiosk's two keys set from `settings`, or both removed when
- * it is null. `kioskIdle` is written only when it is not the default, so a
- * plain link stays `?kiosk=180`. Every other key is left as it is, and when
- * nothing changes `href` comes back as given, re-encoding nothing.
+ * `href` with the kiosk's keys set from `settings`, or all removed when it is
+ * null: `kiosk` for a chase, `kioskView` for a fixed view, never both.
+ * `kioskIdle` is written only when it is not the default, so a plain link
+ * stays `?kiosk=180`. `view` is left to `useViewDimensionQueryParam`, which
+ * mirrors the dimension a fixed view restores. Every other key is left as it
+ * is, and when nothing changes `href` comes back as given, re-encoding
+ * nothing.
  */
 export function withKioskParams(
   href: string,
-  settings: KioskConfig | null,
+  settings: KioskSettings | null,
 ): string {
   const url = new URL(href);
   const params = url.searchParams;
   const wanted: Record<string, string | null> = {
-    kiosk: settings ? String(Math.round(settings.dwellMs / 1000)) : null,
+    kiosk:
+      settings?.kind === "chase"
+        ? String(Math.round(settings.dwellMs / 1000))
+        : null,
+    kioskView:
+      settings?.kind === "fixed" ? formatFixedCamera(settings.camera) : null,
     kioskIdle:
       settings && settings.idleMs !== IDLE_MS
         ? String(Math.round(settings.idleMs / 1000))
@@ -96,7 +139,17 @@ export function withKioskParams(
     if (value === null) params.delete(key);
     else params.set(key, value);
   }
-  return changed ? url.toString() : href;
+  if (!changed) return href;
+  // Commas are legal in a query, and a link someone may edit by hand reads
+  // better without `%2C` between every number.
+  const view = wanted.kioskView;
+  const encoded = url.toString();
+  return view
+    ? encoded.replace(
+        `kioskView=${encodeURIComponent(view)}`,
+        `kioskView=${view}`,
+      )
+    : encoded;
 }
 
 export type WaitReason = "noSnapshot" | "noMatch" | "misses";

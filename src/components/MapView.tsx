@@ -40,8 +40,14 @@ import { useServiceJourneyRoute } from "../hooks/useServiceJourneyRoute.ts";
 import { buildSchedule } from "../domain/scheduleGhost.ts";
 import { KioskActions, useKiosk } from "../hooks/useKiosk.ts";
 import { useKioskSession } from "../hooks/useKioskSession.ts";
-import { restoredFilter, targetOf } from "../domain/kioskSchedule.ts";
-import { KioskOverlay } from "./KioskOverlay.tsx";
+import {
+  parseKioskSettings,
+  restoredFilter,
+  targetOf,
+} from "../domain/kioskSchedule.ts";
+import { FixedViewKioskOverlay, KioskOverlay } from "./KioskOverlay.tsx";
+import { useFixedViewKiosk } from "../hooks/useFixedViewKiosk.ts";
+import { roundCamera } from "../domain/fixedCamera.ts";
 import { vehicleKey } from "../domain/kioskCandidates.ts";
 import { callsFor } from "../domain/kioskJourney.ts";
 import { selectedVehicleFrom } from "./Vehicle/vehicleFeature.ts";
@@ -107,6 +113,15 @@ export function MapView({
   // through BaseMapScheme.
   const [builtScheme] = useState(() => mapSchemeFor(colorScheme));
   const [mapStyle] = useState(() => buildMapStyle(builtScheme));
+
+  // A fixed-view kiosk link loaded cold opens on its camera, so the first
+  // frame is already the wall screen's view.
+  const [initialViewState] = useState(() => {
+    const settings = parseKioskSettings(window.location.search);
+    return settings?.kind === "fixed"
+      ? { ...settings.camera }
+      : { longitude: 10.0, latitude: 64.0, zoom: 4 };
+  });
 
   const [selectedVehicle, setSelectedVehicle] =
     useState<SelectedVehicle | null>(null);
@@ -258,11 +273,21 @@ export function MapView({
     [showScheduleGhost, route, timetable],
   );
 
-  // Kiosk mode (`?kiosk=<seconds>`, or Start in the Kiosk tool): the kiosk
-  // drives the same selection and chase a person does, through these, so
-  // everything that follows a chase — 3D, padding, route, timetable — behaves
-  // as it does for a person.
+  // Kiosk mode (`?kiosk=<seconds>`, `?kioskView=<camera>`, or Start in the
+  // Kiosk tool): the kiosk drives the same selection and chase a person does,
+  // through these, so everything that follows a chase — 3D, padding, route,
+  // timetable — behaves as it does for a person.
   const kioskSession = useKioskSession();
+  const { start: startSession, stop: endSession } = kioskSession;
+  const chaseSession =
+    kioskSession.session?.kind === "chase" ? kioskSession.session : null;
+  const fixedSession =
+    kioskSession.session?.kind === "fixed" ? kioskSession.session : null;
+  const beginChaseSession = useCallback(
+    (dwellMs: number, idleMs: number) =>
+      startSession({ kind: "chase", dwellMs, idleMs }),
+    [startSession],
+  );
   const kioskActions: KioskActions = {
     leave: () => {
       switchMode("vehicles");
@@ -288,13 +313,25 @@ export function MapView({
     },
   };
   const kiosk = useKiosk({
-    session: kioskSession.session,
-    beginSession: kioskSession.start,
-    endSession: kioskSession.stop,
+    session: chaseSession,
+    beginSession: beginChaseSession,
+    endSession,
     mapRef,
     data,
     timetable,
     actions: kioskActions,
+    currentSetup: { mapViewOptions, showTransitNetwork },
+  });
+  const fixedView = useFixedViewKiosk({
+    session: fixedSession,
+    beginSession: startSession,
+    endSession,
+    mapRef,
+    actions: {
+      leave: kioskActions.leave,
+      restore: kioskActions.restore,
+      setDimension: setViewDimension,
+    },
     currentSetup: { mapViewOptions, showTransitNetwork },
   });
   // What the Kiosk tool shows and does. Memoised, so the memoised tool panel
@@ -305,24 +342,69 @@ export function MapView({
     start: startKiosk,
     stop: stopKiosk,
   } = kiosk;
+  const {
+    setupFilter: fixedViewFilter,
+    start: startFixedView,
+    stop: stopFixedView,
+  } = fixedView;
   const kioskTool = useMemo<KioskTool>(
     () => ({
       session: kioskRun,
-      // While a run exists, what it chases is its own setup, which a
+      // While a run exists, what it shows is its own setup, which a
       // visitor's filter change while it is paused does not alter.
-      filter: kioskRun ? kioskFilter : currentFilter,
-      onStart: startKiosk,
-      onStop: stopKiosk,
+      filter: !kioskRun
+        ? currentFilter
+        : kioskRun.kind === "fixed"
+          ? fixedViewFilter
+          : kioskFilter,
+      onStart: (settings) =>
+        settings.kind === "fixed"
+          ? startFixedView(settings.camera, settings.dimension, settings.idleMs)
+          : startKiosk(settings.dwellMs, settings.idleMs),
+      // Each ignores a run that is not its own.
+      onStop: () => {
+        stopKiosk();
+        stopFixedView();
+      },
+      readCamera: () => {
+        const map = mapRef.current;
+        if (!map) return null;
+        const { lat, lng } = map.getCenter();
+        return roundCamera({
+          latitude: lat,
+          longitude: lng,
+          zoom: map.getZoom(),
+          pitch: map.getPitch(),
+          bearing: map.getBearing(),
+        });
+      },
+      dimension: viewDimension,
     }),
-    [kioskRun, kioskFilter, currentFilter, startKiosk, stopKiosk],
+    [
+      kioskRun,
+      kioskFilter,
+      fixedViewFilter,
+      currentFilter,
+      startKiosk,
+      stopKiosk,
+      startFixedView,
+      stopFixedView,
+      viewDimension,
+    ],
   );
   // The kiosk's flight owns the bounding box, as a chase does: it set the box
   // to where the flight lands, and the moves on the way would replace it.
   // Unpausing on arrival captures the view the flight landed on.
   const kioskFlying = kiosk.state?.phase.kind === "arriving";
+  // A fixed view running and not paused holds its camera: see
+  // ViewDimensionLayers.
+  const fixedViewRunning = fixedView.state?.lastInputAt === null;
   // Running and not paused: the app's own controls are hidden.
   const kioskRunning =
-    kiosk.state !== null && kiosk.state.phase.kind !== "paused";
+    (kiosk.state !== null && kiosk.state.phase.kind !== "paused") ||
+    fixedViewRunning;
+  // The band is the chasing kiosk's; a fixed view leaves the map whole.
+  const chaseKioskRunning = kioskRunning && !fixedViewRunning;
 
   // On a phone the detail panels are a bottom sheet. Its snap lives here rather
   // than in the sheet because the map is padded by its height too, and the
@@ -365,7 +447,7 @@ export function MapView({
   // The kiosk's band hides the bottom of the map on a wide screen. Read only
   // while it is drawn, like the HUD's value.
   const [kioskBandCovered, setKioskBandCovered] = useState(0);
-  const kioskBand = kioskRunning && !narrow;
+  const kioskBand = chaseKioskRunning && !narrow;
   const mapBottomInset = kioskBand
     ? Math.max(chaseBottomInset, kioskBandCovered)
     : chaseBottomInset;
@@ -398,7 +480,7 @@ export function MapView({
   return (
     <>
       <Map
-        initialViewState={{ longitude: 10.0, latitude: 64.0, zoom: 4 }}
+        initialViewState={initialViewState}
         mapStyle={mapStyle}
         onLoad={handleMapLoad}
         onStyleData={handleStyleData}
@@ -416,7 +498,10 @@ export function MapView({
           </>
         )}
         <MapAttribution onHeightChange={setAttributionHeight} />
-        <ViewDimensionLayers dimension={viewDimension} />
+        <ViewDimensionLayers
+          dimension={viewDimension}
+          camera={fixedViewRunning ? fixedSession?.camera : undefined}
+        />
         <BaseMapScheme builtFor={builtScheme} />
         <TransitNetworkLayers visible={showTransitNetwork} />
         {!kioskRunning && (
@@ -523,6 +608,13 @@ export function MapView({
         />
       )}
       {mode === "situations" && <SituationDetailPanel layout={detailLayout} />}
+      {fixedView.state && (
+        <FixedViewKioskOverlay
+          state={fixedView.state}
+          idleMs={fixedView.idleMs}
+          onResume={fixedView.resume}
+        />
+      )}
       {kiosk.state && (
         <KioskOverlay
           state={kiosk.state}

@@ -4,6 +4,7 @@ import {
   KIOSK_DWELL_CHOICES_MS,
   KIOSK_IDLE_CHOICES_MS,
   choiceOr,
+  formatFixedView,
   formatKioskDuration,
   kioskFilterSummary,
 } from "./kioskSettings.ts";
@@ -62,5 +63,22 @@ describe("kioskFilterSummary", () => {
     expect(kioskFilterSummary({ codespaceId: "", operatorRef: "" })).toEqual([
       { label: "Vehicles", value: "All vehicles" },
     ]);
+  });
+});
+
+describe("formatFixedView", () => {
+  it("shows the centre, zoom and dimension, rounded like the link", () => {
+    expect(
+      formatFixedView(
+        {
+          latitude: 59.9110049,
+          longitude: 10.755,
+          zoom: 17.4999,
+          pitch: 55,
+          bearing: -30,
+        },
+        "3d",
+      ),
+    ).toBe("59.911, 10.755 · zoom 17.5 · 3D");
   });
 });

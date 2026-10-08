@@ -34,6 +34,14 @@ import {
 } from "./kioskSchedule.ts";
 
 const T0 = Date.parse("2026-10-05T12:00:00Z");
+const FIXED_PARAM = "59.911,10.755,17.5,55,-30";
+const FIXED_CAMERA = {
+  latitude: 59.911,
+  longitude: 10.755,
+  zoom: 17.5,
+  pitch: 55,
+  bearing: -30,
+};
 const CONFIG: KioskConfig = { dwellMs: 180_000, idleMs: 120_000 };
 
 function vehicle(id: string): KioskVehicle {
@@ -138,6 +146,7 @@ describe("parseKioskSettings", () => {
 
   it("uses the default idle time when kioskIdle is absent", () => {
     expect(parseKioskSettings("?kiosk=60")).toEqual({
+      kind: "chase",
       dwellMs: 60_000,
       idleMs: IDLE_MS,
     });
@@ -145,6 +154,7 @@ describe("parseKioskSettings", () => {
 
   it("reads kioskIdle as whole seconds", () => {
     expect(parseKioskSettings("?kiosk=60&kioskIdle=30")).toEqual({
+      kind: "chase",
       dwellMs: 60_000,
       idleMs: 30_000,
     });
@@ -153,10 +163,39 @@ describe("parseKioskSettings", () => {
   it("falls back to the defaults on anything else", () => {
     for (const raw of ["", "0", "-5", "abc", "1.5"]) {
       expect(parseKioskSettings(`?kiosk=x&kioskIdle=${raw}`)).toEqual({
+        kind: "chase",
         dwellMs: DEFAULT_DWELL_MS,
         idleMs: IDLE_MS,
       });
     }
+  });
+
+  it("reads a fixed view with its camera, view dimension and idle time", () => {
+    expect(
+      parseKioskSettings(`?kioskView=${FIXED_PARAM}&view=3d&kioskIdle=30`),
+    ).toEqual({
+      kind: "fixed",
+      camera: FIXED_CAMERA,
+      dimension: "3d",
+      idleMs: 30_000,
+    });
+    expect(parseKioskSettings(`?kioskView=${FIXED_PARAM}`)).toEqual({
+      kind: "fixed",
+      camera: FIXED_CAMERA,
+      dimension: "2d",
+      idleMs: IDLE_MS,
+    });
+  });
+
+  it("prefers a fixed view to a chase when a link has both", () => {
+    expect(parseKioskSettings(`?kiosk=60&kioskView=${FIXED_PARAM}`)?.kind).toBe(
+      "fixed",
+    );
+  });
+
+  it("ignores a malformed fixed view", () => {
+    expect(parseKioskSettings("?kioskView=1,2")).toBeNull();
+    expect(parseKioskSettings("?kioskView=1,2&kiosk=60")?.kind).toBe("chase");
   });
 });
 
@@ -164,20 +203,25 @@ describe("withKioskParams", () => {
   const BASE = "https://example.test/?mode=vehicles&codespaceId=ATB";
 
   it("sets the dwell in seconds and omits the default idle time", () => {
-    expect(withKioskParams(BASE, { dwellMs: 180_000, idleMs: IDLE_MS })).toBe(
-      `${BASE}&kiosk=180`,
-    );
+    expect(
+      withKioskParams(BASE, {
+        kind: "chase",
+        dwellMs: 180_000,
+        idleMs: IDLE_MS,
+      }),
+    ).toBe(`${BASE}&kiosk=180`);
   });
 
   it("keeps an idle time that is not the default", () => {
-    expect(withKioskParams(BASE, { dwellMs: 60_000, idleMs: 30_000 })).toBe(
-      `${BASE}&kiosk=60&kioskIdle=30`,
-    );
+    expect(
+      withKioskParams(BASE, { kind: "chase", dwellMs: 60_000, idleMs: 30_000 }),
+    ).toBe(`${BASE}&kiosk=60&kioskIdle=30`);
   });
 
   it("drops kioskIdle when the idle time goes back to the default", () => {
     expect(
       withKioskParams(`${BASE}&kiosk=60&kioskIdle=30`, {
+        kind: "chase",
         dwellMs: 60_000,
         idleMs: IDLE_MS,
       }),
@@ -197,9 +241,30 @@ describe("withKioskParams", () => {
     const href = "https://example.test/?operatorRef=ATB%3AOperator%3A1";
     expect(withKioskParams(href, null)).toBe(href);
     const running = `${BASE}&kiosk=60&kioskIdle=30`;
-    expect(withKioskParams(running, { dwellMs: 60_000, idleMs: 30_000 })).toBe(
-      running,
-    );
+    expect(
+      withKioskParams(running, {
+        kind: "chase",
+        dwellMs: 60_000,
+        idleMs: 30_000,
+      }),
+    ).toBe(running);
+  });
+
+  it("writes a fixed view in place of a chase, leaving view to its own hook", () => {
+    expect(
+      withKioskParams(`${BASE}&kiosk=60&view=3d`, {
+        kind: "fixed",
+        camera: FIXED_CAMERA,
+        dimension: "3d",
+        idleMs: 30_000,
+      }),
+    ).toBe(`${BASE}&view=3d&kioskView=${FIXED_PARAM}&kioskIdle=30`);
+  });
+
+  it("removes a fixed view without a session", () => {
+    expect(
+      withKioskParams(`${BASE}&kioskView=${FIXED_PARAM}&kioskIdle=30`, null),
+    ).toBe(BASE);
   });
 });
 

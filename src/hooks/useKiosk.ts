@@ -15,6 +15,7 @@ import {
 } from "../types.ts";
 import { VehicleData } from "./useVehiclePositionsData.ts";
 import { useKioskCandidates } from "./useKioskCandidates.ts";
+import { useKioskInput } from "./useKioskInput.ts";
 import { filterFromQueryParams } from "../domain/filterQueryParams.ts";
 import { vehicleKey } from "../domain/kioskCandidates.ts";
 import {
@@ -37,7 +38,6 @@ import {
   KioskEffect,
   KioskEvent,
   KioskPhase,
-  KioskSession,
   KioskState,
   effectsOf,
   step,
@@ -49,7 +49,6 @@ export const ARRIVE_ZOOM = 14;
 const TICK_MS = 1000;
 /** Upper bound for the flight across the country. */
 const MAX_FLIGHT_MS = 10_000;
-const INPUT_EVENTS = ["pointerdown", "wheel", "keydown"] as const;
 
 /** What the kiosk puts back when it resumes after a visitor. */
 export type KioskSetup = {
@@ -78,7 +77,7 @@ type UseKioskArgs = {
    * From `useKioskSession`; null turns everything off. A new `id` starts a
    * fresh run.
    */
-  session: KioskSession | null;
+  session: { id: number; dwellMs: number; idleMs: number } | null;
   /** Begins a session; called by the returned `start`. */
   beginSession: (dwellMs: number, idleMs: number) => void;
   /** Ends the session; called by the returned `stop`. */
@@ -96,7 +95,9 @@ type UseKioskArgs = {
  * is synced to — and on a cold load is only filled from in an effect after
  * the first render.
  */
-function readSetup(currentSetup: Omit<KioskSetup, "filter">): KioskSetup {
+export function readSetup(
+  currentSetup: Omit<KioskSetup, "filter">,
+): KioskSetup {
   return {
     ...currentSetup,
     filter: filterFromQueryParams(
@@ -286,20 +287,11 @@ export function useKiosk({
     return () => window.clearInterval(id);
   }, [enabled, send]);
 
-  // Captured, so input reaches the kiosk before anything that stops it. The
-  // kiosk's own camera moves raise none of these events.
-  useEffect(() => {
-    if (!enabled) return;
-    const onInput = () => send({ type: "input", now: Date.now() });
-    for (const type of INPUT_EVENTS) {
-      window.addEventListener(type, onInput, { capture: true, passive: true });
-    }
-    return () => {
-      for (const type of INPUT_EVENTS) {
-        window.removeEventListener(type, onInput, { capture: true });
-      }
-    };
-  }, [enabled, send]);
+  const onInput = useCallback(
+    () => send({ type: "input", now: Date.now() }),
+    [send],
+  );
+  useKioskInput(enabled, onInput);
 
   // Lets the Playwright tests see the phase. Development builds only.
   useEffect(() => {
@@ -346,7 +338,7 @@ export function useKiosk({
 }
 
 /** A shorter idle period for the Playwright tests. Development builds only. */
-function devIdleOverride(): number | null {
+export function devIdleOverride(): number | null {
   if (!import.meta.env.DEV) return null;
   const value = (window as unknown as { __kioskIdleMs?: unknown })
     .__kioskIdleMs;

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   KioskSession,
+  KioskSettings,
   parseKioskSettings,
   withKioskParams,
 } from "../domain/kioskSchedule.ts";
@@ -8,21 +9,21 @@ import {
 /**
  * The kiosk run, if any, and the way to start and stop one.
  *
- * Read from `?kiosk=<seconds>&kioskIdle=<seconds>` once, on the first
- * render, so a link loaded cold runs from the start. Afterwards the session
- * is mirrored back into the URL, in the style of `useModeQueryParam`: both
- * keys while a run exists, neither once it is stopped, and no other key
- * touched. Kept out of `Filter`, so neither key reaches the vehicle
- * subscription's variables.
+ * Read from `?kiosk=<seconds>` or `?kioskView=<camera>`, either with
+ * `&kioskIdle=<seconds>`, once, on the first render, so a link loaded cold
+ * runs from the start. Afterwards the session is mirrored back into the URL,
+ * in the style of `useModeQueryParam`: its keys while a run exists, none once
+ * it is stopped, and no other key touched. Kept out of `Filter`, so no kiosk
+ * key reaches the vehicle subscription's variables.
  */
 export function useKioskSession(): {
   session: KioskSession | null;
-  start: (dwellMs: number, idleMs: number) => void;
+  start: (settings: KioskSettings) => void;
   stop: () => void;
 } {
   const [session, setSession] = useState<KioskSession | null>(() => {
     const settings = parseKioskSettings(window.location.search);
-    return settings && { id: 1, ...settings };
+    return settings && { ...settings, id: 1 };
   });
   // Every run has its own id, so a stop and a start with the same settings
   // still read as a fresh start.
@@ -34,9 +35,9 @@ export function useKioskSession(): {
     if (next !== href) window.history.replaceState({}, "", next);
   }, [session]);
 
-  const start = useCallback((dwellMs: number, idleMs: number) => {
+  const start = useCallback((settings: KioskSettings) => {
     const id = nextId.current++;
-    setSession({ id, dwellMs, idleMs });
+    setSession({ ...settings, id });
   }, []);
   const stop = useCallback(() => setSession(null), []);
 

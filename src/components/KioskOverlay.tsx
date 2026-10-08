@@ -12,6 +12,10 @@ import { labelColoursFor } from "../domain/vehiclePaint.ts";
 import { KioskVehicle } from "../domain/kioskCandidates.ts";
 import { upcomingCalls } from "../domain/kioskJourney.ts";
 import {
+  FixedViewState,
+  fixedViewResumesInMs,
+} from "../domain/kioskFixedView.ts";
+import {
   KioskConfig,
   KioskState,
   formatCountdown,
@@ -82,20 +86,7 @@ export function KioskOverlay({
 
   if (view.kind === "paused") {
     return (
-      <KioskPill
-        action={
-          <IconButton
-            size="small"
-            aria-label="Resume kiosk"
-            onClick={onResume}
-            sx={{ my: -0.5, mr: -1 }}
-          >
-            <PlayArrowIcon fontSize="small" />
-          </IconButton>
-        }
-      >
-        Kiosk paused · resumes in {formatCountdown(view.resumesInMs)}
-      </KioskPill>
+      <KioskPausedPill resumesInMs={view.resumesInMs} onResume={onResume} />
     );
   }
   if (narrow) {
@@ -412,6 +403,51 @@ function StopStrip({ calls }: { calls: Call[] }) {
         );
       })}
     </Box>
+  );
+}
+
+/**
+ * What a fixed-view kiosk shows: nothing while it runs — the map is the
+ * whole screen — and the paused pill while a visitor has it.
+ */
+export function FixedViewKioskOverlay({
+  state,
+  idleMs,
+  onResume,
+}: {
+  state: FixedViewState;
+  idleMs: number;
+  onResume: () => void;
+}) {
+  const now = useNow(CLOCK_MS);
+  const resumesInMs = fixedViewResumesInMs(state, now, idleMs);
+  if (resumesInMs === null) return null;
+  return <KioskPausedPill resumesInMs={resumesInMs} onResume={onResume} />;
+}
+
+/** Both kiosks' pill while a visitor has paused them; it cannot stop one. */
+function KioskPausedPill({
+  resumesInMs,
+  onResume,
+}: {
+  resumesInMs: number;
+  onResume: () => void;
+}) {
+  return (
+    <KioskPill
+      action={
+        <IconButton
+          size="small"
+          aria-label="Resume kiosk"
+          onClick={onResume}
+          sx={{ my: -0.5, mr: -1 }}
+        >
+          <PlayArrowIcon fontSize="small" />
+        </IconButton>
+      }
+    >
+      Kiosk paused · resumes in {formatCountdown(resumesInMs)}
+    </KioskPill>
   );
 }
 
