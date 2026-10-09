@@ -119,27 +119,16 @@ const JOURNEY_STOP_STROKE: [number, number][] = [
 /** The white outer ring's width beyond the ink stroke. */
 const JOURNEY_STOP_EDGE = 1.5;
 
-/** Calls already made are faded, as the timetable fades them. */
+/**
+ * Calls already made are faded, as the timetable fades them. The dots stay
+ * at every zoom: from `VEHICLE_MODEL_MIN_ZOOM` they mark the quay at the foot
+ * of each 3D stop pole (`stopPoleLayers`), which deck.gl draws over them.
+ */
 const JOURNEY_STOP_OPACITY: ExpressionSpecification = [
   "case",
   ["get", "passed"],
   0.55,
   1,
-];
-
-/**
- * The stop dots' opacity: faded once passed, and cross-fading into the 3D
- * poles (`stopPoleLayers`) over the same half level as the vehicle icons into
- * their models. The names stay: the board's text is legible only close up.
- */
-const JOURNEY_STOP_DOT_OPACITY: ExpressionSpecification = [
-  "interpolate",
-  ["linear"],
-  ["zoom"],
-  VEHICLE_MODEL_MIN_ZOOM,
-  JOURNEY_STOP_OPACITY,
-  VEHICLE_MODEL_MIN_ZOOM + 0.5,
-  0,
 ];
 
 function zoomInterpolation(stops: [number, number][]): ExpressionSpecification {
@@ -556,7 +545,7 @@ export function buildMapStyle(scheme: MapScheme): StyleSpecification {
             ]),
           ),
           "circle-color": EDGE_WHITE,
-          "circle-opacity": JOURNEY_STOP_DOT_OPACITY,
+          "circle-opacity": JOURNEY_STOP_OPACITY,
           "circle-pitch-alignment": "map",
         },
       },
@@ -574,8 +563,8 @@ export function buildMapStyle(scheme: MapScheme): StyleSpecification {
           ],
           "circle-stroke-color": EDGE_INK,
           "circle-stroke-width": zoomInterpolation(JOURNEY_STOP_STROKE),
-          "circle-opacity": JOURNEY_STOP_DOT_OPACITY,
-          "circle-stroke-opacity": JOURNEY_STOP_DOT_OPACITY,
+          "circle-opacity": JOURNEY_STOP_OPACITY,
+          "circle-stroke-opacity": JOURNEY_STOP_OPACITY,
           "circle-pitch-alignment": "map",
         },
       },
