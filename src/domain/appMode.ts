@@ -40,6 +40,9 @@ export const MODE_LAYERS: Record<AppMode, string[]> = {
     "service-journey-route-layer",
     "service-journey-route-outer-casing-layer",
     "service-journey-route-casing-layer",
+    "service-journey-stops-edge-layer",
+    "service-journey-stops-layer",
+    "service-journey-stop-labels-layer",
     "schedule-ghost-layer",
     "schedule-ghost-link-layer",
     "schedule-ghost-link-casing-layer",
@@ -122,6 +125,10 @@ export const MODE_DEFAULT_VISIBLE_LAYERS: Record<AppMode, string[]> = {
     "service-journey-route-layer",
     "service-journey-route-outer-casing-layer",
     "service-journey-route-casing-layer",
+    // The route's stops: drawn whenever a journey is selected, like the route.
+    "service-journey-stops-edge-layer",
+    "service-journey-stops-layer",
+    "service-journey-stop-labels-layer",
     "vehicle-follow-layer",
     // Filtered to the selected vehicle by SelectedVehicleHalo, never toggled.
     "vehicle-selected-halo-layer",
@@ -164,6 +171,7 @@ export const MODE_SOURCES: Record<AppMode, string[]> = {
     "vehicleOutlines",
     "vehicleTraces",
     "serviceJourneyRoute",
+    "serviceJourneyStops",
     "scheduleGhost",
   ],
   situations: ["situationLines", "situationPoints"],

@@ -54,6 +54,13 @@ export type SchemePaint = {
    * that reason; a white ring on Fiord outweighed the darker mode colours.
    */
   vehicleDotEdge: string;
+  /**
+   * The selected journey's stop names: the map's darkest or lightest tone,
+   * on a halo of the other, so they stand out from the base map's own labels
+   * the way the route stands out from its roads.
+   */
+  journeyStopText: string;
+  journeyStopTextHalo: string;
 };
 
 /**
@@ -92,6 +99,8 @@ export const SCHEME_PAINT: Record<MapScheme, SchemePaint> = {
       textHalo: "#ffffff",
     },
     vehicleDotEdge: EDGE_WHITE,
+    journeyStopText: EDGE_INK,
+    journeyStopTextHalo: EDGE_WHITE,
   },
   dark: {
     buildings: "#3a4560",
@@ -112,6 +121,8 @@ export const SCHEME_PAINT: Record<MapScheme, SchemePaint> = {
       textHalo: "#2b3345",
     },
     vehicleDotEdge: EDGE_INK,
+    journeyStopText: EDGE_WHITE,
+    journeyStopTextHalo: EDGE_INK,
   },
 };
 

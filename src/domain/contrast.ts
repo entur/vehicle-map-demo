@@ -14,3 +14,15 @@ export function contrastRatio(a: string, b: string): number {
   );
   return (lighter + 0.05) / (darker + 0.05);
 }
+
+/** Whichever of `candidates` contrasts most with `background`; the first on a tie. */
+export function mostLegibleOn<T extends string>(
+  background: string,
+  candidates: readonly T[],
+): T {
+  return candidates.reduce((best, candidate) =>
+    contrastRatio(candidate, background) > contrastRatio(best, background)
+      ? candidate
+      : best,
+  );
+}

@@ -38,6 +38,12 @@ import { SelectedVehicleHalo } from "./Vehicle/SelectedVehicleHalo.tsx";
 import { useTimetableSubscription } from "../hooks/useTimetableSubscription.ts";
 import { useServiceJourneyRoute } from "../hooks/useServiceJourneyRoute.ts";
 import { buildSchedule } from "../domain/scheduleGhost.ts";
+import {
+  journeyStopFeatures,
+  routeBearings,
+  sameStopPoles,
+  stopPoles,
+} from "../domain/journeyStops.ts";
 import { KioskActions, useKiosk } from "../hooks/useKiosk.ts";
 import { useKioskSession } from "../hooks/useKioskSession.ts";
 import {
@@ -265,6 +271,25 @@ export function MapView({
     selectedVehicle?.properties.date ?? null,
   );
   const route = useServiceJourneyRoute(selectedJourneyId);
+  // The journey's stops, once for both the 2D dots and the 3D poles. The
+  // poles keep their list while a timetable frame changes nothing they show,
+  // so their layers are not rebuilt every few seconds.
+  const journeyStops = useMemo(
+    () => journeyStopFeatures(timetable?.calls ?? null),
+    [timetable],
+  );
+  const stopBearingAt = useMemo(
+    () => routeBearings(route?.coordinates ?? null),
+    [route],
+  );
+  const nextStopPoles = useMemo(
+    () => stopPoles(journeyStops, stopBearingAt),
+    [journeyStops, stopBearingAt],
+  );
+  const [journeyStopPoles, setJourneyStopPoles] = useState(nextStopPoles);
+  if (!sameStopPoles(journeyStopPoles, nextStopPoles)) {
+    setJourneyStopPoles(nextStopPoles);
+  }
   const ghostSchedule = useMemo(
     () =>
       showScheduleGhost
@@ -538,15 +563,15 @@ export function MapView({
               }
               hiddenVehicleKey={chasedVehicleKey}
             />
-            {mapViewOptions.showVehicles && (
-              <VehicleModels
-                data={vehicleUpdates}
-                viewDimension={viewDimension}
-                chasedVehicleKey={chasedVehicleKey}
-                chasedVehicleStore={chasedVehicleStore}
-                ghostStore={ghostStore}
-              />
-            )}
+            <VehicleModels
+              showVehicles={mapViewOptions.showVehicles}
+              data={vehicleUpdates}
+              viewDimension={viewDimension}
+              chasedVehicleKey={chasedVehicleKey}
+              chasedVehicleStore={chasedVehicleStore}
+              ghostStore={ghostStore}
+              stopPoles={journeyStopPoles}
+            />
             {chasedVehicle && (
               <ChaseCamera
                 key={chasedVehicleKey}
@@ -564,6 +589,7 @@ export function MapView({
             {mapViewOptions.showVehicleTraces && <VehicleTraces data={data} />}
             <RouteLayer
               route={route}
+              stops={journeyStops}
               cancelled={timetable?.cancellation === true}
             />
             <SelectedVehicleHalo

@@ -43,6 +43,9 @@ function schemeIndependent(scheme: MapScheme): StyleSpecification {
   delete layer(style, "buildings-3d-layer").paint?.["fill-extrusion-color"];
   delete layer(style, "hillshade-layer").paint?.["hillshade-shadow-color"];
   delete layer(style, "vehicle-dot-layer").paint?.["circle-stroke-color"];
+  const stopLabels = layer(style, "service-journey-stop-labels-layer").paint;
+  delete stopLabels?.["text-color"];
+  delete stopLabels?.["text-halo-color"];
   for (const [id, property] of transitNetworkPaint(scheme)) {
     delete layer(style, id).paint?.[property];
   }
@@ -73,6 +76,12 @@ describe("buildMapStyle", () => {
       expect(
         layer(style, "vehicle-dot-layer").paint?.["circle-stroke-color"],
       ).toBe(SCHEME_PAINT[scheme].vehicleDotEdge);
+      expect(
+        layer(style, "service-journey-stop-labels-layer").paint,
+      ).toMatchObject({
+        "text-color": SCHEME_PAINT[scheme].journeyStopText,
+        "text-halo-color": SCHEME_PAINT[scheme].journeyStopTextHalo,
+      });
       expect(style.sky).toEqual(SCHEME_PAINT[scheme].sky);
       for (const [id, property, value] of transitNetworkPaint(scheme)) {
         expect([id, property, layer(style, id).paint?.[property]]).toEqual([
