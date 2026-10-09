@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useMap } from "react-map-gl/maplibre";
 import type { MapSourceDataEvent } from "maplibre-gl";
-import { aerialTileUrl } from "../domain/aerialImagery.ts";
 import { ROOF_COLOUR_STATE } from "../domain/baseMapScheme.ts";
 import {
   Bbox,
@@ -17,6 +16,7 @@ import { BUILDINGS_3D_FILTER, BUILDINGS_3D_MIN_ZOOM } from "./mapStyle.ts";
 import { whenLayerExists } from "../utils/whenLayerExists.ts";
 import { throttle } from "../utils/throttle.ts";
 import { limitConcurrency } from "../utils/limitConcurrency.ts";
+import { fetchNibTile } from "../utils/norgeIBilder.ts";
 
 const BUILDINGS = { source: "openmaptiles", sourceLayer: "building" };
 const BUILDINGS_LAYER = "buildings-3d-layer";
@@ -45,8 +45,7 @@ type TilePixels = Promise<Uint8ClampedArray | null>;
 
 async function loadTilePixels(z: number, x: number, y: number): TilePixels {
   try {
-    const response = await fetch(aerialTileUrl(z, x, y));
-    if (!response.ok) return null;
+    const response = await fetchNibTile({ z, x, y });
     const bitmap = await createImageBitmap(await response.blob());
     const canvas = new OffscreenCanvas(TILE_SIZE, TILE_SIZE);
     const context = canvas.getContext("2d");

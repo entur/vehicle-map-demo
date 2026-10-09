@@ -4,10 +4,12 @@ import "@fontsource-variable/inter";
 import "./index.css";
 import App from "./components/App.tsx";
 import { ConfigContext } from "./config/ConfigContext.ts";
+import { registerNorgeIBilder } from "./utils/norgeIBilder.ts";
 
 const init = async () => {
   const configResponse = await fetch("/bootstrap.json");
   const config = await configResponse.json();
+  registerNorgeIBilder(config["nib-token-endpoint"]);
 
   createRoot(document.getElementById("root")!).render(
     <StrictMode>

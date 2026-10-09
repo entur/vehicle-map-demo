@@ -4,9 +4,11 @@ import type {
 } from "@maplibre/maplibre-gl-style-spec";
 
 /**
- * Aerial photography over the base map, as an experiment. Esri World Imagery
- * is keyless and CORS-open; Kartverket's open "Norge i bilder" cache no longer
- * answers and its current cache needs an agreement.
+ * Aerial photography over the base map: Kartverket's Norge i bilder, from its
+ * web mercator tile cache. Every tile needs a token bound to the page's origin
+ * (see nibToken.ts), and the style is built once and never replaced, so the
+ * source names tiles by a `norgeibilder://` URL and the protocol registered
+ * in `src/utils/norgeIBilder.ts` adds the token when MapLibre asks for one.
  *
  * Drawn above the base map's fills and lines but beneath everything else —
  * transit network, hillshade, buildings, labels and data — so it replaces the
@@ -16,17 +18,21 @@ import type {
 export const AERIAL_SOURCE = "aerial";
 export const AERIAL_LAYER = "aerial-layer";
 
+export const NIB_PROTOCOL = "norgeibilder";
+
+const NIB_TILE_CACHE =
+  "https://tilecache.norgeibilder.no/arcgis/rest/services/Nibcache_web_mercator_v2/MapServer/tile";
+
 export const AERIAL_SOURCE_SPEC: RasterSourceSpecification = {
   type: "raster",
-  tiles: [
-    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-  ],
+  tiles: [`${NIB_PROTOCOL}://{z}/{x}/{y}`],
   tileSize: 256,
-  // Esri has z19 over Oslo but serves "Map data not yet available" placeholder
-  // tiles for it over Trondheim; 18 is real in both and is overzoomed beyond.
-  maxzoom: 18,
+  // The service defines levels to 23, but from 20 it answers with a blank
+  // placeholder PNG (measured over Oslo, Trondheim and rural Innlandet);
+  // 19 is real everywhere and is overzoomed beyond.
+  maxzoom: 19,
   attribution:
-    "Imagery © Esri, Maxar, Earthstar Geographics, and the GIS User Community",
+    '© <a href="https://www.norgeibilder.no/">Kartverket - Norge i bilder</a>',
 };
 
 export const AERIAL_LAYER_SPEC: RasterLayerSpecification = {
@@ -37,9 +43,19 @@ export const AERIAL_LAYER_SPEC: RasterLayerSpecification = {
   paint: { "raster-fade-duration": 150 },
 };
 
-/** URL of one aerial photo tile, from the same template the source reads. */
-export function aerialTileUrl(z: number, x: number, y: number): string {
-  return AERIAL_SOURCE_SPEC.tiles![0].replace("{z}", String(z))
-    .replace("{x}", String(x))
-    .replace("{y}", String(y));
+export type TileAddress = { z: number; x: number; y: number };
+
+/** The tile a `norgeibilder://z/x/y` URL names, or null if it names none. */
+export function parseNibTileUrl(url: string): TileAddress | null {
+  const match = new RegExp(`^${NIB_PROTOCOL}://(\\d+)/(\\d+)/(\\d+)$`).exec(
+    url,
+  );
+  if (!match) return null;
+  const [z, x, y] = match.slice(1).map(Number);
+  return { z, x, y };
+}
+
+/** The tile cache's URL for one tile. Note the cache's row-before-column order. */
+export function nibTileUrl({ z, x, y }: TileAddress, token: string): string {
+  return `${NIB_TILE_CACHE}/${z}/${y}/${x}?token=${encodeURIComponent(token)}`;
 }
