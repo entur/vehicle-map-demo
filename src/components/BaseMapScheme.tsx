@@ -4,6 +4,7 @@ import { useColorScheme } from "@mui/material/styles";
 import {
   SCHEME_PAINT,
   baseLayerVisibility,
+  buildingColour,
   mapSchemeFor,
   transitNetworkPaint,
 } from "../domain/baseMapScheme.ts";
@@ -47,7 +48,7 @@ export function BaseMapScheme({ builtFor }: { builtFor: MapScheme }) {
       map.setPaintProperty(
         "buildings-3d-layer",
         "fill-extrusion-color",
-        paint.buildings,
+        buildingColour(scheme),
       );
       map.setPaintProperty(
         "hillshade-layer",

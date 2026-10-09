@@ -8,6 +8,7 @@ function config(overrides: Partial<Config> = {}): Config {
     "vehicle-positions-subscriptions-endpoint":
       "wss://example.test/subscriptions",
     "vehicle-positions-et-client-name": "test-client",
+    "nib-token-endpoint": "https://example.test/token",
     ...overrides,
   };
 }

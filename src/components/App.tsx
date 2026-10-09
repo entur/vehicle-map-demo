@@ -22,6 +22,7 @@ function App() {
   // Base map context shared by both modes, so not a MapViewOptions key: those
   // are single-mode switches and re-open the vehicle subscription.
   const [showTransitNetwork, setShowTransitNetwork] = useState(true);
+  const [showAerial, setShowAerial] = useState(false);
   const [mapViewOptions, setMapViewOptions] = useState<MapViewOptions>({
     showVehicleTraces: false,
     showVehicles: true,
@@ -67,6 +68,8 @@ function App() {
             setViewDimension={setViewDimension}
             showTransitNetwork={showTransitNetwork}
             setShowTransitNetwork={setShowTransitNetwork}
+            showAerial={showAerial}
+            setShowAerial={setShowAerial}
             data={data}
             setCurrentFilter={setCurrentFilter}
             currentFilter={currentFilter}

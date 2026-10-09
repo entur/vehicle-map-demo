@@ -1,4 +1,7 @@
-import type { SkySpecification } from "@maplibre/maplibre-gl-style-spec";
+import type {
+  ExpressionSpecification,
+  SkySpecification,
+} from "@maplibre/maplibre-gl-style-spec";
 import { EDGE_INK, EDGE_WHITE } from "./dataColours.ts";
 import {
   BASE_MAP_SNAPSHOTS,
@@ -150,6 +153,21 @@ export function transitNetworkPaint(
     [FERRY_LABEL_LAYER, "text-halo-color", t.textHalo],
   ];
 }
+
+/**
+ * `buildings-3d-layer`'s colour: a building's roof colour sampled from the
+ * aerial photo when AerialBuildingColours has set one, the scheme's otherwise.
+ */
+export function buildingColour(scheme: MapScheme): ExpressionSpecification {
+  return [
+    "coalesce",
+    ["feature-state", ROOF_COLOUR_STATE],
+    SCHEME_PAINT[scheme].buildings,
+  ];
+}
+
+/** Feature-state key AerialBuildingColours writes on the building source layer. */
+export const ROOF_COLOUR_STATE = "roofColour";
 
 /** MUI's resolved colour scheme (undefined before it resolves) as a base map. */
 export function mapSchemeFor(colorScheme: string | undefined): MapScheme {

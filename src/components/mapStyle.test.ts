@@ -11,6 +11,7 @@ import {
 import {
   SCHEME_PAINT,
   baseLayerVisibility,
+  buildingColour,
   transitNetworkPaint,
 } from "../domain/baseMapScheme.ts";
 import { BASE_LAYERS } from "../domain/viewDimension.ts";
@@ -69,7 +70,7 @@ describe("buildMapStyle", () => {
       }
       expect(
         layer(style, "buildings-3d-layer").paint?.["fill-extrusion-color"],
-      ).toBe(SCHEME_PAINT[scheme].buildings);
+      ).toEqual(buildingColour(scheme));
       expect(
         layer(style, "hillshade-layer").paint?.["hillshade-shadow-color"],
       ).toBe(SCHEME_PAINT[scheme].hillshadeShadow);
