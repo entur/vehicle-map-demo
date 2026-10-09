@@ -16,6 +16,7 @@ import {
   UNTINTED,
 } from "./vehicleModelLayers.ts";
 import { signTexture } from "./signTexture.ts";
+import { JOURNEY_STOP_PASSED_OPACITY } from "../mapStyle.ts";
 
 /**
  * How much larger than life a stop is drawn. At true scale (`STOP_POLE`) a
@@ -23,9 +24,6 @@ import { signTexture } from "./signTexture.ts";
  * long; three times over, the board is about a bus's height.
  */
 export const STOP_POLE_EXAGGERATION = 3;
-
-/** Faded as the 2D dot of a call already made is. */
-const PASSED_OPACITY = 0.55;
 
 /** The board's colour: the route's, or the cancellation colour, as the 2D dot. */
 const boardColour = (pole: StopPole) =>
@@ -95,7 +93,7 @@ export function stopPoleLayers(
     {
       id: "passed",
       list: poles.filter((pole) => pole.passed),
-      fade: PASSED_OPACITY,
+      fade: JOURNEY_STOP_PASSED_OPACITY,
     },
   ].filter(({ list }) => list.length > 0);
 
@@ -125,10 +123,10 @@ export function stopPoleLayers(
         new SimpleMeshLayer<StopPole>({
           ...shared,
           // By call, not stop: a stop visited twice is two poles.
-          id: `journey-stop-name-${pole.order}-${pole.stopId}`,
+          id: `journey-stop-name-${pole.key}`,
           data: [pole],
           mesh: sign,
-          opacity: opacity * (pole.passed ? PASSED_OPACITY : 1),
+          opacity: opacity * (pole.passed ? JOURNEY_STOP_PASSED_OPACITY : 1),
           texture: signTexture(pole.name, nameColour(pole), boardColour(pole)),
           getColor: UNTINTED,
           material: materials.signs,

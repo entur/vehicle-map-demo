@@ -21,11 +21,11 @@ import {
   normaliseBearing,
 } from "../../domain/vehicleFootprint.ts";
 import { LIGHT_POOL_REACH } from "../../domain/lightPool.ts";
-import { StopPole } from "../../domain/journeyStops.ts";
+import { StopPole, polesInView } from "../../domain/journeyStops.ts";
+import type { MapSourceDataEvent } from "maplibre-gl";
 import { stopPoleLayers } from "./stopPoleLayers.ts";
 
-/** How often, in 3D, the stops' heights are looked up again. */
-const STOP_GROUND_RECHECK_MS = 1000;
+const NO_VEHICLES: VehicleUpdate[] = [];
 
 const LEVEL: VehicleGround = {
   elevation: 0,
@@ -88,11 +88,6 @@ export function VehicleModels({
   const chasedLayers = useRef<Layer[]>([]);
   const ghostLayers = useRef<Layer[]>([]);
   const stopLayers = useRef<Layer[]>([]);
-  // Read by the chase and ghost publishers, which run outside React.
-  const showVehiclesRef = useRef(showVehicles);
-  useEffect(() => {
-    showVehiclesRef.current = showVehicles;
-  }, [showVehicles]);
   const options = useRef<Omit<ModelLayerOptions, "idPrefix"> | null>(null);
 
   // Every handover of layers goes through here, so that deck.gl can add its
@@ -149,18 +144,22 @@ export function VehicleModels({
   // already, but straight after a jump from the whole country to one street
   // it is still the country until the next frame: over a thousand layers,
   // which froze the page for seconds.
+  // With the Vehicles switch off it is the same empty list on every frame, so
+  // the effect that builds the models does not run again for each one.
   const unchased = useMemo(
     () =>
-      chasing
-        ? data.filter(
-            (vehicle) =>
-              vehicle.vehicleId + "_" + vehicle.serviceJourney.id !==
-              chasedVehicleKey,
-          )
-        : viewBounds
-          ? vehiclesInView(data, viewBounds)
-          : data,
-    [data, chasing, chasedVehicleKey, viewBounds],
+      !showVehicles
+        ? NO_VEHICLES
+        : chasing
+          ? data.filter(
+              (vehicle) =>
+                vehicle.vehicleId + "_" + vehicle.serviceJourney.id !==
+                chasedVehicleKey,
+            )
+          : viewBounds
+            ? vehiclesInView(data, viewBounds)
+            : data,
+    [showVehicles, data, chasing, chasedVehicleKey, viewBounds],
   );
 
   // The ground under each vehicle report — its height and slope. The vehicle
@@ -208,38 +207,40 @@ export function VehicleModels({
       getTilt: getGround,
       positionTrigger: viewDimension,
     };
-    baseLayers.current = vehicleModelLayers(showVehicles ? unchased : [], {
+    baseLayers.current = vehicleModelLayers(unchased, {
       ...options.current,
       idPrefix: "vehicle-models",
     });
     handOver();
-  }, [
-    handOver,
-    mapRef,
-    showVehicles,
-    unchased,
-    opacity,
-    scheme,
-    viewDimension,
-    grounds,
-  ]);
+  }, [handOver, mapRef, unchased, opacity, scheme, viewDimension, grounds]);
 
   useEffect(() => {
     const map = mapRef?.getMap();
     if (!map) return;
     let shown: string | null = null;
     const build = () => {
+      // Only the stops in view: each name board is a layer and a texture.
+      const bounds = map.getBounds();
+      const inView =
+        opacity > 0
+          ? polesInView(stopPoles, [
+              [bounds.getWest(), bounds.getSouth()],
+              [bounds.getEast(), bounds.getNorth()],
+            ])
+          : [];
       // Upright on the terrain's height at the stop, or at sea level in 2D.
-      const elevations = stopPoles.map(
+      const elevations = inView.map(
         (pole) => map.queryTerrainElevation(pole.position) ?? 0,
       );
-      const key = elevations.join(",");
+      const key = inView
+        .map((pole, i) => `${pole.key}@${elevations[i]}`)
+        .join(",");
       if (key === shown) return;
       shown = key;
       const elevationOf = new Map(
-        stopPoles.map((pole, i) => [pole, elevations[i]]),
+        inView.map((pole, i) => [pole, elevations[i]]),
       );
-      stopLayers.current = stopPoleLayers(stopPoles, {
+      stopLayers.current = stopPoleLayers(inView, {
         visible: opacity > 0,
         opacity,
         scheme,
@@ -249,17 +250,25 @@ export function VehicleModels({
       handOver();
     };
     build();
-    // Vehicles are placed again on every frame; nothing rebuilds the stops
-    // while the journey stays selected. Terrain arrives after this effect
-    // when 3D is switched on, and MapLibre answers 0, not nothing, for a tile
-    // still loading, so the heights are looked up again until they settle
-    // — and whenever the camera brings new tiles in.
-    const recheck =
-      viewDimension === "3d" && opacity > 0 && stopPoles.length > 0
-        ? window.setInterval(build, STOP_GROUND_RECHECK_MS)
-        : undefined;
-    return () => window.clearInterval(recheck);
-  }, [handOver, mapRef, stopPoles, opacity, scheme, viewDimension]);
+    if (opacity === 0 || stopPoles.length === 0) return;
+
+    // Vehicles are placed again on every frame; the stops only when something
+    // could have moved them: the camera (other stops in view, other terrain
+    // under them), terrain coming or going — it is set after this effect when
+    // 3D is chosen — and a terrain tile loading, since MapLibre answers 0, not
+    // nothing, for a tile still loading. Nothing runs while nothing changes.
+    const onSourceData = (event: MapSourceDataEvent) => {
+      if (event.tile && event.sourceId === map.getTerrain()?.source) build();
+    };
+    map.on("moveend", build);
+    map.on("terrain", build);
+    map.on("sourcedata", onSourceData);
+    return () => {
+      map.off("moveend", build);
+      map.off("terrain", build);
+      map.off("sourcedata", onSourceData);
+    };
+  }, [handOver, mapRef, stopPoles, opacity, scheme]);
 
   useEffect(() => {
     const publish = () => {
@@ -269,11 +278,7 @@ export function VehicleModels({
       const position = vehicle && options.current?.getPosition(vehicle);
       const tilt = vehicle && options.current?.getTilt(vehicle);
       chasedLayers.current =
-        vehicle &&
-        options.current &&
-        position &&
-        tilt &&
-        showVehiclesRef.current
+        vehicle && options.current && position && tilt && showVehicles
           ? vehicleModelLayers([vehicle], {
               ...options.current,
               idPrefix: "vehicle-models-chased",
@@ -291,7 +296,7 @@ export function VehicleModels({
       unsubscribe();
       chasedLayers.current = [];
     };
-  }, [handOver, chasedVehicleStore]);
+  }, [handOver, chasedVehicleStore, showVehicles]);
 
   useEffect(() => {
     const publish = () => {
@@ -301,7 +306,7 @@ export function VehicleModels({
       const position = ghost && options.current?.getPosition(ghost);
       const tilt = ghost && options.current?.getTilt(ghost);
       ghostLayers.current =
-        ghost && options.current && position && tilt && showVehiclesRef.current
+        ghost && options.current && position && tilt && showVehicles
           ? vehicleModelLayers([ghost], {
               ...options.current,
               idPrefix: "vehicle-models-ghost",
@@ -319,7 +324,7 @@ export function VehicleModels({
       unsubscribe();
       ghostLayers.current = [];
     };
-  }, [handOver, ghostStore]);
+  }, [handOver, ghostStore, showVehicles]);
 
   return null;
 }

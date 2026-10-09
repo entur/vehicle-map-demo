@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   JourneyStopCall,
   journeyStopFeatures,
+  polesInView,
   routeBearingAt,
+  routeBearings,
+  sameStopPoles,
   stopPoles,
 } from "./journeyStops.ts";
 
@@ -120,15 +123,17 @@ describe("routeBearingAt", () => {
 });
 
 describe("stopPoles", () => {
+  const route = [
+    [10.7, 59.9],
+    [10.72, 59.9],
+  ];
+
   it("places a pole at each stop, facing along the route", () => {
     const stops = journeyStopFeatures([
       call(1, "A", 10.705, 59.9),
       call(2, "B", 10.715, 59.9, { callType: "RECORDED" }),
     ]);
-    const poles = stopPoles(stops, [
-      [10.7, 59.9],
-      [10.72, 59.9],
-    ]);
+    const poles = stopPoles(stops, routeBearings(route));
 
     expect(poles).toHaveLength(2);
     expect(poles[0]).toMatchObject({ name: "A", position: [10.705, 59.9] });
@@ -139,8 +144,81 @@ describe("stopPoles", () => {
   it("faces north with no route", () => {
     const poles = stopPoles(
       journeyStopFeatures([call(1, "A", 10.7, 59.9)]),
-      null,
+      routeBearings(null),
     );
     expect(poles[0].bearing).toBe(0);
+  });
+
+  it("keys two calls apart even when the feed numbers them alike", () => {
+    const poles = stopPoles(
+      journeyStopFeatures([call(1, "A", 10.7, 59.9), call(1, "A", 10.7, 59.9)]),
+      routeBearings(null),
+    );
+    expect(new Set(poles.map((pole) => pole.key)).size).toBe(2);
+  });
+});
+
+describe("routeBearings", () => {
+  it("scans the route once per stop position", () => {
+    let reads = 0;
+    const route = new Proxy(
+      [
+        [10.7, 59.9],
+        [10.72, 59.9],
+      ],
+      {
+        get(target, property, receiver) {
+          if (property === "length") reads++;
+          return Reflect.get(target, property, receiver);
+        },
+      },
+    );
+    const bearingAt = routeBearings(route);
+    bearingAt([10.71, 59.9]);
+    const afterFirst = reads;
+    expect(bearingAt([10.71, 59.9])).toBeCloseTo(90, 5);
+    expect(reads).toBe(afterFirst);
+  });
+});
+
+describe("sameStopPoles", () => {
+  const poles = () =>
+    stopPoles(
+      journeyStopFeatures([
+        call(1, "A", 10.7, 59.9),
+        call(2, "B", 10.71, 59.9),
+      ]),
+      routeBearings(null),
+    );
+
+  it("holds for a new frame that changes nothing a pole shows", () => {
+    expect(sameStopPoles(poles(), poles())).toBe(true);
+  });
+
+  it("fails when a call is recorded, cancelled or added", () => {
+    const passed = poles();
+    passed[0] = { ...passed[0], passed: true };
+    const cancelled = poles();
+    cancelled[1] = { ...cancelled[1], cancelled: true };
+    expect(sameStopPoles(poles(), passed)).toBe(false);
+    expect(sameStopPoles(poles(), cancelled)).toBe(false);
+    expect(sameStopPoles(poles(), poles().slice(1))).toBe(false);
+  });
+});
+
+describe("polesInView", () => {
+  it("keeps the poles in the view and drops the rest", () => {
+    const poles = stopPoles(
+      journeyStopFeatures([
+        call(1, "In", 10.75, 59.91),
+        call(2, "Far", 11.5, 60.5),
+      ]),
+      routeBearings(null),
+    );
+    const inView = polesInView(poles, [
+      [10.74, 59.9],
+      [10.76, 59.92],
+    ]);
+    expect(inView.map((pole) => pole.name)).toEqual(["In"]);
   });
 });

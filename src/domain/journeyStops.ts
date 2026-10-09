@@ -1,6 +1,7 @@
 import type { FeatureCollection, Point } from "geojson";
 import { Call } from "../types.ts";
 import { METRES_PER_DEGREE_LAT } from "./vehicleFootprint.ts";
+import { ViewBounds, vehiclesInView } from "./vehiclesInView.ts";
 
 /** What the stop markers read from a call. */
 export type JourneyStopCall = Pick<
@@ -93,6 +94,11 @@ export function routeBearingAt(
 
 /** A stop of the selected journey as its 3D pole draws it. */
 export type StopPole = JourneyStopProperties & {
+  /**
+   * Unique within the journey: the call's place in the timetable as well as
+   * its order and stop, so two calls the feed numbers alike stay apart.
+   */
+  key: string;
   position: [number, number];
   /**
    * The route's bearing at the stop, which the board's faces look along.
@@ -102,20 +108,79 @@ export type StopPole = JourneyStopProperties & {
   bearing: number;
 };
 
-/** The poles for `stops`, each turned to face along `route`. */
+/**
+ * The route's bearing at a stop, remembered per position: the timetable
+ * delivers a new frame every few seconds, and each one would otherwise scan
+ * the whole route again for every stop, though neither has moved.
+ */
+export function routeBearings(
+  route: number[][] | null,
+): (position: [number, number]) => number {
+  const known = new Map<string, number>();
+  return (position) => {
+    const id = position.join(",");
+    let bearing = known.get(id);
+    if (bearing === undefined) {
+      bearing = routeBearingAt(route, position) ?? 0;
+      known.set(id, bearing);
+    }
+    return bearing;
+  };
+}
+
+/** The poles for `stops`, each turned to `bearingAt` its position. */
 export function stopPoles(
   stops: FeatureCollection<Point, JourneyStopProperties>,
-  route: number[][] | null,
+  bearingAt: (position: [number, number]) => number,
 ): StopPole[] {
-  return stops.features.map(({ geometry, properties }) => {
+  return stops.features.map(({ geometry, properties }, index) => {
     const position: [number, number] = [
       geometry.coordinates[0],
       geometry.coordinates[1],
     ];
     return {
       ...properties,
+      key: `${index}-${properties.order}-${properties.stopId}`,
       position,
-      bearing: routeBearingAt(route, position) ?? 0,
+      bearing: bearingAt(position),
     };
   });
+}
+
+/**
+ * Whether two lists of poles draw the same. Most timetable frames change
+ * nothing a pole shows; keeping the old list then keeps every layer built
+ * from it.
+ */
+export function sameStopPoles(a: StopPole[], b: StopPole[]): boolean {
+  return (
+    a.length === b.length &&
+    a.every((pole, i) => {
+      const other = b[i];
+      return (
+        pole.key === other.key &&
+        pole.name === other.name &&
+        pole.passed === other.passed &&
+        pole.cancelled === other.cancelled &&
+        pole.bearing === other.bearing &&
+        pole.position[0] === other.position[0] &&
+        pole.position[1] === other.position[1]
+      );
+    })
+  );
+}
+
+/**
+ * The poles in or near the view, as `vehiclesInView` widens it. A long
+ * journey has dozens of stops and each name board is a layer and a texture,
+ * shared with the vehicles' destination signs in one cache.
+ */
+export function polesInView(poles: StopPole[], bounds: ViewBounds): StopPole[] {
+  return vehiclesInView(
+    poles.map((pole) => ({
+      pole,
+      location: { longitude: pole.position[0], latitude: pole.position[1] },
+    })),
+    bounds,
+  ).map(({ pole }) => pole);
 }

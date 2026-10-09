@@ -42,10 +42,11 @@ describe("mostLegibleOn", () => {
     expect(contrastRatio(text, ROUTE)).toBeGreaterThanOrEqual(4.5);
   });
 
-  it("writes on the cancellation colour in whichever reads better", () => {
+  // Neither ink nor white reaches 4.5:1 on the cancellation colour (about
+  // 3.9:1 either way); the board's bold name must still clear WCAG's 3:1 for
+  // large text, or a change to the colour has made cancelled boards unread.
+  it("writes on the cancellation colour legibly as large text", () => {
     const text = mostLegibleOn(SEVERITY_SEVERE, [EDGE_INK, EDGE_WHITE]);
-    expect(contrastRatio(text, SEVERITY_SEVERE)).toBeGreaterThanOrEqual(
-      contrastRatio(EDGE_INK, SEVERITY_SEVERE),
-    );
+    expect(contrastRatio(text, SEVERITY_SEVERE)).toBeGreaterThanOrEqual(3);
   });
 });

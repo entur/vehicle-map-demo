@@ -124,10 +124,11 @@ const JOURNEY_STOP_EDGE = 1.5;
  * at every zoom: from `VEHICLE_MODEL_MIN_ZOOM` they mark the quay at the foot
  * of each 3D stop pole (`stopPoleLayers`), which deck.gl draws over them.
  */
+export const JOURNEY_STOP_PASSED_OPACITY = 0.55;
 const JOURNEY_STOP_OPACITY: ExpressionSpecification = [
   "case",
   ["get", "passed"],
-  0.55,
+  JOURNEY_STOP_PASSED_OPACITY,
   1,
 ];
 

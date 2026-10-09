@@ -1,15 +1,15 @@
 import { useEffect } from "react";
 import { useMap } from "react-map-gl/maplibre";
 import { GeoJSONSource } from "maplibre-gl";
-import type { FeatureCollection } from "geojson";
-import { Call, RoutePolyline } from "../types.ts";
-import { journeyStopFeatures } from "../domain/journeyStops.ts";
+import type { FeatureCollection, Point } from "geojson";
+import { RoutePolyline } from "../types.ts";
+import { JourneyStopProperties } from "../domain/journeyStops.ts";
 
 type RouteLayerProps = {
   /** The selected journey's route, fetched in `MapView` for the schedule ghost too. */
   route: RoutePolyline | null;
-  /** The selected journey's calls, from its timetable; their stops are marked on the route. */
-  calls: Call[] | null;
+  /** The selected journey's stops, from its timetable (`journeyStopFeatures`). */
+  stops: FeatureCollection<Point, JourneyStopProperties>;
   cancelled: boolean;
 };
 
@@ -18,7 +18,7 @@ const EMPTY_FEATURE_COLLECTION: FeatureCollection = {
   features: [],
 };
 
-export function RouteLayer({ route, calls, cancelled }: RouteLayerProps) {
+export function RouteLayer({ route, stops, cancelled }: RouteLayerProps) {
   const { current: mapRef } = useMap();
 
   useEffect(() => {
@@ -57,11 +57,11 @@ export function RouteLayer({ route, calls, cancelled }: RouteLayerProps) {
       GeoJSONSource | undefined;
     if (!source) return;
 
-    source.setData(journeyStopFeatures(calls));
+    source.setData(stops);
     return () => {
       source.setData(EMPTY_FEATURE_COLLECTION);
     };
-  }, [calls, mapRef]);
+  }, [stops, mapRef]);
 
   useEffect(() => {
     if (!mapRef) return;
