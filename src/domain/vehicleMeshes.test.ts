@@ -6,8 +6,10 @@ import {
   SIGN_TEXTURE_ASPECT,
   VehicleMesh,
   VehicleModel,
+  STOP_POLE,
   bodyColourFor,
   modelFor,
+  stopPoleModel,
   unknownHeadingMeshUnit,
 } from "./vehicleMeshes.ts";
 
@@ -64,6 +66,37 @@ function verticesColoured(mesh: VehicleMesh, colour: readonly number[]) {
   return vertices(mesh).filter((_, i) =>
     [0, 1, 2].every((k) => Math.abs(c[i * 3 + k] - colour[k]) < 1e-6),
   );
+}
+
+type Face = { normal: Vec3; du: Vec3; dv: Vec3 };
+type Vec3 = [number, number, number];
+
+/** Per sign triangle: its normal and how u and v change per metre. */
+function faces(mesh: VehicleModel["sign"]): Face[] {
+  const p = vertices(mesh);
+  const n = mesh.normals.value;
+  const t = mesh.texCoords.value;
+  const out: Face[] = [];
+  for (let i = 0; i < p.length; i += 3) {
+    const e1 = p[i + 1].map((c, k) => c - p[i][k]) as Vec3;
+    const e2 = p[i + 2].map((c, k) => c - p[i][k]) as Vec3;
+    const dot = (a: Vec3, b: Vec3) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+    const [a, b, c] = [dot(e1, e1), dot(e1, e2), dot(e2, e2)];
+    const det = a * c - b * b;
+    // The in-plane gradient of a value given at the three vertices.
+    const gradient = (value: (j: number) => number): Vec3 => {
+      const [d1, d2] = [value(i + 1) - value(i), value(i + 2) - value(i)];
+      const alpha = (c * d1 - b * d2) / det;
+      const beta = (a * d2 - b * d1) / det;
+      return [0, 1, 2].map((k) => alpha * e1[k] + beta * e2[k]) as Vec3;
+    };
+    out.push({
+      normal: [n[i * 3], n[i * 3 + 1], n[i * 3 + 2]],
+      du: gradient((j) => t[j * 2]),
+      dv: gradient((j) => t[j * 2 + 1]),
+    });
+  }
+  return out;
 }
 
 describe("modelFor", () => {
@@ -209,38 +242,6 @@ describe("modelFor", () => {
   // runs to the viewer's right and down the face, and the texture keeps its
   // proportions whatever the shape of the face it is on.
   describe("sign texture coordinates", () => {
-    type Face = { normal: Vec3; du: Vec3; dv: Vec3 };
-    type Vec3 = [number, number, number];
-
-    /** Per sign triangle: its normal and how u and v change per metre. */
-    function faces(mesh: VehicleModel["sign"]): Face[] {
-      const p = vertices(mesh);
-      const n = mesh.normals.value;
-      const t = mesh.texCoords.value;
-      const out: Face[] = [];
-      for (let i = 0; i < p.length; i += 3) {
-        const e1 = p[i + 1].map((c, k) => c - p[i][k]) as Vec3;
-        const e2 = p[i + 2].map((c, k) => c - p[i][k]) as Vec3;
-        const dot = (a: Vec3, b: Vec3) =>
-          a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-        const [a, b, c] = [dot(e1, e1), dot(e1, e2), dot(e2, e2)];
-        const det = a * c - b * b;
-        // The in-plane gradient of a value given at the three vertices.
-        const gradient = (value: (j: number) => number): Vec3 => {
-          const [d1, d2] = [value(i + 1) - value(i), value(i + 2) - value(i)];
-          const alpha = (c * d1 - b * d2) / det;
-          const beta = (a * d2 - b * d1) / det;
-          return [0, 1, 2].map((k) => alpha * e1[k] + beta * e2[k]) as Vec3;
-        };
-        out.push({
-          normal: [n[i * 3], n[i * 3 + 1], n[i * 3 + 2]],
-          du: gradient((j) => t[j * 2]),
-          dv: gradient((j) => t[j * 2 + 1]),
-        });
-      }
-      return out;
-    }
-
     // Right as seen by someone facing each way the signs face.
     const directions: [string, Vec3, Vec3][] = [
       ["front", [0, 1, 0], [-1, 0, 0]],
@@ -311,6 +312,56 @@ describe("unknownHeadingMeshUnit", () => {
     expect(y.max).toBeCloseTo(-y.min, 5);
     expect(x.max).toBeCloseTo(-x.min, 5);
     expect(y.max).toBeLessThanOrEqual(1);
+  });
+});
+
+describe("stopPoleModel", () => {
+  const model = stopPoleModel();
+
+  it("stands a pole on the stop's position, with the name board on top", () => {
+    const pole = extent(model.details);
+    expect(pole.z.min).toBeCloseTo(0, 5);
+    expect(Math.abs(pole.x.min)).toBeLessThan(0.1);
+    expect(Math.abs(pole.y.min)).toBeLessThan(0.1);
+
+    const board = extent(whole({ ...model, details: model.body }));
+    expect(board.z.max).toBeCloseTo(STOP_POLE.height, 5);
+    expect(board.x.max - board.x.min).toBeCloseTo(STOP_POLE.boardWidth, 5);
+    expect(pole.z.max).toBeLessThanOrEqual(STOP_POLE.height);
+  });
+
+  it("has no lamps", () => {
+    expect(model.lamps.positions.value).toHaveLength(0);
+  });
+
+  // The board faces along the route, so it is read by someone travelling it
+  // in either direction — including the chase camera, behind the vehicle.
+  for (const [name, outward, right] of [
+    ["oncoming side", [0, -1, 0], [1, 0, 0]],
+    ["far side", [0, 1, 0], [-1, 0, 0]],
+  ] as [string, Vec3, Vec3][]) {
+    it(`reads left to right and top to bottom from the ${name}`, () => {
+      const facing = faces(model.sign).filter(
+        ({ normal }) =>
+          normal[0] * outward[0] +
+            normal[1] * outward[1] +
+            normal[2] * outward[2] >
+          0.7,
+      );
+      expect(facing.length).toBeGreaterThan(0);
+      for (const { du, dv } of facing) {
+        expect(du[0] * right[0] + du[1] * right[1]).toBeGreaterThan(0);
+        expect(dv[2]).toBeLessThan(0);
+        expect(Math.hypot(...dv) / Math.hypot(...du)).toBeCloseTo(
+          SIGN_TEXTURE_ASPECT,
+          3,
+        );
+      }
+    });
+  }
+
+  it("is built once", () => {
+    expect(stopPoleModel()).toBe(stopPoleModel());
   });
 });
 

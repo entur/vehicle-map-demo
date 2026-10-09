@@ -20,7 +20,7 @@ import type { MapScheme } from "../basemap/basemap.ts";
 export const MODEL_BEFORE_LAYER = "vehicle-layer";
 
 /** Untinted: deck.gl multiplies this into the vertex colours, and its default is black. */
-const UNTINTED: [number, number, number] = [255, 255, 255];
+export const UNTINTED: [number, number, number] = [255, 255, 255];
 
 /** How much less light the shaded parts of a model take in dark mode. */
 export const DARK_SHADING = 0.7;

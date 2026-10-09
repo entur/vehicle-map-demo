@@ -96,6 +96,56 @@ export const VEHICLE_LABEL_MIN_ZOOM = 13;
  */
 export const VEHICLE_DOT_MAX_ZOOM = 10;
 
+/**
+ * Zoom from which the selected journey's stops are named. Further out a
+ * journey's names overlap each other and the base map's place names.
+ */
+const JOURNEY_STOP_LABEL_MIN_ZOOM = 12;
+
+/**
+ * The journey stops' size as `[zoom, px]` stops. The white edge's radius is
+ * derived from both, so the ring stays one width at every zoom.
+ */
+const JOURNEY_STOP_RADIUS: [number, number][] = [
+  [8, 3.5],
+  [13, 6],
+  [17, 9],
+];
+const JOURNEY_STOP_STROKE: [number, number][] = [
+  [8, 1.5],
+  [13, 2],
+  [17, 2],
+];
+/** The white outer ring's width beyond the ink stroke. */
+const JOURNEY_STOP_EDGE = 1.5;
+
+/** Calls already made are faded, as the timetable fades them. */
+const JOURNEY_STOP_OPACITY: ExpressionSpecification = [
+  "case",
+  ["get", "passed"],
+  0.55,
+  1,
+];
+
+/**
+ * The stop dots' opacity: faded once passed, and cross-fading into the 3D
+ * poles (`stopPoleLayers`) over the same half level as the vehicle icons into
+ * their models. The names stay: the board's text is legible only close up.
+ */
+const JOURNEY_STOP_DOT_OPACITY: ExpressionSpecification = [
+  "interpolate",
+  ["linear"],
+  ["zoom"],
+  VEHICLE_MODEL_MIN_ZOOM,
+  JOURNEY_STOP_OPACITY,
+  VEHICLE_MODEL_MIN_ZOOM + 0.5,
+  0,
+];
+
+function zoomInterpolation(stops: [number, number][]): ExpressionSpecification {
+  return ["interpolate", ["linear"], ["zoom"], ...stops.flat()];
+}
+
 /** `vehicle-layer`'s icon-size, shared so the arrow stays at the circle's edge. */
 const VEHICLE_ICON_SIZE_EXPRESSION: ExpressionSpecification = [
   "interpolate",
@@ -374,6 +424,11 @@ export function buildMapStyle(scheme: MapScheme): StyleSpecification {
         type: "geojson",
         data: { type: "FeatureCollection", features: [] },
       },
+      // The stops the selected journey calls at. Written by RouteLayer.
+      serviceJourneyStops: {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] },
+      },
       // The selected vehicle's schedule ghost and the link from it to the
       // vehicle. Written by ScheduleGhost.
       scheduleGhost: {
@@ -481,6 +536,79 @@ export function buildMapStyle(scheme: MapScheme): StyleSpecification {
           "line-color": ROUTE,
           "line-width": 4,
           "line-opacity": 1,
+        },
+      },
+      // The selected journey's stops, drawn as the route is: ROUTE inside an
+      // ink ring, inside a white one (the edge layer below), so they read as
+      // part of the route on either base map rather than as the transit
+      // network's neutral stops. Calls already made are faded, as in the
+      // timetable; a cancelled call is filled in the cancellation colour the
+      // timetable strikes its name through with.
+      {
+        id: "service-journey-stops-edge-layer",
+        type: "circle",
+        source: "serviceJourneyStops",
+        paint: {
+          "circle-radius": zoomInterpolation(
+            JOURNEY_STOP_RADIUS.map(([zoom, radius], i) => [
+              zoom,
+              radius + JOURNEY_STOP_STROKE[i][1] + JOURNEY_STOP_EDGE,
+            ]),
+          ),
+          "circle-color": EDGE_WHITE,
+          "circle-opacity": JOURNEY_STOP_DOT_OPACITY,
+          "circle-pitch-alignment": "map",
+        },
+      },
+      {
+        id: "service-journey-stops-layer",
+        type: "circle",
+        source: "serviceJourneyStops",
+        paint: {
+          "circle-radius": zoomInterpolation(JOURNEY_STOP_RADIUS),
+          "circle-color": [
+            "case",
+            ["get", "cancelled"],
+            SEVERITY_SEVERE,
+            ROUTE,
+          ],
+          "circle-stroke-color": EDGE_INK,
+          "circle-stroke-width": zoomInterpolation(JOURNEY_STOP_STROKE),
+          "circle-opacity": JOURNEY_STOP_DOT_OPACITY,
+          "circle-stroke-opacity": JOURNEY_STOP_DOT_OPACITY,
+          "circle-pitch-alignment": "map",
+        },
+      },
+      {
+        id: "service-journey-stop-labels-layer",
+        type: "symbol",
+        source: "serviceJourneyStops",
+        minzoom: JOURNEY_STOP_LABEL_MIN_ZOOM,
+        layout: {
+          "text-field": ["get", "name"],
+          "text-font": APP_TEXT_FONT,
+          "text-size": 12,
+          "text-anchor": "left",
+          // Clear of the dot's white edge, which grows with the zoom.
+          "text-offset": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            12,
+            ["literal", [1.05, 0]],
+            17,
+            ["literal", [1.35, 0]],
+          ],
+          "text-max-width": 10,
+          // Earlier calls win a collision, so a stop visited twice is named
+          // once and the names along the route are placed in order.
+          "symbol-sort-key": ["get", "order"],
+        },
+        paint: {
+          "text-color": paint.journeyStopText,
+          "text-halo-color": paint.journeyStopTextHalo,
+          "text-halo-width": 1.5,
+          "text-opacity": JOURNEY_STOP_OPACITY,
         },
       },
       // Halo layers sit under the ordinary situation layers and are filtered to

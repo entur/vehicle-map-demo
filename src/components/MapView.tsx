@@ -38,6 +38,7 @@ import { SelectedVehicleHalo } from "./Vehicle/SelectedVehicleHalo.tsx";
 import { useTimetableSubscription } from "../hooks/useTimetableSubscription.ts";
 import { useServiceJourneyRoute } from "../hooks/useServiceJourneyRoute.ts";
 import { buildSchedule } from "../domain/scheduleGhost.ts";
+import { journeyStopFeatures, stopPoles } from "../domain/journeyStops.ts";
 import { KioskActions, useKiosk } from "../hooks/useKiosk.ts";
 import { useKioskSession } from "../hooks/useKioskSession.ts";
 import {
@@ -265,6 +266,15 @@ export function MapView({
     selectedVehicle?.properties.date ?? null,
   );
   const route = useServiceJourneyRoute(selectedJourneyId);
+  // The journey's stops as 3D poles, drawn with the vehicle models.
+  const journeyStopPoles = useMemo(
+    () =>
+      stopPoles(
+        journeyStopFeatures(timetable?.calls ?? null),
+        route?.coordinates ?? null,
+      ),
+    [timetable, route],
+  );
   const ghostSchedule = useMemo(
     () =>
       showScheduleGhost
@@ -538,15 +548,15 @@ export function MapView({
               }
               hiddenVehicleKey={chasedVehicleKey}
             />
-            {mapViewOptions.showVehicles && (
-              <VehicleModels
-                data={vehicleUpdates}
-                viewDimension={viewDimension}
-                chasedVehicleKey={chasedVehicleKey}
-                chasedVehicleStore={chasedVehicleStore}
-                ghostStore={ghostStore}
-              />
-            )}
+            <VehicleModels
+              showVehicles={mapViewOptions.showVehicles}
+              data={vehicleUpdates}
+              viewDimension={viewDimension}
+              chasedVehicleKey={chasedVehicleKey}
+              chasedVehicleStore={chasedVehicleStore}
+              ghostStore={ghostStore}
+              stopPoles={journeyStopPoles}
+            />
             {chasedVehicle && (
               <ChaseCamera
                 key={chasedVehicleKey}
@@ -564,6 +574,7 @@ export function MapView({
             {mapViewOptions.showVehicleTraces && <VehicleTraces data={data} />}
             <RouteLayer
               route={route}
+              calls={timetable?.calls ?? null}
               cancelled={timetable?.cancellation === true}
             />
             <SelectedVehicleHalo

@@ -4,8 +4,8 @@ type RGB = [number, number, number];
 
 const HEIGHT = 96;
 const WIDTH = HEIGHT * SIGN_TEXTURE_ASPECT;
-/** The unlit display behind the text. */
-const BACKGROUND = "#141414";
+/** The unlit display behind a destination. */
+const DISPLAY = "#141414";
 /** Clear background at each end and above and below, which the mesh's out-of-range texture coordinates clamp to. */
 const MARGIN_X = 16;
 const FONT_SIZE = 60;
@@ -18,13 +18,18 @@ const MAX_CACHED = 256;
 const cache = new Map<string, HTMLCanvasElement>();
 
 /**
- * A destination sign's texture: the text lit in `colour` on a dark display,
- * condensed and then set smaller as it gets long, with a blank margin all
- * round. Cached by text and colour, so a layer keeps the same canvas from
- * frame to frame and deck.gl does not upload it again.
+ * A sign's texture: the text in `colour` on `background` — for a destination
+ * sign, lit on a dark display — condensed and then set smaller as it gets
+ * long, with a blank margin all round. Cached by text and colours, so a layer
+ * keeps the same canvas from frame to frame and deck.gl does not upload it
+ * again.
  */
-export function signTexture(text: string, colour: RGB): HTMLCanvasElement {
-  const key = `${colour.join(",")}|${text}`;
+export function signTexture(
+  text: string,
+  colour: RGB,
+  background: string = DISPLAY,
+): HTMLCanvasElement {
+  const key = `${colour.join(",")}|${background}|${text}`;
   const cached = cache.get(key);
   if (cached) {
     // Refresh its place, so the oldest-used is what gets dropped.
@@ -38,7 +43,7 @@ export function signTexture(text: string, colour: RGB): HTMLCanvasElement {
   canvas.height = HEIGHT;
   const ctx = canvas.getContext("2d");
   if (ctx) {
-    ctx.fillStyle = BACKGROUND;
+    ctx.fillStyle = background;
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
     if (text) {
       ctx.font = `bold ${FONT_SIZE}px ${FONT_FAMILY}`;

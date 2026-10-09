@@ -73,6 +73,8 @@ describe("SCHEME_PAINT", () => {
         textHalo: "#ffffff",
       },
       vehicleDotEdge: "#ffffff",
+      journeyStopText: "#1f2430",
+      journeyStopTextHalo: "#ffffff",
     });
   });
 
@@ -82,6 +84,10 @@ describe("SCHEME_PAINT", () => {
       expect(SCHEME_PAINT[scheme].hillshadeShadow).toMatch(/^#[0-9a-f]{6}$/);
       expect(SCHEME_PAINT[scheme].sky["sky-color"]).toBeTruthy();
       expect(SCHEME_PAINT[scheme].vehicleDotEdge).toMatch(/^#[0-9a-f]{6}$/);
+      expect(SCHEME_PAINT[scheme].journeyStopText).toMatch(/^#[0-9a-f]{6}$/);
+      expect(SCHEME_PAINT[scheme].journeyStopTextHalo).toMatch(
+        /^#[0-9a-f]{6}$/,
+      );
       for (const colour of Object.values(SCHEME_PAINT[scheme].transit)) {
         expect(colour).toMatch(/^#[0-9a-f]{6}$/);
       }

@@ -59,6 +59,16 @@ export function BaseMapScheme({ builtFor }: { builtFor: MapScheme }) {
         "circle-stroke-color",
         paint.vehicleDotEdge,
       );
+      map.setPaintProperty(
+        "service-journey-stop-labels-layer",
+        "text-color",
+        paint.journeyStopText,
+      );
+      map.setPaintProperty(
+        "service-journey-stop-labels-layer",
+        "text-halo-color",
+        paint.journeyStopTextHalo,
+      );
       for (const [id, property, value] of transitNetworkPaint(scheme)) {
         map.setPaintProperty(id, property as "line-color", value);
       }

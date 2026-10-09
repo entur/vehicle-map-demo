@@ -1975,3 +1975,93 @@ export function bodyColourFor(
 ): [number, number, number] {
   return to255(BODY_COLOURS[mode] ?? DEFAULT_BODY);
 }
+
+/**
+ * A stop's pole and name board, true to scale, in metres. The renderer draws
+ * them larger (`STOP_POLE_EXAGGERATION`), since true to scale they are lost. The board keeps the
+ * sign texture's aspect, so the name fills it as a destination fills a
+ * vehicle's sign.
+ */
+export const STOP_POLE = {
+  height: 2.8,
+  poleWidth: 0.07,
+  boardWidth: 1.4,
+  boardHeight: 1.4 / SIGN_TEXTURE_ASPECT,
+  boardDepth: 0.05,
+} as const;
+
+let stopPole: VehicleModel | undefined;
+
+/**
+ * A stop of the selected journey: a grey pole at the stop's position with its
+ * name board on top. Model space is that of a vehicle, +y along the route at
+ * the stop, so the board's two faces look along the route and are read by
+ * someone travelling it either way. The board's edges are `body`, coloured by
+ * the renderer; its faces are `sign`, textured with the stop's name; the pole
+ * is `details`. There are no lamps.
+ */
+export function stopPoleModel(): VehicleModel {
+  if (!stopPole) {
+    const { height, poleWidth, boardWidth, boardHeight, boardDepth } =
+      STOP_POLE;
+    const m = new MeshBuilder();
+    const z0 = height - boardHeight;
+    m.box(0, 0, 0, poleWidth, poleWidth, z0, MESH_COLOURS.hatch);
+
+    const [x0, x1] = [-boardWidth / 2, boardWidth / 2];
+    const [y0, y1] = [-boardDepth / 2, boardDepth / 2];
+    const inside: Vec3 = [0, 0, z0 + boardHeight / 2];
+    const p = (x: number, y: number, z: number): Vec3 => [x, y, z];
+    // The two faces carry the name; the four edges are painted.
+    m.quad(
+      p(x0, y0, z0),
+      p(x1, y0, z0),
+      p(x1, y0, height),
+      p(x0, y0, height),
+      SIGN,
+      inside,
+    );
+    m.quad(
+      p(x0, y1, z0),
+      p(x1, y1, z0),
+      p(x1, y1, height),
+      p(x0, y1, height),
+      SIGN,
+      inside,
+    );
+    m.quad(
+      p(x0, y0, height),
+      p(x1, y0, height),
+      p(x1, y1, height),
+      p(x0, y1, height),
+      PAINT,
+      inside,
+    );
+    m.quad(
+      p(x0, y0, z0),
+      p(x1, y0, z0),
+      p(x1, y1, z0),
+      p(x0, y1, z0),
+      PAINT,
+      inside,
+    );
+    m.quad(
+      p(x0, y0, z0),
+      p(x0, y1, z0),
+      p(x0, y1, height),
+      p(x0, y0, height),
+      PAINT,
+      inside,
+    );
+    m.quad(
+      p(x1, y0, z0),
+      p(x1, y1, z0),
+      p(x1, y1, height),
+      p(x1, y0, height),
+      PAINT,
+      inside,
+    );
+    stopPole = m.build();
+  }
+  return stopPole;
+}

@@ -21,6 +21,11 @@ import {
   normaliseBearing,
 } from "../../domain/vehicleFootprint.ts";
 import { LIGHT_POOL_REACH } from "../../domain/lightPool.ts";
+import { StopPole } from "../../domain/journeyStops.ts";
+import { stopPoleLayers } from "./stopPoleLayers.ts";
+
+/** How often, in 3D, the stops' heights are looked up again. */
+const STOP_GROUND_RECHECK_MS = 1000;
 
 const LEVEL: VehicleGround = {
   elevation: 0,
@@ -37,6 +42,8 @@ function modelOpacity(zoom: number) {
 }
 
 type Props = {
+  /** The "Vehicles" switch. Off, no vehicle is drawn, but the stops still are. */
+  showVehicles: boolean;
   data: VehicleUpdate[];
   viewDimension: ViewDimension;
   /** Cache key of the vehicle the chase camera draws itself, if any. */
@@ -44,6 +51,8 @@ type Props = {
   chasedVehicleStore: VehicleStore;
   /** The selected vehicle's schedule ghost, written by ScheduleGhost. */
   ghostStore: VehicleStore;
+  /** The selected journey's stops, drawn as poles with name boards. */
+  stopPoles: StopPole[];
 };
 
 /**
@@ -56,13 +65,18 @@ type Props = {
  * `chasedVehicleStore` instead, at the position the chase camera interpolated
  * — otherwise its model would sit at the newest report, seconds ahead of the
  * camera. The schedule ghost is drawn the same way, from `ghostStore`, faded.
+ *
+ * The selected journey's stops are drawn here too, as poles: deck.gl keeps one
+ * interleaved overlay per map, so everything 3D shares this one.
  */
 export function VehicleModels({
+  showVehicles,
   data,
   viewDimension,
   chasedVehicleKey,
   chasedVehicleStore,
   ghostStore,
+  stopPoles,
 }: Props) {
   const overlay = useControl(
     () => new MapLibreOverlay({ interleaved: true, layers: [] }),
@@ -73,6 +87,12 @@ export function VehicleModels({
   const baseLayers = useRef<Layer[]>([]);
   const chasedLayers = useRef<Layer[]>([]);
   const ghostLayers = useRef<Layer[]>([]);
+  const stopLayers = useRef<Layer[]>([]);
+  // Read by the chase and ghost publishers, which run outside React.
+  const showVehiclesRef = useRef(showVehicles);
+  useEffect(() => {
+    showVehiclesRef.current = showVehicles;
+  }, [showVehicles]);
   const options = useRef<Omit<ModelLayerOptions, "idPrefix"> | null>(null);
 
   // Every handover of layers goes through here, so that deck.gl can add its
@@ -86,6 +106,7 @@ export function VehicleModels({
           ...baseLayers.current,
           ...chasedLayers.current,
           ...ghostLayers.current,
+          ...stopLayers.current,
         ],
       }),
     );
@@ -187,12 +208,58 @@ export function VehicleModels({
       getTilt: getGround,
       positionTrigger: viewDimension,
     };
-    baseLayers.current = vehicleModelLayers(unchased, {
+    baseLayers.current = vehicleModelLayers(showVehicles ? unchased : [], {
       ...options.current,
       idPrefix: "vehicle-models",
     });
     handOver();
-  }, [handOver, mapRef, unchased, opacity, scheme, viewDimension, grounds]);
+  }, [
+    handOver,
+    mapRef,
+    showVehicles,
+    unchased,
+    opacity,
+    scheme,
+    viewDimension,
+    grounds,
+  ]);
+
+  useEffect(() => {
+    const map = mapRef?.getMap();
+    if (!map) return;
+    let shown: string | null = null;
+    const build = () => {
+      // Upright on the terrain's height at the stop, or at sea level in 2D.
+      const elevations = stopPoles.map(
+        (pole) => map.queryTerrainElevation(pole.position) ?? 0,
+      );
+      const key = elevations.join(",");
+      if (key === shown) return;
+      shown = key;
+      const elevationOf = new Map(
+        stopPoles.map((pole, i) => [pole, elevations[i]]),
+      );
+      stopLayers.current = stopPoleLayers(stopPoles, {
+        visible: opacity > 0,
+        opacity,
+        scheme,
+        getPosition: (pole) => [...pole.position, elevationOf.get(pole) ?? 0],
+        positionTrigger: key,
+      });
+      handOver();
+    };
+    build();
+    // Vehicles are placed again on every frame; nothing rebuilds the stops
+    // while the journey stays selected. Terrain arrives after this effect
+    // when 3D is switched on, and MapLibre answers 0, not nothing, for a tile
+    // still loading, so the heights are looked up again until they settle
+    // — and whenever the camera brings new tiles in.
+    const recheck =
+      viewDimension === "3d" && opacity > 0 && stopPoles.length > 0
+        ? window.setInterval(build, STOP_GROUND_RECHECK_MS)
+        : undefined;
+    return () => window.clearInterval(recheck);
+  }, [handOver, mapRef, stopPoles, opacity, scheme, viewDimension]);
 
   useEffect(() => {
     const publish = () => {
@@ -202,7 +269,11 @@ export function VehicleModels({
       const position = vehicle && options.current?.getPosition(vehicle);
       const tilt = vehicle && options.current?.getTilt(vehicle);
       chasedLayers.current =
-        vehicle && options.current && position && tilt
+        vehicle &&
+        options.current &&
+        position &&
+        tilt &&
+        showVehiclesRef.current
           ? vehicleModelLayers([vehicle], {
               ...options.current,
               idPrefix: "vehicle-models-chased",
@@ -230,7 +301,7 @@ export function VehicleModels({
       const position = ghost && options.current?.getPosition(ghost);
       const tilt = ghost && options.current?.getTilt(ghost);
       ghostLayers.current =
-        ghost && options.current && position && tilt
+        ghost && options.current && position && tilt && showVehiclesRef.current
           ? vehicleModelLayers([ghost], {
               ...options.current,
               idPrefix: "vehicle-models-ghost",
