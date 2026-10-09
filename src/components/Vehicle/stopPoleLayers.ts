@@ -2,7 +2,13 @@ import { SimpleMeshLayer } from "@deck.gl/mesh-layers";
 import { StopPole } from "../../domain/journeyStops.ts";
 import { stopPoleModel } from "../../domain/vehicleMeshes.ts";
 import { hexToRgb } from "../../domain/vehiclePaint.ts";
-import { ROUTE, SEVERITY_SEVERE } from "../../domain/dataColours.ts";
+import {
+  EDGE_INK,
+  EDGE_WHITE,
+  ROUTE,
+  SEVERITY_SEVERE,
+} from "../../domain/dataColours.ts";
+import { mostLegibleOn } from "../../domain/contrast.ts";
 import type { MapScheme } from "../basemap/basemap.ts";
 import {
   MODEL_BEFORE_LAYER,
@@ -10,8 +16,6 @@ import {
   UNTINTED,
 } from "./vehicleModelLayers.ts";
 import { signTexture } from "./signTexture.ts";
-
-const NAME_COLOUR: [number, number, number] = [255, 255, 255];
 
 /**
  * How much larger than life a stop is drawn. At true scale (`STOP_POLE`) a
@@ -26,6 +30,14 @@ const PASSED_OPACITY = 0.55;
 /** The board's colour: the route's, or the cancellation colour, as the 2D dot. */
 const boardColour = (pole: StopPole) =>
   pole.cancelled ? SEVERITY_SEVERE : ROUTE;
+
+/**
+ * The name's colour on a board: ink or white, whichever reads better. White
+ * on the route colour was about 2.6:1, too faint at a distance; ink is 6:1.
+ */
+const nameColour = (pole: StopPole) =>
+  hexToRgb(mostLegibleOn(boardColour(pole), [EDGE_INK, EDGE_WHITE])) ??
+  UNTINTED;
 
 export type StopPoleLayerOptions = {
   visible: boolean;
@@ -117,7 +129,7 @@ export function stopPoleLayers(
           data: [pole],
           mesh: sign,
           opacity: opacity * (pole.passed ? PASSED_OPACITY : 1),
-          texture: signTexture(pole.name, NAME_COLOUR, boardColour(pole)),
+          texture: signTexture(pole.name, nameColour(pole), boardColour(pole)),
           getColor: UNTINTED,
           material: materials.signs,
         }),
