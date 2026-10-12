@@ -62,6 +62,7 @@ import { SituationDetailPanel } from "./SituationsPanel/SituationDetailPanel.tsx
 import { AppMode } from "../domain/appMode.ts";
 import { ModeLayers } from "./ModeLayers.tsx";
 import { ViewDimension } from "../domain/viewDimension.ts";
+import { MAX_VIEW_PITCH } from "../domain/vehiclesInView.ts";
 import { RotateControl } from "./RotateControl.tsx";
 import { ViewDimensionControl } from "./ViewDimensionControl.tsx";
 import { ViewDimensionLayers } from "./ViewDimensionLayers.tsx";
@@ -529,6 +530,7 @@ export function MapView({
         onLoad={handleMapLoad}
         onStyleData={handleStyleData}
         attributionControl={false}
+        maxPitch={MAX_VIEW_PITCH}
       >
         {!kioskRunning && (
           <>

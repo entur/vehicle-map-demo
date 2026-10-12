@@ -58,9 +58,8 @@ export function terrainFor(
 }
 
 /**
- * The camera the map eases to on entering a dimension. The 3D pitch is kept
- * below MapLibre's default 60° limit on purpose: the vehicle subscription is
- * bounded by `getBounds()`, which grows sharply as the horizon comes into view.
+ * The camera the map eases to on entering a dimension. The 3D pitch is where
+ * the view starts, not its limit: the user can tilt on to `MAX_VIEW_PITCH`.
  * 2D is also turned north-up, since a rotated flat map is almost always left
  * over from 3D or a chase; 3D keeps whatever bearing the map has.
  */

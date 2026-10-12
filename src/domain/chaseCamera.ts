@@ -1,5 +1,6 @@
 import { METRES_PER_DEGREE_LAT, normaliseBearing } from "./vehicleFootprint.ts";
 import { ROTATION_STEP } from "./viewDimension.ts";
+import { MAX_VIEW_PITCH } from "./vehiclesInView.ts";
 
 /**
  * One position report for the chased vehicle, timed by when it arrived here.
@@ -325,14 +326,17 @@ export function chaseTopPadding(mapHeight: number, bottom: number): number {
   return Math.round(CHASE_TOP_PADDING_SHARE * Math.max(0, mapHeight - bottom));
 }
 
-/**
- * The chase camera's pitch, and the steepest an orbit can tilt to. MapLibre's
- * default maximum: going steeper means raising `maxPitch` for the chase and
- * lowering it again after the exit animation — a second, delayed restore that
- * a new chase, or StrictMode's double mount, can land in the middle of,
- * capping or stranding the pitch.
- */
+/** The pitch a chase starts at, and returns to with the view from behind. */
 export const CHASE_PITCH = 60;
+
+/**
+ * The steepest an orbit can tilt to: the map's own limit, which `<Map
+ * maxPitch>` holds for every view. Never raise `maxPitch` for the chase
+ * alone — lowering it again after the exit animation is a second, delayed
+ * restore that a new chase, or StrictMode's double mount, can land in the
+ * middle of, capping or stranding the pitch.
+ */
+export const CHASE_MAX_PITCH = MAX_VIEW_PITCH;
 
 /**
  * Where the chase camera looks from, relative to the vehicle: `bearingOffset`
@@ -356,7 +360,7 @@ function wrapDegrees(degrees: number): number {
 }
 
 function clampPitch(pitch: number): number {
-  return Math.min(CHASE_PITCH, Math.max(0, pitch));
+  return Math.min(CHASE_MAX_PITCH, Math.max(0, pitch));
 }
 
 /**
@@ -451,7 +455,8 @@ export function orbitByKey(orbit: ChaseOrbit, key: string): ChaseOrbit | null {
 export function isBehind(orbit: ChaseOrbit): boolean {
   const offset = Math.min(orbit.bearingOffset, 360 - orbit.bearingOffset);
   return (
-    offset < ORBIT_TOLERANCE && CHASE_PITCH - orbit.pitch < ORBIT_TOLERANCE
+    offset < ORBIT_TOLERANCE &&
+    Math.abs(CHASE_PITCH - orbit.pitch) < ORBIT_TOLERANCE
   );
 }
 

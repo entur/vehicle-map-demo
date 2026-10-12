@@ -11,8 +11,9 @@ export type FixedCamera = {
 };
 
 /**
- * The 3D view's ceiling: the vehicle subscription is bounded by
- * `getBounds()`, which grows sharply as the horizon comes into view.
+ * A fixed view's ceiling, below the 3D view's own `MAX_VIEW_PITCH`: up to
+ * here the vehicle subscription's box is the whole view, so a wall screen
+ * shows a vehicle wherever it shows map.
  */
 export const MAX_FIXED_PITCH = 60;
 const MAX_ZOOM = 24;

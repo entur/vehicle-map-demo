@@ -111,6 +111,8 @@ export const SCHEME_PAINT: Record<MapScheme, SchemePaint> = {
     sky: {
       "sky-color": "#1f2638",
       "horizon-color": "#2c3550",
+      // MapLibre's default is white, a glare over the dark map's distance.
+      "fog-color": "#2c3550",
       "sky-horizon-blend": 0.6,
     },
     transit: {

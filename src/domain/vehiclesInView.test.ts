@@ -3,6 +3,8 @@ import { METRES_PER_DEGREE_LAT } from "./vehicleFootprint.ts";
 import {
   MODEL_REACH_METRES,
   ViewBounds,
+  capViewBounds,
+  referenceReachMetres,
   padBounds,
   viewBoundsAt,
   vehiclesInView,
@@ -144,5 +146,94 @@ describe("viewBoundsAt", () => {
     expect((60 - south) * METRES_PER_DEGREE_LAT).toBeCloseTo(400 * mpp, 3);
     expect((10 - west) * lonMetres).toBeCloseTo(550 * mpp, 3);
     expect((east - 10) * lonMetres).toBeCloseTo(450 * mpp, 3);
+  });
+});
+
+describe("capViewBounds", () => {
+  const CAMERA = {
+    longitude: 10,
+    latitude: 60,
+    zoom: 14,
+    width: 1200,
+    height: 800,
+    fov: 36.87,
+  };
+  const COS_LAT = Math.cos((60 * Math.PI) / 180);
+  /** The four sides' distances from the camera's centre, in metres. */
+  const sides = ([[west, south], [east, north]]: ViewBounds) => ({
+    west: (CAMERA.longitude - west) * METRES_PER_DEGREE_LAT * COS_LAT,
+    east: (east - CAMERA.longitude) * METRES_PER_DEGREE_LAT * COS_LAT,
+    south: (CAMERA.latitude - south) * METRES_PER_DEGREE_LAT,
+    north: (north - CAMERA.latitude) * METRES_PER_DEGREE_LAT,
+  });
+  /** Bounds a view near the horizon reports: tens of kilometres every way. */
+  const HORIZON: ViewBounds = [
+    [9, 59.5],
+    [11, 60.5],
+  ];
+
+  it("leaves a level view's bounds as they are", () => {
+    const level = viewBoundsAt({ ...CAMERA, padding: {} });
+    expect(capViewBounds(level, CAMERA)).toEqual(level);
+  });
+
+  // By hand for this camera: 2.39 m/px puts the camera 2866 m from the
+  // centre, and at 60° the view's far corners are 1.97 times that away.
+  it("cuts a view of the horizon to what a 60° tilt reaches", () => {
+    const capped = sides(capViewBounds(HORIZON, CAMERA));
+    for (const side of Object.values(capped)) {
+      expect(side).toBeGreaterThan(5600);
+      expect(side).toBeLessThan(5700);
+      expect(side).toBeCloseTo(referenceReachMetres(CAMERA), 6);
+    }
+  });
+
+  // Padding moves the centre off the middle of the canvas, as the chase's
+  // top padding does, and the far corners move away from it.
+  it("reaches further from a centre padded down the canvas", () => {
+    const padded = referenceReachMetres({ ...CAMERA, padding: { top: 280 } });
+    expect(padded).toBeGreaterThan(1.3 * referenceReachMetres(CAMERA));
+    expect(padded).toBeLessThan(3 * referenceReachMetres(CAMERA));
+  });
+
+  it("reaches less far from a centre padded up the canvas", () => {
+    expect(
+      referenceReachMetres({ ...CAMERA, padding: { bottom: 280 } }),
+    ).toBeLessThan(referenceReachMetres(CAMERA));
+  });
+
+  // Padded far enough, a 60° view has the horizon in it and no far corner.
+  it("has no limit once the reference view would show the horizon", () => {
+    expect(referenceReachMetres({ ...CAMERA, padding: { top: 1500 } })).toBe(
+      Infinity,
+    );
+    expect(
+      capViewBounds(HORIZON, { ...CAMERA, padding: { top: 1500 } }),
+    ).toEqual(HORIZON);
+  });
+
+  it("cuts only the sides that reach too far", () => {
+    const [[west, south], [east, north]] = capViewBounds(
+      [
+        [9.99, 59.99],
+        [10.01, 60.5],
+      ],
+      CAMERA,
+    );
+    expect([west, south, east]).toEqual([9.99, 59.99, 10.01]);
+    expect(north).toBeLessThan(60.06);
+  });
+
+  it("reaches twice as far one zoom level out", () => {
+    const near = sides(capViewBounds(HORIZON, CAMERA));
+    const far = sides(capViewBounds(HORIZON, { ...CAMERA, zoom: 13 }));
+    expect(far.north).toBeCloseTo(2 * near.north, 6);
+    expect(far.east).toBeCloseTo(2 * near.east, 6);
+  });
+
+  // A turned map's far corners can lie along any compass direction.
+  it("reaches as far sideways as ahead", () => {
+    const { north, east } = sides(capViewBounds(HORIZON, CAMERA));
+    expect(east).toBeCloseTo(north, 6);
   });
 });

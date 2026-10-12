@@ -13,6 +13,7 @@ import {
   vehicleModelLayers,
 } from "./vehicleModelLayers.ts";
 import { withLayerAsStyleLoaded } from "../../utils/withLayerAsStyleLoaded.ts";
+import { cappedViewBounds } from "../../utils/cappedViewBounds.ts";
 import { ViewBounds, vehiclesInView } from "../../domain/vehiclesInView.ts";
 import { VehicleStore } from "./chasedVehicleStore.ts";
 import { VehicleGround, vehicleGround } from "../../domain/vehicleGround.ts";
@@ -126,13 +127,7 @@ export function VehicleModels({
   useEffect(() => {
     const map = mapRef?.getMap();
     if (!map || chasing) return;
-    const update = () => {
-      const bounds = map.getBounds();
-      setViewBounds([
-        [bounds.getWest(), bounds.getSouth()],
-        [bounds.getEast(), bounds.getNorth()],
-      ]);
-    };
+    const update = () => setViewBounds(cappedViewBounds(map));
     update();
     map.on("moveend", update);
     return () => {
@@ -220,14 +215,8 @@ export function VehicleModels({
     let shown: string | null = null;
     const build = () => {
       // Only the stops in view: each name board is a layer and a texture.
-      const bounds = map.getBounds();
       const inView =
-        opacity > 0
-          ? polesInView(stopPoles, [
-              [bounds.getWest(), bounds.getSouth()],
-              [bounds.getEast(), bounds.getNorth()],
-            ])
-          : [];
+        opacity > 0 ? polesInView(stopPoles, cappedViewBounds(map)) : [];
       // Upright on the terrain's height at the stop, or at sea level in 2D.
       const elevations = inView.map(
         (pole) => map.queryTerrainElevation(pole.position) ?? 0,
