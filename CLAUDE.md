@@ -116,6 +116,15 @@ Key invariants worth preserving:
 - App text layers use `Noto Sans Regular`, the font OpenFreeMap's glyph server has.
 - `window.__vehicleMap` exposes the map in development builds only, for the Playwright base-map tests.
 
+## Weather
+
+- The "Weather" switch in the Layers panel (off by default, `MapView` state like the ghost vehicle's, both modes) draws rain or snow over the map **in 3D only, and only from `VEHICLE_MODEL_MIN_ZOOM`**, where vehicles are 3D models — further out nothing is drawn or fetched. The switch is disabled in 2D and keeps its setting. It is not in the URL and not part of the kiosk's setup, so a kiosk link starts with it off.
+- It is **precipitation only**, as a 2D canvas over the map (`WeatherOverlay`), not sky or fog: the 3D view and the chase stop at 60° pitch, where the horizon is off screen, so MapLibre's sky and fog change nothing — measured, an overcast sky with full fog left the picture identical. A tint over the map was rejected because it dims the data colours.
+- The canvas is in screen space, **above** the vehicles and their labels and below every control and panel (`zIndex: 1`), and takes no input. Particles lean with the wind's speed but always the same way on screen, whatever the map's bearing. Nothing is drawn for `prefers-reduced-motion`.
+- The data is MET Norway's Nowcast for the map's centre (`weather-nowcast-endpoint` in bootstrap.json), called **straight from the browser**. MET's terms allow that for low-volume sites and identify the page by its `Origin`; they do not answer CORS preflights, so the request must stay "simple" — no custom headers — and coordinates are cut to four decimals (`nowcastUrl`). Heavy traffic would need a caching proxy.
+- `weatherFromNowcast` (`src/domain/weather.ts`) reads the rate now for whether anything falls and the coming hour's symbol only for snow or not; outside radar coverage it is null and nothing is drawn. `useWeather` refetches when `needsRefetch` says so — five minutes, or the centre more than 5 km away — asked on `moveend` and a 30 s timer, so a chase costs a comparison per frame, not a request.
+- The credit is not a map source's, so `MapAttribution` takes it as `credit` and remounts the control when it changes: MapLibre reads `customAttribution` once.
+
 ## Map / icons
 
 - `react-map-gl` uses the `maplibre` entry point (`react-map-gl/maplibre`), not Mapbox. The style is built by `buildMapStyle(scheme)` in `src/components/mapStyle.ts` on OpenFreeMap vector tiles — see "Base map". No token is needed.

@@ -67,6 +67,7 @@ import { ViewDimensionControl } from "./ViewDimensionControl.tsx";
 import { ViewDimensionLayers } from "./ViewDimensionLayers.tsx";
 import { BaseMapScheme } from "./BaseMapScheme.tsx";
 import { TransitNetworkLayers } from "./TransitNetworkLayers.tsx";
+import { WeatherOverlay } from "./WeatherOverlay.tsx";
 import { AerialImageryLayers } from "./AerialImageryLayers.tsx";
 import { AerialBuildingColours } from "./AerialBuildingColours.tsx";
 import { ChaseCamera } from "./Vehicle/ChaseCamera.tsx";
@@ -102,6 +103,14 @@ type MapViewProps = {
   mapViewOptions: MapViewOptions;
   setMapViewOptions: (mapViewOptions: MapViewOptions) => void;
 };
+
+/**
+ * The Weather switch's credit in the attribution strip. MET Norway's data is
+ * CC BY 4.0, which asks for the credit and a link to the licence.
+ */
+const WEATHER_CREDIT =
+  'Weather: <a href="https://www.met.no/en" target="_blank" rel="noopener">MET Norway</a> ' +
+  '(<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>)';
 
 export function MapView({
   mode,
@@ -189,6 +198,10 @@ export function MapView({
   // The "Ghost vehicle" switch in the Layers panel. Off by default: it is
   // something to switch on and look for, not a mark to explain unasked.
   const [showScheduleGhost, setShowScheduleGhost] = useState(false);
+  // The "Weather" switch in the Layers panel. MapView state like the ghost
+  // vehicle's, and drawn in 3D only; the switch keeps its setting through 2D.
+  const [showWeather, setShowWeather] = useState(false);
+  const weatherEnabled = showWeather && viewDimension === "3d";
   const chasedVehicleKey = chasedVehicle
     ? chasedVehicle.vehicleId + "_" + chasedVehicle.serviceJourneyId
     : null;
@@ -528,7 +541,11 @@ export function MapView({
             {viewDimension === "3d" && <RotateControl />}
           </>
         )}
-        <MapAttribution onHeightChange={setAttributionHeight} />
+        <MapAttribution
+          onHeightChange={setAttributionHeight}
+          credit={weatherEnabled ? WEATHER_CREDIT : undefined}
+        />
+        <WeatherOverlay enabled={weatherEnabled} />
         <ViewDimensionLayers
           dimension={viewDimension}
           camera={fixedViewRunning ? fixedSession?.camera : undefined}
@@ -552,6 +569,9 @@ export function MapView({
             setShowAerial={setShowAerial}
             showScheduleGhost={showScheduleGhost}
             setShowScheduleGhost={setShowScheduleGhost}
+            showWeather={showWeather}
+            setShowWeather={setShowWeather}
+            viewDimension={viewDimension}
             kiosk={kioskTool}
           />
         )}

@@ -4,6 +4,8 @@ import { AttributionControl, useMap } from "react-map-gl/maplibre";
 type MapAttributionProps = {
   /** Told the strip's height in px whenever it changes, 0 when it is gone. */
   onHeightChange: (px: number) => void;
+  /** A credit, as HTML, for something that is not a map source. */
+  credit?: string;
 };
 
 /**
@@ -15,8 +17,15 @@ type MapAttributionProps = {
  * aerial imagery each add a credit — and the detail sheet stands clear above
  * it (`sheetBottom`) rather than covering it. Observed, since the credits
  * change with the layers shown.
+ *
+ * MapLibre reads a control's custom attribution once, when it is added, so a
+ * change of `credit` remounts the control; the strip is then a new element,
+ * which is why the effect depends on `credit` too.
  */
-export function MapAttribution({ onHeightChange }: MapAttributionProps) {
+export function MapAttribution({
+  onHeightChange,
+  credit,
+}: MapAttributionProps) {
   const { current: mapRef } = useMap();
 
   // Runs after AttributionControl's own effect has added the control.
@@ -33,7 +42,14 @@ export function MapAttribution({ onHeightChange }: MapAttributionProps) {
       observer.disconnect();
       onHeightChange(0);
     };
-  }, [mapRef, onHeightChange]);
+  }, [mapRef, onHeightChange, credit]);
 
-  return <AttributionControl position="bottom-right" compact={false} />;
+  return (
+    <AttributionControl
+      key={credit}
+      position="bottom-right"
+      compact={false}
+      customAttribution={credit}
+    />
+  );
 }
