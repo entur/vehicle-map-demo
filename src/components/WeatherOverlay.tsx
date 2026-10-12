@@ -1,14 +1,12 @@
-import { useEffect, useRef, useState } from "react";
-import { useMap } from "react-map-gl/maplibre";
+import { useEffect, useRef } from "react";
 import { useColorScheme, useMediaQuery } from "@mui/material";
-import { useWeather } from "../hooks/useWeather.ts";
+import { Weather } from "../domain/weather.ts";
 import { mapSchemeFor } from "../domain/baseMapScheme.ts";
 import { MapScheme } from "./basemap/basemap.ts";
-import { VEHICLE_MODEL_MIN_ZOOM } from "./mapStyle.ts";
 
 type WeatherOverlayProps = {
-  /** The Weather switch is on and the view is 3D. */
-  enabled: boolean;
+  /** The weather at the map's centre, from `WeatherFeed`; null draws nothing. */
+  weather: Weather | null;
 };
 
 type Kind = "rain" | "snow";
@@ -46,22 +44,20 @@ type Particle = {
  * input. It is drawn in screen space, over the vehicles and their labels,
  * and always leans the same way on screen whatever the map's bearing.
  *
- * Only from the zoom where vehicles are 3D models: weather belongs to the
- * street-level scene, and further out it is rain on a map.
- *
- * Nothing is mounted, fetched or animated unless something is falling there,
- * and nothing at all for someone who has asked for reduced motion.
+ * Nothing is mounted or animated unless something is falling there, and
+ * nothing at all for someone who has asked for reduced motion — the sky,
+ * which `BaseMapScheme` colours from the same weather, is not motion and
+ * still follows it.
  */
-export function WeatherOverlay({ enabled }: WeatherOverlayProps) {
+export function WeatherOverlay({ weather }: WeatherOverlayProps) {
   const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)", {
     noSsr: true,
   });
-  const atModelZoom = useAtModelZoom();
-  const weather = useWeather(enabled && !reducedMotion && atModelZoom);
   const scheme = mapSchemeFor(useColorScheme().colorScheme);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const kind = weather && weather.kind !== "none" ? weather.kind : null;
+  const kind =
+    weather && weather.kind !== "none" && !reducedMotion ? weather.kind : null;
   const intensity = weather?.intensity ?? 0;
   const slant = weather?.slant ?? 0;
 
@@ -167,23 +163,4 @@ export function WeatherOverlay({ enabled }: WeatherOverlayProps) {
       }}
     />
   );
-}
-
-/** Whether the map is zoomed in to where vehicles are drawn as 3D models. */
-function useAtModelZoom(): boolean {
-  const { current: mapRef } = useMap();
-  const [atModelZoom, setAtModelZoom] = useState(
-    () => (mapRef?.getZoom() ?? 0) >= VEHICLE_MODEL_MIN_ZOOM,
-  );
-  useEffect(() => {
-    if (!mapRef) return;
-    const map = mapRef.getMap();
-    const update = () =>
-      setAtModelZoom(map.getZoom() >= VEHICLE_MODEL_MIN_ZOOM);
-    map.on("zoom", update);
-    return () => {
-      map.off("zoom", update);
-    };
-  }, [mapRef]);
-  return atModelZoom;
 }

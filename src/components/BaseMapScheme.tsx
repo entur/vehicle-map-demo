@@ -6,8 +6,10 @@ import {
   baseLayerVisibility,
   buildingColour,
   mapSchemeFor,
+  skyFor,
   transitNetworkPaint,
 } from "../domain/baseMapScheme.ts";
+import { Weather } from "../domain/weather.ts";
 import { whenLayerExists } from "../utils/whenLayerExists.ts";
 import { MapScheme } from "./basemap/basemap.ts";
 
@@ -26,12 +28,38 @@ import { MapScheme } from "./basemap/basemap.ts";
  * would otherwise repeat every visibility check, the paint and the sky that
  * buildMapStyle has just baked in. A style built for the wrong scheme still
  * differs, and is corrected on mount.
+ *
+ * The sky is the scheme's own until `weather` says otherwise (`skyFor`), and
+ * is written by its own effect, on the same rule: only when it differs from
+ * the sky the map already has. MapLibre eases a sky change over the style's
+ * transition, so a new nowcast does not snap.
  */
-export function BaseMapScheme({ builtFor }: { builtFor: MapScheme }) {
+export function BaseMapScheme({
+  builtFor,
+  weather,
+}: {
+  builtFor: MapScheme;
+  /** The weather to colour the sky by; null while there is none to show. */
+  weather: Weather | null;
+}) {
   const { current: mapRef } = useMap();
   const { colorScheme } = useColorScheme();
   const scheme = mapSchemeFor(colorScheme);
   const shown = useRef(builtFor);
+  const shownSky = useRef(JSON.stringify(SCHEME_PAINT[builtFor].sky));
+
+  useEffect(() => {
+    const map = mapRef?.getMap();
+    if (!map) return;
+    const sky = skyFor(scheme, weather);
+    const key = JSON.stringify(sky);
+    if (key === shownSky.current) return;
+    // See whenLayerExists for why this is not map.isStyleLoaded().
+    return whenLayerExists(map, "buildings-3d-layer", () => {
+      shownSky.current = key;
+      map.setSky(sky);
+    });
+  }, [scheme, weather, mapRef]);
 
   useEffect(() => {
     const map = mapRef?.getMap();
@@ -73,7 +101,6 @@ export function BaseMapScheme({ builtFor }: { builtFor: MapScheme }) {
       for (const [id, property, value] of transitNetworkPaint(scheme)) {
         map.setPaintProperty(id, property as "line-color", value);
       }
-      map.setSky(paint.sky);
     };
 
     // See whenLayerExists for why this is not map.isStyleLoaded().

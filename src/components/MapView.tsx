@@ -69,6 +69,8 @@ import { ViewDimensionLayers } from "./ViewDimensionLayers.tsx";
 import { BaseMapScheme } from "./BaseMapScheme.tsx";
 import { TransitNetworkLayers } from "./TransitNetworkLayers.tsx";
 import { WeatherOverlay } from "./WeatherOverlay.tsx";
+import { WeatherFeed } from "./WeatherFeed.tsx";
+import { Weather } from "../domain/weather.ts";
 import { AerialImageryLayers } from "./AerialImageryLayers.tsx";
 import { AerialBuildingColours } from "./AerialBuildingColours.tsx";
 import { ChaseCamera } from "./Vehicle/ChaseCamera.tsx";
@@ -203,6 +205,8 @@ export function MapView({
   // vehicle's, and drawn in 3D only; the switch keeps its setting through 2D.
   const [showWeather, setShowWeather] = useState(false);
   const weatherEnabled = showWeather && viewDimension === "3d";
+  // Reported by WeatherFeed, drawn by WeatherOverlay and BaseMapScheme.
+  const [weather, setWeather] = useState<Weather | null>(null);
   const chasedVehicleKey = chasedVehicle
     ? chasedVehicle.vehicleId + "_" + chasedVehicle.serviceJourneyId
     : null;
@@ -547,12 +551,13 @@ export function MapView({
           onHeightChange={setAttributionHeight}
           credit={weatherEnabled ? WEATHER_CREDIT : undefined}
         />
-        <WeatherOverlay enabled={weatherEnabled} />
+        <WeatherFeed enabled={weatherEnabled} onChange={setWeather} />
+        <WeatherOverlay weather={weather} />
         <ViewDimensionLayers
           dimension={viewDimension}
           camera={fixedViewRunning ? fixedSession?.camera : undefined}
         />
-        <BaseMapScheme builtFor={builtScheme} />
+        <BaseMapScheme builtFor={builtScheme} weather={weather} />
         <TransitNetworkLayers visible={showTransitNetwork} />
         <AerialImageryLayers visible={showAerial} />
         <AerialBuildingColours active={showAerial && viewDimension === "3d"} />

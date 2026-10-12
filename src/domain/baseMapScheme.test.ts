@@ -8,7 +8,9 @@ import {
   SCHEME_PAINT,
   baseLayerVisibility,
   mapSchemeFor,
+  skyFor,
 } from "./baseMapScheme.ts";
+import { Weather } from "./weather.ts";
 
 const hiddenUpstream = new Set(
   MAP_SCHEMES.flatMap((scheme) =>
@@ -101,5 +103,113 @@ describe("mapSchemeFor", () => {
     expect(mapSchemeFor("light")).toBe("light");
     // MUI reports undefined before it has resolved the scheme.
     expect(mapSchemeFor(undefined)).toBe("light");
+  });
+});
+
+describe("skyFor", () => {
+  const dry = (cover: Weather["cover"]): Weather => ({
+    kind: "none",
+    intensity: 0,
+    slant: 0,
+    cover,
+  });
+  const falling = (kind: "rain" | "snow", intensity: number): Weather => ({
+    kind,
+    intensity,
+    slant: 0,
+    cover: "cloudy",
+  });
+  /** A colour's lightness, 0–255, as the mean of its channels. */
+  const lightness = (colour: unknown) => {
+    const hex = String(colour).slice(1);
+    return (
+      [0, 2, 4]
+        .map((i) => parseInt(hex.slice(i, i + 2), 16))
+        .reduce((a, b) => a + b) / 3
+    );
+  };
+  /** How far a colour is from grey: the spread of its channels. */
+  const chroma = (colour: unknown) => {
+    const hex = String(colour).slice(1);
+    const channels = [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16));
+    return Math.max(...channels) - Math.min(...channels);
+  };
+  const SCHEMES = ["light", "dark"] as const;
+
+  it.each(SCHEMES)(
+    "is the %s scheme's own sky when the weather is off, unknown or clear",
+    (scheme) => {
+      expect(skyFor(scheme, null)).toBe(SCHEME_PAINT[scheme].sky);
+      expect(skyFor(scheme, dry("clear"))).toBe(SCHEME_PAINT[scheme].sky);
+    },
+  );
+
+  it.each(SCHEMES)("greys the %s sky as the cloud closes in", (scheme) => {
+    const clear = chroma(skyFor(scheme, null)["sky-color"]);
+    const partly = chroma(skyFor(scheme, dry("partly"))["sky-color"]);
+    const cloudy = chroma(skyFor(scheme, dry("cloudy"))["sky-color"]);
+    expect(partly).toBeLessThan(clear);
+    expect(cloudy).toBeLessThan(partly);
+  });
+
+  // Haze the colour of the horizon, so the far ground fades into the sky.
+  it.each(SCHEMES)("hazes the %s map in the horizon's colour", (scheme) => {
+    for (const weather of [dry("cloudy"), dry("fog"), falling("rain", 1)]) {
+      const sky = skyFor(scheme, weather);
+      expect(sky["fog-color"]).toBe(sky["horizon-color"]);
+    }
+  });
+
+  it.each(SCHEMES)("brings the %s haze nearest in fog", (scheme) => {
+    const blend = (weather: Weather) =>
+      skyFor(scheme, weather)["fog-ground-blend"] as number;
+    expect(blend(dry("fog"))).toBeLessThan(blend(dry("cloudy")));
+    expect(blend(dry("fog"))).toBeLessThan(blend(falling("rain", 1)));
+  });
+
+  it.each(SCHEMES)(
+    "darkens the %s sky and draws the haze in as rain grows heavier",
+    (scheme) => {
+      const light = skyFor(scheme, falling("rain", 0.2));
+      const heavy = skyFor(scheme, falling("rain", 1));
+      expect(lightness(heavy["sky-color"])).toBeLessThan(
+        lightness(light["sky-color"]),
+      );
+      expect(heavy["fog-ground-blend"] as number).toBeLessThan(
+        light["fog-ground-blend"] as number,
+      );
+    },
+  );
+
+  it.each(SCHEMES)("keeps the %s sky paler in snow than in rain", (scheme) => {
+    expect(
+      lightness(skyFor(scheme, falling("snow", 1))["sky-color"]),
+    ).toBeGreaterThan(
+      lightness(skyFor(scheme, falling("rain", 1))["sky-color"]),
+    );
+  });
+
+  // The dark map's sky must stay dark: a pale overcast would be the
+  // brightest thing on screen.
+  it("never lifts the dark sky into a glare", () => {
+    for (const weather of [
+      dry("partly"),
+      dry("cloudy"),
+      dry("fog"),
+      falling("rain", 1),
+      falling("snow", 1),
+    ]) {
+      const sky = skyFor("dark", weather);
+      expect(lightness(sky["sky-color"])).toBeLessThan(90);
+      expect(lightness(sky["horizon-color"])).toBeLessThan(90);
+    }
+  });
+
+  it("returns well-formed colours at any intensity", () => {
+    for (const intensity of [0, 0.333, 0.5, 1]) {
+      const sky = skyFor("light", falling("rain", intensity));
+      expect(sky["sky-color"]).toMatch(/^#[0-9a-f]{6}$/);
+      expect(sky["horizon-color"]).toMatch(/^#[0-9a-f]{6}$/);
+    }
   });
 });

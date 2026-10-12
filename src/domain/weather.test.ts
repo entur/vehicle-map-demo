@@ -43,8 +43,46 @@ describe("weatherFromNowcast", () => {
   it("is dry when nothing is falling now, whatever the next hour's symbol says", () => {
     expect(
       weatherFromNowcast(nowcast({ precipitation_rate: 0 }, "rain")),
-    ).toEqual({ kind: "none", intensity: 0, slant: 0 });
+    ).toEqual({ kind: "none", intensity: 0, slant: 0, cover: "cloudy" });
   });
+
+  it.each([
+    ["clearsky_day", "clear"],
+    ["clearsky_polartwilight", "clear"],
+    ["fair_night", "clear"],
+    ["partlycloudy_day", "partly"],
+    ["cloudy", "cloudy"],
+    ["fog", "fog"],
+    // Rain on its way means cloud already; showers come with gaps between.
+    ["lightrain", "cloudy"],
+    ["heavysnow", "cloudy"],
+    ["rainshowers_day", "partly"],
+    ["lightsnowshowersandthunder_night", "partly"],
+  ])("a dry sky under the symbol %s is %s", (symbol, cover) => {
+    expect(
+      weatherFromNowcast(nowcast({ precipitation_rate: 0 }, symbol))?.cover,
+    ).toBe(cover);
+  });
+
+  it.each(["", "somethingnew"])(
+    "a dry sky under the unknown symbol '%s' is left clear",
+    (symbol) => {
+      expect(
+        weatherFromNowcast(nowcast({ precipitation_rate: 0 }, symbol))?.cover,
+      ).toBe("clear");
+    },
+  );
+
+  // The rate is measured and the symbol is a forecast: what is falling now
+  // falls from cloud, whatever the coming hour is said to hold.
+  it.each(["clearsky_day", "rainshowers_day", "fog", "rain"])(
+    "is overcast while something falls, under the symbol %s",
+    (symbol) => {
+      expect(
+        weatherFromNowcast(nowcast({ precipitation_rate: 1 }, symbol))?.cover,
+      ).toBe("cloudy");
+    },
+  );
 
   it("is rain when something is falling and the symbol is not snow", () => {
     expect(

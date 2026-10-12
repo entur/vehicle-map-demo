@@ -1,13 +1,18 @@
 import { LngLat, distanceMetres } from "./chaseCamera.ts";
 
+/** How much of the sky is cloud; `fog` is cloud on the ground. */
+export type CloudCover = "clear" | "partly" | "cloudy" | "fog";
+
 /**
- * What is falling at one place now. `intensity` and `slant` are 0–1: how
- * dense the precipitation is drawn and how far the wind leans it over.
+ * What is falling at one place now, and the sky it falls from. `intensity`
+ * and `slant` are 0–1: how dense the precipitation is drawn and how far the
+ * wind leans it over.
  */
 export type Weather = {
   kind: "rain" | "snow" | "none";
   intensity: number;
   slant: number;
+  cover: CloudCover;
 };
 
 /** The rate, in mm/h, drawn at full density. */
@@ -20,7 +25,22 @@ const REFETCH_INTERVAL_MS = 5 * 60_000;
 /** Further than this from the last fetch, the weather may be another. */
 const REFETCH_DISTANCE_METRES = 5000;
 
-const DRY: Weather = { kind: "none", intensity: 0, slant: 0 };
+/**
+ * The cloud cover a Nowcast symbol stands for. The Nowcast measures no cloud,
+ * so this is read from its symbol for the coming hour — a forecast, where the
+ * precipitation rate is a measurement. Precipitation on its way means cloud
+ * already, and showers come with gaps between them. A symbol this does not
+ * know leaves the sky clear, which is the sky the map has without weather.
+ */
+function cloudCoverFor(symbolCode: string): CloudCover {
+  const symbol = symbolCode.replace(/_(day|night|polartwilight)$/, "");
+  if (symbol === "fog") return "fog";
+  if (symbol === "cloudy") return "cloudy";
+  if (symbol === "partlycloudy") return "partly";
+  if (symbol.includes("showers")) return "partly";
+  if (/rain|snow|sleet/.test(symbol)) return "cloudy";
+  return "clear";
+}
 
 type NowcastBody = {
   properties?: {
@@ -42,8 +62,10 @@ type NowcastBody = {
  * precipitation rate is not measured.
  *
  * The rate decides whether anything falls; the symbol, which describes the
- * coming hour, only whether it is snow. Sleet is drawn as rain. Density
- * follows the square root of the rate, so drizzle is still visible.
+ * coming hour, only whether it is snow and, while nothing falls, how cloudy
+ * the sky is. Whatever falls, falls from an overcast sky. Sleet is drawn as
+ * rain. Density follows the square root of the rate, so drizzle is still
+ * visible.
  */
 export function weatherFromNowcast(body: unknown): Weather | null {
   const properties = (body as NowcastBody | null)?.properties;
@@ -51,14 +73,22 @@ export function weatherFromNowcast(body: unknown): Weather | null {
   const now = properties.timeseries?.[0]?.data;
   const rate = now?.instant?.details?.precipitation_rate;
   if (typeof rate !== "number") return null;
-  if (rate <= 0) return DRY;
-
   const symbol = now?.next_1_hours?.summary?.symbol_code ?? "";
+  if (rate <= 0) {
+    return {
+      kind: "none",
+      intensity: 0,
+      slant: 0,
+      cover: cloudCoverFor(symbol),
+    };
+  }
+
   const wind = now?.instant?.details?.wind_speed ?? 0;
   return {
     kind: symbol.includes("snow") ? "snow" : "rain",
     intensity: Math.min(1, Math.sqrt(rate / FULL_INTENSITY_RATE)),
     slant: Math.min(1, wind / FULL_SLANT_WIND),
+    cover: "cloudy",
   };
 }
 

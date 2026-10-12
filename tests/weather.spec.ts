@@ -31,8 +31,17 @@ async function stubNowcast(page: Page, body: unknown) {
 }
 
 type TestWindow = {
-  __vehicleMap?: { jumpTo(options: { zoom: number }): void };
+  __vehicleMap?: {
+    jumpTo(options: { zoom: number }): void;
+    getSky(): Record<string, unknown> | undefined;
+  };
 };
+
+const skyColour = (page: Page) =>
+  page.evaluate(
+    () =>
+      (window as unknown as TestWindow).__vehicleMap!.getSky()?.["sky-color"],
+  );
 
 // The weather is drawn from the zoom where vehicles become 3D models (16).
 async function zoomTo(page: Page, zoom: number) {
@@ -117,6 +126,31 @@ test("the Weather switch is off and unavailable in 2D", async ({ page }) => {
 
   await expect(page.getByLabel("Weather")).toBeDisabled();
   await expect(overlay(page)).toHaveCount(0);
+});
+
+// The sky is the other half of the weather, and needs nothing to be falling.
+test("a cloudy sky is grey, and the scheme's own again with the switch off", async ({
+  page,
+}) => {
+  await stubNowcast(page, nowcast(0, "cloudy"));
+  await open3d(page);
+  const own = await skyColour(page);
+
+  await switchWeatherOn(page);
+  await expect.poll(() => skyColour(page)).not.toBe(own);
+
+  await page.getByLabel("Weather").uncheck();
+  await expect.poll(() => skyColour(page)).toBe(own);
+});
+
+test("a clear sky is left as the scheme has it", async ({ page }) => {
+  await stubNowcast(page, nowcast(0, "clearsky_day"));
+  await open3d(page);
+  const own = await skyColour(page);
+
+  await switchWeatherOn(page);
+  await expect(page.getByLabel("Weather")).toBeChecked();
+  expect(await skyColour(page)).toBe(own);
 });
 
 test("leaving 3D stops the weather", async ({ page }) => {
