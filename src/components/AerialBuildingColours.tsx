@@ -17,6 +17,7 @@ import { whenLayerExists } from "../utils/whenLayerExists.ts";
 import { throttle } from "../utils/throttle.ts";
 import { limitConcurrency } from "../utils/limitConcurrency.ts";
 import { fetchNibTile } from "../utils/norgeIBilder.ts";
+import { cappedViewBounds } from "../utils/cappedViewBounds.ts";
 
 const BUILDINGS = { source: "openmaptiles", sourceLayer: "building" };
 const BUILDINGS_LAYER = "buildings-3d-layer";
@@ -154,13 +155,8 @@ export function AerialBuildingColours({ active }: { active: boolean }) {
 
     const colourVisible = () => {
       if (cancelled || map.getZoom() < BUILDINGS_3D_MIN_ZOOM) return;
-      const bounds = map.getBounds();
-      const view: Bbox = [
-        bounds.getWest(),
-        bounds.getSouth(),
-        bounds.getEast(),
-        bounds.getNorth(),
-      ];
+      const [[west, south], [east, north]] = cappedViewBounds(map);
+      const view: Bbox = [west, south, east, north];
       const zoom = sampleZoomFor(map.getZoom());
       const footprints = footprintsById(
         map.querySourceFeatures(BUILDINGS.source, {

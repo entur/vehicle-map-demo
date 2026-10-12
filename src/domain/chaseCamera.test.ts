@@ -14,6 +14,7 @@ import {
   smoothAngle,
   chaseTopPadding,
   BEHIND,
+  CHASE_MAX_PITCH,
   CHASE_PITCH,
   ChaseOrbit,
   approachOrbit,
@@ -436,8 +437,9 @@ describe("orbitByDrag", () => {
     expect(orbitByDrag({ bearingOffset: 0, pitch: 40 }, 0, -20).pitch).toBe(50);
   });
 
-  it("keeps the pitch between straight down and the chase's own pitch", () => {
-    expect(orbitByDrag(BEHIND, 0, -500).pitch).toBe(CHASE_PITCH);
+  it("keeps the pitch between straight down and the chase's steepest", () => {
+    expect(CHASE_MAX_PITCH).toBeGreaterThan(CHASE_PITCH);
+    expect(orbitByDrag(BEHIND, 0, -500).pitch).toBe(CHASE_MAX_PITCH);
     expect(orbitByDrag(BEHIND, 0, 500).pitch).toBe(0);
   });
 });
@@ -469,7 +471,11 @@ describe("orbitByKey", () => {
     expect(
       orbitByKey({ bearingOffset: 0, pitch: 30 }, "ArrowDown")?.pitch,
     ).toBe(20);
-    expect(orbitByKey(BEHIND, "ArrowUp")?.pitch).toBe(CHASE_PITCH);
+    expect(orbitByKey(BEHIND, "ArrowUp")?.pitch).toBe(CHASE_PITCH + 10);
+    expect(
+      orbitByKey({ bearingOffset: 0, pitch: CHASE_MAX_PITCH }, "ArrowUp")
+        ?.pitch,
+    ).toBe(CHASE_MAX_PITCH);
     expect(orbitByKey({ bearingOffset: 0, pitch: 5 }, "ArrowDown")?.pitch).toBe(
       0,
     );
@@ -485,6 +491,7 @@ describe("isBehind", () => {
     expect(isBehind(BEHIND)).toBe(true);
     expect(isBehind({ bearingOffset: 359.9, pitch: CHASE_PITCH })).toBe(true);
     expect(isBehind({ bearingOffset: 90, pitch: CHASE_PITCH })).toBe(false);
+    expect(isBehind({ bearingOffset: 0, pitch: CHASE_MAX_PITCH })).toBe(false);
     expect(isBehind({ bearingOffset: 0, pitch: 30 })).toBe(false);
   });
 });

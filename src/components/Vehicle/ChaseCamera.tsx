@@ -34,6 +34,11 @@ import { ViewDimension, cameraFor } from "../../domain/viewDimension.ts";
 import { ChasedVehicle, VehicleStore } from "./chasedVehicleStore.ts";
 import { VEHICLE_MODEL_MIN_ZOOM } from "../mapStyle.ts";
 import { setPaddingInPlace } from "../../utils/setPaddingInPlace.ts";
+import { viewCamera } from "../../utils/cappedViewBounds.ts";
+import {
+  BOUNDS_REFERENCE_PITCH,
+  referenceReachMetres,
+} from "../../domain/vehiclesInView.ts";
 
 const CHASE_ZOOM = 17.5;
 /**
@@ -70,10 +75,22 @@ const CHASE_FPS = 30;
 const FRAME_SLACK_MS = 2;
 
 /**
- * How far the map shows from its centre, in metres: the farthest of the four
- * canvas corners. With the chase's top padding the centre is the vehicle.
+ * How far the map shows from its centre, in metres. With the chase's top
+ * padding the centre is the vehicle. Up to the reference pitch it is
+ * measured; past it the canvas's top corners are above the horizon, where
+ * unprojecting them gives nothing usable — measured, less than at 60° — so
+ * the reach is what the reference pitch shows, as the free view's box is.
  */
 function viewReachMetres(map: MapLibreMap): number {
+  if (map.getPitch() > BOUNDS_REFERENCE_PITCH) {
+    const reach = referenceReachMetres(viewCamera(map));
+    if (reach !== Infinity) return reach;
+  }
+  return cornerReachMetres(map);
+}
+
+/** The farthest of the four canvas corners from the map's centre. */
+function cornerReachMetres(map: MapLibreMap): number {
   const { lng, lat } = map.getCenter();
   const { clientWidth: w, clientHeight: h } = map.getCanvas();
   return Math.max(
