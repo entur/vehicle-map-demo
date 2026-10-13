@@ -19,8 +19,11 @@ type MapAttributionProps = {
  * change with the layers shown.
  *
  * MapLibre reads a control's custom attribution once, when it is added, so a
- * change of `credit` remounts the control; the strip is then a new element,
- * which is why the effect depends on `credit` too.
+ * change of `credit` remounts the control and the strip is then a new
+ * element. The height is therefore read from whichever strip is in the
+ * corner when the corner changes size, never from one strip held on to: the
+ * old strip is still in the document when this effect runs, and measuring it
+ * reported 0 once it was removed, which sank the sheet over the new credit.
  */
 export function MapAttribution({
   onHeightChange,
@@ -28,21 +31,24 @@ export function MapAttribution({
 }: MapAttributionProps) {
   const { current: mapRef } = useMap();
 
-  // Runs after AttributionControl's own effect has added the control.
   useEffect(() => {
-    const strip = mapRef
+    const corner = mapRef
       ?.getContainer()
-      .querySelector<HTMLElement>(".maplibregl-ctrl-attrib");
-    if (!strip) return;
-    const report = () => onHeightChange(strip.offsetHeight);
+      .querySelector<HTMLElement>(".maplibregl-ctrl-bottom-right");
+    if (!corner) return;
+    const report = () =>
+      onHeightChange(
+        corner.querySelector<HTMLElement>(".maplibregl-ctrl-attrib")
+          ?.offsetHeight ?? 0,
+      );
     report();
     const observer = new ResizeObserver(report);
-    observer.observe(strip);
+    observer.observe(corner);
     return () => {
       observer.disconnect();
       onHeightChange(0);
     };
-  }, [mapRef, onHeightChange, credit]);
+  }, [mapRef, onHeightChange]);
 
   return (
     <AttributionControl

@@ -10,8 +10,11 @@ function nowcast(precipitationRate: number, symbolCode: string) {
           data: {
             instant: {
               details: {
+                air_temperature: 6.4,
                 precipitation_rate: precipitationRate,
+                wind_from_direction: 163.5,
                 wind_speed: 4,
+                wind_speed_of_gust: 7.5,
               },
             },
             next_1_hours: { summary: { symbol_code: symbolCode } },
@@ -70,6 +73,7 @@ async function switchWeatherOn(page: Page) {
 }
 
 const overlay = (page: Page) => page.getByTestId("weather-overlay");
+const card = (page: Page) => page.getByTestId("weather-card");
 
 test("the Weather switch draws rain over the 3D map when it is raining", async ({
   page,
@@ -200,4 +204,77 @@ test("reduced motion draws no weather", async ({ page }) => {
 
   await expect(page.getByLabel("Weather")).toBeChecked();
   await expect(overlay(page)).toHaveCount(0);
+});
+
+// MET Norway's terms: the values as published, the source credited beside
+// them, and the time they were fetched.
+test("the weather card shows the reading and credits MET Norway", async ({
+  page,
+}) => {
+  await stubNowcast(page, nowcast(0.3, "lightrain"));
+  await open3d(page);
+
+  await expect(card(page)).toHaveCount(0);
+  await switchWeatherOn(page);
+
+  await expect(card(page)).toContainText("6.4 °C");
+  await expect(card(page)).toContainText("0.3 mm/h");
+  await expect(card(page)).toContainText("4.0 m/s from SSE, gusts 7.5");
+  await expect(card(page)).toContainText("Next hourLight rain");
+  await expect(card(page)).toContainText(/Data from MET Norway, retrieved \d/);
+  await expect(
+    card(page).getByRole("link", { name: "MET Norway" }),
+  ).toHaveAttribute("href", "https://www.met.no/en");
+
+  await page.getByLabel("Weather").uncheck();
+  await expect(card(page)).toHaveCount(0);
+});
+
+test("the weather card is shown in dry weather too", async ({ page }) => {
+  await stubNowcast(page, nowcast(0, "cloudy"));
+  await open3d(page);
+  await switchWeatherOn(page);
+
+  await expect(card(page)).toContainText("0.0 mm/h");
+  await expect(overlay(page)).toHaveCount(0);
+});
+
+test("outside radar coverage the card says the rate is not measured", async ({
+  page,
+}) => {
+  const body = nowcast(0, "cloudy");
+  body.properties.meta.radar_coverage = "no coverage";
+  await stubNowcast(page, body);
+  await open3d(page);
+  await switchWeatherOn(page);
+
+  await expect(card(page)).toContainText("6.4 °C");
+  await expect(card(page)).toContainText("Not measured here");
+});
+
+test.describe("on a phone", () => {
+  test.use({ viewport: { width: 390, height: 780 }, hasTouch: true });
+
+  // The strip carries the licence link, and the Weather switch replaces it:
+  // measured from the strip it replaced, its height read 0 and the card sat
+  // on the credit.
+  test("the weather card stands clear above the attribution", async ({
+    page,
+  }) => {
+    await stubNowcast(page, nowcast(0.3, "lightrain"));
+    await open3d(page);
+    await switchWeatherOn(page);
+    await page.getByRole("button", { name: "Layers" }).click();
+
+    await expect(card(page)).toContainText("6.4 °C · 0.3 mm/h · 4.0 m/s SSE");
+    const strip = page.locator(".maplibregl-ctrl-attrib");
+    await expect(strip).toContainText("CC BY 4.0");
+    await expect
+      .poll(async () => {
+        const cardBox = await card(page).boundingBox();
+        const stripBox = await strip.boundingBox();
+        return cardBox!.y + cardBox!.height <= stripBox!.y;
+      })
+      .toBe(true);
+  });
 });

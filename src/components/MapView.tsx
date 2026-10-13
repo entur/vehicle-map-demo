@@ -71,6 +71,8 @@ import { TransitNetworkLayers } from "./TransitNetworkLayers.tsx";
 import { WeatherOverlay } from "./WeatherOverlay.tsx";
 import { WeatherFeed } from "./WeatherFeed.tsx";
 import { Weather } from "../domain/weather.ts";
+import { WeatherCard } from "./WeatherCard.tsx";
+import { WeatherDetails } from "../domain/weatherDetails.ts";
 import { AerialImageryLayers } from "./AerialImageryLayers.tsx";
 import { AerialBuildingColours } from "./AerialBuildingColours.tsx";
 import { ChaseCamera } from "./Vehicle/ChaseCamera.tsx";
@@ -106,6 +108,9 @@ type MapViewProps = {
   mapViewOptions: MapViewOptions;
   setMapViewOptions: (mapViewOptions: MapViewOptions) => void;
 };
+
+/** The gap the weather card keeps above the sheet or the HUD on a phone. */
+const WEATHER_CARD_GAP = 8;
 
 /**
  * The Weather switch's credit in the attribution strip. MET Norway's data is
@@ -207,6 +212,10 @@ export function MapView({
   const weatherEnabled = showWeather && viewDimension === "3d";
   // Reported by WeatherFeed, drawn by WeatherOverlay and BaseMapScheme.
   const [weather, setWeather] = useState<Weather | null>(null);
+  // The same reading's numbers, shown by WeatherCard.
+  const [weatherDetails, setWeatherDetails] = useState<WeatherDetails | null>(
+    null,
+  );
   const chasedVehicleKey = chasedVehicle
     ? chasedVehicle.vehicleId + "_" + chasedVehicle.serviceJourneyId
     : null;
@@ -500,6 +509,19 @@ export function MapView({
   const mapBottomInset = kioskBand
     ? Math.max(chaseBottomInset, kioskBandCovered)
     : chaseBottomInset;
+  // The weather card stands in the bottom-right corner above the attribution
+  // strip, and above whatever else holds the bottom: the kiosk's band, or on
+  // a phone the sheet, which spans the width. A fully open sheet leaves it no
+  // map to stand on, and neither does a chase on a phone: above the HUD it
+  // stood on the chased vehicle.
+  const weatherCardBottom =
+    (narrow || kioskBand) && mapBottomInset > 0
+      ? mapBottomInset + WEATHER_CARD_GAP
+      : sheetBottomEdge;
+  const weatherCardShown = !(
+    narrow &&
+    (chasedVehicle !== null || (detailOpen && sheetSnap === "full"))
+  );
   // The chase places the camera itself every frame, and a fully open sheet
   // leaves too thin a strip of map to bring anything into.
   const keepInView =
@@ -551,7 +573,11 @@ export function MapView({
           onHeightChange={setAttributionHeight}
           credit={weatherEnabled ? WEATHER_CREDIT : undefined}
         />
-        <WeatherFeed enabled={weatherEnabled} onChange={setWeather} />
+        <WeatherFeed
+          enabled={weatherEnabled}
+          onChange={setWeather}
+          onDetailsChange={setWeatherDetails}
+        />
         <WeatherOverlay weather={weather} />
         <ViewDimensionLayers
           dimension={viewDimension}
@@ -671,6 +697,13 @@ export function MapView({
         />
       )}
       {mode === "situations" && <SituationDetailPanel layout={detailLayout} />}
+      {weatherCardShown && (
+        <WeatherCard
+          details={weatherDetails}
+          bottom={weatherCardBottom}
+          compact={narrow}
+        />
+      )}
       {fixedView.state && (
         <FixedViewKioskOverlay
           state={fixedView.state}

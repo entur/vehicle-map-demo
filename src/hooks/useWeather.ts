@@ -8,26 +8,47 @@ import {
   nowcastUrl,
   weatherFromNowcast,
 } from "../domain/weather.ts";
+import {
+  WeatherDetails,
+  weatherDetailsFromNowcast,
+} from "../domain/weatherDetails.ts";
 
 /** How often a map that is standing still asks whether its weather is due. */
 const CHECK_INTERVAL_MS = 30_000;
 
+/** MET answers this for a place outside the area the Nowcast covers. */
+const OUTSIDE_AREA_STATUS = 422;
+
 /**
- * The weather at the map's centre from MET Norway's Nowcast, or null while
+ * One reading: `weather` is what is drawn, `details` the numbers behind it.
+ * They are null separately — outside radar coverage nothing is drawn, but
+ * temperature and wind are still published.
+ */
+export type WeatherReading = {
+  weather: Weather | null;
+  details: WeatherDetails | null;
+};
+
+const NO_READING: WeatherReading = { weather: null, details: null };
+
+/**
+ * The weather at the map's centre from MET Norway's Nowcast, or nothing while
  * it is not known: not enabled, not fetched yet, or outside radar coverage.
  *
  * Fetched when enabled, then whenever `needsRefetch` says so — asked when a
  * move ends and on a slow timer, so a chase, which ends a move every frame,
  * costs a comparison rather than a request. A failed fetch keeps the weather
- * already shown and waits for the next one that is due.
+ * already shown and waits for the next one that is due — except a place
+ * outside the Nowcast's area, which clears it: the reading on screen is for
+ * somewhere the map has left.
  *
  * The request carries no headers of its own: MET identifies a web page by its
  * Origin and does not answer CORS preflights.
  */
-export function useWeather(enabled: boolean): Weather | null {
+export function useWeather(enabled: boolean): WeatherReading {
   const { current: mapRef } = useMap();
   const endpoint = useConfig()["weather-nowcast-endpoint"];
-  const [weather, setWeather] = useState<Weather | null>(null);
+  const [reading, setReading] = useState<WeatherReading>(NO_READING);
 
   useEffect(() => {
     if (!enabled || !mapRef || !endpoint) return;
@@ -45,17 +66,21 @@ export function useWeather(enabled: boolean): Weather | null {
       const request = ++latest;
       fetch(nowcastUrl(endpoint, centre), { signal: controller.signal })
         .then((response) => {
+          if (response.status === OUTSIDE_AREA_STATUS) return null;
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
           return response.json();
         })
         .then((body: unknown) => {
           // A slower answer for a place the map has since left.
           if (request !== latest) return;
-          const result = weatherFromNowcast(body);
-          if (!result) {
+          const weather = weatherFromNowcast(body);
+          if (!weather) {
             console.warn("Weather: the nowcast has no reading for", centre);
           }
-          setWeather(result);
+          setReading({
+            weather,
+            details: weatherDetailsFromNowcast(body, now),
+          });
         })
         .catch((error: unknown) => {
           if (controller.signal.aborted) return;
@@ -70,9 +95,9 @@ export function useWeather(enabled: boolean): Weather | null {
       controller.abort();
       map.off("moveend", check);
       clearInterval(timer);
-      setWeather(null);
+      setReading(NO_READING);
     };
   }, [enabled, mapRef, endpoint]);
 
-  return weather;
+  return reading;
 }
