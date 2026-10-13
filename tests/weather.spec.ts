@@ -25,6 +25,11 @@ function nowcast(precipitationRate: number, symbolCode: string) {
   };
 }
 
+// Every test here but one runs in 3D, which the test browser draws without
+// a GPU: alone they take 20 to 30 s of the default 30, and beside other
+// workers they ran over.
+test.describe.configure({ timeout: 90_000 });
+
 // The weather itself is stubbed: what falls over the map's centre is not
 // something a test can count on.
 async function stubNowcast(page: Page, body: unknown) {
@@ -174,6 +179,9 @@ test("leaving 3D stops the weather", async ({ page }) => {
 test("the weather is drawn only where vehicles are 3D models", async ({
   page,
 }) => {
+  // The slowest test here: it zooms the 3D view twice, and beside other
+  // workers took about 80 s.
+  test.setTimeout(180_000);
   let requests = 0;
   await page.route("**/weatherapi/nowcast/**", (route) => {
     requests++;
@@ -188,11 +196,13 @@ test("the weather is drawn only where vehicles are 3D models", async ({
   await expect(overlay(page)).toHaveCount(0);
   expect(requests).toBe(0);
 
+  // Longer than the default 5 s, here and below: beside other workers the
+  // 3D view took longer than that to answer a zoom.
   await zoomTo(page, 16.5);
-  await expect(overlay(page)).toBeVisible();
+  await expect(overlay(page)).toBeVisible({ timeout: 20_000 });
 
   await zoomTo(page, 15.5);
-  await expect(overlay(page)).toHaveCount(0);
+  await expect(overlay(page)).toHaveCount(0, { timeout: 20_000 });
 });
 
 test("reduced motion draws no weather", async ({ page }) => {
