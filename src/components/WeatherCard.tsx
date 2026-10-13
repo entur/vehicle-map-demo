@@ -1,11 +1,11 @@
 import { Box, Link, Typography } from "@mui/material";
 import { FloatingCard } from "./FloatingCard.tsx";
 import { SURFACE_INSET } from "./theme.ts";
-import { formatTime } from "./SelectedVehiclePanel/callTimes.ts";
 import {
   WeatherDetails,
   compassPoint,
   formatPrecipitation,
+  formatSpeed,
   formatTemperature,
   formatWind,
   symbolLabel,
@@ -46,7 +46,10 @@ export function WeatherCard({ details, bottom, compact }: WeatherCardProps) {
     nextHourSymbol,
   } = details;
   const nextHour = nextHourSymbol === null ? null : symbolLabel(nextHourSymbol);
-  const retrieved = formatTime(new Date(details.retrievedAt).toISOString());
+  const retrieved = new Date(details.retrievedAt).toLocaleTimeString(
+    undefined,
+    { hour: "2-digit", minute: "2-digit", hour12: false },
+  );
 
   const source = (
     <Typography
@@ -63,7 +66,7 @@ export function WeatherCard({ details, bottom, compact }: WeatherCardProps) {
       >
         MET Norway
       </Link>
-      {retrieved && `, retrieved ${retrieved}`}
+      , retrieved {retrieved}
     </Typography>
   );
 
@@ -73,6 +76,8 @@ export function WeatherCard({ details, bottom, compact }: WeatherCardProps) {
     bottom,
     // With the detail cards, under RightMenu: an open tool panel covers it.
     zIndex: 2,
+    // In step with the sheet it stands on, which eases between its snaps.
+    transition: "bottom 200ms ease-out",
     boxSizing: "border-box",
     maxWidth: `calc(100vw - ${2 * SURFACE_INSET}px)`,
     fontVariantNumeric: "tabular-nums",
@@ -131,7 +136,7 @@ export function WeatherCard({ details, bottom, compact }: WeatherCardProps) {
         {windSpeed !== null && (
           <Row label="Wind">
             {formatWind(windSpeed, windFromDirection)}
-            {windGust !== null && `, gusts ${windGust.toFixed(1)}`}
+            {windGust !== null && `, gusts ${formatSpeed(windGust)}`}
           </Row>
         )}
         {nextHour && <Row label="Next hour">{nextHour}</Row>}

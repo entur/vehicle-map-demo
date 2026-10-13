@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   compassPoint,
   formatPrecipitation,
+  formatSpeed,
   formatTemperature,
   formatWind,
   symbolLabel,
@@ -134,7 +135,8 @@ describe("symbolLabel", () => {
     expect(symbolLabel(symbol)).toBe(label);
   });
 
-  it.each(["", "somethingnew", "rainbows"])(
+  // A plain object lookup would answer these with Object's own members.
+  it.each(["", "somethingnew", "rainbows", "constructor", "toString"])(
     "has no label for the unknown symbol '%s'",
     (symbol) => {
       expect(symbolLabel(symbol)).toBeNull();
@@ -148,6 +150,7 @@ describe("formatting", () => {
     expect(formatTemperature(-3)).toBe("−3.0 °C");
     expect(formatPrecipitation(0)).toBe("0.0 mm/h");
     expect(formatPrecipitation(12.34)).toBe("12.3 mm/h");
+    expect(formatSpeed(7.5)).toBe("7.5 m/s");
   });
 
   it("names where the wind comes from", () => {

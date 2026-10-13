@@ -29,7 +29,7 @@ export type WeatherReading = {
   details: WeatherDetails | null;
 };
 
-const NO_READING: WeatherReading = { weather: null, details: null };
+export const NO_READING: WeatherReading = { weather: null, details: null };
 
 /**
  * The weather at the map's centre from MET Norway's Nowcast, or nothing while
@@ -74,13 +74,13 @@ export function useWeather(enabled: boolean): WeatherReading {
           // A slower answer for a place the map has since left.
           if (request !== latest) return;
           const weather = weatherFromNowcast(body);
-          if (!weather) {
+          const details = weatherDetailsFromNowcast(body, now);
+          // Not for a place outside the area, nor for one outside radar
+          // coverage that still has its temperature: both are answers.
+          if (body !== null && !weather && !details) {
             console.warn("Weather: the nowcast has no reading for", centre);
           }
-          setReading({
-            weather,
-            details: weatherDetailsFromNowcast(body, now),
-          });
+          setReading({ weather, details });
         })
         .catch((error: unknown) => {
           if (controller.signal.aborted) return;

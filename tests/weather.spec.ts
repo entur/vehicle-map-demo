@@ -219,7 +219,7 @@ test("the weather card shows the reading and credits MET Norway", async ({
 
   await expect(card(page)).toContainText("6.4 °C");
   await expect(card(page)).toContainText("0.3 mm/h");
-  await expect(card(page)).toContainText("4.0 m/s from SSE, gusts 7.5");
+  await expect(card(page)).toContainText("4.0 m/s from SSE, gusts 7.5 m/s");
   await expect(card(page)).toContainText("Next hourLight rain");
   await expect(card(page)).toContainText(/Data from MET Norway, retrieved \d/);
   await expect(

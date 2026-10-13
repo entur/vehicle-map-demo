@@ -70,9 +70,8 @@ import { BaseMapScheme } from "./BaseMapScheme.tsx";
 import { TransitNetworkLayers } from "./TransitNetworkLayers.tsx";
 import { WeatherOverlay } from "./WeatherOverlay.tsx";
 import { WeatherFeed } from "./WeatherFeed.tsx";
-import { Weather } from "../domain/weather.ts";
 import { WeatherCard } from "./WeatherCard.tsx";
-import { WeatherDetails } from "../domain/weatherDetails.ts";
+import { NO_READING, WeatherReading } from "../hooks/useWeather.ts";
 import { AerialImageryLayers } from "./AerialImageryLayers.tsx";
 import { AerialBuildingColours } from "./AerialBuildingColours.tsx";
 import { ChaseCamera } from "./Vehicle/ChaseCamera.tsx";
@@ -109,8 +108,15 @@ type MapViewProps = {
   setMapViewOptions: (mapViewOptions: MapViewOptions) => void;
 };
 
-/** The gap the weather card keeps above the sheet or the HUD on a phone. */
+/** The gap the weather card keeps above the sheet, the HUD or the band. */
 const WEATHER_CARD_GAP = 8;
+
+/**
+ * Below this width the weather card does not fit beside an open detail card:
+ * the detail card ends 393px in (`DETAIL_PANEL_SX`), and the weather card is
+ * about 320px wide with an inset either side.
+ */
+const WEATHER_CARD_BESIDE_DETAIL_QUERY = "(max-width: 759.95px)";
 
 /**
  * The Weather switch's credit in the attribution strip. MET Norway's data is
@@ -210,12 +216,11 @@ export function MapView({
   // vehicle's, and drawn in 3D only; the switch keeps its setting through 2D.
   const [showWeather, setShowWeather] = useState(false);
   const weatherEnabled = showWeather && viewDimension === "3d";
-  // Reported by WeatherFeed, drawn by WeatherOverlay and BaseMapScheme.
-  const [weather, setWeather] = useState<Weather | null>(null);
-  // The same reading's numbers, shown by WeatherCard.
-  const [weatherDetails, setWeatherDetails] = useState<WeatherDetails | null>(
-    null,
-  );
+  // Reported by WeatherFeed. Its weather is drawn by WeatherOverlay and
+  // BaseMapScheme, its numbers shown by WeatherCard.
+  const [weatherReading, setWeatherReading] =
+    useState<WeatherReading>(NO_READING);
+  const weather = weatherReading.weather;
   const chasedVehicleKey = chasedVehicle
     ? chasedVehicle.vehicleId + "_" + chasedVehicle.serviceJourneyId
     : null;
@@ -510,18 +515,23 @@ export function MapView({
     ? Math.max(chaseBottomInset, kioskBandCovered)
     : chaseBottomInset;
   // The weather card stands in the bottom-right corner above the attribution
-  // strip, and above whatever else holds the bottom: the kiosk's band, or on
-  // a phone the sheet, which spans the width. A fully open sheet leaves it no
-  // map to stand on, and neither does a chase on a phone: above the HUD it
-  // stood on the chased vehicle.
-  const weatherCardBottom =
-    (narrow || kioskBand) && mapBottomInset > 0
-      ? mapBottomInset + WEATHER_CARD_GAP
-      : sheetBottomEdge;
-  const weatherCardShown = !(
-    narrow &&
-    (chasedVehicle !== null || (detailOpen && sheetSnap === "full"))
+  // strip, and above whatever else holds the bottom: the phone's sheet, the
+  // kiosk's band, or the chase HUD — centred, but as wide as its text, and
+  // on a screen under about 1100px it reached the corner and covered the
+  // card's credit. Lifted at every width rather than by a guess at the HUD's.
+  const weatherCardBottom = Math.max(
+    sheetBottomEdge,
+    mapBottomInset > 0 ? mapBottomInset + WEATHER_CARD_GAP : 0,
   );
+  // Not where it has no room. On a phone that is a fully open sheet and a
+  // chase, where above the HUD it stood on the chased vehicle. Wider, it is
+  // a detail card open on a screen too narrow for the two side by side.
+  const besideDetailTight = useMediaQuery(WEATHER_CARD_BESIDE_DETAIL_QUERY, {
+    noSsr: true,
+  });
+  const weatherCardShown = narrow
+    ? chasedVehicle === null && !(detailOpen && sheetSnap === "full")
+    : !(besideDetailTight && detailOpen && !kioskBand);
   // The chase places the camera itself every frame, and a fully open sheet
   // leaves too thin a strip of map to bring anything into.
   const keepInView =
@@ -573,11 +583,7 @@ export function MapView({
           onHeightChange={setAttributionHeight}
           credit={weatherEnabled ? WEATHER_CREDIT : undefined}
         />
-        <WeatherFeed
-          enabled={weatherEnabled}
-          onChange={setWeather}
-          onDetailsChange={setWeatherDetails}
-        />
+        <WeatherFeed enabled={weatherEnabled} onChange={setWeatherReading} />
         <WeatherOverlay weather={weather} />
         <ViewDimensionLayers
           dimension={viewDimension}
@@ -681,6 +687,15 @@ export function MapView({
           />
         )}
       </Map>
+      {/* Before the detail panels, which share its z-index: a sheet dragged
+          up over the card covers it rather than passing behind it. */}
+      {weatherCardShown && (
+        <WeatherCard
+          details={weatherReading.details}
+          bottom={weatherCardBottom}
+          compact={narrow}
+        />
+      )}
       {mode === "vehicles" && !kioskBand && (
         <SelectedVehiclePanel
           selectedVehicle={selectedVehicle}
@@ -697,13 +712,6 @@ export function MapView({
         />
       )}
       {mode === "situations" && <SituationDetailPanel layout={detailLayout} />}
-      {weatherCardShown && (
-        <WeatherCard
-          details={weatherDetails}
-          bottom={weatherCardBottom}
-          compact={narrow}
-        />
-      )}
       {fixedView.state && (
         <FixedViewKioskOverlay
           state={fixedView.state}

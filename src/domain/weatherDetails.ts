@@ -1,3 +1,5 @@
+import { NowcastBody, baseSymbol } from "./weather.ts";
+
 /**
  * The numbers in one MET Norway Nowcast reading, as delivered: nothing here
  * is derived, so what the weather card shows is what MET published. A value
@@ -20,18 +22,6 @@ export type WeatherDetails = {
   nextHourSymbol: string | null;
 };
 
-type NowcastBody = {
-  properties?: {
-    meta?: { radar_coverage?: string };
-    timeseries?: {
-      data?: {
-        instant?: { details?: Record<string, unknown> };
-        next_1_hours?: { summary?: { symbol_code?: unknown } };
-      };
-    }[];
-  };
-};
-
 /**
  * The details in a Nowcast response fetched at `retrievedAt`, or null when it
  * carries none. Unlike `weatherFromNowcast` this still answers outside radar
@@ -45,8 +35,8 @@ export function weatherDetailsFromNowcast(
   const now = properties?.timeseries?.[0]?.data;
   const instant = now?.instant?.details;
   if (!instant) return null;
-  const value = (key: string) => {
-    const v = instant[key];
+  const value = (key: keyof typeof instant) => {
+    const v: unknown = instant[key];
     return typeof v === "number" ? v : null;
   };
   const symbol = now?.next_1_hours?.summary?.symbol_code;
@@ -95,13 +85,14 @@ export function compassPoint(degrees: number): string {
   return COMPASS_POINTS[index % COMPASS_POINTS.length];
 }
 
-const SKY_LABELS: Record<string, string> = {
-  clearsky: "Clear sky",
-  fair: "Fair",
-  partlycloudy: "Partly cloudy",
-  cloudy: "Cloudy",
-  fog: "Fog",
-};
+/** A Map, since a plain object would also answer for `constructor`. */
+const SKY_LABELS = new Map([
+  ["clearsky", "Clear sky"],
+  ["fair", "Fair"],
+  ["partlycloudy", "Partly cloudy"],
+  ["cloudy", "Cloudy"],
+  ["fog", "Fog"],
+]);
 
 /**
  * MET's precipitation symbols are built from parts: an optional strength,
@@ -116,8 +107,9 @@ const PRECIPITATION_SYMBOL =
  * then says nothing rather than show a code or guess.
  */
 export function symbolLabel(symbolCode: string): string | null {
-  const symbol = symbolCode.replace(/_(day|night|polartwilight)$/, "");
-  if (symbol in SKY_LABELS) return SKY_LABELS[symbol];
+  const symbol = baseSymbol(symbolCode);
+  const sky = SKY_LABELS.get(symbol);
+  if (sky) return sky;
   const parts = PRECIPITATION_SYMBOL.exec(symbol);
   if (!parts) return null;
   const [, strength, falls, showers, thunder] = parts;
@@ -137,6 +129,10 @@ function oneDecimal(value: number): string {
   return value.toFixed(1).replace("-", "−");
 }
 
+export function formatSpeed(metresPerSecond: number): string {
+  return `${oneDecimal(metresPerSecond)} m/s`;
+}
+
 export function formatTemperature(celsius: number): string {
   return `${oneDecimal(celsius)} °C`;
 }
@@ -150,7 +146,7 @@ export function formatWind(
   speed: number,
   fromDirection: number | null,
 ): string {
-  const text = `${oneDecimal(speed)} m/s`;
+  const text = formatSpeed(speed);
   return fromDirection === null
     ? text
     : `${text} from ${compassPoint(fromDirection)}`;

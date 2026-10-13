@@ -33,7 +33,7 @@ const REFETCH_DISTANCE_METRES = 5000;
  * know leaves the sky clear, which is the sky the map has without weather.
  */
 function cloudCoverFor(symbolCode: string): CloudCover {
-  const symbol = symbolCode.replace(/_(day|night|polartwilight)$/, "");
+  const symbol = baseSymbol(symbolCode);
   if (symbol === "fog") return "fog";
   if (symbol === "cloudy") return "cloudy";
   if (symbol === "partlycloudy") return "partly";
@@ -42,13 +42,29 @@ function cloudCoverFor(symbolCode: string): CloudCover {
   return "clear";
 }
 
-type NowcastBody = {
+/**
+ * A MET symbol code without its time-of-day variant: `rainshowers_night` is
+ * `rainshowers`. The one place the variants are named, so the sky and the
+ * weather card cannot read the same symbol differently.
+ */
+export function baseSymbol(symbolCode: string): string {
+  return symbolCode.replace(/_(day|night|polartwilight)$/, "");
+}
+
+/** The parts of a Nowcast response the app reads. Nothing in it is trusted. */
+export type NowcastBody = {
   properties?: {
     meta?: { radar_coverage?: string };
     timeseries?: {
       data?: {
         instant?: {
-          details?: { precipitation_rate?: number; wind_speed?: number };
+          details?: {
+            air_temperature?: number;
+            precipitation_rate?: number;
+            wind_from_direction?: number;
+            wind_speed?: number;
+            wind_speed_of_gust?: number;
+          };
         };
         next_1_hours?: { summary?: { symbol_code?: string } };
       };
