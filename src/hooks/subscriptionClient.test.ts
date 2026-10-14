@@ -9,6 +9,7 @@ function config(overrides: Partial<Config> = {}): Config {
       "wss://example.test/subscriptions",
     "vehicle-positions-et-client-name": "test-client",
     "nib-token-endpoint": "https://example.test/token",
+    "weather-nowcast-endpoint": "https://example.test/nowcast",
     ...overrides,
   };
 }

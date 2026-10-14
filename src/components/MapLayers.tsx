@@ -9,6 +9,7 @@ import {
 } from "@mui/material";
 import { MapViewOptions } from "../types.ts";
 import { AppMode } from "../domain/appMode.ts";
+import { ViewDimension } from "../domain/viewDimension.ts";
 import { VehicleIconCanvas } from "./VehicleIconCanvas.tsx";
 import { VEHICLE_ICON_URLS } from "./vehicleIconImages.ts";
 import { SCHEDULE_GHOST_OPACITY } from "./mapStyle.ts";
@@ -31,6 +32,9 @@ type Props = {
   setShowAerial: (show: boolean) => void;
   showScheduleGhost: boolean;
   setShowScheduleGhost: (show: boolean) => void;
+  showWeather: boolean;
+  setShowWeather: (show: boolean) => void;
+  viewDimension: ViewDimension;
 };
 
 export function MapLayers({
@@ -43,6 +47,9 @@ export function MapLayers({
   setShowAerial,
   showScheduleGhost,
   setShowScheduleGhost,
+  showWeather,
+  setShowWeather,
+  viewDimension,
 }: Props) {
   const { current: mapRef } = useMap();
 
@@ -255,6 +262,22 @@ export function MapLayers({
             />
           }
           label={<Typography variant="body2">Aerial photo</Typography>}
+        />
+        {/* Drawn by WeatherOverlay, in 3D only: the switch keeps its setting
+            through 2D, where it does nothing. */}
+        <FormControlLabel
+          disabled={viewDimension !== "3d"}
+          control={
+            <Switch
+              checked={showWeather}
+              onChange={(event) => setShowWeather(event.target.checked)}
+            />
+          }
+          label={
+            <Typography variant="body2">
+              {viewDimension === "3d" ? "Weather" : "Weather (3D view only)"}
+            </Typography>
+          }
         />
       </FormGroup>
     </Box>

@@ -9,6 +9,7 @@ import { ModeSwitch } from "../ModeSwitch.tsx";
 import { FloatingCard } from "../FloatingCard.tsx";
 import { SURFACE_INSET } from "../theme.ts";
 import { AppMode, isWideTool, rightRailTools } from "../../domain/appMode.ts";
+import { ViewDimension } from "../../domain/viewDimension.ts";
 
 const NO_DATA: VehicleUpdate[] = [];
 
@@ -25,6 +26,9 @@ interface RightMenuProps {
   setShowAerial: (show: boolean) => void;
   showScheduleGhost: boolean;
   setShowScheduleGhost: (show: boolean) => void;
+  showWeather: boolean;
+  setShowWeather: (show: boolean) => void;
+  viewDimension: ViewDimension;
   data: VehicleUpdate[];
   kiosk: KioskTool;
 }
@@ -42,6 +46,9 @@ export const RightMenu = ({
   setShowAerial,
   showScheduleGhost,
   setShowScheduleGhost,
+  showWeather,
+  setShowWeather,
+  viewDimension,
   data,
   kiosk,
 }: RightMenuProps) => {
@@ -131,6 +138,9 @@ export const RightMenu = ({
               setShowAerial={setShowAerial}
               showScheduleGhost={showScheduleGhost}
               setShowScheduleGhost={setShowScheduleGhost}
+              showWeather={showWeather}
+              setShowWeather={setShowWeather}
+              viewDimension={viewDimension}
               data={panelData}
               kiosk={kiosk}
             />

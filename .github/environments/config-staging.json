@@ -2,5 +2,6 @@
   "vehicle-positions-graphql-endpoint": "https://api.staging.entur.io/realtime/v2/vehicles/graphql",
   "vehicle-positions-subscriptions-endpoint": "wss://api.staging.entur.io/realtime/v2/vehicles/subscriptions",
   "vehicle-positions-et-client-name": "entur-vehicle-map-demo-staging",
-  "nib-token-endpoint": "https://api.staging.entur.io/baat-token-proxy/v1/token"
+  "nib-token-endpoint": "https://api.staging.entur.io/baat-token-proxy/v1/token",
+  "weather-nowcast-endpoint": "https://api.met.no/weatherapi/nowcast/2.0/complete"
 }

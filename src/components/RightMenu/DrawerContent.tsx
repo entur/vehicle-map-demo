@@ -10,6 +10,7 @@ import { InfoBox } from "../InfoBox.tsx";
 import { SituationsPanel } from "../SituationsPanel";
 import { SituationStatsTables } from "../SituationsPanel/SituationStatsTables.tsx";
 import { AppMode } from "../../domain/appMode.ts";
+import { ViewDimension } from "../../domain/viewDimension.ts";
 
 type DrawerContentProps = {
   mode: AppMode;
@@ -24,6 +25,9 @@ type DrawerContentProps = {
   setShowAerial: (show: boolean) => void;
   showScheduleGhost: boolean;
   setShowScheduleGhost: (show: boolean) => void;
+  showWeather: boolean;
+  setShowWeather: (show: boolean) => void;
+  viewDimension: ViewDimension;
   data: VehicleUpdate[];
   kiosk: KioskTool;
 };
@@ -41,6 +45,9 @@ export const DrawerContent = memo(function DrawerContent({
   setShowAerial,
   showScheduleGhost,
   setShowScheduleGhost,
+  showWeather,
+  setShowWeather,
+  viewDimension,
   data,
   kiosk,
 }: DrawerContentProps) {
@@ -66,6 +73,9 @@ export const DrawerContent = memo(function DrawerContent({
           setShowAerial={setShowAerial}
           showScheduleGhost={showScheduleGhost}
           setShowScheduleGhost={setShowScheduleGhost}
+          showWeather={showWeather}
+          setShowWeather={setShowWeather}
+          viewDimension={viewDimension}
         />
       )}
       {activeContent === "stoplight" && currentFilter && <DataChecker />}

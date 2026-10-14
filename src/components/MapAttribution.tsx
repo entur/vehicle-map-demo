@@ -4,6 +4,8 @@ import { AttributionControl, useMap } from "react-map-gl/maplibre";
 type MapAttributionProps = {
   /** Told the strip's height in px whenever it changes, 0 when it is gone. */
   onHeightChange: (px: number) => void;
+  /** A credit, as HTML, for something that is not a map source. */
+  credit?: string;
 };
 
 /**
@@ -15,25 +17,45 @@ type MapAttributionProps = {
  * aerial imagery each add a credit — and the detail sheet stands clear above
  * it (`sheetBottom`) rather than covering it. Observed, since the credits
  * change with the layers shown.
+ *
+ * MapLibre reads a control's custom attribution once, when it is added, so a
+ * change of `credit` remounts the control and the strip is then a new
+ * element. The height is therefore read from whichever strip is in the
+ * corner when the corner changes size, never from one strip held on to: the
+ * old strip is still in the document when this effect runs, and measuring it
+ * reported 0 once it was removed, which sank the sheet over the new credit.
  */
-export function MapAttribution({ onHeightChange }: MapAttributionProps) {
+export function MapAttribution({
+  onHeightChange,
+  credit,
+}: MapAttributionProps) {
   const { current: mapRef } = useMap();
 
-  // Runs after AttributionControl's own effect has added the control.
   useEffect(() => {
-    const strip = mapRef
+    const corner = mapRef
       ?.getContainer()
-      .querySelector<HTMLElement>(".maplibregl-ctrl-attrib");
-    if (!strip) return;
-    const report = () => onHeightChange(strip.offsetHeight);
+      .querySelector<HTMLElement>(".maplibregl-ctrl-bottom-right");
+    if (!corner) return;
+    const report = () =>
+      onHeightChange(
+        corner.querySelector<HTMLElement>(".maplibregl-ctrl-attrib")
+          ?.offsetHeight ?? 0,
+      );
     report();
     const observer = new ResizeObserver(report);
-    observer.observe(strip);
+    observer.observe(corner);
     return () => {
       observer.disconnect();
       onHeightChange(0);
     };
   }, [mapRef, onHeightChange]);
 
-  return <AttributionControl position="bottom-right" compact={false} />;
+  return (
+    <AttributionControl
+      key={credit}
+      position="bottom-right"
+      compact={false}
+      customAttribution={credit}
+    />
+  );
 }
