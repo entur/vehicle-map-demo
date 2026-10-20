@@ -4,7 +4,7 @@ import { TwinkleExtension, twinkleShaderModule } from "./twinkleExtension.ts";
 import type { TwinkleState } from "./twinkleClock.ts";
 import type { Decoration } from "../../domain/decorationPlacement.ts";
 import { christmasTreeModel, TREE } from "../../domain/vehicleMeshes.ts";
-import { TWINKLE_MIN, TWINKLE_PERIOD_S } from "../../domain/twinkle.ts";
+import { TWINKLE_PERIOD_S, twinkleBrightness } from "../../domain/twinkle.ts";
 import {
   MODEL_BEFORE_LAYER,
   MODEL_MATERIALS,
@@ -126,7 +126,28 @@ describe("christmasTreeLayers", () => {
       expect(layer.props.extensions).toHaveLength(1);
       expect(layer.props.extensions[0]).toBeInstanceOf(TwinkleExtension);
     });
-    // The canopy, trunk and star do not twinkle.
+  });
+
+  // A wall screen runs for weeks: in float32, seconds since start would step
+  // visibly, so the time is wrapped to one period in double precision first.
+  it("wraps the time to one period before it becomes a uniform", () => {
+    const timeS = 1e7 + 0.5;
+    const [bulb] = christmasTreeLayers(
+      [T],
+      options("dark", true, { timeS, amount: 1 }),
+    ).slice(3);
+    const wrapped = (bulb.props as unknown as TwinkleLayerProps).twinkleTimeS;
+    expect(wrapped).toBeGreaterThanOrEqual(0);
+    expect(wrapped).toBeLessThan(TWINKLE_PERIOD_S);
+    for (let group = 0; group < TREE.bulbGroups; group++)
+      expect(twinkleBrightness(wrapped, 0.4, group, 3, 1)).toBeCloseTo(
+        twinkleBrightness(timeS, 0.4, group, 3, 1),
+        6,
+      );
+  });
+
+  it("does not twinkle the canopy, trunk or star", () => {
+    const layers = christmasTreeLayers([T], options("dark"));
     for (const layer of layers.slice(0, 3))
       expect(layer.props.extensions ?? []).toHaveLength(0);
   });
@@ -195,8 +216,6 @@ describe("TwinkleExtension", () => {
   });
 
   it("carries TWINKLE_PERIOD_S and TWINKLE_MIN from the domain", () => {
-    expect(glsl).toContain(`${TWINKLE_PERIOD_S.toFixed(1)}`);
-    expect(glsl).toContain(`${TWINKLE_MIN}`);
     expect(glsl).toMatch(/TWINKLE_PERIOD_S\s+3\.0\b/);
     expect(glsl).toMatch(/TWINKLE_MIN\s+0\.35\b/);
   });

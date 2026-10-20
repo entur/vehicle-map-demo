@@ -1,5 +1,6 @@
 import { SimpleMeshLayer } from "@deck.gl/mesh-layers";
 import type { Decoration } from "../../domain/decorationPlacement.ts";
+import { TWINKLE_PERIOD_S } from "../../domain/twinkle.ts";
 import { christmasTreeModel, TREE } from "../../domain/vehicleMeshes.ts";
 import {
   MODEL_BEFORE_LAYER,
@@ -46,6 +47,10 @@ export function christmasTreeLayers(
   if (!visible || trees.length === 0) return [];
 
   const { canopy, trunk, star, bulbs } = christmasTreeModel();
+  // Wrapped here, in double precision: a wall screen runs for weeks, and as a
+  // float32 uniform the raw seconds would step the fade visibly. The curve
+  // repeats every period, so this is exactly the same brightness.
+  const timeS = twinkle.timeS % TWINKLE_PERIOD_S;
   const materials = MODEL_MATERIALS[scheme];
   const shared = {
     beforeId: MODEL_BEFORE_LAYER,
@@ -102,7 +107,7 @@ export function christmasTreeLayers(
           material: materials.lamps,
           extensions: TWINKLE,
           getPhase: phaseOf,
-          twinkleTimeS: twinkle.timeS,
+          twinkleTimeS: timeS,
           twinkleAmount: twinkle.amount,
           twinkleGroup: group,
           twinkleGroups: TREE.bulbGroups,

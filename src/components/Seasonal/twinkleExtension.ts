@@ -43,10 +43,11 @@ layout(std140) uniform twinkleUniforms {
 
 /**
  * `twinkleBrightness` in src/domain/twinkle.ts, per vertex: the bulb colour is
- * dimmed before lighting, so a lamp material's glow fades with it.
+ * dimmed before lighting, so a lamp material's glow fades with it. `fract`
+ * keeps `cos`'s argument within one turn, which some mobile GPUs reduce poorly.
  */
 const filterColor = /* glsl */ `\
-  float twinkleWave = 0.5 - 0.5 * cos(TWINKLE_TAU * (
+  float twinkleWave = 0.5 - 0.5 * cos(TWINKLE_TAU * fract(
     twinkle.timeS / TWINKLE_PERIOD_S + instancePhases + twinkle.group / twinkle.groups
   ));
   color.rgb *= 1.0 - twinkle.amount * (1.0 - TWINKLE_MIN) * twinkleWave;
