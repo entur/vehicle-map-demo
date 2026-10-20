@@ -25,6 +25,8 @@ import { LIGHT_POOL_REACH } from "../../domain/lightPool.ts";
 import { StopPole, polesInView } from "../../domain/journeyStops.ts";
 import type { MapSourceDataEvent } from "maplibre-gl";
 import { stopPoleLayers } from "./stopPoleLayers.ts";
+import type { Season } from "../../domain/season.ts";
+import { usePumpkins } from "../Seasonal/usePumpkins.ts";
 
 const NO_VEHICLES: VehicleUpdate[] = [];
 
@@ -54,6 +56,8 @@ type Props = {
   ghostStore: VehicleStore;
   /** The selected journey's stops, drawn as poles with name boards. */
   stopPoles: StopPole[];
+  /** The season whose decorations stand near the stops, if any. */
+  season: Season | null;
 };
 
 /**
@@ -67,8 +71,9 @@ type Props = {
  * — otherwise its model would sit at the newest report, seconds ahead of the
  * camera. The schedule ghost is drawn the same way, from `ghostStore`, faded.
  *
- * The selected journey's stops are drawn here too, as poles: deck.gl keeps one
- * interleaved overlay per map, so everything 3D shares this one.
+ * The selected journey's stops are drawn here too, as poles, and the seasonal
+ * decorations: deck.gl keeps one interleaved overlay per map, so everything
+ * 3D shares this one.
  */
 export function VehicleModels({
   showVehicles,
@@ -78,6 +83,7 @@ export function VehicleModels({
   chasedVehicleStore,
   ghostStore,
   stopPoles,
+  season,
 }: Props) {
   const overlay = useControl(
     () => new MapLibreOverlay({ interleaved: true, layers: [] }),
@@ -89,6 +95,7 @@ export function VehicleModels({
   const chasedLayers = useRef<Layer[]>([]);
   const ghostLayers = useRef<Layer[]>([]);
   const stopLayers = useRef<Layer[]>([]);
+  const seasonalLayers = useRef<Layer[]>([]);
   const options = useRef<Omit<ModelLayerOptions, "idPrefix"> | null>(null);
 
   // Every handover of layers goes through here, so that deck.gl can add its
@@ -103,6 +110,7 @@ export function VehicleModels({
           ...chasedLayers.current,
           ...ghostLayers.current,
           ...stopLayers.current,
+          ...seasonalLayers.current,
         ],
       }),
     );
@@ -314,6 +322,23 @@ export function VehicleModels({
       ghostLayers.current = [];
     };
   }, [handOver, ghostStore, showVehicles]);
+
+  const onSeasonalLayers = useCallback(
+    (layers: Layer[]) => {
+      seasonalLayers.current = layers;
+      handOver();
+    },
+    [handOver],
+  );
+  usePumpkins({
+    map: mapRef?.getMap(),
+    season,
+    opacity,
+    scheme,
+    chasing,
+    chasedVehicleStore,
+    onLayers: onSeasonalLayers,
+  });
 
   return null;
 }

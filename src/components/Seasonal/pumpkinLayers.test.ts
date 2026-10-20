@@ -63,7 +63,10 @@ describe("pumpkinLayers", () => {
 
   it("draws under the vehicle icons", () => {
     for (const layer of pumpkinLayers([P], options("dark")))
-      expect(layer.props.beforeId).toBe(MODEL_BEFORE_LAYER);
+      // An interleaved-overlay prop deck.gl's own layer types do not declare.
+      expect((layer.props as { beforeId?: string }).beforeId).toBe(
+        MODEL_BEFORE_LAYER,
+      );
   });
 
   it("scales each pumpkin by its height and turns it by its yaw", () => {

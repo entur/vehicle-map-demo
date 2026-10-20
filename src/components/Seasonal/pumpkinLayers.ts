@@ -1,5 +1,4 @@
 import { SimpleMeshLayer } from "@deck.gl/mesh-layers";
-import type { Layer } from "@deck.gl/core";
 import type { Pumpkin } from "../../domain/pumpkinPlacement.ts";
 import { pumpkinModel } from "../../domain/vehicleMeshes.ts";
 import type { MapScheme } from "../basemap/basemap.ts";
@@ -35,7 +34,7 @@ export function pumpkinLayers(
     getElevation,
     positionTrigger,
   }: PumpkinLayerOptions,
-): Layer[] {
+): SimpleMeshLayer<Pumpkin>[] {
   // Nothing while hidden, as for the vehicle models.
   if (!visible || pumpkins.length === 0) return [];
 
