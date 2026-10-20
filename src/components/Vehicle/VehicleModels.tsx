@@ -85,8 +85,19 @@ export function VehicleModels({
   stopPoles,
   season,
 }: Props) {
+  // StrictMode adds, removes and re-adds this control, so two Decks attach to
+  // the map's one WebGL context. luma creates the device asynchronously, so
+  // both pass its "already attached?" check and the second throws, leaving
+  // no 3D at all. `_reuseDevices` hands the second the first's device — what
+  // deck.gl itself passes when it creates a context, but not when it attaches
+  // to one, and the interleaved overlay accepts no `device` of its own.
   const overlay = useControl(
-    () => new MapLibreOverlay({ interleaved: true, layers: [] }),
+    () =>
+      new MapLibreOverlay({
+        interleaved: true,
+        layers: [],
+        deviceProps: { _reuseDevices: true },
+      }),
   );
   const { current: mapRef } = useMap();
   const scheme = mapSchemeFor(useColorScheme().colorScheme);
