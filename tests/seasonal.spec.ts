@@ -9,7 +9,7 @@ type TestWindow = {
     }): void;
     once(event: "idle", listener: () => void): void;
   };
-  __pumpkins?: { count: number };
+  __seasonal?: { season: string; count: number; twinkling: boolean };
 };
 
 /** Majorstuen: stops with room beside them, so some get pumpkins. */
@@ -34,19 +34,37 @@ async function openAtMajorstuen(page: Page, search: string) {
   );
 }
 
-const pumpkins = (page: Page) =>
-  page.evaluate(() => (window as unknown as TestWindow).__pumpkins);
+const seasonal = (page: Page) =>
+  page.evaluate(() => (window as unknown as TestWindow).__seasonal);
 
 test("pumpkins stand near stops in the Halloween season", async ({ page }) => {
   await openAtMajorstuen(page, "?season=halloween");
   await expect
-    .poll(async () => (await pumpkins(page))?.count ?? 0, { timeout: 30000 })
+    .poll(async () => (await seasonal(page))?.count ?? 0, { timeout: 30000 })
     .toBeGreaterThan(0);
+  expect((await seasonal(page))?.season).toBe("halloween");
 });
 
-test("no pumpkins with season=none", async ({ page }) => {
+test("no decorations with season=none", async ({ page }) => {
   await openAtMajorstuen(page, "?season=none");
-  expect(await pumpkins(page)).toBeUndefined();
+  expect(await seasonal(page)).toBeUndefined();
+});
+
+test("Christmas trees stand near stops in Advent", async ({ page }) => {
+  await openAtMajorstuen(page, "?season=christmas");
+  await expect
+    .poll(async () => (await seasonal(page))?.count ?? 0, { timeout: 30000 })
+    .toBeGreaterThan(0);
+  expect((await seasonal(page))?.season).toBe("christmas");
+});
+
+test("the lights hold steady with reduced motion", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await openAtMajorstuen(page, "?season=christmas");
+  await expect
+    .poll(async () => (await seasonal(page))?.count ?? 0, { timeout: 30000 })
+    .toBeGreaterThan(0);
+  expect((await seasonal(page))?.twinkling).toBe(false);
 });
 
 // Tilted, the loaded tiles reach the horizon, where low-zoom tiles carry
@@ -69,8 +87,9 @@ test("pumpkins survive a tilted 3D view", async ({ page }) => {
     MAJORSTUEN,
   );
   await expect
-    .poll(async () => (await pumpkins(page))?.count ?? 0, { timeout: 30000 })
+    .poll(async () => (await seasonal(page))?.count ?? 0, { timeout: 30000 })
     .toBeGreaterThan(0);
+  expect((await seasonal(page))?.season).toBe("halloween");
   // Let the horizon's tiles load and the next builds run against them.
   await page.waitForTimeout(8000);
   expect(

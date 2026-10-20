@@ -26,7 +26,7 @@ import { StopPole, polesInView } from "../../domain/journeyStops.ts";
 import type { MapSourceDataEvent } from "maplibre-gl";
 import { stopPoleLayers } from "./stopPoleLayers.ts";
 import type { Season } from "../../domain/season.ts";
-import { usePumpkins } from "../Seasonal/usePumpkins.ts";
+import { useSeasonalDecorations } from "../Seasonal/useSeasonalDecorations.ts";
 
 const NO_VEHICLES: VehicleUpdate[] = [];
 
@@ -330,7 +330,7 @@ export function VehicleModels({
     },
     [handOver],
   );
-  usePumpkins({
+  useSeasonalDecorations({
     map: mapRef?.getMap(),
     season,
     opacity,

@@ -4,7 +4,7 @@ import type { ViewBounds } from "./vehiclesInView.ts";
 /**
  * Where a season's decorations stand: a few at every stop, at random but the
  * same every time, clear of traffic and buildings. Pure, so it is tested
- * without a map; `usePumpkins` feeds it the stops, roads and buildings it
+ * without a map; `useSeasonalDecorations` feeds it the stops, roads and buildings it
  * reads from the base map's tiles.
  *
  * The randomness is seeded from the stop's own position, so a stop gets the
@@ -63,7 +63,7 @@ export type DecorationCache = Map<string, CachedStop>;
  * Half the width of the carriageway or track, from the centre line, per
  * `transportation` class: the tiles carry centre lines but no widths. A ferry
  * line counts, with room for the boat, so a quay's stop does not crowd its
- * berth; water itself is kept clear by `usePumpkins`, which passes water
+ * berth; water itself is kept clear by `useSeasonalDecorations`, which passes water
  * areas in with the buildings. A class not listed — path, track, pedestrian,
  * aerialway — is not traffic: no vehicle in the feed drives there, and
  * counting footways and cycleways would leave a city centre with no decorations.
