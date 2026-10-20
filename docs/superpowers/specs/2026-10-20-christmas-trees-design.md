@@ -190,3 +190,82 @@ Everything in the Halloween spec's constraints holds for the trees unless it is 
 - **Looked at by eye in both schemes:** no tree on a road or track, the lights visibly twinkling
   and not blinking, and steady with reduced motion emulated.
 - **The CLAUDE.md section** "Seasonal decorations" is updated to cover both seasons.
+
+## Measured (2026-10-20)
+
+### Density
+
+Placement alone, on stops, roads, buildings and water captured from the live tiles, in Node,
+as the pumpkins were measured. "Stops" are the distinct stops inside the view; the times are
+medians of ten runs, a first placement with an empty cache and the next with it full. The app
+showed the same counts in each view, except Bergen at zoom 16, where the models — and with
+them the decorations — have only begun to fade in, so nothing is drawn yet.
+
+| View                                | Before: 3–15 m, 24 spots    | After: 3–20 m, 48 spots     |
+| ----------------------------------- | --------------------------- | --------------------------- |
+| Oslo sentrum, 3D zoom 16.5 pitch 60 | 33 of 91 stops, 13 / 1.5 ms | 43 of 91 stops, 16 / 1.6 ms |
+| Majorstuen, zoom 17                 | 9 of 17, 1.2 / 0.2 ms       | 12 of 17, 1.9 / 0.2 ms      |
+| Bergen sentrum, zoom 16             | 8 of 17, 2.2 / 0.6 ms       | 12 of 17, 2.8 / 0.9 ms      |
+| Aker brygge, zoom 16.5              | 6 of 6, 0.5 / 0.2 ms        | 6 of 6, 0.6 / 0.2 ms        |
+
+Before, a third of the stops in Oslo sentrum got a tree, so the spread and the spots tried were
+raised; the clearance was not touched. 3–25 m and 48 spots would have reached 49 of 91, but a
+tree 25 m off no longer reads as the stop's, and its first placement took 21 ms. The pumpkins'
+first placement over the same scene is 18 ms. Reading the tiles adds about 7 ms (measured for
+the pumpkins).
+
+### Frames
+
+On a production build (`vite build` with the two development-only `window` hooks kept by a
+throwaway config, served by `vite preview`), in headless Chromium. The development server was
+not used: under its React StrictMode deck.gl currently fails to draw. Oslo sentrum, 3D, zoom
+16.5, pitch 60, with live vehicles from dev, as in the Halloween table: frames counted with
+`requestAnimationFrame`, MapLibre repaints with `map.on("render")`. Rotation is a linear 90°
+over 10 s, twice per case; the chase is 20 s behind a bus picked near the centre, 8 s after it
+started. "Still while twinkling" is 10 s with no input, straight after some; "after idle" is
+10 s starting 62 s after the last input.
+
+On the GPU (Apple M1 Max through ANGLE Metal, 1560×784):
+
+| Case                                  | Trees   | fps         | Frames > 25 ms | Worst | Repaints |
+| ------------------------------------- | ------- | ----------- | -------------- | ----- | -------- |
+| Rotation, light, `?season=none`       | –       | 60.1 / 60.1 | 0 / 0          | 17 ms | 600      |
+| Rotation, light, `?season=christmas`  | 43 / 39 | 60.1 / 60.0 | 0 / 0          | 17 ms | 600      |
+| Rotation, dark, `?season=none`        | –       | 60.0 / 60.0 | 1 / 0          | 33 ms | 600      |
+| Rotation, dark, `?season=christmas`   | 43 / 39 | 60.0 / 60.0 | 0 / 0          | 17 ms | 600      |
+| Chase, dark, `?season=none`           | –       | 60.0        | 0              | 17 ms | 594      |
+| Chase, dark, `?season=christmas`      | 22      | 60.0        | 1              | 33 ms | 969      |
+| Still, dark, `?season=none`           | –       | 60.1        | 0              | 17 ms | 98       |
+| Still while twinkling, dark           | 43      | 60.0        | 0              | 17 ms | 175      |
+| Still while twinkling, light          | 43      | 60.1        | 0              | 17 ms | 225      |
+| After idle, dark, `?season=none`      | –       | 60.0        | 0              | 17 ms | 102      |
+| After idle, dark, `?season=christmas` | 43      | 60.1        | 0              | 17 ms | 140      |
+| After idle, no vehicle feed, none     | –       | 60.0        | 0              | 17 ms | **0**    |
+| After idle, no vehicle feed, trees    | 43      | 60.1        | 0              | 17 ms | **0**    |
+
+With live vehicles the map repaints for every vehicle frame, trees or not, so the idle case was
+also run with the subscription's WebSocket closed: then it repaints **not once** in 10 s, as
+without trees. The twinkle's own cost is the repaints it asks for — about 12 a second, 80–130
+in 10 s over what the vehicles cause — and on this GPU none of them made a frame late. The one
+long frame in the chase with trees is the kind the pumpkins showed, a placement landing in a
+frame (once a second during a chase).
+
+On swiftshader (`--use-angle=swiftshader`, a CPU renderer, at 640×400; at 1200×700 it drew
+under one frame a second):
+
+| Case                              | Trees  | fps       | Frames > 25 ms | Repaints |
+| --------------------------------- | ------ | --------- | -------------- | -------- |
+| Rotation, light, none / christmas | – / 15 | 3.3 / 2.8 | 31 / 29        | 32 / 28  |
+| Rotation, dark, none / christmas  | – / 15 | 3.4 / 3.0 | 32 / 28        | 35 / 30  |
+| Still, dark, none                 | –      | 60.1      | 0              | 0        |
+| Still while twinkling, dark       | 15     | 7.8       | 78             | 77       |
+| Still while twinkling, light      | 15     | 50.6      | 34             | 124      |
+| After idle, dark, christmas       | 15     | 42.9      | 13             | 17       |
+| After idle, no vehicle feed, both | – / 15 | 60.0      | 0              | **0**    |
+
+(Rotation fps and counts averaged over the two runs. No vehicle came near the centre at zoom
+15 in the small view, so the chase was not run here.) Rotating, trees cost nothing a CPU
+renderer can show. Still, they do: every twinkle tick is a full repaint of the 3D map, which
+here takes 100–280 ms, so a still map that was idle at 60 fps drops to 8 in dark mode for as
+long as the lights twinkle. That is the price of the twinkle on a machine without a GPU, and it
+ends 60 s after the last input; the idle repaints with live vehicles are the vehicles' own.

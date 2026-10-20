@@ -111,8 +111,10 @@ export const DECORATIONS: Record<Season, DecorationSpec> = {
     perStop: [1, 1],
     heightM: [4, 5],
     aspect: TREE_ASPECT,
-    spreadM: [3, 15],
-    candidates: 24,
+    // A tree needs more room than a pumpkin: at 15 m and 24 spots, about a
+    // third of a city centre's stops got one; at 20 m and 48, about half.
+    spreadM: [3, 20],
+    candidates: 48,
     tints: [
       [0x2e, 0x6b, 0x3a],
       [0x3f, 0x7d, 0x45],

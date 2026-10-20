@@ -1138,7 +1138,7 @@ describe("christmas trees", () => {
     expect(decorationsAtStop(trees, OSLO, [], [])).toHaveLength(1);
   });
 
-  it("keeps every tree 4–5 m tall and 3–15 m from its stop", () => {
+  it("keeps every tree 4–5 m tall and 3–20 m from its stop", () => {
     for (const stop of stops) {
       const placed = decorationsAtStop(trees, stop, [], []);
       expect(placed).toHaveLength(1);
@@ -1146,7 +1146,7 @@ describe("christmas trees", () => {
         expect(tree.height).toBeGreaterThanOrEqual(4);
         expect(tree.height).toBeLessThanOrEqual(5);
         expect(metres(stop, tree.position)).toBeGreaterThanOrEqual(3 - 1e-6);
-        expect(metres(stop, tree.position)).toBeLessThanOrEqual(15 + 1e-6);
+        expect(metres(stop, tree.position)).toBeLessThanOrEqual(20 + 1e-6);
       }
     }
   });
