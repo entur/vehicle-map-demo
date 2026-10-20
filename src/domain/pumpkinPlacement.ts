@@ -154,20 +154,32 @@ const CELL_DEG = 0.001;
 
 /**
  * Obstacles bucketed by every grid cell their bounding box covers, so the
- * ones near a stop are found without looking at all of them.
+ * ones near a stop are found without looking at all of them. Only cells
+ * inside `clip` are filled: in 3D the loaded tiles reach the horizon, where a
+ * low-zoom tile's ferry line or motorway can span degrees — millions of
+ * cells, which overflowed the Map and took the app down.
  */
 class Grid<T> {
   private readonly cells = new Map<string, T[]>();
 
-  constructor(items: T[], pointsOf: (item: T) => LngLat[]) {
+  constructor(
+    items: T[],
+    pointsOf: (item: T) => LngLat[],
+    [clipW, clipS, clipE, clipN]: [number, number, number, number],
+  ) {
     for (const item of items) {
       const [w, s, e, n] = boxOf(pointsOf(item));
-      for (let x = Math.floor(w / CELL_DEG); x <= Math.floor(e / CELL_DEG); x++)
-        for (
-          let y = Math.floor(s / CELL_DEG);
-          y <= Math.floor(n / CELL_DEG);
-          y++
-        ) {
+      if (e < clipW || w > clipE || n < clipS || s > clipN) continue;
+      const [x0, x1] = [
+        Math.floor(Math.max(w, clipW) / CELL_DEG),
+        Math.floor(Math.min(e, clipE) / CELL_DEG),
+      ];
+      const [y0, y1] = [
+        Math.floor(Math.max(s, clipS) / CELL_DEG),
+        Math.floor(Math.min(n, clipN) / CELL_DEG),
+      ];
+      for (let x = x0; x <= x1; x++)
+        for (let y = y0; y <= y1; y++) {
           const key = `${x},${y}`;
           const cell = this.cells.get(key);
           if (cell) cell.push(item);
@@ -301,11 +313,21 @@ export function pumpkinsInView(
   // A view's tiles hold thousands of roads and buildings; checking each
   // candidate spot against only those near its stop took a city-centre view
   // from about 380 ms to a few.
+  // Only obstacles that can reach a stop in view matter.
+  const padLng = REACH_M / Math.min(mPerDegLng(south), mPerDegLng(northEdge));
+  const padLat = REACH_M / M_PER_DEG_LAT;
+  const clip: [number, number, number, number] = [
+    west - padLng,
+    south - padLat,
+    eastEdge + padLng,
+    northEdge + padLat,
+  ];
   const trafficGrid = new Grid(
     traffic.filter((line) => line.class in TRAFFIC_HALF_WIDTH_M),
     (line) => line.coordinates,
+    clip,
   );
-  const buildingGrid = new Grid(buildings, (ring) => ring);
+  const buildingGrid = new Grid(buildings, (ring) => ring, clip);
 
   const unique = new Map<string, LngLat>();
   for (const stop of stops) {

@@ -105,7 +105,7 @@ export function usePumpkins({
         (window as PumpkinWindow).__pumpkins = { count: pumpkins.length };
     };
 
-    const build = () => {
+    const place = () => {
       if (opacity === 0) return show([], []);
       const stops = map
         .querySourceFeatures(SOURCE, {
@@ -151,6 +151,17 @@ export function usePumpkins({
           (pumpkin) => map.queryTerrainElevation(pumpkin.position) ?? 0,
         ),
       );
+    };
+
+    // A decoration must never take the map down: an error here once blanked
+    // the whole app. Logged, and no pumpkins until the next build succeeds.
+    const build = () => {
+      try {
+        place();
+      } catch (error) {
+        console.error("Seasonal pumpkins could not be placed", error);
+        show([], []);
+      }
     };
 
     const throttled = throttle(

@@ -196,6 +196,28 @@ describe("pumpkinsInView", () => {
     for (const p of farther) expect(pumpkins).not.toContainEqual(p);
   });
 
+  // In 3D the loaded tiles reach the horizon, and a low-zoom tile there can
+  // carry a ferry line or motorway several degrees long. Indexing every cell
+  // it covers overflowed a Map and took the whole app down.
+  it("copes with an obstacle many degrees long", () => {
+    const long = road(
+      "motorway",
+      [OSLO[0] - 3, OSLO[1] - 3],
+      [OSLO[0] + 3, OSLO[1] - 2.9],
+    );
+    const building = square(OSLO, 1) as BuildingRing;
+    const huge: BuildingRing = [
+      [OSLO[0] - 4, OSLO[1] + 1],
+      [OSLO[0] + 4, OSLO[1] + 1],
+      [OSLO[0] + 4, OSLO[1] + 3],
+      [OSLO[0] - 4, OSLO[1] + 3],
+      [OSLO[0] - 4, OSLO[1] + 1],
+    ];
+    expect(
+      pumpkinsInView([LUCKY], [long], [building, huge], viewAround(LUCKY)),
+    ).toEqual(pumpkinsInView([LUCKY], [], [building], viewAround(LUCKY)));
+  });
+
   it("drops pumpkins within the avoid radius", () => {
     const pumpkins = pumpkinsInView([LUCKY], [], [], viewAround(LUCKY), {
       avoid: { position: LUCKY, radiusM: CHASE_CLEARANCE_M },
