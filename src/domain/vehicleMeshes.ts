@@ -1,6 +1,6 @@
 import { VehicleModeEnumeration } from "../types.ts";
 import { dimensionsFor } from "./vehicleFootprint.ts";
-import { PUMPKIN_ASPECT } from "./decorationPlacement.ts";
+import { PUMPKIN_ASPECT, TREE_ASPECT } from "./decorationPlacement.ts";
 
 /**
  * Low-poly vehicle models built from boxes, prisms, lofted hulls and wheels,
@@ -78,6 +78,12 @@ export const MESH_COLOURS = {
   rescueBoat: rgb(0xf26b1d),
   pumpkinStem: rgb(0x4a6b2a),
   jackOLantern: rgb(0xffb030),
+  treeTrunk: rgb(0x5a3b24),
+  treeStar: rgb(0xffd23f),
+  bulbWarm: rgb(0xffe6a8),
+  bulbRed: rgb(0xe8343a),
+  bulbGold: rgb(0xffb52e),
+  bulbBlue: rgb(0x3d7bff),
 } as const;
 
 /**
@@ -91,6 +97,11 @@ const LAMP_COLOURS: ReadonlySet<RGB> = new Set([
   MESH_COLOURS.indicator,
   MESH_COLOURS.starboard,
   MESH_COLOURS.jackOLantern,
+  MESH_COLOURS.treeStar,
+  MESH_COLOURS.bulbWarm,
+  MESH_COLOURS.bulbRed,
+  MESH_COLOURS.bulbGold,
+  MESH_COLOURS.bulbBlue,
 ]);
 
 /**
@@ -2171,4 +2182,168 @@ export function pumpkinModel(): VehicleModel {
     pumpkin = m.build();
   }
   return pumpkin;
+}
+
+/** The seasonal Christmas tree, one unit tall; scaled per tree by its height. */
+export const TREE = {
+  height: 1,
+  width: TREE_ASPECT,
+  /** The trunk's top; the canopy's lowest tier stands on it. */
+  trunkHeight: 0.12,
+  tiers: 3,
+  /** Groups of bulbs, each drawn by its own layer so each can fade alone. */
+  bulbGroups: 3,
+  bulbs: 24,
+} as const;
+
+export type ChristmasTreeModel = {
+  /** White; tinted per tree by the renderer. */
+  canopy: VehicleMesh;
+  /** Fixed brown; drawn untinted. */
+  trunk: VehicleMesh;
+  /** A lamp colour, lit steadily. */
+  star: VehicleMesh;
+  /** `TREE.bulbGroups` meshes of lamp colours, every group carrying every colour. */
+  bulbs: VehicleMesh[];
+};
+
+/** Sides of each tier's cone. */
+const TREE_SIDES = 8;
+/** Bulbs are cubes this wide, their centres this far out from the canopy. */
+const BULB_SIZE = 0.025;
+const BULB_PROUD = BULB_SIZE / 2;
+/** The star: a flattened octahedron, its top at the tree's height. */
+const STAR = { halfWidth: 0.06, halfDepth: 0.015, halfHeight: 0.045 };
+/** The trunk's square section. */
+const TRUNK_WIDTH = 0.07;
+/** The golden angle, which spreads bulbs round the tree without lining up. */
+const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
+
+type Tier = { base: number; apex: number; radius: number };
+
+/**
+ * The canopy's three cones, bottom to top, each narrower and higher. Each
+ * tier's skirt hangs over the cone below, so a tier shows only between its own
+ * base and the next one's.
+ */
+const TREE_TIERS: readonly Tier[] = [
+  { base: TREE.trunkHeight, apex: 0.62, radius: TREE_ASPECT / 2 },
+  { base: 0.34, apex: 0.8, radius: 0.21 },
+  { base: 0.54, apex: 0.94, radius: 0.145 },
+];
+
+/**
+ * How far out a tier's octagonal cone is at height z and angle θ: the corner
+ * radius scaled down the cone, and in from a corner to a face's middle.
+ */
+function tierRadiusAt({ base, apex, radius }: Tier, z: number, theta: number) {
+  if (z < base || z > apex) return -Infinity;
+  const side = (2 * Math.PI) / TREE_SIDES;
+  const across = (((theta % side) + side) % side) - side / 2;
+  return (
+    ((radius * (apex - z)) / (apex - base)) *
+    (Math.cos(side / 2) / Math.cos(across))
+  );
+}
+
+let christmasTree: ChristmasTreeModel | undefined;
+
+/**
+ * A seasonal Christmas tree in the pumpkin's low-poly style, standing on the
+ * origin: a square trunk, three stacked eight-sided cones, the bottom one
+ * `TREE_ASPECT` wide at its corners, a star on top and `TREE.bulbs` bulbs a
+ * hair proud of the canopy. The canopy is white, tinted per tree by the
+ * renderer. The bulbs go up the canopy on a golden-angle spiral; bulb `i` is in
+ * group `i % bulbGroups` and cycles through the four bulb colours every
+ * `bulbGroups` bulbs, so every group carries every colour.
+ */
+export function christmasTreeModel(): ChristmasTreeModel {
+  if (!christmasTree) {
+    const { height, trunkHeight, bulbGroups, bulbs } = TREE;
+    const m = new MeshBuilder();
+    const corner = (tier: Tier, k: number): Vec3 => {
+      const theta = (k / TREE_SIDES) * 2 * Math.PI;
+      return [
+        tier.radius * Math.cos(theta),
+        tier.radius * Math.sin(theta),
+        tier.base,
+      ];
+    };
+
+    m.box(
+      0,
+      0,
+      0,
+      TRUNK_WIDTH,
+      TRUNK_WIDTH,
+      trunkHeight,
+      MESH_COLOURS.treeTrunk,
+    );
+
+    for (const tier of TREE_TIERS) {
+      const apex: Vec3 = [0, 0, tier.apex];
+      const middle: Vec3 = [0, 0, tier.base];
+      const inside: Vec3 = [0, 0, (tier.base * 3 + tier.apex) / 4];
+      for (let k = 0; k < TREE_SIDES; k++) {
+        const [a, b] = [corner(tier, k), corner(tier, k + 1)];
+        m.triangle(a, b, apex, PAINT, inside);
+        m.triangle(a, b, middle, PAINT, [0, 0, tier.base + 0.01]);
+      }
+    }
+
+    const { halfWidth, halfDepth, halfHeight } = STAR;
+    const centre: Vec3 = [0, 0, height - halfHeight];
+    const along = (x: number, y: number, z: number): Vec3 => [
+      centre[0] + x,
+      centre[1] + y,
+      centre[2] + z,
+    ];
+    for (const x of [-halfWidth, halfWidth]) {
+      for (const y of [-halfDepth, halfDepth]) {
+        for (const z of [-halfHeight, halfHeight]) {
+          m.triangle(
+            along(x, 0, 0),
+            along(0, y, 0),
+            along(0, 0, z),
+            MESH_COLOURS.treeStar,
+            centre,
+          );
+        }
+      }
+    }
+
+    // The spiral runs from just above the lowest tier's rim to below the
+    // star, each bulb on whichever tier is outermost at its height — the one
+    // that shows there.
+    const { bulbWarm, bulbRed, bulbGold, bulbBlue } = MESH_COLOURS;
+    const colours = [bulbWarm, bulbRed, bulbGold, bulbBlue];
+    const [low, high] = [trunkHeight + 0.04, TREE_TIERS[2].apex - 0.08];
+    const groups = Array.from({ length: bulbGroups }, () => new MeshBuilder());
+    for (let i = 0; i < bulbs; i++) {
+      const z = low + ((high - low) * (i + 0.5)) / bulbs;
+      const theta = i * GOLDEN_ANGLE;
+      const surface = Math.max(
+        ...TREE_TIERS.map((tier) => tierRadiusAt(tier, z, theta)),
+      );
+      const r = surface + BULB_PROUD;
+      groups[i % bulbGroups].box(
+        r * Math.cos(theta),
+        r * Math.sin(theta),
+        z - BULB_SIZE / 2,
+        BULB_SIZE,
+        BULB_SIZE,
+        BULB_SIZE,
+        colours[Math.floor(i / bulbGroups) % colours.length],
+      );
+    }
+
+    const tree = m.build();
+    christmasTree = {
+      canopy: tree.body,
+      trunk: tree.details,
+      star: tree.lamps,
+      bulbs: groups.map((group) => group.build().lamps),
+    };
+  }
+  return christmasTree;
 }

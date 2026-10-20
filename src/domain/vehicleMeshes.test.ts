@@ -1,14 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { VehicleModeEnumeration } from "../types.ts";
 import { dimensionsFor } from "./vehicleFootprint.ts";
-import { PUMPKIN_ASPECT } from "./decorationPlacement.ts";
+import { PUMPKIN_ASPECT, TREE_ASPECT } from "./decorationPlacement.ts";
 import {
   MESH_COLOURS,
   SIGN_TEXTURE_ASPECT,
   VehicleMesh,
   VehicleModel,
   STOP_POLE,
+  TREE,
   bodyColourFor,
+  christmasTreeModel,
   modelFor,
   pumpkinModel,
   stopPoleModel,
@@ -61,6 +63,69 @@ function extent(mesh: VehicleMesh) {
     return { min: Math.min(...values), max: Math.max(...values) };
   };
   return { x: axis(0), y: axis(1), z: axis(2) };
+}
+
+function emptyMesh(): VehicleMesh {
+  return {
+    positions: { value: new Float32Array(), size: 3 },
+    normals: { value: new Float32Array(), size: 3 },
+    colors: { value: new Float32Array(), size: 3 },
+  };
+}
+
+function joinMeshes(a: VehicleMesh, b: VehicleMesh): VehicleMesh {
+  return whole({
+    body: a,
+    sign: { ...emptyMesh(), texCoords: { value: new Float32Array(), size: 2 } },
+    details: b,
+    lamps: emptyMesh(),
+  });
+}
+
+type Point = [number, number, number];
+
+/** Distance from p to triangle abc (Ericson, Real-Time Collision Detection). */
+function distanceToTriangle(p: Point, a: Point, b: Point, c: Point): number {
+  const sub = (u: Point, v: Point): Point => [
+    u[0] - v[0],
+    u[1] - v[1],
+    u[2] - v[2],
+  ];
+  const dot = (u: Point, v: Point) => u[0] * v[0] + u[1] * v[1] + u[2] * v[2];
+  const along = (o: Point, u: Point, t: number): Point => [
+    o[0] + u[0] * t,
+    o[1] + u[1] * t,
+    o[2] + u[2] * t,
+  ];
+  const ab = sub(b, a);
+  const ac = sub(c, a);
+  const ap = sub(p, a);
+  const d1 = dot(ab, ap);
+  const d2 = dot(ac, ap);
+  let q: Point;
+  if (d1 <= 0 && d2 <= 0) q = a;
+  else {
+    const bp = sub(p, b);
+    const d3 = dot(ab, bp);
+    const d4 = dot(ac, bp);
+    const cp = sub(p, c);
+    const d5 = dot(ab, cp);
+    const d6 = dot(ac, cp);
+    const vc = d1 * d4 - d3 * d2;
+    const vb = d5 * d2 - d1 * d6;
+    const va = d3 * d6 - d5 * d4;
+    if (d3 >= 0 && d4 <= d3) q = b;
+    else if (d6 >= 0 && d5 <= d6) q = c;
+    else if (vc <= 0 && d1 >= 0 && d3 <= 0) q = along(a, ab, d1 / (d1 - d3));
+    else if (vb <= 0 && d2 >= 0 && d6 <= 0) q = along(a, ac, d2 / (d2 - d6));
+    else if (va <= 0 && d4 - d3 >= 0 && d5 - d6 >= 0)
+      q = along(b, sub(c, b), (d4 - d3) / (d4 - d3 + (d5 - d6)));
+    else {
+      const denom = 1 / (va + vb + vc);
+      q = along(along(a, ab, vb * denom), ac, vc * denom);
+    }
+  }
+  return Math.hypot(...sub(p, q));
 }
 
 function verticesColoured(mesh: VehicleMesh, colour: readonly number[]) {
@@ -434,6 +499,116 @@ describe("pumpkinModel", () => {
 
   it("is built once", () => {
     expect(pumpkinModel()).toBe(model);
+  });
+});
+
+describe("christmasTreeModel", () => {
+  const model = christmasTreeModel();
+  const meshes = [model.canopy, model.trunk, model.star, ...model.bulbs];
+  const all = meshes.reduce(joinMeshes);
+  // A bulb is a box: six faces of two triangles each.
+  const BOX_VERTICES = 36;
+  const bulbCentres = (mesh: VehicleMesh) => {
+    const vs = vertices(mesh);
+    const centres: [number, number, number][] = [];
+    for (let i = 0; i < vs.length; i += BOX_VERTICES) {
+      const box = vs.slice(i, i + BOX_VERTICES);
+      centres.push(
+        [0, 1, 2].map(
+          (k) => box.reduce((sum, v) => sum + v[k], 0) / box.length,
+        ) as [number, number, number],
+      );
+    }
+    return centres;
+  };
+
+  it("has whole triangles with one normal and one colour per vertex in every mesh", () => {
+    for (const part of meshes) {
+      const n = part.positions.value.length;
+      expect(n).toBeGreaterThan(0);
+      expect(n % 9).toBe(0);
+      expect(part.normals.value.length).toBe(n);
+      expect(part.colors.value.length).toBe(n);
+    }
+  });
+
+  it("has unit normals and finite positions", () => {
+    const normals = all.normals.value;
+    for (let i = 0; i < normals.length; i += 3) {
+      expect(
+        Math.hypot(normals[i], normals[i + 1], normals[i + 2]),
+      ).toBeCloseTo(1, 4);
+    }
+    expect(all.positions.value.every(Number.isFinite)).toBe(true);
+  });
+
+  it("has a pure white canopy, so getColor alone decides its colour", () => {
+    expect(model.canopy.colors.value.every((channel) => channel === 1)).toBe(
+      true,
+    );
+  });
+
+  // Placement keeps a footprint of TREE_ASPECT × height clear, and scales the
+  // mesh by the height, so the mesh must be exactly that shape.
+  it("stands one unit tall on the ground, its canopy TREE_ASPECT wide at the widest, centred", () => {
+    const { x, y, z } = extent(all);
+    expect(z.min).toBeCloseTo(0, 5);
+    expect(z.max).toBeCloseTo(TREE.height, 2);
+    const canopy = extent(model.canopy);
+    expect(canopy.x.max - canopy.x.min).toBeCloseTo(TREE_ASPECT, 2);
+    expect(Math.abs(canopy.x.max - canopy.x.min - TREE_ASPECT)).toBeLessThan(
+      0.02,
+    );
+    expect(Math.abs(canopy.y.max - canopy.y.min - TREE_ASPECT)).toBeLessThan(
+      0.02,
+    );
+    expect(x.max - x.min).toBeLessThanOrEqual(TREE_ASPECT + 0.02);
+    expect(y.max - y.min).toBeLessThanOrEqual(TREE_ASPECT + 0.02);
+    expect(Math.abs(x.max + x.min)).toBeLessThan(0.02);
+    expect(Math.abs(y.max + y.min)).toBeLessThan(0.02);
+  });
+
+  it("has TREE.bulbGroups groups of bulbs, each carrying every bulb colour, TREE.bulbs in all", () => {
+    expect(model.bulbs).toHaveLength(TREE.bulbGroups);
+    const { bulbWarm, bulbRed, bulbGold, bulbBlue } = MESH_COLOURS;
+    let total = 0;
+    for (const group of model.bulbs) {
+      expect(group.positions.value.length).toBeGreaterThan(0);
+      expect(vertices(group).length % BOX_VERTICES).toBe(0);
+      for (const colour of [bulbWarm, bulbRed, bulbGold, bulbBlue]) {
+        expect(verticesColoured(group, colour).length).toBeGreaterThan(0);
+      }
+      total += vertices(group).length / BOX_VERTICES;
+    }
+    expect(total).toBe(TREE.bulbs);
+  });
+
+  it("keeps every bulb on the canopy's surface, above the trunk", () => {
+    const triangles = vertices(model.canopy);
+    for (const group of model.bulbs) {
+      for (const v of vertices(group)) {
+        expect(v[2]).toBeGreaterThan(TREE.trunkHeight);
+      }
+      for (const centre of bulbCentres(group)) {
+        let nearest = Infinity;
+        for (let i = 0; i < triangles.length; i += 3) {
+          nearest = Math.min(
+            nearest,
+            distanceToTriangle(
+              centre,
+              triangles[i],
+              triangles[i + 1],
+              triangles[i + 2],
+            ),
+          );
+        }
+        expect(nearest).toBeLessThan(0.02);
+      }
+    }
+  });
+
+  it("is built once", () => {
+    expect(christmasTreeModel()).toBe(model);
   });
 });
 
