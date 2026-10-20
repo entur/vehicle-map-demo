@@ -11,6 +11,22 @@ import {
 const times = Array.from({ length: 300 }, (_, i) => i / 12);
 
 describe("twinkleBrightness", () => {
+  // Literal anchors, so the curve the shader copies cannot drift unnoticed.
+  it("is fully lit at the start of a cycle and dimmest half way through", () => {
+    expect(twinkleBrightness(0, 0, 0, 3, 1)).toBe(1);
+    expect(twinkleBrightness(TWINKLE_PERIOD_S / 2, 0, 0, 3, 1)).toBeCloseTo(
+      TWINKLE_MIN,
+      9,
+    );
+    expect(TWINKLE_PERIOD_S).toBe(3);
+    expect(TWINKLE_MIN).toBe(0.35);
+    // A quarter of the way, half way down: 1 - 0.65 / 2.
+    expect(twinkleBrightness(0.75, 0, 0, 3, 1)).toBeCloseTo(0.675, 9);
+    // Group 1 of 3 is a third of a cycle ahead; half the amount, half the dip.
+    expect(twinkleBrightness(0, 0, 1, 3, 1)).toBeCloseTo(0.5125, 9);
+    expect(twinkleBrightness(1.5, 0, 0, 3, 0.5)).toBeCloseTo(0.675, 9);
+  });
+
   it("stays within [TWINKLE_MIN, 1]", () => {
     for (const t of times) {
       const b = twinkleBrightness(t, 0.21, 1, 3, 1);
