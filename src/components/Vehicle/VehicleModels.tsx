@@ -336,7 +336,6 @@ export function VehicleModels({
     opacity,
     scheme,
     chasing,
-    chasedVehicleStore,
     onLayers: onSeasonalLayers,
   });
 

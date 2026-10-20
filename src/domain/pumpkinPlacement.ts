@@ -66,8 +66,6 @@ export const CLEARANCE_M = 1.5;
 export const PUMPKIN_CAP = 200;
 /** A pumpkin's width over its height; the mesh is built to it. */
 export const PUMPKIN_ASPECT = 1.3;
-/** How far from the chased vehicle no pumpkin is drawn, so none hides it. */
-export const CHASE_CLEARANCE_M = 40;
 
 const MAX_PER_STOP = 3;
 const HEIGHT_M = [2, 3] as const;
@@ -318,8 +316,7 @@ export function pumpkinsAtStop(
  * The pumpkins for a view: each stop once (a stop in two loaded tiles is
  * returned by both), only stops inside `view`, nearest the view's centre
  * first so the cap keeps what is in front of the camera, at most
- * `PUMPKIN_CAP`. `avoid` leaves out any within its radius of a point — the
- * chased vehicle.
+ * `PUMPKIN_CAP`.
  *
  * `cache`, kept by the caller from one build to the next, saves placing a
  * stop again while the obstacles near it are the same — between two builds,
@@ -333,10 +330,7 @@ export function pumpkinsInView(
   traffic: TrafficLine[],
   buildings: BuildingRing[],
   view: ViewBounds,
-  options: {
-    avoid?: { position: LngLat; radiusM: number };
-    cache?: PumpkinCache;
-  } = {},
+  options: { cache?: PumpkinCache } = {},
 ): Pumpkin[] {
   const [[west, south], [eastEdge, northEdge]] = view;
   const centre: LngLat = [(west + eastEdge) / 2, (south + northEdge) / 2];
@@ -374,7 +368,7 @@ export function pumpkinsInView(
     .map((stop) => ({ stop, distance: metresFrom(centre, stop) }))
     .sort((a, b) => a.distance - b.distance);
 
-  const { avoid, cache } = options;
+  const { cache } = options;
   const used = new Map<string, CachedStop>();
   const pumpkins: Pumpkin[] = [];
   for (const { stop } of nearestFirst) {
@@ -403,10 +397,5 @@ export function pumpkinsInView(
     cache.clear();
     for (const [key, entry] of used) cache.set(key, entry);
   }
-  const capped = pumpkins.slice(0, PUMPKIN_CAP);
-  return avoid
-    ? capped.filter(
-        (p) => metresFrom(avoid.position, p.position) >= avoid.radiusM,
-      )
-    : capped;
+  return pumpkins.slice(0, PUMPKIN_CAP);
 }

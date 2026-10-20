@@ -108,7 +108,6 @@ describe("PumpkinController", () => {
     placed = [];
     controller = new PumpkinController(map as unknown as PumpkinMap, {
       viewBounds: () => VIEW,
-      avoid: () => null,
       intervalMs: 250,
       onPlaced: (p) => placed.push(p),
     });
@@ -185,7 +184,6 @@ describe("PumpkinController", () => {
     placed = [];
     controller = new PumpkinController(map as unknown as PumpkinMap, {
       viewBounds: () => VIEW,
-      avoid: () => null,
       intervalMs: 250,
       onPlaced: (p) => placed.push(p),
     });
@@ -229,7 +227,6 @@ describe("PumpkinController", () => {
     placed = [];
     controller = new PumpkinController(map as unknown as PumpkinMap, {
       viewBounds: () => VIEW,
-      avoid: () => null,
       intervalMs: 250,
       onPlaced: (p) => placed.push(p),
     });

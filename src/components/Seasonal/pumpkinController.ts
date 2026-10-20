@@ -4,7 +4,6 @@ import {
   Pumpkin,
   PumpkinCache,
   TrafficLine,
-  CHASE_CLEARANCE_M,
   pumpkinsInView,
 } from "../../domain/pumpkinPlacement.ts";
 import { STOP_FILTER } from "../../domain/transitNetwork.ts";
@@ -91,8 +90,6 @@ export class PumpkinController {
     private readonly map: PumpkinMap,
     private readonly options: {
       viewBounds: () => ViewBounds;
-      /** The chased vehicle's position, if any; no pumpkin stands near it. */
-      avoid: () => LngLat | null;
       intervalMs: number;
       onPlaced: (placed: Placed) => void;
     },
@@ -147,13 +144,9 @@ export class PumpkinController {
       ...read("building").flatMap(outerRings),
       ...read("water").flatMap(outerRings),
     ];
-    const avoid = this.options.avoid();
     this.report(
       pumpkinsInView(stops, traffic, blocked, this.options.viewBounds(), {
         cache: this.cache,
-        ...(avoid && {
-          avoid: { position: avoid, radiusM: CHASE_CLEARANCE_M },
-        }),
       }),
     );
   }

@@ -3,7 +3,6 @@ import type { Layer } from "@deck.gl/core";
 import type { Map as MapLibreMap } from "maplibre-gl";
 import type { Season } from "../../domain/season.ts";
 import type { MapScheme } from "../basemap/basemap.ts";
-import type { VehicleStore } from "../Vehicle/chasedVehicleStore.ts";
 import { cappedViewBounds } from "../../utils/cappedViewBounds.ts";
 import { pumpkinLayers } from "./pumpkinLayers.ts";
 import {
@@ -40,7 +39,6 @@ export function usePumpkins({
   opacity,
   scheme,
   chasing,
-  chasedVehicleStore,
   onLayers,
 }: {
   map: MapLibreMap | undefined;
@@ -48,7 +46,6 @@ export function usePumpkins({
   opacity: number;
   scheme: MapScheme;
   chasing: boolean;
-  chasedVehicleStore: VehicleStore;
   onLayers: (layers: Layer[]) => void;
 }) {
   const visible = opacity > 0;
@@ -58,12 +55,6 @@ export function usePumpkins({
     if (!map || season === null || !visible) return;
     const controller = new PumpkinController(map, {
       viewBounds: () => cappedViewBounds(map),
-      avoid: () => {
-        const chased = chasing ? chasedVehicleStore.get() : null;
-        return chased
-          ? [chased.location.longitude, chased.location.latitude]
-          : null;
-      },
       intervalMs: chasing ? PUMPKIN_CHASE_INTERVAL_MS : PUMPKIN_INTERVAL_MS,
       onPlaced: setPlaced,
     });
@@ -71,7 +62,7 @@ export function usePumpkins({
       controller.dispose();
       setPlaced(NOTHING_PLACED);
     };
-  }, [map, season, visible, chasing, chasedVehicleStore]);
+  }, [map, season, visible, chasing]);
 
   useEffect(() => {
     const elevationOf = new Map(

@@ -32,8 +32,8 @@ and it must never get in the way of the vehicles, which are what the map is for.
 
 ## Anti-goals (a failure even if it works)
 
-1. **Pumpkins blocking vehicles.** No pumpkin may stand where a vehicle drives, and none may hide
-   the vehicle being chased.
+1. **Pumpkins blocking vehicles.** No pumpkin may stand where a vehicle drives. _(Originally also
+   "none may hide the vehicle being chased"; dropped 2026-10-20, see the chase constraint.)_
 2. **Pumpkins slowing the map down.** The map must feel exactly as fast with them as without.
    The destination signs once took the map from 25 to 1.9 fps by adding layers; that is the
    failure mode to avoid.
@@ -69,8 +69,11 @@ and it must never get in the way of the vehicles, which are what the map is for.
   `building` layer), or a stop looks empty in 3D and pumpkins sit on roofs in 2D. _(My call.)_
 - **During a chase** pumpkins keep appearing along the way: placement is rebuilt around the
   chased vehicle on a timer (every few seconds, as `AerialBuildingColours` refreshes during a
-  chase), never per frame. A pumpkin within a set distance of the chased vehicle (on the order
-  of 15–20 m, builder's call) is not drawn, so it can never hide it. Since placement is stable
+  chase), never per frame. Nothing is hidden around the chased vehicle. A 40 m clearance was
+  built first, and in use it took a stop's pumpkins away exactly as the bus arrived at the stop.
+  Since pumpkins keep clear of the road, one can only cover the vehicle when the camera is tilted
+  near the horizon, and then only briefly; Lasse chose to accept that over a line-of-sight rule
+  or a smaller radius (2026-10-20). Since placement is stable
   per stop, a rebuild only adds and drops pumpkins at the edges; ones already shown don't move.
   _(Decided by Lasse: option 1 of three; hiding them in a chase or freezing them were rejected.)_
 - **Ground and occlusion** follow the vehicle models: height from `map.queryTerrainElevation`,

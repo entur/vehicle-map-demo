@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   BuildingRing,
-  CHASE_CLEARANCE_M,
   CLEARANCE_M,
   PUMPKIN_ASPECT,
   PUMPKIN_CAP,
@@ -227,17 +226,6 @@ describe("pumpkinsInView", () => {
       pumpkinsInView([LUCKY], [long], [building, huge], viewAround(LUCKY)),
     ).toEqual(pumpkinsInView([LUCKY], [], [building], viewAround(LUCKY)));
   });
-
-  it("drops pumpkins within the avoid radius", () => {
-    const pumpkins = pumpkinsInView([LUCKY], [], [], viewAround(LUCKY), {
-      avoid: { position: LUCKY, radiusM: CHASE_CLEARANCE_M },
-    });
-    expect(pumpkins).toEqual([]);
-    const far = pumpkinsInView([LUCKY], [], [], viewAround(LUCKY), {
-      avoid: { position: east(LUCKY, 200), radiusM: CHASE_CLEARANCE_M },
-    });
-    expect(far).toHaveLength(3);
-  });
 });
 
 describe("pumpkinsInView's cache", () => {
@@ -272,14 +260,5 @@ describe("pumpkinsInView's cache", () => {
     expect(cache.size).toBe(1);
     pumpkinsInView([LUCKY], [], [], viewAround(east(LUCKY, 2000)), { cache });
     expect(cache.size).toBe(0);
-  });
-
-  it("applies the avoid radius after the cache, not inside it", () => {
-    const cache: PumpkinCache = new Map();
-    pumpkinsInView([LUCKY], [], [], view(), {
-      cache,
-      avoid: { position: LUCKY, radiusM: CHASE_CLEARANCE_M },
-    });
-    expect(pumpkinsInView([LUCKY], [], [], view(), { cache })).toHaveLength(3);
   });
 });
