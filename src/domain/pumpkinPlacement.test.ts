@@ -7,6 +7,7 @@ import {
   PUMPKIN_CAP,
   Pumpkin,
   TrafficLine,
+  PumpkinCache,
   pumpkinsAtStop,
   pumpkinsInView,
 } from "./pumpkinPlacement.ts";
@@ -86,12 +87,10 @@ describe("pumpkinsAtStop", () => {
     );
   });
 
-  it("gives roughly one stop in three pumpkins, 1–3 each", () => {
+  it("gives every stop 1–3 pumpkins when nothing is in the way", () => {
     const stops = Array.from({ length: 3000 }, (_, i) => east(OSLO, i * 5));
     const counts = stops.map((s) => pumpkinsAtStop(s, [], []).length);
-    const decorated = counts.filter((c) => c > 0).length / stops.length;
-    expect(decorated).toBeGreaterThan(0.28);
-    expect(decorated).toBeLessThan(0.39);
+    expect(Math.min(...counts)).toBe(1);
     expect(Math.max(...counts)).toBe(3);
   });
 
@@ -238,5 +237,49 @@ describe("pumpkinsInView", () => {
       avoid: { position: east(LUCKY, 200), radiusM: CHASE_CLEARANCE_M },
     });
     expect(far).toHaveLength(3);
+  });
+});
+
+describe("pumpkinsInView's cache", () => {
+  const view = () => viewAround(LUCKY);
+  const along = (m: number) =>
+    road("primary", north(east(LUCKY, m), -50), north(east(LUCKY, m), 50));
+
+  // Between two builds — a pan, or once a second in a chase — most stops
+  // are the same, and placing them again was most of a build's cost.
+  it("reuses a stop's pumpkins while the obstacles near it are unchanged", () => {
+    const cache: PumpkinCache = new Map();
+    const first = pumpkinsInView([LUCKY], [along(10)], [], view(), { cache });
+    const moved = pumpkinsInView([LUCKY], [along(-10)], [], view());
+    expect(moved).not.toEqual(first);
+    // The same count of roads and points near the stop: served from cache.
+    expect(
+      pumpkinsInView([LUCKY], [along(-10)], [], view(), { cache }),
+    ).toEqual(first);
+  });
+
+  it("places a stop again when the obstacles near it change", () => {
+    const cache: PumpkinCache = new Map();
+    pumpkinsInView([LUCKY], [], [], view(), { cache });
+    expect(pumpkinsInView([LUCKY], [along(10)], [], view(), { cache })).toEqual(
+      pumpkinsInView([LUCKY], [along(10)], [], view()),
+    );
+  });
+
+  it("forgets stops that have left the view", () => {
+    const cache: PumpkinCache = new Map();
+    pumpkinsInView([LUCKY], [], [], view(), { cache });
+    expect(cache.size).toBe(1);
+    pumpkinsInView([LUCKY], [], [], viewAround(east(LUCKY, 2000)), { cache });
+    expect(cache.size).toBe(0);
+  });
+
+  it("applies the avoid radius after the cache, not inside it", () => {
+    const cache: PumpkinCache = new Map();
+    pumpkinsInView([LUCKY], [], [], view(), {
+      cache,
+      avoid: { position: LUCKY, radiusM: CHASE_CLEARANCE_M },
+    });
+    expect(pumpkinsInView([LUCKY], [], [], view(), { cache })).toHaveLength(3);
   });
 });

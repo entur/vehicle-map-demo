@@ -1,13 +1,13 @@
 import type { ViewBounds } from "./vehiclesInView.ts";
 
 /**
- * Where the seasonal pumpkins stand: a few at some stops, at random but the
- * same every time, clear of traffic and buildings. Pure, so it is tested
+ * Where the seasonal pumpkins stand: one to three at every stop, at random but
+ * the same every time, clear of traffic and buildings. Pure, so it is tested
  * without a map; `usePumpkins` feeds it the stops, roads and buildings it
  * reads from the base map's tiles.
  *
  * The randomness is seeded from the stop's own position, so a stop gets the
- * same pumpkins on every load and every pan, and nothing is stored. Geometry
+ * same pumpkins on every load and every pan. Geometry
  * is worked in metres on a flat plane around each stop, which is exact enough
  * across the 15 m a pumpkin may stand from it.
  */
@@ -31,6 +31,11 @@ export type TrafficLine = { class: string; coordinates: LngLat[] };
 
 /** A building footprint's outer ring. */
 export type BuildingRing = LngLat[];
+
+type CachedStop = { signature: string; pumpkins: Pumpkin[] };
+
+/** Each stop's pumpkins from the last build, by `stopKey`; see `pumpkinsInView`. */
+export type PumpkinCache = Map<string, CachedStop>;
 
 /**
  * Half the width of the carriageway or track, from the centre line, per
@@ -64,11 +69,14 @@ export const PUMPKIN_ASPECT = 1.3;
 /** How far from the chased vehicle no pumpkin is drawn, so none hides it. */
 export const CHASE_CLEARANCE_M = 40;
 
-const DECORATED_SHARE = 1 / 3;
 const MAX_PER_STOP = 3;
 const HEIGHT_M = [2, 3] as const;
 const SPREAD_M = [3, 15] as const;
-const CANDIDATES = 8;
+/**
+ * Spots tried per pumpkin before it is left out. In a city centre most spots
+ * are in a building or a road; at 8, Bergen sentrum got none at all.
+ */
+const CANDIDATES = 24;
 const TINTS: [number, number, number][] = [
   [0xd9, 0x62, 0x0b],
   [0xf2, 0x8c, 0x28],
@@ -212,9 +220,8 @@ class Grid<T> {
 }
 
 /**
- * The pumpkins at one stop: none at most stops, one to three at about one in
- * three, each tried at up to `CANDIDATES` spots and left out when none is
- * clear. Every pumpkin takes the same number of random draws whether or not
+ * The pumpkins at one stop: one to three, each tried at up to `CANDIDATES`
+ * spots and left out when none is clear. Every pumpkin takes the same number of random draws whether or not
  * a spot is found, so one blocked pumpkin does not move the next.
  */
 export function pumpkinsAtStop(
@@ -224,7 +231,6 @@ export function pumpkinsAtStop(
 ): Pumpkin[] {
   const key = stopKey(stop);
   const random = seededRandom(hash(key));
-  if (random() >= DECORATED_SHARE) return [];
   const count = 1 + Math.floor(random() * MAX_PER_STOP);
 
   const [lng0, lat0] = stop;
@@ -233,13 +239,32 @@ export function pumpkinsAtStop(
     (lng - lng0) * xScale,
     (lat - lat0) * M_PER_DEG_LAT,
   ];
-  const lines = traffic.flatMap((line) => {
+  // Only what can reach a spot: segments and rings whose box comes within
+  // REACH_M of the stop. The grid's cells are far larger than that.
+  const nearBox = (xs: number[], ys: number[]) =>
+    Math.min(...xs) <= REACH_M &&
+    Math.max(...xs) >= -REACH_M &&
+    Math.min(...ys) <= REACH_M &&
+    Math.max(...ys) >= -REACH_M;
+  const segments: { halfWidth: number; a: XY; b: XY }[] = [];
+  for (const line of traffic) {
     const halfWidth = TRAFFIC_HALF_WIDTH_M[line.class];
-    return halfWidth === undefined
-      ? []
-      : [{ halfWidth, points: line.coordinates.map(toXY) }];
-  });
-  const rings = buildings.map((ring) => ring.map(toXY));
+    if (halfWidth === undefined) continue;
+    const points = line.coordinates.map(toXY);
+    for (let k = 1; k < points.length; k++) {
+      const [a, b] = [points[k - 1], points[k]];
+      if (nearBox([a[0], b[0]], [a[1], b[1]]))
+        segments.push({ halfWidth, a, b });
+    }
+  }
+  const rings = buildings
+    .map((ring) => ring.map(toXY))
+    .filter((ring) =>
+      nearBox(
+        ring.map((p) => p[0]),
+        ring.map((p) => p[1]),
+      ),
+    );
 
   const placed: { xy: XY; radius: number }[] = [];
   const pumpkins: Pumpkin[] = [];
@@ -258,13 +283,9 @@ export function pumpkinsAtStop(
       const angle = random() * 2 * Math.PI;
       const xy: XY = [distance * Math.sin(angle), distance * Math.cos(angle)];
       if (found) continue;
-      const inTraffic = lines.some(({ halfWidth, points }) =>
-        points.some(
-          (a, k) =>
-            k > 0 &&
-            distanceToSegment(xy, points[k - 1], a) <
-              halfWidth + CLEARANCE_M + radius,
-        ),
+      const inTraffic = segments.some(
+        ({ halfWidth, a, b }) =>
+          distanceToSegment(xy, a, b) < halfWidth + CLEARANCE_M + radius,
       );
       const inBuilding = rings.some(
         (ring) =>
@@ -299,13 +320,23 @@ export function pumpkinsAtStop(
  * first so the cap keeps what is in front of the camera, at most
  * `PUMPKIN_CAP`. `avoid` leaves out any within its radius of a point — the
  * chased vehicle.
+ *
+ * `cache`, kept by the caller from one build to the next, saves placing a
+ * stop again while the obstacles near it are the same — between two builds,
+ * a pan or a chase's second, most stops are. "The same" is judged by how
+ * many lines and rings are near the stop and how many points they have: the
+ * tiles return new objects every time, so identity says nothing. Stops not
+ * in this build are dropped from it.
  */
 export function pumpkinsInView(
   stops: LngLat[],
   traffic: TrafficLine[],
   buildings: BuildingRing[],
   view: ViewBounds,
-  options: { avoid?: { position: LngLat; radiusM: number } } = {},
+  options: {
+    avoid?: { position: LngLat; radiusM: number };
+    cache?: PumpkinCache;
+  } = {},
 ): Pumpkin[] {
   const [[west, south], [eastEdge, northEdge]] = view;
   const centre: LngLat = [(west + eastEdge) / 2, (south + northEdge) / 2];
@@ -343,15 +374,36 @@ export function pumpkinsInView(
     .map((stop) => ({ stop, distance: metresFrom(centre, stop) }))
     .sort((a, b) => a.distance - b.distance);
 
+  const { avoid, cache } = options;
+  const used = new Map<string, CachedStop>();
   const pumpkins: Pumpkin[] = [];
   for (const { stop } of nearestFirst) {
     if (pumpkins.length >= PUMPKIN_CAP) break;
-    pumpkins.push(
-      ...pumpkinsAtStop(stop, trafficGrid.near(stop), buildingGrid.near(stop)),
-    );
+    const nearTraffic = trafficGrid.near(stop);
+    const nearBuildings = buildingGrid.near(stop);
+    const signature = [
+      nearTraffic.length,
+      nearTraffic.reduce((n, line) => n + line.coordinates.length, 0),
+      nearBuildings.length,
+      nearBuildings.reduce((n, ring) => n + ring.length, 0),
+    ].join(",");
+    const key = stopKey(stop);
+    const cached = cache?.get(key);
+    const entry =
+      cached?.signature === signature
+        ? cached
+        : {
+            signature,
+            pumpkins: pumpkinsAtStop(stop, nearTraffic, nearBuildings),
+          };
+    used.set(key, entry);
+    pumpkins.push(...entry.pumpkins);
+  }
+  if (cache) {
+    cache.clear();
+    for (const [key, entry] of used) cache.set(key, entry);
   }
   const capped = pumpkins.slice(0, PUMPKIN_CAP);
-  const { avoid } = options;
   return avoid
     ? capped.filter(
         (p) => metresFrom(avoid.position, p.position) >= avoid.radiusM,

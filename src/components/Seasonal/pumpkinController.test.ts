@@ -33,6 +33,7 @@ class FakeMap {
   moving = false;
   elevation = 0;
   water: LngLat[][] = [];
+  roads: LngLat[][] = [];
   reads: string[] = [];
   heightReads = 0;
   private listeners = new Map<string, Set<Listener>>();
@@ -49,6 +50,11 @@ class FakeMap {
           properties: { class: "bus", subclass: "bus_stop" },
         },
       ] as never;
+    if (sourceLayer === "transportation")
+      return this.roads.map((coordinates) => ({
+        geometry: { type: "LineString", coordinates },
+        properties: { class: "primary" },
+      })) as never;
     if (sourceLayer === "water")
       return this.water.map((ring) => ({
         geometry: { type: "Polygon", coordinates: [ring] },
@@ -184,6 +190,54 @@ describe("PumpkinController", () => {
       onPlaced: (p) => placed.push(p),
     });
     expect(last(placed)?.pumpkins ?? []).toEqual([]);
+  });
+
+  // A pumpkin's key is its stop and its number there, so one that moves
+  // keeps its key; only its position tells the move.
+  it("reports pumpkins that moved, though their keys did not change", () => {
+    const [lng, lat] = STOP;
+    const road: LngLat[] = [
+      [lng + 0.0001, lat - 0.001],
+      [lng + 0.0001, lat + 0.001],
+    ];
+    expect(
+      pumpkinsAtStop(STOP, [{ class: "primary", coordinates: road }], []),
+    ).not.toEqual(pumpkinsAtStop(STOP, [], []));
+    vi.advanceTimersByTime(300);
+    map.roads = [road];
+    map.emit("moveend");
+    expect(placed).toHaveLength(2);
+    expect(last(placed)?.pumpkins).toEqual(
+      pumpkinsAtStop(STOP, [{ class: "primary", coordinates: road }], []),
+    );
+  });
+
+  // A road the same shape somewhere else near the stop would place the
+  // pumpkins elsewhere; that they stay is the cache at work.
+  it("keeps a stop's pumpkins from one placement to the next", () => {
+    const [lng, lat] = STOP;
+    const along = (dLng: number): LngLat[] => [
+      [lng + dLng, lat - 0.001],
+      [lng + dLng, lat + 0.001],
+    ];
+    controller.dispose();
+    map = new FakeMap();
+    const placedBy = (road: LngLat[]) =>
+      pumpkinsAtStop(STOP, [{ class: "primary", coordinates: road }], []);
+    expect(placedBy(along(0.0001))).not.toEqual(placedBy(along(-0.0001)));
+    map.roads = [along(0.0001)];
+    placed = [];
+    controller = new PumpkinController(map as unknown as PumpkinMap, {
+      viewBounds: () => VIEW,
+      avoid: () => null,
+      intervalMs: 250,
+      onPlaced: (p) => placed.push(p),
+    });
+    map.roads = [along(-0.0001)];
+    vi.advanceTimersByTime(300);
+    map.emit("moveend");
+    expect(map.placements()).toBe(2);
+    expect(placed).toHaveLength(1);
   });
 
   it("stops listening when disposed", () => {

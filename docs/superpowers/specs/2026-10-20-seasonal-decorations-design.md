@@ -15,7 +15,7 @@ and it must never get in the way of the vehicles, which are what the map is for.
   standing on the terrain, hidden by buildings.
 - Snapchat-style oversized but **never taller than a bus**: each pumpkin is between about 2 and
   3 m tall, varied per pumpkin so a group does not look copy-pasted.
-- A few per stop, at some stops only, at random, but **stable**: the same stop gets the same
+- One to three per stop, at every stop (raised from about one stop in three on 2026-10-20), at random, but **stable**: the same stop gets the same
   pumpkins in the same places on every load and pan.
 - Dark scheme: lit jack-o'-lanterns (carved face glowing, as the vehicles' lamps glow). Light
   scheme: plain pumpkins.
@@ -90,7 +90,7 @@ and it must never get in the way of the vehicles, which are what the map is for.
 
 - Look: option B from the mockups, giant 3D pumpkins never taller than a bus (3.2 m in
   `vehicleFootprint.ts`); in practice 2–3 m (raised from 1.5–2.5 m on 2026-10-20 after seeing them).
-- Placement: a few, at random, near some stops; static.
+- Placement: a few, at random, near every stop; static. (First "some stops"; changed to every stop after seeing how few a city centre got.)
 - Timing: automatic around Halloween; Halloween ships before the other seasons.
 - Hard rules: never block vehicles, never slow the map.
 - In a chase (and so in a chasing kiosk), pumpkins are rebuilt around the chased vehicle.
@@ -98,7 +98,7 @@ and it must never get in the way of the vehicles, which are what the map is for.
 ## My calls (check these)
 
 - Window 24 Oct – 1 Nov inclusive, judged by the date in Europe/Oslo.
-- Roughly one stop in three gets pumpkins, 1–3 each, 2–3 m tall, random yaw.
+- Every stop gets 1–3 pumpkins, each tried at up to 24 spots, 2–3 m tall, random yaw.
 - "Random but stable": seeded from the stop's coordinates (rounded so tile boundaries don't
   change the seed), so no stored state is needed.
 - 200 per view cap, 4 m road clearance.
@@ -157,3 +157,25 @@ measurable cost, left for the user to judge.
 Density: at zoom 16 with no tilt, buildings leave few clear spots in city
 centres — Oslo sentrum 14 pumpkins at 9 of 97 stops, Majorstuen 20 at 11 of
 66, Bergen sentrum 8 at 5 of 49, Grorud 6 at 4 of 28.
+
+### After raising the density (2026-10-20)
+
+Every stop instead of one in three, and 24 spots tried per pumpkin instead of 8. Two changes keep that from costing frames: each spot is checked only
+against road segments and rings within reach of its stop (the lookup grid's
+cells are far larger than that), and the controller keeps each stop's
+pumpkins from one placement to the next while the obstacles near it are
+unchanged. Placement alone, on stops, roads, buildings and water captured
+from the live tiles, in Node:
+
+| View                                | Pumpkins | First placement | Next placement |
+| ----------------------------------- | -------- | --------------- | -------------- |
+| Oslo sentrum, 3D zoom 16.5 pitch 60 | 31       | 14.0 ms         | 1.2 ms         |
+| Majorstuen, zoom 17                 | 17       | 2.8 ms          | 0.2 ms         |
+| Bergen sentrum, zoom 16             | 19       | 2.2 ms          | 0.5 ms         |
+| Aker brygge, zoom 16.5              | 7        | 0.4 ms          | 0.2 ms         |
+
+Before the change the same four views got 11, 7, 0 and 6. Reading the tiles
+still adds about 7 ms per placement. A 10 s rotation over Oslo sentrum in 3D
+in headless Chrome showed the same frames with pumpkins (32) as without:
+60 fps, and the one long frame in each case fell in the first run while
+tiles loaded.

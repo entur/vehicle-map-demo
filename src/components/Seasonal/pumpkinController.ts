@@ -2,6 +2,7 @@ import type { Map as MapLibreMap } from "maplibre-gl";
 import {
   BuildingRing,
   Pumpkin,
+  PumpkinCache,
   TrafficLine,
   CHASE_CLEARANCE_M,
   pumpkinsInView,
@@ -70,6 +71,8 @@ const outerRings = (feature: Feature): BuildingRing[] =>
  */
 export class PumpkinController {
   private placed: Placed = NOTHING_PLACED;
+  /** Each stop's pumpkins from the last placement, reused while nothing near it changed. */
+  private readonly cache: PumpkinCache = new Map();
   private readonly place: Throttled<[]>;
   private readonly elevate: Throttled<[]>;
   private readonly onSourceData = (event: {
@@ -146,13 +149,12 @@ export class PumpkinController {
     ];
     const avoid = this.options.avoid();
     this.report(
-      pumpkinsInView(
-        stops,
-        traffic,
-        blocked,
-        this.options.viewBounds(),
-        avoid ? { avoid: { position: avoid, radiusM: CHASE_CLEARANCE_M } } : {},
-      ),
+      pumpkinsInView(stops, traffic, blocked, this.options.viewBounds(), {
+        cache: this.cache,
+        ...(avoid && {
+          avoid: { position: avoid, radiusM: CHASE_CLEARANCE_M },
+        }),
+      }),
     );
   }
 
@@ -169,9 +171,13 @@ export class PumpkinController {
     const elevations = pumpkins.map(
       (pumpkin) => this.map.queryTerrainElevation(pumpkin.position) ?? 0,
     );
+    // The position as well as the key: a pumpkin that moves keeps its key.
     const key = pumpkins
-      .map((pumpkin, i) => `${pumpkin.key}@${elevations[i]}`)
-      .join(",");
+      .map(
+        (pumpkin, i) =>
+          `${pumpkin.key}@${pumpkin.position.join(",")},${elevations[i]}`,
+      )
+      .join(";");
     if (key === this.placed.key && this.placed !== NOTHING_PLACED) return;
     this.placed = { pumpkins, elevations, key };
     this.options.onPlaced(this.placed);
