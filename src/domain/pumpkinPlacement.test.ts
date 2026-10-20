@@ -126,6 +126,17 @@ describe("pumpkinsAtStop", () => {
     );
   });
 
+  // Ferries are in the feed; a quay's stop must not crowd its berth.
+  it("keeps clear of a ferry line", () => {
+    const traffic = [road("ferry", north(LUCKY, -50), north(LUCKY, 50))];
+    const pumpkins = pumpkinsAtStop(LUCKY, traffic, []);
+    for (const p of pumpkins)
+      expect(metresToSegment(p.position, traffic[0])).toBeGreaterThanOrEqual(
+        10 + CLEARANCE_M + (PUMPKIN_ASPECT * p.height) / 2 - 1e-6,
+      );
+    expect(pumpkins).not.toEqual(pumpkinsAtStop(LUCKY, [], []));
+  });
+
   it("never stands a pumpkin inside a building", () => {
     const building = square(east(LUCKY, 12), 20);
     const pumpkins = pumpkinsAtStop(LUCKY, [], [building]);

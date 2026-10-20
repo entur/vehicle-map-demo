@@ -34,10 +34,12 @@ export type BuildingRing = LngLat[];
 
 /**
  * Half the width of the carriageway or track, from the centre line, per
- * `transportation` class: the tiles carry centre lines but no widths. A class
- * not listed — path, track, pedestrian, ferry, aerialway — is not traffic: no
- * vehicle in the feed drives there, and counting footways and cycleways would
- * leave a city centre with no pumpkins.
+ * `transportation` class: the tiles carry centre lines but no widths. A ferry
+ * line counts, with room for the boat, so a quay's stop does not crowd its
+ * berth; water itself is kept clear by `usePumpkins`, which passes water
+ * areas in with the buildings. A class not listed — path, track, pedestrian,
+ * aerialway — is not traffic: no vehicle in the feed drives there, and
+ * counting footways and cycleways would leave a city centre with no pumpkins.
  */
 export const TRAFFIC_HALF_WIDTH_M: Record<string, number> = {
   motorway: 7,
@@ -50,6 +52,7 @@ export const TRAFFIC_HALF_WIDTH_M: Record<string, number> = {
   busway: 3.5,
   rail: 2.5,
   transit: 2.5,
+  ferry: 10,
 };
 
 /** How far beyond the estimated edge of traffic a pumpkin's footprint keeps. */
