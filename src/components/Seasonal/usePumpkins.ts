@@ -6,10 +6,11 @@ import type { MapScheme } from "../basemap/basemap.ts";
 import { cappedViewBounds } from "../../utils/cappedViewBounds.ts";
 import { pumpkinLayers } from "./pumpkinLayers.ts";
 import {
+  DecorationController,
   NOTHING_PLACED,
   Placed,
-  PumpkinController,
-} from "./pumpkinController.ts";
+} from "./decorationController.ts";
+import { DECORATIONS } from "../../domain/decorationPlacement.ts";
 
 /**
  * How often pumpkins are placed again during a chase. Its camera fires
@@ -26,7 +27,7 @@ type PumpkinWindow = { __pumpkins?: { count: number } };
  * `VehicleModels` owns the map's only interleaved overlay and draws them with
  * everything else 3D.
  *
- * Placing them (`PumpkinController`) and drawing them are separate. Placing
+ * Placing them (`DecorationController`) and drawing them are separate. Placing
  * runs only while the season is on and the models are shown (zoom 16 and
  * up), and starts afresh when a chase starts or ends; the models' fade-in
  * steps their opacity twenty times, and a scheme switch changes their
@@ -53,7 +54,8 @@ export function usePumpkins({
 
   useEffect(() => {
     if (!map || season === null || !visible) return;
-    const controller = new PumpkinController(map, {
+    const controller = new DecorationController(map, {
+      spec: DECORATIONS[season],
       viewBounds: () => cappedViewBounds(map),
       intervalMs: chasing ? PUMPKIN_CHASE_INTERVAL_MS : PUMPKIN_INTERVAL_MS,
       onPlaced: setPlaced,
@@ -66,10 +68,10 @@ export function usePumpkins({
 
   useEffect(() => {
     const elevationOf = new Map(
-      placed.pumpkins.map((pumpkin, i) => [pumpkin, placed.elevations[i]]),
+      placed.decorations.map((pumpkin, i) => [pumpkin, placed.elevations[i]]),
     );
     onLayers(
-      pumpkinLayers(placed.pumpkins, {
+      pumpkinLayers(placed.decorations, {
         visible,
         opacity,
         scheme,
@@ -83,6 +85,6 @@ export function usePumpkins({
   useEffect(() => {
     if (!import.meta.env.DEV) return;
     (window as PumpkinWindow).__pumpkins =
-      season === null ? undefined : { count: placed.pumpkins.length };
+      season === null ? undefined : { count: placed.decorations.length };
   }, [season, placed]);
 }

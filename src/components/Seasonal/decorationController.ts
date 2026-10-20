@@ -1,9 +1,9 @@
 import type { Map as MapLibreMap } from "maplibre-gl";
 import {
   BuildingRing,
-  DECORATIONS,
   Decoration,
   DecorationCache,
+  DecorationSpec,
   TrafficLine,
   decorationsInView,
 } from "../../domain/decorationPlacement.ts";
@@ -12,12 +12,12 @@ import type { ViewBounds } from "../../domain/vehiclesInView.ts";
 import { Throttled, throttle } from "../../utils/throttle.ts";
 
 /** The base map's vector source, which carries stops, roads, buildings and water. */
-export const PUMPKIN_SOURCE = "openmaptiles";
+export const DECORATION_SOURCE = "openmaptiles";
 
 type LngLat = [number, number];
 
 /** The parts of a MapLibre map the controller uses; a fake one in tests. */
-export type PumpkinMap = Pick<
+export type DecorationMap = Pick<
   MapLibreMap,
   | "querySourceFeatures"
   | "queryTerrainElevation"
@@ -29,14 +29,18 @@ export type PumpkinMap = Pick<
 
 type Feature = ReturnType<MapLibreMap["querySourceFeatures"]>[number];
 
-/** What is drawn: the pumpkins, their heights, and a key that changes with either. */
+/** What is drawn: the decorations, their heights, and a key that changes with either. */
 export type Placed = {
-  pumpkins: Decoration[];
+  decorations: Decoration[];
   elevations: number[];
   key: string;
 };
 
-export const NOTHING_PLACED: Placed = { pumpkins: [], elevations: [], key: "" };
+export const NOTHING_PLACED: Placed = {
+  decorations: [],
+  elevations: [],
+  key: "",
+};
 
 const lines = (feature: Feature): LngLat[][] =>
   feature.geometry.type === "LineString"
@@ -53,7 +57,7 @@ const outerRings = (feature: Feature): BuildingRing[] =>
       : [];
 
 /**
- * Places the seasonal pumpkins for the current view and keeps them placed,
+ * Places a season's decorations (pumpkins, trees; whatever `spec` says) for the current view and keeps them placed,
  * reporting each change to `onPlaced`. Plain TypeScript rather than a hook,
  * so the tests can drive it with a fake map.
  *
@@ -66,12 +70,15 @@ const outerRings = (feature: Feature): BuildingRing[] =>
  * Both are throttled to `intervalMs`, which during a chase — whose camera
  * fires `moveend` every frame — is a second.
  *
+ * The cache is keyed by stop alone, so one controller serves one spec for
+ * its whole life: a different season is a new controller with a new cache.
+ *
  * A placement that throws is logged and shows nothing: a decoration must
  * never take the map down, and an error here once blanked the whole app.
  */
-export class PumpkinController {
+export class DecorationController {
   private placed: Placed = NOTHING_PLACED;
-  /** Each stop's pumpkins from the last placement, reused while nothing near it changed. */
+  /** Each stop's decorations from the last placement, reused while nothing near it changed. */
   private readonly cache: DecorationCache = new Map();
   private readonly place: Throttled<[]>;
   private readonly elevate: Throttled<[]>;
@@ -80,7 +87,7 @@ export class PumpkinController {
     tile?: unknown;
   }) => {
     if (!event.tile) return;
-    if (event.sourceId === PUMPKIN_SOURCE) {
+    if (event.sourceId === DECORATION_SOURCE) {
       if (!this.map.isMoving()) this.place();
     } else if (event.sourceId === this.map.getTerrain()?.source) {
       this.elevate();
@@ -88,8 +95,9 @@ export class PumpkinController {
   };
 
   constructor(
-    private readonly map: PumpkinMap,
+    private readonly map: DecorationMap,
     private readonly options: {
+      spec: DecorationSpec;
       viewBounds: () => ViewBounds;
       intervalMs: number;
       onPlaced: (placed: Placed) => void;
@@ -121,14 +129,14 @@ export class PumpkinController {
     try {
       work();
     } catch (error) {
-      console.error("Seasonal pumpkins could not be placed", error);
+      console.error("Seasonal decorations could not be placed", error);
       this.report([]);
     }
   }
 
   private placeNow() {
     const read = (sourceLayer: string, filter?: typeof STOP_FILTER) =>
-      this.map.querySourceFeatures(PUMPKIN_SOURCE, { sourceLayer, filter });
+      this.map.querySourceFeatures(DECORATION_SOURCE, { sourceLayer, filter });
     const stops = read("poi", STOP_FILTER).flatMap((feature) =>
       feature.geometry.type === "Point"
         ? [feature.geometry.coordinates as LngLat]
@@ -147,7 +155,7 @@ export class PumpkinController {
     ];
     this.report(
       decorationsInView(
-        DECORATIONS.halloween,
+        this.options.spec,
         stops,
         traffic,
         blocked,
@@ -158,27 +166,27 @@ export class PumpkinController {
   }
 
   private elevateNow() {
-    this.report(this.placed.pumpkins);
+    this.report(this.placed.decorations);
   }
 
   /**
-   * Reports the pumpkins standing on the terrain, or at sea level in 2D,
+   * Reports the decorations standing on the terrain, or at sea level in 2D,
    * unless nothing changed. MapLibre answers 0 for a terrain tile still
    * loading; its arrival reads the heights again.
    */
-  private report(pumpkins: Decoration[]) {
-    const elevations = pumpkins.map(
-      (pumpkin) => this.map.queryTerrainElevation(pumpkin.position) ?? 0,
+  private report(decorations: Decoration[]) {
+    const elevations = decorations.map(
+      (decoration) => this.map.queryTerrainElevation(decoration.position) ?? 0,
     );
-    // The position as well as the key: a pumpkin that moves keeps its key.
-    const key = pumpkins
+    // The position as well as the key: a decoration that moves keeps its key.
+    const key = decorations
       .map(
-        (pumpkin, i) =>
-          `${pumpkin.key}@${pumpkin.position.join(",")},${elevations[i]}`,
+        (decoration, i) =>
+          `${decoration.key}@${decoration.position.join(",")},${elevations[i]}`,
       )
       .join(";");
     if (key === this.placed.key && this.placed !== NOTHING_PLACED) return;
-    this.placed = { pumpkins, elevations, key };
+    this.placed = { decorations, elevations, key };
     this.options.onPlaced(this.placed);
   }
 }

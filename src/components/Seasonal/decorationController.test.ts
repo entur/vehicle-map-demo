@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  PUMPKIN_SOURCE,
+  DECORATION_SOURCE,
   Placed,
-  PumpkinController,
-  PumpkinMap,
-} from "./pumpkinController.ts";
+  DecorationController,
+  DecorationMap,
+} from "./decorationController.ts";
 import {
   DECORATIONS,
   decorationsAtStop,
@@ -101,16 +101,17 @@ class FakeMap {
 const tile = (sourceId: string) => ({ sourceId, tile: {} });
 const last = (all: Placed[]): Placed | undefined => all[all.length - 1];
 
-describe("PumpkinController", () => {
+describe("DecorationController", () => {
   let map: FakeMap;
   let placed: Placed[];
-  let controller: PumpkinController;
+  let controller: DecorationController;
 
   beforeEach(() => {
     vi.useFakeTimers();
     map = new FakeMap();
     placed = [];
-    controller = new PumpkinController(map as unknown as PumpkinMap, {
+    controller = new DecorationController(map as unknown as DecorationMap, {
+      spec: DECORATIONS.halloween,
       viewBounds: () => VIEW,
       intervalMs: 250,
       onPlaced: (p) => placed.push(p),
@@ -124,7 +125,7 @@ describe("PumpkinController", () => {
 
   it("places the pumpkins at once", () => {
     expect(map.placements()).toBe(1);
-    expect(last(placed)?.pumpkins).toHaveLength(3);
+    expect(last(placed)?.decorations).toHaveLength(3);
   });
 
   // Every tile streaming in during a pan used to run a whole placement
@@ -132,7 +133,7 @@ describe("PumpkinController", () => {
   it("ignores base map tiles while the camera moves, and places on moveend", () => {
     map.moving = true;
     for (let i = 0; i < 10; i++) {
-      map.emit("sourcedata", tile(PUMPKIN_SOURCE));
+      map.emit("sourcedata", tile(DECORATION_SOURCE));
       vi.advanceTimersByTime(300);
     }
     expect(map.placements()).toBe(1);
@@ -143,7 +144,7 @@ describe("PumpkinController", () => {
 
   it("places again when a base map tile arrives at rest", () => {
     vi.advanceTimersByTime(300);
-    map.emit("sourcedata", tile(PUMPKIN_SOURCE));
+    map.emit("sourcedata", tile(DECORATION_SOURCE));
     expect(map.placements()).toBe(2);
   });
 
@@ -186,12 +187,13 @@ describe("PumpkinController", () => {
       ],
     ];
     placed = [];
-    controller = new PumpkinController(map as unknown as PumpkinMap, {
+    controller = new DecorationController(map as unknown as DecorationMap, {
+      spec: DECORATIONS.halloween,
       viewBounds: () => VIEW,
       intervalMs: 250,
       onPlaced: (p) => placed.push(p),
     });
-    expect(last(placed)?.pumpkins ?? []).toEqual([]);
+    expect(last(placed)?.decorations ?? []).toEqual([]);
   });
 
   // A pumpkin's key is its stop and its number there, so one that moves
@@ -214,7 +216,7 @@ describe("PumpkinController", () => {
     map.roads = [road];
     map.emit("moveend");
     expect(placed).toHaveLength(2);
-    expect(last(placed)?.pumpkins).toEqual(
+    expect(last(placed)?.decorations).toEqual(
       decorationsAtStop(
         DECORATIONS.halloween,
         STOP,
@@ -244,7 +246,8 @@ describe("PumpkinController", () => {
     expect(placedBy(along(0.0001))).not.toEqual(placedBy(along(-0.0001)));
     map.roads = [along(0.0001)];
     placed = [];
-    controller = new PumpkinController(map as unknown as PumpkinMap, {
+    controller = new DecorationController(map as unknown as DecorationMap, {
+      spec: DECORATIONS.halloween,
       viewBounds: () => VIEW,
       intervalMs: 250,
       onPlaced: (p) => placed.push(p),
@@ -254,6 +257,18 @@ describe("PumpkinController", () => {
     map.emit("moveend");
     expect(map.placements()).toBe(2);
     expect(placed).toHaveLength(1);
+  });
+
+  it("places a season's own decorations: one tree at a clear stop", () => {
+    controller.dispose();
+    placed = [];
+    controller = new DecorationController(map as unknown as DecorationMap, {
+      spec: DECORATIONS.christmas,
+      viewBounds: () => VIEW,
+      intervalMs: 250,
+      onPlaced: (p) => placed.push(p),
+    });
+    expect(last(placed)?.decorations).toHaveLength(1);
   });
 
   it("stops listening when disposed", () => {
