@@ -129,6 +129,74 @@ function inside([px, py]: XY, ring: XY[]) {
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
 /**
+ * How far from a stop an obstacle can matter: the farthest a pumpkin stands,
+ * its widest footprint, and the widest road with its clearance.
+ */
+const REACH_M =
+  SPREAD_M[1] +
+  (PUMPKIN_ASPECT * HEIGHT_M[1]) / 2 +
+  Math.max(...Object.values(TRAFFIC_HALF_WIDTH_M)) +
+  CLEARANCE_M;
+
+function boxOf(points: LngLat[]) {
+  let [w, s, e, n] = [Infinity, Infinity, -Infinity, -Infinity];
+  for (const [lng, lat] of points) {
+    w = Math.min(w, lng);
+    s = Math.min(s, lat);
+    e = Math.max(e, lng);
+    n = Math.max(n, lat);
+  }
+  return [w, s, e, n];
+}
+
+/** Grid cells, in degrees, for finding obstacles near a stop quickly. */
+const CELL_DEG = 0.001;
+
+/**
+ * Obstacles bucketed by every grid cell their bounding box covers, so the
+ * ones near a stop are found without looking at all of them.
+ */
+class Grid<T> {
+  private readonly cells = new Map<string, T[]>();
+
+  constructor(items: T[], pointsOf: (item: T) => LngLat[]) {
+    for (const item of items) {
+      const [w, s, e, n] = boxOf(pointsOf(item));
+      for (let x = Math.floor(w / CELL_DEG); x <= Math.floor(e / CELL_DEG); x++)
+        for (
+          let y = Math.floor(s / CELL_DEG);
+          y <= Math.floor(n / CELL_DEG);
+          y++
+        ) {
+          const key = `${x},${y}`;
+          const cell = this.cells.get(key);
+          if (cell) cell.push(item);
+          else this.cells.set(key, [item]);
+        }
+    }
+  }
+
+  /** The obstacles in the cells within `REACH_M` of the stop, each once. */
+  near([lng, lat]: LngLat): T[] {
+    const dLng = REACH_M / mPerDegLng(lat);
+    const dLat = REACH_M / M_PER_DEG_LAT;
+    const found = new Set<T>();
+    for (
+      let x = Math.floor((lng - dLng) / CELL_DEG);
+      x <= Math.floor((lng + dLng) / CELL_DEG);
+      x++
+    )
+      for (
+        let y = Math.floor((lat - dLat) / CELL_DEG);
+        y <= Math.floor((lat + dLat) / CELL_DEG);
+        y++
+      )
+        for (const item of this.cells.get(`${x},${y}`) ?? []) found.add(item);
+    return [...found];
+  }
+}
+
+/**
  * The pumpkins at one stop: none at most stops, one to three at about one in
  * three, each tried at up to `CANDIDATES` spots and left out when none is
  * clear. Every pumpkin takes the same number of random draws whether or not
@@ -230,6 +298,15 @@ export function pumpkinsInView(
   const metresFrom = (from: LngLat, [lng, lat]: LngLat) =>
     Math.hypot((lng - from[0]) * xScale, (lat - from[1]) * M_PER_DEG_LAT);
 
+  // A view's tiles hold thousands of roads and buildings; checking each
+  // candidate spot against only those near its stop took a city-centre view
+  // from about 380 ms to a few.
+  const trafficGrid = new Grid(
+    traffic.filter((line) => line.class in TRAFFIC_HALF_WIDTH_M),
+    (line) => line.coordinates,
+  );
+  const buildingGrid = new Grid(buildings, (ring) => ring);
+
   const unique = new Map<string, LngLat>();
   for (const stop of stops) {
     const [lng, lat] = stop;
@@ -244,7 +321,9 @@ export function pumpkinsInView(
   const pumpkins: Pumpkin[] = [];
   for (const { stop } of nearestFirst) {
     if (pumpkins.length >= PUMPKIN_CAP) break;
-    pumpkins.push(...pumpkinsAtStop(stop, traffic, buildings));
+    pumpkins.push(
+      ...pumpkinsAtStop(stop, trafficGrid.near(stop), buildingGrid.near(stop)),
+    );
   }
   const capped = pumpkins.slice(0, PUMPKIN_CAP);
   const { avoid } = options;
