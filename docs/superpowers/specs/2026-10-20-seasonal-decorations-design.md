@@ -13,8 +13,8 @@ and it must never get in the way of the vehicles, which are what the map is for.
   the stops on the map, with no switch to turn them on.
 - They are true 3D objects in the map's own style: built in code like the vehicle models,
   standing on the terrain, hidden by buildings.
-- Snapchat-style oversized but **never taller than a bus**: each pumpkin is between about 1.5 and
-  2.5 m tall, varied per pumpkin so a group does not look copy-pasted.
+- Snapchat-style oversized but **never taller than a bus**: each pumpkin is between about 2 and
+  3 m tall, varied per pumpkin so a group does not look copy-pasted.
 - A few per stop, at some stops only, at random, but **stable**: the same stop gets the same
   pumpkins in the same places on every load and pan.
 - Dark scheme: lit jack-o'-lanterns (carved face glowing, as the vehicles' lamps glow). Light
@@ -89,7 +89,7 @@ and it must never get in the way of the vehicles, which are what the map is for.
 ## Decided
 
 - Look: option B from the mockups, giant 3D pumpkins never taller than a bus (3.2 m in
-  `vehicleFootprint.ts`); in practice 1.5–2.5 m.
+  `vehicleFootprint.ts`); in practice 2–3 m (raised from 1.5–2.5 m on 2026-10-20 after seeing them).
 - Placement: a few, at random, near some stops; static.
 - Timing: automatic around Halloween; Halloween ships before the other seasons.
 - Hard rules: never block vehicles, never slow the map.
@@ -98,7 +98,7 @@ and it must never get in the way of the vehicles, which are what the map is for.
 ## My calls (check these)
 
 - Window 24 Oct – 1 Nov inclusive, judged by the date in Europe/Oslo.
-- Roughly one stop in three gets pumpkins, 1–3 each, 1.5–2.5 m tall, random yaw.
+- Roughly one stop in three gets pumpkins, 1–3 each, 2–3 m tall, random yaw.
 - "Random but stable": seeded from the stop's coordinates (rounded so tile boundaries don't
   change the seed), so no stored state is needed.
 - 200 per view cap, 4 m road clearance.

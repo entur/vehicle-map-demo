@@ -63,7 +63,7 @@ export const CHASE_CLEARANCE_M = 40;
 
 const DECORATED_SHARE = 1 / 3;
 const MAX_PER_STOP = 3;
-const HEIGHT_M = [1.5, 2.5] as const;
+const HEIGHT_M = [2, 3] as const;
 const SPREAD_M = [3, 15] as const;
 const CANDIDATES = 8;
 const TINTS: [number, number, number][] = [

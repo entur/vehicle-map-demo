@@ -95,15 +95,15 @@ describe("pumpkinsAtStop", () => {
     expect(Math.max(...counts)).toBe(3);
   });
 
-  it("keeps every pumpkin between 1.5 and 2.5 m tall and 3–15 m from the stop", () => {
+  it("keeps every pumpkin between 2 and 3 m tall, under a bus, and 3–15 m from the stop", () => {
     const stops = Array.from({ length: 300 }, (_, i) => east(OSLO, i * 5));
     const all = stops.flatMap((s) =>
       pumpkinsAtStop(s, [], []).map((p) => ({ stop: s, p })),
     );
     expect(all.length).toBeGreaterThan(0);
     for (const { stop, p } of all) {
-      expect(p.height).toBeGreaterThanOrEqual(1.5);
-      expect(p.height).toBeLessThanOrEqual(2.5);
+      expect(p.height).toBeGreaterThanOrEqual(2);
+      expect(p.height).toBeLessThanOrEqual(3);
       expect(metres(stop, p.position)).toBeGreaterThanOrEqual(3 - 1e-6);
       expect(metres(stop, p.position)).toBeLessThanOrEqual(15 + 1e-6);
     }
