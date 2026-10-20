@@ -2212,8 +2212,13 @@ const TREE_SIDES = 8;
 /** Bulbs are cubes this wide, their centres this far out from the canopy. */
 const BULB_SIZE = 0.025;
 const BULB_PROUD = BULB_SIZE / 2;
-/** The star: a flattened octahedron, its top at the tree's height. */
-const STAR = { halfWidth: 0.06, halfDepth: 0.015, halfHeight: 0.045 };
+/**
+ * The star: `crossed` five-pointed stars at equal angles about the vertical,
+ * so it reads as a star from any side. Each is a closed bipyramid, its points
+ * `outer` from the centre, its notches `inner`, its faces rising to `depth`
+ * either side of its plane. Its top point is at the tree's height.
+ */
+const STAR = { outer: 0.06, inner: 0.025, depth: 0.012, crossed: 3 };
 /** The trunk's square section. */
 const TRUNK_WIDTH = 0.07;
 /** The golden angle, which spreads bulbs round the tree without lining up. */
@@ -2254,8 +2259,10 @@ let christmasTree: ChristmasTreeModel | undefined;
  * `TREE_ASPECT` wide at its corners, a star on top and `TREE.bulbs` bulbs a
  * hair proud of the canopy. The canopy is white, tinted per tree by the
  * renderer. The bulbs go up the canopy on a golden-angle spiral; bulb `i` is in
- * group `i % bulbGroups` and cycles through the four bulb colours every
- * `bulbGroups` bulbs, so every group carries every colour.
+ * group `i % bulbGroups` and takes colour `i % 4`, so no colour repeats within
+ * four bulbs up the spiral, every stretch of the canopy shows all four, and —
+ * three groups and four colours sharing no factor — every group carries every
+ * colour.
  */
 export function christmasTreeModel(): ChristmasTreeModel {
   if (!christmasTree) {
@@ -2291,20 +2298,29 @@ export function christmasTreeModel(): ChristmasTreeModel {
       }
     }
 
-    const { halfWidth, halfDepth, halfHeight } = STAR;
-    const centre: Vec3 = [0, 0, height - halfHeight];
-    const along = (x: number, y: number, z: number): Vec3 => [
-      centre[0] + x,
-      centre[1] + y,
-      centre[2] + z,
-    ];
-    for (const x of [-halfWidth, halfWidth]) {
-      for (const y of [-halfDepth, halfDepth]) {
-        for (const z of [-halfHeight, halfHeight]) {
+    const { outer, inner, depth, crossed } = STAR;
+    const centre: Vec3 = [0, 0, height - outer];
+    for (let star = 0; star < crossed; star++) {
+      const yaw = (star / crossed) * Math.PI;
+      const [ux, uy] = [Math.cos(yaw), Math.sin(yaw)];
+      const at = (across: number, up: number, out: number): Vec3 => [
+        across * ux - out * uy,
+        across * uy + out * ux,
+        centre[2] + up,
+      ];
+      // Points and notches alternate round the rim, the first point straight up.
+      const rim = Array.from({ length: 10 }, (_, k) => {
+        const angle = Math.PI / 2 + (k * Math.PI) / 5;
+        const r = k % 2 === 0 ? outer : inner;
+        return at(r * Math.cos(angle), r * Math.sin(angle), 0);
+      });
+      for (const side of [-depth, depth]) {
+        const tip = at(0, 0, side);
+        for (let k = 0; k < rim.length; k++) {
           m.triangle(
-            along(x, 0, 0),
-            along(0, y, 0),
-            along(0, 0, z),
+            rim[k],
+            rim[(k + 1) % rim.length],
+            tip,
             MESH_COLOURS.treeStar,
             centre,
           );
@@ -2333,7 +2349,7 @@ export function christmasTreeModel(): ChristmasTreeModel {
         BULB_SIZE,
         BULB_SIZE,
         BULB_SIZE,
-        colours[Math.floor(i / bulbGroups) % colours.length],
+        colours[i % colours.length],
       );
     }
 

@@ -607,6 +607,60 @@ describe("christmasTreeModel", () => {
     }
   });
 
+  // Trees stand at a random yaw, so a star flat in one plane is a sliver from
+  // the side.
+  it("has a star with depth, so no viewing direction sees a sliver", () => {
+    const { x, y, z } = extent(model.star);
+    const [wx, wy] = [x.max - x.min, y.max - y.min];
+    expect(Math.min(wx, wy)).toBeGreaterThanOrEqual(0.5 * Math.max(wx, wy));
+    expect(Math.abs(z.max - TREE.height)).toBeLessThanOrEqual(0.005);
+    const topTierBase = 0.54;
+    expect(z.min).toBeGreaterThan(topTierBase);
+  });
+
+  describe("bulb colours", () => {
+    const { bulbWarm, bulbRed, bulbGold, bulbBlue } = MESH_COLOURS;
+    const colours = [bulbWarm, bulbRed, bulbGold, bulbBlue];
+    // Every bulb, lowest first, with the index of its colour.
+    const bulbs = model.bulbs
+      .flatMap((group) => {
+        const c = group.colors.value;
+        return bulbCentres(group).map((centre, i) => {
+          const at = i * BOX_VERTICES * 3;
+          const colour = colours.findIndex((candidate) =>
+            [0, 1, 2].every((k) => Math.abs(c[at + k] - candidate[k]) < 1e-6),
+          );
+          return { z: centre[2], colour };
+        });
+      })
+      .sort((a, b) => a.z - b.z);
+
+    it("gives every bulb one of the four bulb colours", () => {
+      expect(bulbs).toHaveLength(TREE.bulbs);
+      for (const { colour } of bulbs) expect(colour).toBeGreaterThanOrEqual(0);
+    });
+
+    it("never repeats a colour within four bulbs up the spiral", () => {
+      for (let i = 0; i + 4 <= bulbs.length; i++) {
+        const run = bulbs.slice(i, i + 4).map((b) => b.colour);
+        expect(new Set(run).size).toBe(4);
+      }
+    });
+
+    it("has every colour in each third of the canopy's height", () => {
+      const canopy = extent(model.canopy).z;
+      const third = (canopy.max - canopy.min) / 3;
+      for (let k = 0; k < 3; k++) {
+        const [from, to] = [
+          canopy.min + k * third,
+          canopy.min + (k + 1) * third,
+        ];
+        const inThird = bulbs.filter((b) => b.z >= from && b.z < to);
+        expect(new Set(inThird.map((b) => b.colour)).size).toBe(4);
+      }
+    });
+  });
+
   it("is built once", () => {
     expect(christmasTreeModel()).toBe(model);
   });
