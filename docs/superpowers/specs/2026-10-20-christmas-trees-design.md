@@ -134,11 +134,11 @@ Everything in the Halloween spec's constraints holds for the trees unless it is 
 - **Bulbs are multicoloured:** warm white, red, gold and blue, with the colours shared across
   the twinkle groups so no single colour pulses on its own.
 - **The star glows steadily**; it does not twinkle.
-- **Spread:** a tree stands 3–15 m from its stop, like the pumpkins, and is tried at up to 24
-  spots. A tree needs more room than a pumpkin, so if few city-centre stops get one, the builder
-  may widen the spread and try more spots. The clearance itself may not be relaxed. Any change
-  is measured in Oslo sentrum, Majorstuen and Bergen sentrum as the pumpkins were, for both
-  density and placement time.
+- **Spread:** a tree stands 3–20 m from its stop and is tried at up to 48 spots, against the
+  pumpkins' 3–15 m and 24. A tree needs more room than a pumpkin: at the pumpkins' values only a
+  third of Oslo sentrum's stops got one (see "Measured" below for the before and after). The
+  clearance itself may not be relaxed. Any further change is measured in Oslo sentrum,
+  Majorstuen and Bergen sentrum as the pumpkins were, for both density and placement time.
 - **Cap per view:** the existing 200 decorations, which for trees means 200 stops.
 - **Shown in kiosk mode,** as the pumpkins are.
 - **Chased vehicle:** nothing is hidden around it (see Constraints).
