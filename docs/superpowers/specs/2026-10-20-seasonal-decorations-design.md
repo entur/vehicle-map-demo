@@ -130,3 +130,30 @@ and it must never get in the way of the vehicles, which are what the map is for.
   document. No measurable drop is
   the bar.
 - Looked at by eye in both schemes: no pumpkin on a road or track, none hiding a chased vehicle.
+
+## Measured (2026-10-20, dev, Chrome, 1560×784 viewport, 60 Hz display)
+
+Frames counted with `requestAnimationFrame` during a 10 s linear 90° rotation
+(3D, zoom 16.5, pitch 60, Oslo sentrum), twice per case; and over 20 s of a
+chase (bus 600 at Oslo bussterminal, zoom 17.5, pitch 60). "Worst" is the
+longest single frame.
+
+| Case                                 | Pumpkins | fps                    | Worst frame |
+| ------------------------------------ | -------- | ---------------------- | ----------- |
+| Rotation, light, `?season=none`      | –        | 60.0 / 60.0            | 19 ms       |
+| Rotation, light, `?season=halloween` | 20       | 59.4 / 59.9            | 33 ms       |
+| Rotation, dark, `?season=none`       | –        | 60.0 / 60.0            | 18 ms       |
+| Rotation, dark, `?season=halloween`  | 20       | 59.3 / 60.0            | 34 / 18 ms  |
+| Chase, dark, `?season=none`          | –        | 60.0, 0 frames > 25 ms | 18 ms       |
+| Chase, dark, `?season=halloween`     | 9        | 60.0, 1 frame > 25 ms  | 33 ms       |
+
+One build in that sentrum 3D view: about 7 ms reading stops, roads and
+buildings from the tiles (153 stops, 4,567 road lines, 3,044 buildings) and
+about 6 ms placing (14 ms cold). Average frame rate does not move; what does
+is an occasional single dropped frame when a build lands in a frame — about
+one per 10–20 s in these runs. Against "no measurable drop" that is a
+measurable cost, left for the user to judge.
+
+Density: at zoom 16 with no tilt, buildings leave few clear spots in city
+centres — Oslo sentrum 14 pumpkins at 9 of 97 stops, Majorstuen 20 at 11 of
+66, Bergen sentrum 8 at 5 of 49, Grorud 6 at 4 of 28.
