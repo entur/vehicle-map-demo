@@ -45,3 +45,20 @@ export function twinkleAmount(
   );
   return 1 - t * t * (3 - 2 * t);
 }
+
+const smoothstep = (t: number) => t * t * (3 - 2 * t);
+
+/**
+ * How much twinkle to show after waking at `wakeMs` with `fromAmount` showing:
+ * the same ease as the settle, run upwards, so lights that had settled (or
+ * were settling) fade back into the twinkle instead of jumping to it. 1 once
+ * TWINKLE_SETTLE_MS has passed.
+ */
+export function twinkleWake(
+  nowMs: number,
+  wakeMs: number,
+  fromAmount: number,
+): number {
+  const t = Math.min(1, Math.max(0, (nowMs - wakeMs) / TWINKLE_SETTLE_MS));
+  return fromAmount + (1 - fromAmount) * smoothstep(t);
+}

@@ -6,6 +6,7 @@ import {
   TWINKLE_SETTLE_MS,
   twinkleAmount,
   twinkleBrightness,
+  twinkleWake,
 } from "./twinkle.ts";
 
 const times = Array.from({ length: 300 }, (_, i) => i / 12);
@@ -93,5 +94,56 @@ describe("twinkleAmount", () => {
   it("is always 0 under reduced motion", () => {
     expect(twinkleAmount(0, 0, true)).toBe(0);
     expect(twinkleAmount(30_000, 0, true)).toBe(0);
+  });
+});
+
+describe("twinkleWake", () => {
+  it("eases from the amount at waking up to 1 over TWINKLE_SETTLE_MS", () => {
+    expect(twinkleWake(10_000, 10_000, 0)).toBe(0);
+    expect(twinkleWake(10_000, 10_000, 0.4)).toBeCloseTo(0.4, 9);
+    expect(twinkleWake(10_000 + TWINKLE_SETTLE_MS / 2, 10_000, 0)).toBeCloseTo(
+      0.5,
+      9,
+    );
+    expect(twinkleWake(10_000 + TWINKLE_SETTLE_MS, 10_000, 0)).toBe(1);
+    expect(twinkleWake(500_000, 10_000, 0)).toBe(1);
+  });
+
+  it("is 1 when it woke from full", () => {
+    expect(twinkleWake(0, 0, 1)).toBe(1);
+  });
+
+  // Brightness over a tick, with the amount from `amountAt`, on every phase.
+  function largestStep(amountAt: (ms: number) => number, fromMs: number) {
+    let largest = 0;
+    for (let phase = 0; phase < 1; phase += 0.01)
+      for (let ms = fromMs; ms < fromMs + 3_000; ms += 1000 / 12) {
+        const b = (t: number) =>
+          twinkleBrightness(t / 1000, phase, 1, 3, amountAt(t));
+        largest = Math.max(largest, Math.abs(b(ms + 1000 / 12) - b(ms)));
+      }
+    return largest;
+  }
+
+  it("never steps brightness by more than 0.1 a tick waking from idle", () => {
+    const wake = 100_000;
+    // Settled before `wake`, then activity: the clock's composition.
+    const amountAt = (ms: number) =>
+      ms < wake
+        ? twinkleAmount(ms, 0, false)
+        : Math.min(twinkleAmount(ms, wake, false), twinkleWake(ms, wake, 0));
+    expect(largestStep(amountAt, wake - 500)).toBeLessThanOrEqual(0.1);
+  });
+
+  it("never steps brightness by more than 0.1 a tick waking mid-settle", () => {
+    const wake = TWINKLE_IDLE_MS + TWINKLE_SETTLE_MS / 2;
+    const from = twinkleAmount(wake, 0, false);
+    const amountAt = (ms: number) =>
+      ms < wake
+        ? twinkleAmount(ms, 0, false)
+        : Math.min(twinkleAmount(ms, wake, false), twinkleWake(ms, wake, from));
+    expect(largestStep(amountAt, TWINKLE_IDLE_MS - 500)).toBeLessThanOrEqual(
+      0.1,
+    );
   });
 });

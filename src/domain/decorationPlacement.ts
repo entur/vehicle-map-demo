@@ -10,7 +10,7 @@ import type { ViewBounds } from "./vehiclesInView.ts";
  * The randomness is seeded from the stop's own position, so a stop gets the
  * same decorations on every load and every pan. Geometry
  * is worked in metres on a flat plane around each stop, which is exact enough
- * across the 15 m a decoration may stand from it.
+ * across the few tens of metres a decoration may stand from it.
  */
 
 type LngLat = [number, number];

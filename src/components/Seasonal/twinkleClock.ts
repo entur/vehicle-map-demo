@@ -1,5 +1,9 @@
 import type { Map as MapLibreMap } from "maplibre-gl";
-import { twinkleAmount } from "../../domain/twinkle.ts";
+import {
+  TWINKLE_IDLE_MS,
+  twinkleAmount,
+  twinkleWake,
+} from "../../domain/twinkle.ts";
 
 export type TwinkleState = { timeS: number; amount: number };
 
@@ -26,6 +30,9 @@ export class TwinkleClock {
   private readonly isVisible: () => boolean;
   private readonly startMs: number;
   private lastActivityMs: number;
+  /** When activity last woke a settling or settled clock, and from what. */
+  private wakeMs = 0;
+  private wakeFrom = 1;
   private timer: ReturnType<typeof setInterval> | null = null;
   private disposed = false;
 
@@ -41,10 +48,10 @@ export class TwinkleClock {
     this.start();
   }
 
-  /** Input or camera movement: twinkle again from full. */
+  /** Input or camera movement: ease back to full twinkle. */
   activity(): void {
     if (this.disposed) return;
-    this.lastActivityMs = this.now();
+    this.noteActivity();
     this.start();
   }
 
@@ -53,7 +60,7 @@ export class TwinkleClock {
     const now = this.now();
     return {
       timeS: (now - this.startMs) / 1000,
-      amount: twinkleAmount(now, this.lastActivityMs, false),
+      amount: this.amountAt(now),
     };
   }
 
@@ -63,11 +70,33 @@ export class TwinkleClock {
     this.stop();
   }
 
-  /** A chase fires this every frame: one assignment, and a no-op restart. */
+  /** A chase fires this every frame: a comparison, and a no-op restart. */
   private onMove = (): void => {
-    this.lastActivityMs = this.now();
+    this.noteActivity();
     if (this.timer === null) this.start();
   };
+
+  private amountAt(now: number): number {
+    return Math.min(
+      twinkleAmount(now, this.lastActivityMs, false),
+      twinkleWake(now, this.wakeMs, this.wakeFrom),
+    );
+  }
+
+  /**
+   * Activity once the settle has begun eases back up from the amount showing
+   * rather than jumping to full, which dropped a dim bulb group in one frame.
+   * Activity while still active, or while easing back up, only pushes the
+   * idle time out, so a chase's per-frame moves do not restart the ease.
+   */
+  private noteActivity(): void {
+    const now = this.now();
+    if (now - this.lastActivityMs > TWINKLE_IDLE_MS) {
+      this.wakeFrom = this.amountAt(now);
+      this.wakeMs = now;
+    }
+    this.lastActivityMs = now;
+  }
 
   private start(): void {
     if (this.timer !== null || this.disposed || this.options.reducedMotion)
@@ -82,7 +111,13 @@ export class TwinkleClock {
   }
 
   private tick = (): void => {
-    if (this.disposed || !this.isVisible()) return;
+    if (this.disposed) return;
+    // A hidden page is not drawn: stop rather than tick for nothing. Coming
+    // back is activity (`useSeasonalDecorations`), which starts it again.
+    if (!this.isVisible()) {
+      this.stop();
+      return;
+    }
     const state = this.current();
     this.options.onTick(state);
     this.map.triggerRepaint();

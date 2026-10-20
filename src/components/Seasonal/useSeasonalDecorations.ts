@@ -135,8 +135,8 @@ export function useSeasonalDecorations({
       onTick: (state) => drawRef.current(state),
     });
     clockRef.current = clock;
-    // The clock skips ticks on a hidden page; coming back counts as someone
-    // being there again.
+    // The clock stops its timer on a hidden page; coming back counts as
+    // someone being there again, which starts it.
     const onVisibility = () => {
       if (document.visibilityState === "visible") clock.activity();
     };

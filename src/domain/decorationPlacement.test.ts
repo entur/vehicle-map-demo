@@ -56,11 +56,11 @@ const square = (centre: LngLat, side: number): BuildingRing => {
   return [sw, [ne[0], sw[1]], ne, [sw[0], ne[1]], sw];
 };
 
-/** True when a pumpkin's footprint lies wholly outside an axis-aligned square. */
-function clearOf(p: Decoration, ring: BuildingRing) {
+/** True when a decoration's footprint lies wholly outside an axis-aligned square. */
+function clearOf(p: Decoration, ring: BuildingRing, aspect = PUMPKIN_ASPECT) {
   const [x0, y0] = ring[0];
   const [x1, y1] = ring[2];
-  const r = (PUMPKIN_ASPECT * p.height) / 2;
+  const r = (aspect * p.height) / 2;
   const [px, py] = p.position;
   const dx = Math.max(x0 - px, 0, px - x1) * mPerDegLng(py);
   const dy = Math.max(y0 - py, 0, py - y1) * M_PER_DEG_LAT;
@@ -1167,6 +1167,38 @@ describe("christmas trees", () => {
       }
     }
     expect(placed).toBeGreaterThan(0);
+  });
+
+  it("is stable across calls: the same stop gets the same tree", () => {
+    for (const stop of stops.slice(0, 10))
+      expect(decorationsAtStop(trees, stop, [], [])).toEqual(
+        decorationsAtStop(trees, stop, [], []),
+      );
+  });
+
+  it("never stands a tree inside a building", () => {
+    let placed = 0;
+    for (const stop of stops) {
+      const building = square(east(stop, 12), 20);
+      for (const tree of decorationsAtStop(trees, stop, [], [building])) {
+        placed++;
+        expect(clearOf(tree, building, TREE_ASPECT)).toBe(true);
+      }
+    }
+    expect(placed).toBeGreaterThan(0);
+  });
+
+  it("gives a stop with no clear spot no tree", () => {
+    // A primary road through the stop, buildings filling both sides from
+    // just beyond its edge to past the farthest a tree may stand.
+    for (const stop of stops.slice(0, 10)) {
+      const traffic = [road("primary", north(stop, -50), north(stop, 50))];
+      const buildings = [
+        square(east(stop, 30), 44),
+        square(east(stop, -30), 44),
+      ];
+      expect(decorationsAtStop(trees, stop, traffic, buildings)).toEqual([]);
+    }
   });
 
   it("gives each tree a phase in [0, 1) that differs between neighbouring stops", () => {

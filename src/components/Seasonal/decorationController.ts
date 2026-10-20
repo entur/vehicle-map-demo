@@ -62,7 +62,8 @@ const outerRings = (feature: Feature): BuildingRing[] =>
  * so the tests can drive it with a fake map.
  *
  * Placement reads stops, roads, buildings and water from the base map's
- * tiles — about 13 ms in a city centre in 3D, most of a frame — so it runs
+ * tiles — in a city centre in 3D about 7 ms to read and 10–20 ms to place
+ * afresh, a frame or more — so it runs
  * as little as it can: at once, when a move ends, and when a base map tile
  * arrives while the camera is at rest; never for a tile streaming in
  * mid-gesture, whose move's end places anyway. A terrain tile, or terrain

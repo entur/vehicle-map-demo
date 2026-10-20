@@ -91,6 +91,8 @@ export function VehicleModels({
   // no 3D at all. `_reuseDevices` hands the second the first's device — what
   // deck.gl itself passes when it creates a context, but not when it attaches
   // to one, and the interleaved overlay accepts no `device` of its own.
+  // An underscore luma prop, but typed in DeviceProps; without it `npm run dev`
+  // shows no 3D at all, while a production build (one mount) is unaffected.
   const overlay = useControl(
     () =>
       new MapLibreOverlay({

@@ -71,13 +71,13 @@ describe("TwinkleClock", () => {
   });
 
   it("restarts on a map move", () => {
-    const clock = make();
+    make();
     vi.advanceTimersByTime(TWINKLE_IDLE_MS + TWINKLE_SETTLE_MS + 200);
     const n = ticks.length;
     map.emit("move");
-    expect(clock.current().amount).toBe(1);
     vi.advanceTimersByTime(TWINKLE_TICK_MS * 3);
     expect(ticks.length).toBe(n + 3);
+    vi.advanceTimersByTime(TWINKLE_SETTLE_MS);
     expect(ticks[ticks.length - 1].amount).toBe(1);
   });
 
@@ -87,7 +87,54 @@ describe("TwinkleClock", () => {
     const n = ticks.length;
     clock.activity();
     vi.advanceTimersByTime(TWINKLE_TICK_MS * 2);
-    expect(ticks.length).toBe(n + 2);
+    expect(ticks.length).toBeGreaterThanOrEqual(n + 2);
+    vi.advanceTimersByTime(TWINKLE_SETTLE_MS);
+    expect(clock.current().amount).toBe(1);
+  });
+
+  /** The largest change in amount between consecutive ticks from `from`. */
+  const largestAmountStep = (from: number) =>
+    ticks
+      .slice(from)
+      .reduce(
+        (m, t, i, a) =>
+          i ? Math.max(m, Math.abs(t.amount - a[i - 1].amount)) : m,
+        0,
+      );
+
+  it("eases the lights back in when activity wakes it from idle", () => {
+    const clock = make();
+    vi.advanceTimersByTime(TWINKLE_IDLE_MS + TWINKLE_SETTLE_MS + 200);
+    const n = ticks.length;
+    expect(ticks[n - 1].amount).toBe(0);
+    clock.activity();
+    vi.advanceTimersByTime(TWINKLE_SETTLE_MS + TWINKLE_TICK_MS * 2);
+    expect(ticks[n].amount).toBeLessThan(0.1);
+    expect(largestAmountStep(n - 1)).toBeLessThanOrEqual(0.13);
+    expect(ticks[ticks.length - 1].amount).toBe(1);
+  });
+
+  it("eases back up from where it was when a move comes mid-settle", () => {
+    make();
+    vi.advanceTimersByTime(TWINKLE_IDLE_MS + TWINKLE_SETTLE_MS / 2);
+    const n = ticks.length;
+    const before = ticks[n - 1].amount;
+    expect(before).toBeGreaterThan(0.2);
+    expect(before).toBeLessThan(0.8);
+    map.emit("move");
+    vi.advanceTimersByTime(TWINKLE_SETTLE_MS + TWINKLE_TICK_MS * 2);
+    expect(Math.abs(ticks[n].amount - before)).toBeLessThan(0.13);
+    expect(largestAmountStep(n - 1)).toBeLessThanOrEqual(0.13);
+    expect(ticks[ticks.length - 1].amount).toBe(1);
+  });
+
+  it("is not held back by moves every frame while easing in", () => {
+    make();
+    vi.advanceTimersByTime(TWINKLE_IDLE_MS + TWINKLE_SETTLE_MS + 200);
+    for (let i = 0; i < (TWINKLE_SETTLE_MS / 16) * 1.2; i++) {
+      map.emit("move");
+      vi.advanceTimersByTime(16);
+    }
     expect(ticks[ticks.length - 1].amount).toBe(1);
   });
 
@@ -101,15 +148,17 @@ describe("TwinkleClock", () => {
     expect(clock.current()).toEqual({ timeS: 0, amount: 0 });
   });
 
-  it("does not tick while the page is hidden", () => {
+  it("stops its timer on a hidden page and resumes on activity", () => {
     visible = false;
-    make();
+    const clock = make();
     vi.advanceTimersByTime(5_000);
     expect(ticks.length).toBe(0);
     expect(map.repaints).toBe(0);
+    expect(vi.getTimerCount()).toBe(0);
     visible = true;
+    clock.activity();
     vi.advanceTimersByTime(TWINKLE_TICK_MS * 2);
-    expect(ticks.length).toBeGreaterThan(0);
+    expect(ticks.length).toBe(2);
   });
 
   it("does not tick after dispose and removes its listener", () => {
