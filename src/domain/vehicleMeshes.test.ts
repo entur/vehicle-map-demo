@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { VehicleModeEnumeration } from "../types.ts";
 import { dimensionsFor } from "./vehicleFootprint.ts";
+import { PUMPKIN_ASPECT } from "./pumpkinPlacement.ts";
 import {
   MESH_COLOURS,
   SIGN_TEXTURE_ASPECT,
@@ -9,6 +10,7 @@ import {
   STOP_POLE,
   bodyColourFor,
   modelFor,
+  pumpkinModel,
   stopPoleModel,
   unknownHeadingMeshUnit,
 } from "./vehicleMeshes.ts";
@@ -362,6 +364,76 @@ describe("stopPoleModel", () => {
 
   it("is built once", () => {
     expect(stopPoleModel()).toBe(stopPoleModel());
+  });
+});
+
+describe("pumpkinModel", () => {
+  const model = pumpkinModel();
+
+  it("has one normal and one colour per vertex, in whole triangles, in every mesh", () => {
+    for (const part of [model.body, model.details, model.lamps]) {
+      expect(part.positions.value.length).toBeGreaterThan(0);
+    }
+    for (const part of [model.body, model.sign, model.details, model.lamps]) {
+      const n = part.positions.value.length;
+      expect(n % 9).toBe(0);
+      expect(part.normals.value.length).toBe(n);
+      expect(part.colors.value.length).toBe(n);
+    }
+  });
+
+  it("has a pure white body, so getColor alone decides its colour", () => {
+    expect(model.body.colors.value.every((channel) => channel === 1)).toBe(
+      true,
+    );
+  });
+
+  it("has unit normals and finite positions", () => {
+    const mesh = whole(model);
+    const normals = mesh.normals.value;
+    for (let i = 0; i < normals.length; i += 3) {
+      expect(
+        Math.hypot(normals[i], normals[i + 1], normals[i + 2]),
+      ).toBeCloseTo(1, 4);
+    }
+    expect(mesh.positions.value.every(Number.isFinite)).toBe(true);
+  });
+
+  // Placement keeps a footprint of PUMPKIN_ASPECT × height clear, and scales
+  // the mesh by the height, so the mesh must be exactly that shape.
+  it("stands one unit tall on the ground, PUMPKIN_ASPECT wide, centred", () => {
+    const { x, y, z } = extent(whole(model));
+    expect(z.min).toBeCloseTo(0, 5);
+    expect(z.max).toBeCloseTo(1, 2);
+    expect(x.max - x.min).toBeCloseTo(PUMPKIN_ASPECT, 1);
+    expect(x.max - x.min).toBeLessThanOrEqual(PUMPKIN_ASPECT + 0.02);
+    expect(y.max - y.min).toBeLessThanOrEqual(PUMPKIN_ASPECT + 0.02);
+    expect(Math.abs(x.max + x.min)).toBeLessThan(0.02);
+  });
+
+  // Lit as a lamp in dark mode, so the face — and only the face — glows.
+  it("carves its face on the +y side only, in the lamps mesh", () => {
+    expect(vertices(model.lamps).length).toBeGreaterThan(0);
+    for (const [, y] of vertices(model.lamps)) expect(y).toBeGreaterThan(0);
+    expect(verticesColoured(model.details, MESH_COLOURS.jackOLantern)).toEqual(
+      [],
+    );
+    expect(
+      verticesColoured(model.lamps, MESH_COLOURS.jackOLantern),
+    ).toHaveLength(model.lamps.positions.value.length / 3);
+  });
+
+  it("has no sign", () => {
+    expect(model.sign.positions.value).toHaveLength(0);
+  });
+
+  // Up to 200 copies in view, all one instanced mesh.
+  it("stays within 800 triangles", () => {
+    expect(whole(model).positions.value.length / 9).toBeLessThan(800);
+  });
+
+  it("is built once", () => {
+    expect(pumpkinModel()).toBe(model);
   });
 });
 

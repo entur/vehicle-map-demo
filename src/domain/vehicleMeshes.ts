@@ -1,5 +1,6 @@
 import { VehicleModeEnumeration } from "../types.ts";
 import { dimensionsFor } from "./vehicleFootprint.ts";
+import { PUMPKIN_ASPECT } from "./pumpkinPlacement.ts";
 
 /**
  * Low-poly vehicle models built from boxes, prisms, lofted hulls and wheels,
@@ -75,6 +76,8 @@ export const MESH_COLOURS = {
   starboard: rgb(0x2e9e4f),
   raft: rgb(0xe9e6dd),
   rescueBoat: rgb(0xf26b1d),
+  pumpkinStem: rgb(0x4a6b2a),
+  jackOLantern: rgb(0xffb030),
 } as const;
 
 /**
@@ -87,6 +90,7 @@ const LAMP_COLOURS: ReadonlySet<RGB> = new Set([
   MESH_COLOURS.taillight,
   MESH_COLOURS.indicator,
   MESH_COLOURS.starboard,
+  MESH_COLOURS.jackOLantern,
 ]);
 
 /**
@@ -2064,4 +2068,107 @@ export function stopPoleModel(): VehicleModel {
     stopPole = m.build();
   }
   return stopPole;
+}
+
+/** The seasonal pumpkin, one unit tall; scaled per pumpkin by its height. */
+export const PUMPKIN = {
+  height: 1,
+  width: PUMPKIN_ASPECT,
+  /** The body's top; the stem stands above it to `height`. */
+  bodyHeight: 0.86,
+  ribs: 8,
+  /** How deep the grooves between the ribs are, as a share of the radius. */
+  groove: 0.08,
+} as const;
+
+let pumpkin: VehicleModel | undefined;
+
+/**
+ * A seasonal pumpkin: a ribbed, squashed sphere lathed around +z, standing on
+ * the origin, with a stem on top and a jack-o'-lantern face on the +y side.
+ * The body is `body`, tinted per pumpkin by the renderer; the stem is
+ * `details`; the face is `lamps`, a hair proud of the surface, so in dark
+ * mode it glows and in light mode it is simply not drawn. No sign.
+ */
+export function pumpkinModel(): VehicleModel {
+  if (!pumpkin) {
+    const { height, width, bodyHeight, ribs, groove } = PUMPKIN;
+    const m = new MeshBuilder();
+    const inside: Vec3 = [0, 0, bodyHeight / 2];
+    const rings = 8;
+    const segments = ribs * 3;
+
+    // φ from the bottom (0) to the top (π), θ around from +x towards +y.
+    const surface = (phi: number, theta: number, lift = 0): Vec3 => {
+      const rib = 1 - (groove * (1 - Math.cos(ribs * theta))) / 2;
+      const radius = (Math.sin(phi) * width * rib) / 2 + lift;
+      return [
+        radius * Math.cos(theta),
+        radius * Math.sin(theta),
+        (bodyHeight * (1 - Math.cos(phi))) / 2 + lift * -Math.cos(phi),
+      ];
+    };
+
+    for (let j = 0; j < rings; j++) {
+      const [phi0, phi1] = [(j / rings) * Math.PI, ((j + 1) / rings) * Math.PI];
+      for (let i = 0; i < segments; i++) {
+        const theta0 = (i / segments) * 2 * Math.PI;
+        const theta1 = ((i + 1) / segments) * 2 * Math.PI;
+        m.quad(
+          surface(phi0, theta0),
+          surface(phi0, theta1),
+          surface(phi1, theta1),
+          surface(phi1, theta0),
+          PAINT,
+          inside,
+        );
+      }
+    }
+
+    const stemWidth = 0.08;
+    m.box(
+      0,
+      0,
+      bodyHeight - 0.06,
+      stemWidth,
+      stemWidth,
+      height - bodyHeight + 0.06,
+      MESH_COLOURS.pumpkinStem,
+    );
+
+    // The face, on +y (θ = π/2), a centimetre proud so it never fights the
+    // body for depth. φ is up the face, θ across it.
+    const face = (phi: number, theta: number) =>
+      surface(phi * Math.PI, Math.PI / 2 + theta, 0.01);
+    const lit = MESH_COLOURS.jackOLantern;
+    for (const side of [-1, 1]) {
+      // Eyes: triangles pointing up.
+      m.triangle(
+        face(0.7, side * 0.35),
+        face(0.6, side * 0.35 - 0.13),
+        face(0.6, side * 0.35 + 0.13),
+        lit,
+        inside,
+      );
+    }
+    m.triangle(face(0.56, 0), face(0.5, -0.06), face(0.5, 0.06), lit, inside);
+    // Mouth: a grin of four segments, curving up at the corners, each with a
+    // tooth notched out of its top edge on alternate segments.
+    const mouth = [-0.5, -0.25, 0, 0.25, 0.5];
+    const lower = (t: number) => 0.34 + 0.08 * (t * 2) ** 2;
+    for (let k = 0; k < mouth.length - 1; k++) {
+      const [t0, t1] = [mouth[k], mouth[k + 1]];
+      const top = (t: number) => lower(t) + 0.08 - (k % 2 === 1 ? 0.03 : 0);
+      m.quad(
+        face(lower(t0), t0),
+        face(lower(t1), t1),
+        face(top(t1), t1),
+        face(top(t0), t0),
+        lit,
+        inside,
+      );
+    }
+    pumpkin = m.build();
+  }
+  return pumpkin;
 }
