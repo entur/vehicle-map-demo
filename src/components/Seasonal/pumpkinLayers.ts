@@ -1,5 +1,5 @@
 import { SimpleMeshLayer } from "@deck.gl/mesh-layers";
-import type { Pumpkin } from "../../domain/pumpkinPlacement.ts";
+import type { Decoration } from "../../domain/decorationPlacement.ts";
 import { pumpkinModel } from "../../domain/vehicleMeshes.ts";
 import type { MapScheme } from "../basemap/basemap.ts";
 import {
@@ -13,7 +13,7 @@ export type PumpkinLayerOptions = {
   opacity: number;
   scheme: MapScheme;
   /** The terrain's height under the pumpkin, or 0 in 2D. */
-  getElevation: (pumpkin: Pumpkin) => number;
+  getElevation: (pumpkin: Decoration) => number;
   /** Changes whenever `getElevation` would return something different. */
   positionTrigger: unknown;
 };
@@ -26,7 +26,7 @@ export type PumpkinLayerOptions = {
  * pumpkins.
  */
 export function pumpkinLayers(
-  pumpkins: Pumpkin[],
+  pumpkins: Decoration[],
   {
     visible,
     opacity,
@@ -34,7 +34,7 @@ export function pumpkinLayers(
     getElevation,
     positionTrigger,
   }: PumpkinLayerOptions,
-): SimpleMeshLayer<Pumpkin>[] {
+): SimpleMeshLayer<Decoration>[] {
   // Nothing while hidden, as for the vehicle models.
   if (!visible || pumpkins.length === 0) return [];
 
@@ -45,17 +45,17 @@ export function pumpkinLayers(
     data: pumpkins,
     visible,
     opacity,
-    getPosition: (pumpkin: Pumpkin): [number, number, number] => [
+    getPosition: (pumpkin: Decoration): [number, number, number] => [
       ...pumpkin.position,
       getElevation(pumpkin),
     ],
     // deck.gl yaw turns counter-clockwise; yaw is clockwise from north.
-    getOrientation: (pumpkin: Pumpkin): [number, number, number] => [
+    getOrientation: (pumpkin: Decoration): [number, number, number] => [
       0,
       -pumpkin.yaw,
       0,
     ],
-    getScale: (pumpkin: Pumpkin): [number, number, number] => [
+    getScale: (pumpkin: Decoration): [number, number, number] => [
       pumpkin.height,
       pumpkin.height,
       pumpkin.height,
@@ -64,14 +64,14 @@ export function pumpkinLayers(
   };
 
   return [
-    new SimpleMeshLayer<Pumpkin>({
+    new SimpleMeshLayer<Decoration>({
       ...shared,
       id: "seasonal-pumpkins-body",
       mesh: body,
       getColor: (pumpkin) => pumpkin.tint,
       material: materials.shaded,
     }),
-    new SimpleMeshLayer<Pumpkin>({
+    new SimpleMeshLayer<Decoration>({
       ...shared,
       id: "seasonal-pumpkins-stems",
       mesh: details,
@@ -80,7 +80,7 @@ export function pumpkinLayers(
     }),
     ...(scheme === "dark"
       ? [
-          new SimpleMeshLayer<Pumpkin>({
+          new SimpleMeshLayer<Decoration>({
             ...shared,
             id: "seasonal-pumpkins-faces",
             mesh: lamps,

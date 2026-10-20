@@ -2,14 +2,16 @@ import { describe, expect, it } from "vitest";
 import {
   BuildingRing,
   CLEARANCE_M,
+  DECORATIONS,
+  DECORATION_CAP,
+  Decoration,
+  DecorationCache,
   PUMPKIN_ASPECT,
-  PUMPKIN_CAP,
-  Pumpkin,
+  TREE_ASPECT,
   TrafficLine,
-  PumpkinCache,
-  pumpkinsAtStop,
-  pumpkinsInView,
-} from "./pumpkinPlacement.ts";
+  decorationsAtStop,
+  decorationsInView,
+} from "./decorationPlacement.ts";
 import type { ViewBounds } from "./vehiclesInView.ts";
 
 type LngLat = [number, number];
@@ -55,7 +57,7 @@ const square = (centre: LngLat, side: number): BuildingRing => {
 };
 
 /** True when a pumpkin's footprint lies wholly outside an axis-aligned square. */
-function clearOf(p: Pumpkin, ring: BuildingRing) {
+function clearOf(p: Decoration, ring: BuildingRing) {
   const [x0, y0] = ring[0];
   const [x1, y1] = ring[2];
   const r = (PUMPKIN_ASPECT * p.height) / 2;
@@ -74,21 +76,24 @@ const viewAround = (centre: LngLat, m = 300): ViewBounds => [
 const LUCKY: LngLat = (() => {
   for (let i = 0; i < 1000; i++) {
     const stop = east(OSLO, i);
-    if (pumpkinsAtStop(stop, [], []).length === 3) return stop;
+    if (decorationsAtStop(DECORATIONS.halloween, stop, [], []).length === 3)
+      return stop;
   }
   throw new Error("no stop with three pumpkins");
 })();
 
-describe("pumpkinsAtStop", () => {
+describe("decorationsAtStop", () => {
   it("is deterministic per stop", () => {
-    expect(pumpkinsAtStop(LUCKY, [], [])).toEqual(
-      pumpkinsAtStop(LUCKY, [], []),
+    expect(decorationsAtStop(DECORATIONS.halloween, LUCKY, [], [])).toEqual(
+      decorationsAtStop(DECORATIONS.halloween, LUCKY, [], []),
     );
   });
 
   it("gives every stop 1–3 pumpkins when nothing is in the way", () => {
     const stops = Array.from({ length: 3000 }, (_, i) => east(OSLO, i * 5));
-    const counts = stops.map((s) => pumpkinsAtStop(s, [], []).length);
+    const counts = stops.map(
+      (s) => decorationsAtStop(DECORATIONS.halloween, s, [], []).length,
+    );
     expect(Math.min(...counts)).toBe(1);
     expect(Math.max(...counts)).toBe(3);
   });
@@ -96,7 +101,10 @@ describe("pumpkinsAtStop", () => {
   it("keeps every pumpkin between 2 and 3 m tall, under a bus, and 3–15 m from the stop", () => {
     const stops = Array.from({ length: 300 }, (_, i) => east(OSLO, i * 5));
     const all = stops.flatMap((s) =>
-      pumpkinsAtStop(s, [], []).map((p) => ({ stop: s, p })),
+      decorationsAtStop(DECORATIONS.halloween, s, [], []).map((p) => ({
+        stop: s,
+        p,
+      })),
     );
     expect(all.length).toBeGreaterThan(0);
     for (const { stop, p } of all) {
@@ -109,7 +117,12 @@ describe("pumpkinsAtStop", () => {
 
   it("keeps clear of a primary road's estimated edge", () => {
     const traffic = [road("primary", north(LUCKY, -50), north(LUCKY, 50))];
-    const pumpkins = pumpkinsAtStop(LUCKY, traffic, []);
+    const pumpkins = decorationsAtStop(
+      DECORATIONS.halloween,
+      LUCKY,
+      traffic,
+      [],
+    );
     expect(pumpkins.length).toBeGreaterThan(0);
     for (const p of pumpkins)
       expect(metresToSegment(p.position, traffic[0])).toBeGreaterThanOrEqual(
@@ -119,25 +132,37 @@ describe("pumpkinsAtStop", () => {
 
   it("does not count a footway or cycleway as traffic", () => {
     const traffic = [road("path", north(LUCKY, -50), north(LUCKY, 50))];
-    expect(pumpkinsAtStop(LUCKY, traffic, [])).toEqual(
-      pumpkinsAtStop(LUCKY, [], []),
-    );
+    expect(
+      decorationsAtStop(DECORATIONS.halloween, LUCKY, traffic, []),
+    ).toEqual(decorationsAtStop(DECORATIONS.halloween, LUCKY, [], []));
   });
 
   // Ferries are in the feed; a quay's stop must not crowd its berth.
   it("keeps clear of a ferry line", () => {
     const traffic = [road("ferry", north(LUCKY, -50), north(LUCKY, 50))];
-    const pumpkins = pumpkinsAtStop(LUCKY, traffic, []);
+    const pumpkins = decorationsAtStop(
+      DECORATIONS.halloween,
+      LUCKY,
+      traffic,
+      [],
+    );
     for (const p of pumpkins)
       expect(metresToSegment(p.position, traffic[0])).toBeGreaterThanOrEqual(
         10 + CLEARANCE_M + (PUMPKIN_ASPECT * p.height) / 2 - 1e-6,
       );
-    expect(pumpkins).not.toEqual(pumpkinsAtStop(LUCKY, [], []));
+    expect(pumpkins).not.toEqual(
+      decorationsAtStop(DECORATIONS.halloween, LUCKY, [], []),
+    );
   });
 
   it("never stands a pumpkin inside a building", () => {
     const building = square(east(LUCKY, 12), 20);
-    const pumpkins = pumpkinsAtStop(LUCKY, [], [building]);
+    const pumpkins = decorationsAtStop(
+      DECORATIONS.halloween,
+      LUCKY,
+      [],
+      [building],
+    );
     expect(pumpkins.length).toBeGreaterThan(0);
     for (const p of pumpkins) expect(clearOf(p, building)).toBe(true);
   });
@@ -145,7 +170,7 @@ describe("pumpkinsAtStop", () => {
   it("keeps pumpkins from overlapping each other", () => {
     const stops = Array.from({ length: 1000 }, (_, i) => east(OSLO, i * 5));
     for (const stop of stops) {
-      const pumpkins = pumpkinsAtStop(stop, [], []);
+      const pumpkins = decorationsAtStop(DECORATIONS.halloween, stop, [], []);
       for (const a of pumpkins)
         for (const b of pumpkins)
           if (a !== b)
@@ -163,41 +188,75 @@ describe("pumpkinsAtStop", () => {
       square(east(LUCKY, 20), 24),
       square(east(LUCKY, -20), 24),
     ];
-    expect(pumpkinsAtStop(LUCKY, traffic, buildings)).toEqual([]);
+    expect(
+      decorationsAtStop(DECORATIONS.halloween, LUCKY, traffic, buildings),
+    ).toEqual([]);
   });
 });
 
-describe("pumpkinsInView", () => {
+describe("decorationsInView", () => {
   it("dedupes a stop returned by two tiles", () => {
     expect(
-      pumpkinsInView([LUCKY, LUCKY], [], [], viewAround(LUCKY)),
+      decorationsInView(
+        DECORATIONS.halloween,
+        [LUCKY, LUCKY],
+        [],
+        [],
+        viewAround(LUCKY),
+      ),
     ).toHaveLength(3);
   });
 
   it("is stable across views", () => {
-    const a = pumpkinsInView([LUCKY], [], [], viewAround(LUCKY));
-    const b = pumpkinsInView([LUCKY], [], [], viewAround(east(LUCKY, 100)));
+    const a = decorationsInView(
+      DECORATIONS.halloween,
+      [LUCKY],
+      [],
+      [],
+      viewAround(LUCKY),
+    );
+    const b = decorationsInView(
+      DECORATIONS.halloween,
+      [LUCKY],
+      [],
+      [],
+      viewAround(east(LUCKY, 100)),
+    );
     expect(b).toEqual(a);
   });
 
   it("leaves out stops outside the view", () => {
     expect(
-      pumpkinsInView([LUCKY], [], [], viewAround(east(LUCKY, 2000))),
+      decorationsInView(
+        DECORATIONS.halloween,
+        [LUCKY],
+        [],
+        [],
+        viewAround(east(LUCKY, 2000)),
+      ),
     ).toEqual([]);
   });
 
-  it("caps at PUMPKIN_CAP, keeping the stops nearest the view's centre", () => {
+  it("caps at DECORATION_CAP, keeping the stops nearest the view's centre", () => {
     const stops = Array.from({ length: 2000 }, (_, i) =>
       north(east(OSLO, (i % 45) * 40), Math.floor(i / 45) * 40),
     );
     const centre = north(east(OSLO, 900), 900);
     const view = viewAround(centre, 2000);
-    const pumpkins = pumpkinsInView(stops, [], [], view);
-    expect(pumpkins).toHaveLength(PUMPKIN_CAP);
+    const pumpkins = decorationsInView(
+      DECORATIONS.halloween,
+      stops,
+      [],
+      [],
+      view,
+    );
+    expect(pumpkins).toHaveLength(DECORATION_CAP);
     const nearest = Math.max(
       ...pumpkins.map((p) => metres(centre, p.position)),
     );
-    const all = stops.flatMap((s) => pumpkinsAtStop(s, [], []));
+    const all = stops.flatMap((s) =>
+      decorationsAtStop(DECORATIONS.halloween, s, [], []),
+    );
     const farther = all.filter(
       (p) => metres(centre, p.position) > nearest + 30,
     );
@@ -223,12 +282,26 @@ describe("pumpkinsInView", () => {
       [OSLO[0] - 4, OSLO[1] + 1],
     ];
     expect(
-      pumpkinsInView([LUCKY], [long], [building, huge], viewAround(LUCKY)),
-    ).toEqual(pumpkinsInView([LUCKY], [], [building], viewAround(LUCKY)));
+      decorationsInView(
+        DECORATIONS.halloween,
+        [LUCKY],
+        [long],
+        [building, huge],
+        viewAround(LUCKY),
+      ),
+    ).toEqual(
+      decorationsInView(
+        DECORATIONS.halloween,
+        [LUCKY],
+        [],
+        [building],
+        viewAround(LUCKY),
+      ),
+    );
   });
 });
 
-describe("pumpkinsInView's cache", () => {
+describe("decorationsInView's cache", () => {
   const view = () => viewAround(LUCKY);
   const along = (m: number) =>
     road("primary", north(east(LUCKY, m), -50), north(east(LUCKY, m), 50));
@@ -236,29 +309,75 @@ describe("pumpkinsInView's cache", () => {
   // Between two builds — a pan, or once a second in a chase — most stops
   // are the same, and placing them again was most of a build's cost.
   it("reuses a stop's pumpkins while the obstacles near it are unchanged", () => {
-    const cache: PumpkinCache = new Map();
-    const first = pumpkinsInView([LUCKY], [along(10)], [], view(), { cache });
-    const moved = pumpkinsInView([LUCKY], [along(-10)], [], view());
+    const cache: DecorationCache = new Map();
+    const first = decorationsInView(
+      DECORATIONS.halloween,
+      [LUCKY],
+      [along(10)],
+      [],
+      view(),
+      { cache },
+    );
+    const moved = decorationsInView(
+      DECORATIONS.halloween,
+      [LUCKY],
+      [along(-10)],
+      [],
+      view(),
+    );
     expect(moved).not.toEqual(first);
     // The same count of roads and points near the stop: served from cache.
     expect(
-      pumpkinsInView([LUCKY], [along(-10)], [], view(), { cache }),
+      decorationsInView(
+        DECORATIONS.halloween,
+        [LUCKY],
+        [along(-10)],
+        [],
+        view(),
+        { cache },
+      ),
     ).toEqual(first);
   });
 
   it("places a stop again when the obstacles near it change", () => {
-    const cache: PumpkinCache = new Map();
-    pumpkinsInView([LUCKY], [], [], view(), { cache });
-    expect(pumpkinsInView([LUCKY], [along(10)], [], view(), { cache })).toEqual(
-      pumpkinsInView([LUCKY], [along(10)], [], view()),
+    const cache: DecorationCache = new Map();
+    decorationsInView(DECORATIONS.halloween, [LUCKY], [], [], view(), {
+      cache,
+    });
+    expect(
+      decorationsInView(
+        DECORATIONS.halloween,
+        [LUCKY],
+        [along(10)],
+        [],
+        view(),
+        { cache },
+      ),
+    ).toEqual(
+      decorationsInView(
+        DECORATIONS.halloween,
+        [LUCKY],
+        [along(10)],
+        [],
+        view(),
+      ),
     );
   });
 
   it("forgets stops that have left the view", () => {
-    const cache: PumpkinCache = new Map();
-    pumpkinsInView([LUCKY], [], [], view(), { cache });
+    const cache: DecorationCache = new Map();
+    decorationsInView(DECORATIONS.halloween, [LUCKY], [], [], view(), {
+      cache,
+    });
     expect(cache.size).toBe(1);
-    pumpkinsInView([LUCKY], [], [], viewAround(east(LUCKY, 2000)), { cache });
+    decorationsInView(
+      DECORATIONS.halloween,
+      [LUCKY],
+      [],
+      [],
+      viewAround(east(LUCKY, 2000)),
+      { cache },
+    );
     expect(cache.size).toBe(0);
   });
 });
@@ -272,13 +391,25 @@ describe("golden output", () => {
     );
     const traffic = [road("primary", east(OSLO, -200), east(OSLO, 200))];
     const buildings = [square(north(east(OSLO, 15), 15), 12)];
-    const pumpkins = pumpkinsInView(
+    const pumpkins = decorationsInView(
+      DECORATIONS.halloween,
       stops,
       traffic,
       buildings,
       viewAround(OSLO),
     );
-    expect(pumpkins).toMatchInlineSnapshot(`
+    // `phase` is new and left out, so the fields captured before stay as
+    // they were.
+    const withoutPhase = pumpkins.map(
+      ({ key, position, height, yaw, tint }) => ({
+        key,
+        position,
+        height,
+        yaw,
+        tint,
+      }),
+    );
+    expect(withoutPhase).toMatchInlineSnapshot(`
       [
         {
           "height": 2.6433829753659666,
@@ -996,5 +1127,57 @@ describe("golden output", () => {
         },
       ]
     `);
+  });
+});
+
+describe("christmas trees", () => {
+  const trees = DECORATIONS.christmas;
+  const stops = Array.from({ length: 50 }, (_, i) => east(OSLO, i * 7));
+
+  it("puts exactly one tree at a stop with room", () => {
+    expect(decorationsAtStop(trees, OSLO, [], [])).toHaveLength(1);
+  });
+
+  it("keeps every tree 4–5 m tall and 3–15 m from its stop", () => {
+    for (const stop of stops) {
+      const placed = decorationsAtStop(trees, stop, [], []);
+      expect(placed).toHaveLength(1);
+      for (const tree of placed) {
+        expect(tree.height).toBeGreaterThanOrEqual(4);
+        expect(tree.height).toBeLessThanOrEqual(5);
+        expect(metres(stop, tree.position)).toBeGreaterThanOrEqual(3 - 1e-6);
+        expect(metres(stop, tree.position)).toBeLessThanOrEqual(15 + 1e-6);
+      }
+    }
+  });
+
+  it("keeps the canopy, not just the trunk, clear of a primary road", () => {
+    let placed = 0;
+    for (const stop of stops) {
+      const traffic = [
+        road("primary", north(east(stop, 8), -50), north(east(stop, 8), 50)),
+      ];
+      for (const tree of decorationsAtStop(trees, stop, traffic, [])) {
+        placed++;
+        expect(
+          metresToSegment(tree.position, traffic[0]),
+        ).toBeGreaterThanOrEqual(
+          7 + CLEARANCE_M + (TREE_ASPECT * tree.height) / 2 - 1e-6,
+        );
+      }
+    }
+    expect(placed).toBeGreaterThan(0);
+  });
+
+  it("gives each tree a phase in [0, 1) that differs between neighbouring stops", () => {
+    const phases = stops.map(
+      (stop) => decorationsAtStop(trees, stop, [], [])[0].phase,
+    );
+    for (const phase of phases) {
+      expect(phase).toBeGreaterThanOrEqual(0);
+      expect(phase).toBeLessThan(1);
+    }
+    for (let i = 1; i < phases.length; i++)
+      expect(phases[i]).not.toBe(phases[i - 1]);
   });
 });

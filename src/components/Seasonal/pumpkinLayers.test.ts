@@ -1,18 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { pumpkinLayers } from "./pumpkinLayers.ts";
-import type { Pumpkin } from "../../domain/pumpkinPlacement.ts";
+import type { Decoration } from "../../domain/decorationPlacement.ts";
 import {
   MODEL_BEFORE_LAYER,
   MODEL_MATERIALS,
 } from "../Vehicle/vehicleModelLayers.ts";
 import type { MapScheme } from "../basemap/basemap.ts";
 
-const pumpkin = (key: string): Pumpkin => ({
+const pumpkin = (key: string): Decoration => ({
   key,
   position: [10.75, 59.91],
   height: 2,
   yaw: 30,
   tint: [230, 120, 30],
+  phase: 0,
 });
 const P = pumpkin("a#0");
 const Q = pumpkin("b#0");
@@ -72,9 +73,9 @@ describe("pumpkinLayers", () => {
   it("scales each pumpkin by its height and turns it by its yaw", () => {
     const [body] = pumpkinLayers([P], options());
     const { getScale, getOrientation, getColor } = body.props as unknown as {
-      getScale: (p: Pumpkin) => number[];
-      getOrientation: (p: Pumpkin) => number[];
-      getColor: (p: Pumpkin) => number[];
+      getScale: (p: Decoration) => number[];
+      getOrientation: (p: Decoration) => number[];
+      getColor: (p: Decoration) => number[];
     };
     expect(getScale(P)).toEqual([2, 2, 2]);
     expect(getOrientation(P)).toEqual([0, -30, 0]);

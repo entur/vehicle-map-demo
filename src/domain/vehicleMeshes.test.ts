@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { VehicleModeEnumeration } from "../types.ts";
 import { dimensionsFor } from "./vehicleFootprint.ts";
-import { PUMPKIN_ASPECT } from "./pumpkinPlacement.ts";
+import { PUMPKIN_ASPECT } from "./decorationPlacement.ts";
 import {
   MESH_COLOURS,
   SIGN_TEXTURE_ASPECT,

@@ -1,6 +1,6 @@
 import { VehicleModeEnumeration } from "../types.ts";
 import { dimensionsFor } from "./vehicleFootprint.ts";
-import { PUMPKIN_ASPECT } from "./pumpkinPlacement.ts";
+import { PUMPKIN_ASPECT } from "./decorationPlacement.ts";
 
 /**
  * Low-poly vehicle models built from boxes, prisms, lofted hulls and wheels,

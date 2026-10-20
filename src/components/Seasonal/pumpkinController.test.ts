@@ -5,7 +5,10 @@ import {
   PumpkinController,
   PumpkinMap,
 } from "./pumpkinController.ts";
-import { pumpkinsAtStop } from "../../domain/pumpkinPlacement.ts";
+import {
+  DECORATIONS,
+  decorationsAtStop,
+} from "../../domain/decorationPlacement.ts";
 import type { ViewBounds } from "../../domain/vehiclesInView.ts";
 
 type LngLat = [number, number];
@@ -14,7 +17,8 @@ type LngLat = [number, number];
 const STOP: LngLat = (() => {
   for (let i = 0; i < 1000; i++) {
     const stop: LngLat = [10.7509 + i * 1e-5, 59.9114];
-    if (pumpkinsAtStop(stop, [], []).length === 3) return stop;
+    if (decorationsAtStop(DECORATIONS.halloween, stop, [], []).length === 3)
+      return stop;
   }
   throw new Error("no stop with three pumpkins");
 })();
@@ -199,14 +203,24 @@ describe("PumpkinController", () => {
       [lng + 0.0001, lat + 0.001],
     ];
     expect(
-      pumpkinsAtStop(STOP, [{ class: "primary", coordinates: road }], []),
-    ).not.toEqual(pumpkinsAtStop(STOP, [], []));
+      decorationsAtStop(
+        DECORATIONS.halloween,
+        STOP,
+        [{ class: "primary", coordinates: road }],
+        [],
+      ),
+    ).not.toEqual(decorationsAtStop(DECORATIONS.halloween, STOP, [], []));
     vi.advanceTimersByTime(300);
     map.roads = [road];
     map.emit("moveend");
     expect(placed).toHaveLength(2);
     expect(last(placed)?.pumpkins).toEqual(
-      pumpkinsAtStop(STOP, [{ class: "primary", coordinates: road }], []),
+      decorationsAtStop(
+        DECORATIONS.halloween,
+        STOP,
+        [{ class: "primary", coordinates: road }],
+        [],
+      ),
     );
   });
 
@@ -221,7 +235,12 @@ describe("PumpkinController", () => {
     controller.dispose();
     map = new FakeMap();
     const placedBy = (road: LngLat[]) =>
-      pumpkinsAtStop(STOP, [{ class: "primary", coordinates: road }], []);
+      decorationsAtStop(
+        DECORATIONS.halloween,
+        STOP,
+        [{ class: "primary", coordinates: road }],
+        [],
+      );
     expect(placedBy(along(0.0001))).not.toEqual(placedBy(along(-0.0001)));
     map.roads = [along(0.0001)];
     placed = [];

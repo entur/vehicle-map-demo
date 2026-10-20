@@ -1,21 +1,22 @@
+import type { Season } from "./season.ts";
 import type { ViewBounds } from "./vehiclesInView.ts";
 
 /**
- * Where the seasonal pumpkins stand: one to three at every stop, at random but
- * the same every time, clear of traffic and buildings. Pure, so it is tested
+ * Where a season's decorations stand: a few at every stop, at random but the
+ * same every time, clear of traffic and buildings. Pure, so it is tested
  * without a map; `usePumpkins` feeds it the stops, roads and buildings it
  * reads from the base map's tiles.
  *
  * The randomness is seeded from the stop's own position, so a stop gets the
- * same pumpkins on every load and every pan. Geometry
+ * same decorations on every load and every pan. Geometry
  * is worked in metres on a flat plane around each stop, which is exact enough
- * across the 15 m a pumpkin may stand from it.
+ * across the 15 m a decoration may stand from it.
  */
 
 type LngLat = [number, number];
 
-export type Pumpkin = {
-  /** Stable across rebuilds: the stop's key and the pumpkin's number there. */
+export type Decoration = {
+  /** Stable across rebuilds: the stop's key and the decoration's number there. */
   key: string;
   position: LngLat;
   /** Metres; the mesh is one unit tall. */
@@ -24,6 +25,27 @@ export type Pumpkin = {
   yaw: number;
   /** 0–255 RGB, multiplied into the white body. */
   tint: [number, number, number];
+  /** 0–1, from the key's hash, not the random stream; drives the twinkle. */
+  phase: number;
+};
+
+/** What a season puts at a stop, and how big. */
+export type DecorationSpec = {
+  /** How many at one stop, inclusive, when every one finds a clear spot. */
+  perStop: [min: number, max: number];
+  /** Metres, from the lowest to the tallest. */
+  heightM: [number, number];
+  /** Footprint diameter over height: the widest point. */
+  aspect: number;
+  /** Metres from the stop, nearest to farthest. */
+  spreadM: [number, number];
+  /**
+   * Spots tried per decoration before it is left out. In a city centre most
+   * spots are in a building or a road; at 8, Bergen sentrum got none at all.
+   */
+  candidates: number;
+  /** 0–255 RGB; each decoration's tint is drawn between the two. */
+  tints: [[number, number, number], [number, number, number]];
 };
 
 /** A line from the base map's `transportation` layer. */
@@ -32,10 +54,10 @@ export type TrafficLine = { class: string; coordinates: LngLat[] };
 /** A building footprint's outer ring. */
 export type BuildingRing = LngLat[];
 
-type CachedStop = { signature: string; pumpkins: Pumpkin[] };
+type CachedStop = { signature: string; decorations: Decoration[] };
 
-/** Each stop's pumpkins from the last build, by `stopKey`; see `pumpkinsInView`. */
-export type PumpkinCache = Map<string, CachedStop>;
+/** Each stop's decorations from the last build, by `stopKey`; see `decorationsInView`. */
+export type DecorationCache = Map<string, CachedStop>;
 
 /**
  * Half the width of the carriageway or track, from the centre line, per
@@ -44,7 +66,7 @@ export type PumpkinCache = Map<string, CachedStop>;
  * berth; water itself is kept clear by `usePumpkins`, which passes water
  * areas in with the buildings. A class not listed — path, track, pedestrian,
  * aerialway — is not traffic: no vehicle in the feed drives there, and
- * counting footways and cycleways would leave a city centre with no pumpkins.
+ * counting footways and cycleways would leave a city centre with no decorations.
  */
 export const TRAFFIC_HALF_WIDTH_M: Record<string, number> = {
   motorway: 7,
@@ -60,25 +82,43 @@ export const TRAFFIC_HALF_WIDTH_M: Record<string, number> = {
   ferry: 10,
 };
 
-/** How far beyond the estimated edge of traffic a pumpkin's footprint keeps. */
+/**
+ * How far beyond the estimated edge of traffic a decoration's footprint keeps,
+ * measured from its widest point.
+ */
 export const CLEARANCE_M = 1.5;
-/** The most pumpkins built for one view. */
-export const PUMPKIN_CAP = 200;
+/** The most decorations built for one view. */
+export const DECORATION_CAP = 200;
 /** A pumpkin's width over its height; the mesh is built to it. */
 export const PUMPKIN_ASPECT = 1.3;
+/** A tree's widest canopy over its height; the mesh is built to it. */
+export const TREE_ASPECT = 0.55;
 
-const MAX_PER_STOP = 3;
-const HEIGHT_M = [2, 3] as const;
-const SPREAD_M = [3, 15] as const;
-/**
- * Spots tried per pumpkin before it is left out. In a city centre most spots
- * are in a building or a road; at 8, Bergen sentrum got none at all.
- */
-const CANDIDATES = 24;
-const TINTS: [number, number, number][] = [
-  [0xd9, 0x62, 0x0b],
-  [0xf2, 0x8c, 0x28],
-];
+/** Each season's decorations. */
+export const DECORATIONS: Record<Season, DecorationSpec> = {
+  halloween: {
+    perStop: [1, 3],
+    heightM: [2, 3],
+    aspect: PUMPKIN_ASPECT,
+    spreadM: [3, 15],
+    candidates: 24,
+    tints: [
+      [0xd9, 0x62, 0x0b],
+      [0xf2, 0x8c, 0x28],
+    ],
+  },
+  christmas: {
+    perStop: [1, 1],
+    heightM: [4, 5],
+    aspect: TREE_ASPECT,
+    spreadM: [3, 15],
+    candidates: 24,
+    tints: [
+      [0x2e, 0x6b, 0x3a],
+      [0x3f, 0x7d, 0x45],
+    ],
+  },
+};
 
 const M_PER_DEG_LAT = 110_574;
 const mPerDegLng = (lat: number) => 111_320 * Math.cos((lat * Math.PI) / 180);
@@ -98,7 +138,7 @@ function hash(text: string) {
   return h >>> 0;
 }
 
-/** mulberry32: small, fast and good enough to scatter pumpkins. */
+/** mulberry32: small, fast and good enough to scatter decorations. */
 function seededRandom(seed: number) {
   let a = seed;
   return () => {
@@ -138,12 +178,12 @@ function inside([px, py]: XY, ring: XY[]) {
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
 /**
- * How far from a stop an obstacle can matter: the farthest a pumpkin stands,
- * its widest footprint, and the widest road with its clearance.
+ * How far from a stop an obstacle can matter: the farthest a decoration
+ * stands, its widest footprint, and the widest road with its clearance.
  */
-const REACH_M =
-  SPREAD_M[1] +
-  (PUMPKIN_ASPECT * HEIGHT_M[1]) / 2 +
+const reachOf = (spec: DecorationSpec) =>
+  spec.spreadM[1] +
+  (spec.aspect * spec.heightM[1]) / 2 +
   Math.max(...Object.values(TRAFFIC_HALF_WIDTH_M)) +
   CLEARANCE_M;
 
@@ -197,10 +237,10 @@ class Grid<T> {
     }
   }
 
-  /** The obstacles in the cells within `REACH_M` of the stop, each once. */
-  near([lng, lat]: LngLat): T[] {
-    const dLng = REACH_M / mPerDegLng(lat);
-    const dLat = REACH_M / M_PER_DEG_LAT;
+  /** The obstacles in the cells within `reach` metres of the stop, each once. */
+  near([lng, lat]: LngLat, reach: number): T[] {
+    const dLng = reach / mPerDegLng(lat);
+    const dLat = reach / M_PER_DEG_LAT;
     const found = new Set<T>();
     for (
       let x = Math.floor((lng - dLng) / CELL_DEG);
@@ -218,18 +258,23 @@ class Grid<T> {
 }
 
 /**
- * The pumpkins at one stop: one to three, each tried at up to `CANDIDATES`
- * spots and left out when none is clear. Every pumpkin takes the same number of random draws whether or not
- * a spot is found, so one blocked pumpkin does not move the next.
+ * The decorations at one stop: `spec.perStop` of them, each tried at up to
+ * `spec.candidates` spots and left out when none is clear. Every decoration
+ * takes the same number of random draws whether or not a spot is found, so
+ * one blocked decoration does not move the next.
  */
-export function pumpkinsAtStop(
+export function decorationsAtStop(
+  spec: DecorationSpec,
   stop: LngLat,
   traffic: TrafficLine[],
   buildings: BuildingRing[],
-): Pumpkin[] {
+): Decoration[] {
+  const { perStop, heightM, aspect, spreadM, candidates, tints } = spec;
+  const reach = reachOf(spec);
   const key = stopKey(stop);
   const random = seededRandom(hash(key));
-  const count = 1 + Math.floor(random() * MAX_PER_STOP);
+  const count =
+    perStop[0] + Math.floor(random() * (perStop[1] - perStop[0] + 1));
 
   const [lng0, lat0] = stop;
   const xScale = mPerDegLng(lat0);
@@ -238,12 +283,12 @@ export function pumpkinsAtStop(
     (lat - lat0) * M_PER_DEG_LAT,
   ];
   // Only what can reach a spot: segments and rings whose box comes within
-  // REACH_M of the stop. The grid's cells are far larger than that.
+  // reach of the stop. The grid's cells are far larger than that.
   const nearBox = (xs: number[], ys: number[]) =>
-    Math.min(...xs) <= REACH_M &&
-    Math.max(...xs) >= -REACH_M &&
-    Math.min(...ys) <= REACH_M &&
-    Math.max(...ys) >= -REACH_M;
+    Math.min(...xs) <= reach &&
+    Math.max(...xs) >= -reach &&
+    Math.min(...ys) <= reach &&
+    Math.max(...ys) >= -reach;
   const segments: { halfWidth: number; a: XY; b: XY }[] = [];
   for (const line of traffic) {
     const halfWidth = TRAFFIC_HALF_WIDTH_M[line.class];
@@ -265,19 +310,19 @@ export function pumpkinsAtStop(
     );
 
   const placed: { xy: XY; radius: number }[] = [];
-  const pumpkins: Pumpkin[] = [];
+  const decorations: Decoration[] = [];
   for (let i = 0; i < count; i++) {
-    const height = lerp(HEIGHT_M[0], HEIGHT_M[1], random());
+    const height = lerp(heightM[0], heightM[1], random());
     const yaw = random() * 360;
     const t = random();
-    const tint = TINTS[0].map((c, k) =>
-      Math.round(lerp(c, TINTS[1][k], t)),
+    const tint = tints[0].map((c, k) =>
+      Math.round(lerp(c, tints[1][k], t)),
     ) as [number, number, number];
-    const radius = (PUMPKIN_ASPECT * height) / 2;
+    const radius = (aspect * height) / 2;
 
     let found: XY | null = null;
-    for (let c = 0; c < CANDIDATES; c++) {
-      const distance = lerp(SPREAD_M[0], SPREAD_M[1], random());
+    for (let c = 0; c < candidates; c++) {
+      const distance = lerp(spreadM[0], spreadM[1], random());
       const angle = random() * 2 * Math.PI;
       const xy: XY = [distance * Math.sin(angle), distance * Math.cos(angle)];
       if (found) continue;
@@ -301,22 +346,25 @@ export function pumpkinsAtStop(
     }
     if (!found) continue;
     placed.push({ xy: found, radius });
-    pumpkins.push({
-      key: `${key}#${i}`,
+    const decorationKey = `${key}#${i}`;
+    decorations.push({
+      key: decorationKey,
       position: [lng0 + found[0] / xScale, lat0 + found[1] / M_PER_DEG_LAT],
       height,
       yaw,
       tint,
+      // From the key, so the random stream — and every spot — is untouched.
+      phase: hash(decorationKey) / 2 ** 32,
     });
   }
-  return pumpkins;
+  return decorations;
 }
 
 /**
- * The pumpkins for a view: each stop once (a stop in two loaded tiles is
+ * The decorations for a view: each stop once (a stop in two loaded tiles is
  * returned by both), only stops inside `view`, nearest the view's centre
  * first so the cap keeps what is in front of the camera, at most
- * `PUMPKIN_CAP`.
+ * `DECORATION_CAP`.
  *
  * `cache`, kept by the caller from one build to the next, saves placing a
  * stop again while the obstacles near it are the same — between two builds,
@@ -325,13 +373,15 @@ export function pumpkinsAtStop(
  * tiles return new objects every time, so identity says nothing. Stops not
  * in this build are dropped from it.
  */
-export function pumpkinsInView(
+export function decorationsInView(
+  spec: DecorationSpec,
   stops: LngLat[],
   traffic: TrafficLine[],
   buildings: BuildingRing[],
   view: ViewBounds,
-  options: { cache?: PumpkinCache } = {},
-): Pumpkin[] {
+  options: { cache?: DecorationCache } = {},
+): Decoration[] {
+  const reach = reachOf(spec);
   const [[west, south], [eastEdge, northEdge]] = view;
   const centre: LngLat = [(west + eastEdge) / 2, (south + northEdge) / 2];
   const xScale = mPerDegLng(centre[1]);
@@ -342,8 +392,8 @@ export function pumpkinsInView(
   // candidate spot against only those near its stop took a city-centre view
   // from about 380 ms to a few.
   // Only obstacles that can reach a stop in view matter.
-  const padLng = REACH_M / Math.min(mPerDegLng(south), mPerDegLng(northEdge));
-  const padLat = REACH_M / M_PER_DEG_LAT;
+  const padLng = reach / Math.min(mPerDegLng(south), mPerDegLng(northEdge));
+  const padLat = reach / M_PER_DEG_LAT;
   const clip: [number, number, number, number] = [
     west - padLng,
     south - padLat,
@@ -370,11 +420,11 @@ export function pumpkinsInView(
 
   const { cache } = options;
   const used = new Map<string, CachedStop>();
-  const pumpkins: Pumpkin[] = [];
+  const decorations: Decoration[] = [];
   for (const { stop } of nearestFirst) {
-    if (pumpkins.length >= PUMPKIN_CAP) break;
-    const nearTraffic = trafficGrid.near(stop);
-    const nearBuildings = buildingGrid.near(stop);
+    if (decorations.length >= DECORATION_CAP) break;
+    const nearTraffic = trafficGrid.near(stop, reach);
+    const nearBuildings = buildingGrid.near(stop, reach);
     const signature = [
       nearTraffic.length,
       nearTraffic.reduce((n, line) => n + line.coordinates.length, 0),
@@ -388,14 +438,19 @@ export function pumpkinsInView(
         ? cached
         : {
             signature,
-            pumpkins: pumpkinsAtStop(stop, nearTraffic, nearBuildings),
+            decorations: decorationsAtStop(
+              spec,
+              stop,
+              nearTraffic,
+              nearBuildings,
+            ),
           };
     used.set(key, entry);
-    pumpkins.push(...entry.pumpkins);
+    decorations.push(...entry.decorations);
   }
   if (cache) {
     cache.clear();
     for (const [key, entry] of used) cache.set(key, entry);
   }
-  return pumpkins.slice(0, PUMPKIN_CAP);
+  return decorations.slice(0, DECORATION_CAP);
 }

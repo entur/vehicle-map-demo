@@ -1,11 +1,12 @@
 import type { Map as MapLibreMap } from "maplibre-gl";
 import {
   BuildingRing,
-  Pumpkin,
-  PumpkinCache,
+  DECORATIONS,
+  Decoration,
+  DecorationCache,
   TrafficLine,
-  pumpkinsInView,
-} from "../../domain/pumpkinPlacement.ts";
+  decorationsInView,
+} from "../../domain/decorationPlacement.ts";
 import { STOP_FILTER } from "../../domain/transitNetwork.ts";
 import type { ViewBounds } from "../../domain/vehiclesInView.ts";
 import { Throttled, throttle } from "../../utils/throttle.ts";
@@ -30,7 +31,7 @@ type Feature = ReturnType<MapLibreMap["querySourceFeatures"]>[number];
 
 /** What is drawn: the pumpkins, their heights, and a key that changes with either. */
 export type Placed = {
-  pumpkins: Pumpkin[];
+  pumpkins: Decoration[];
   elevations: number[];
   key: string;
 };
@@ -71,7 +72,7 @@ const outerRings = (feature: Feature): BuildingRing[] =>
 export class PumpkinController {
   private placed: Placed = NOTHING_PLACED;
   /** Each stop's pumpkins from the last placement, reused while nothing near it changed. */
-  private readonly cache: PumpkinCache = new Map();
+  private readonly cache: DecorationCache = new Map();
   private readonly place: Throttled<[]>;
   private readonly elevate: Throttled<[]>;
   private readonly onSourceData = (event: {
@@ -145,9 +146,14 @@ export class PumpkinController {
       ...read("water").flatMap(outerRings),
     ];
     this.report(
-      pumpkinsInView(stops, traffic, blocked, this.options.viewBounds(), {
-        cache: this.cache,
-      }),
+      decorationsInView(
+        DECORATIONS.halloween,
+        stops,
+        traffic,
+        blocked,
+        this.options.viewBounds(),
+        { cache: this.cache },
+      ),
     );
   }
 
@@ -160,7 +166,7 @@ export class PumpkinController {
    * unless nothing changed. MapLibre answers 0 for a terrain tile still
    * loading; its arrival reads the heights again.
    */
-  private report(pumpkins: Pumpkin[]) {
+  private report(pumpkins: Decoration[]) {
     const elevations = pumpkins.map(
       (pumpkin) => this.map.queryTerrainElevation(pumpkin.position) ?? 0,
     );
