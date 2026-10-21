@@ -36,10 +36,11 @@ export type SparkInstance = {
 export type FireworkLayerOptions = {
   visible: boolean;
   scheme: MapScheme;
-  /** Seconds after the data's epoch. */
+  /**
+   * Seconds after the data's epoch. The instances are a new array whenever
+   * the epoch changes, which re-reads every accessor.
+   */
   timeS: number;
-  /** Changes with the epoch the instances' launch times are counted from. */
-  epochKey: unknown;
 };
 
 /** The rocket's head as it climbs: a warm white, whatever it bursts into. */
@@ -130,7 +131,7 @@ export function sparkInstances(
  */
 export function fireworkLayers(
   instances: SparkInstance[],
-  { visible, scheme, timeS, epochKey }: FireworkLayerOptions,
+  { visible, scheme, timeS }: FireworkLayerOptions,
 ): Layer[] {
   if (!visible) return [];
   return [
@@ -151,12 +152,6 @@ export function fireworkLayers(
       ],
       getFlight: (d) => [d.launchS, d.lagS, d.kind, d.heightM],
       fireworksTimeS: timeS,
-      updateTriggers: {
-        getPosition: epochKey,
-        getColor: epochKey,
-        getVelocity: epochKey,
-        getFlight: epochKey,
-      },
     }),
   ];
 }

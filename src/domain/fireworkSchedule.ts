@@ -42,15 +42,24 @@ function isNewYearInOslo(ms: number): boolean {
   );
 }
 
-/** The slot containing `nowMs`. Oslo's offset is whole hours, so the UTC floor is the Oslo floor. */
+/**
+ * The start of the slot containing `nowMs`: cheap, unlike `slotAt`, which
+ * formats a date, so it is what callers compare to see whether the slot has
+ * changed. Oslo's offset is whole hours, so the UTC floor is the Oslo floor.
+ */
+export function slotStartMs(nowMs: number): number {
+  return Math.floor(nowMs / BARRAGE_INTERVAL_MS) * BARRAGE_INTERVAL_MS;
+}
+
+/** The slot containing `nowMs`. */
 export function slotAt(nowMs: number): Slot {
-  const startMs = Math.floor(nowMs / BARRAGE_INTERVAL_MS) * BARRAGE_INTERVAL_MS;
+  const startMs = slotStartMs(nowMs);
   return { startMs, finale: isNewYearInOslo(startMs) };
 }
 
 /** The start of the first slot strictly after `nowMs`. */
 export function nextSlotStartMs(nowMs: number): number {
-  return (Math.floor(nowMs / BARRAGE_INTERVAL_MS) + 1) * BARRAGE_INTERVAL_MS;
+  return slotStartMs(nowMs) + BARRAGE_INTERVAL_MS;
 }
 
 export function slotEndMs(slot: Slot): number {

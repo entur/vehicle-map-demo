@@ -34,11 +34,8 @@ const burst = (key: string, launchMs: number): Burst => ({
   ]),
 });
 
-const options = (
-  scheme: "light" | "dark" = "dark",
-  visible = true,
-  epochKey: unknown = 1,
-) => ({ visible, scheme, timeS: 2, epochKey }) as const;
+const options = (scheme: "light" | "dark" = "dark", visible = true) =>
+  ({ visible, scheme, timeS: 2 }) as const;
 
 describe("sparkInstances", () => {
   it("is one rocket head and every spark's trail per burst", () => {
@@ -119,21 +116,6 @@ describe("fireworkLayers", () => {
       getColor: (i: SparkInstance) => unknown;
     };
     expect(props.getColor(instances[1])).toEqual(instances[1].colour);
-  });
-
-  it("re-reads every accessor when the epoch changes", () => {
-    const { updateTriggers } = fireworkLayers(
-      instances,
-      options("dark", true, 42),
-    )[0].props as unknown as { updateTriggers: Record<string, unknown> };
-    for (const accessor of [
-      "getPosition",
-      "getColor",
-      "getVelocity",
-      "getFlight",
-    ]) {
-      expect(updateTriggers[accessor]).toBe(42);
-    }
   });
 
   it("packs each instance's flight into two attributes", () => {

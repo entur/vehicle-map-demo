@@ -48,6 +48,7 @@ describe("FireworksClock", () => {
   let nowMs: number;
   let visible: boolean;
   let busy: boolean;
+  let scatteredDue: number | null;
   let frames: Map<number, () => void>;
   let nextId: number;
   let timers: Map<number, { cb: () => void; ms: number }>;
@@ -64,6 +65,7 @@ describe("FireworksClock", () => {
     nowMs = SLOT + 30_000;
     visible = true;
     busy = false;
+    scatteredDue = null;
     frames = new Map();
     timers = new Map();
     nextId = 1;
@@ -90,6 +92,7 @@ describe("FireworksClock", () => {
           return false;
         },
         busy: () => busy,
+        scatteredDueMs: () => scatteredDue,
       },
       view: (): LaunchView => {
         viewCalls++;
@@ -149,6 +152,41 @@ describe("FireworksClock", () => {
     expect(frameNows[4]).toBe(SLOT + 30_000 + 80);
     expect(updates.every((s) => s)).toBe(true);
     expect(map.repaints).toBe(5);
+  });
+
+  it("sleeps until the next scattered rocket while active and quiet", () => {
+    make();
+    scatteredDue = nowMs + 3_000;
+    frame(nowMs + 16);
+    expect(frames.size).toBe(0);
+    expect(timers.size).toBe(1);
+    expect([...timers.values()][0].ms).toBe(3_000 - 16);
+    const repaints = map.repaints;
+
+    fireTimer();
+    expect(nowMs).toBe(scatteredDue);
+    expect(frames.size).toBe(1);
+    expect(map.repaints).toBe(repaints);
+    // The frame that launches it, then frames while it is in the air.
+    busy = true;
+    frame(nowMs);
+    expect(frames.size).toBe(1);
+  });
+
+  it("wakes for the next slot before a later scattered rocket", () => {
+    nowMs = SLOT + BARRAGE_INTERVAL_MS - 1_000;
+    make();
+    scatteredDue = nowMs + 3_000;
+    frame(nowMs + 16);
+    expect([...timers.values()][0].ms).toBe(1_000 - 16);
+  });
+
+  it("runs frames while a scattered rocket is overdue", () => {
+    make();
+    scatteredDue = nowMs;
+    frame(nowMs + 16);
+    expect(frames.size).toBe(1);
+    expect(timers.size).toBe(0);
   });
 
   it("requests no frame between barrages when idle", () => {

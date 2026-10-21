@@ -2,17 +2,17 @@ import type { Map as MapLibreMap } from "maplibre-gl";
 import { ANIMATION_IDLE_MS } from "../../domain/animationAmount.ts";
 import { burstDurationS } from "../../domain/fireworks.ts";
 import {
-  BARRAGE_INTERVAL_MS,
   nextSlotStartMs,
   slotAt,
   slotEndMs,
+  slotStartMs,
   type Slot,
 } from "../../domain/fireworkSchedule.ts";
 import type { FireworkShow, LaunchView } from "./fireworkShow.ts";
 
 type Options = {
   reducedMotion: boolean;
-  show: Pick<FireworkShow, "update" | "busy">;
+  show: Pick<FireworkShow, "update" | "busy" | "scatteredDueMs">;
   /** Handed to the show uncalled: it reads the map only to place a launch. */
   view: () => LaunchView;
   onFrame: (nowMs: number, changed: boolean) => void;
@@ -31,9 +31,11 @@ const pageVisible = () =>
   typeof document === "undefined" || document.visibilityState === "visible";
 
 /**
- * Decides when the fireworks are drawn. Frames run while someone is there,
- * while sparks are in the air and during a barrage; between barrages on an
- * idle screen nothing runs but one timer for the next slot's start.
+ * Decides when the fireworks are drawn. Frames run while sparks are in the air
+ * and during a barrage. Otherwise nothing runs but one timer: for the next
+ * scattered rocket while someone is there, or for the next slot's start, so
+ * neither the quiet seconds between scattered rockets nor the minutes between
+ * barrages repaint the map.
  */
 export class FireworksClock {
   private readonly now: () => number;
@@ -112,12 +114,21 @@ export class FireworksClock {
     now: number,
     active = now - this.lastActivityMs < ANIMATION_IDLE_MS,
   ): void {
-    if (active || this.options.show.busy(now) || this.inSlot(now)) {
+    // Asked only while active: an idle frame's update has cleared it.
+    const scatteredMs = active ? this.options.show.scatteredDueMs() : null;
+    if (
+      this.options.show.busy(now) ||
+      this.inSlot(now) ||
+      // Active, but the show has not timed its next rocket yet.
+      (active && scatteredMs === null) ||
+      (scatteredMs !== null && scatteredMs <= now)
+    ) {
       this.frame = this.requestFrame(this.onFrame);
       return;
     }
     this.clearSleep();
-    this.timer = this.setTimer(this.onTimer, nextSlotStartMs(now) - now);
+    const wakeMs = Math.min(scatteredMs ?? Infinity, nextSlotStartMs(now));
+    this.timer = this.setTimer(this.onTimer, wakeMs - now);
   }
 
   private onTimer = (): void => {
@@ -128,7 +139,7 @@ export class FireworksClock {
   };
 
   private slotFor(now: number): Slot {
-    const startMs = Math.floor(now / BARRAGE_INTERVAL_MS) * BARRAGE_INTERVAL_MS;
+    const startMs = slotStartMs(now);
     if (this.slot === null || this.slot.startMs !== startMs) {
       try {
         this.slot = slotAt(now);

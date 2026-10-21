@@ -141,6 +141,22 @@ describe("FireworkShow", () => {
     expect(show.busy(BARRAGE_START + 100_000)).toBe(false);
   });
 
+  it("times the next scattered rocket while scattering, and forgets it after", () => {
+    const show = new FireworkShow(() => 0);
+    const quiet = BARRAGE_START + 120_000;
+    expect(show.scatteredDueMs()).toBeNull();
+    show.update(quiet, view, true);
+    // `() => 0` draws the shortest delay.
+    expect(show.scatteredDueMs()).toBe(quiet + 2_000);
+    expect(show.inAir(quiet)).toBe(0);
+    show.update(quiet + 2_000, view, true);
+    expect(show.inAir(quiet + 2_000)).toBe(1);
+    expect(show.scatteredDueMs()).toBe(quiet + 4_000);
+    expect(show.inAir(quiet + 2_000 + burstDurationS() * 1000)).toBe(0);
+    show.update(quiet + 3_000, view, false);
+    expect(show.scatteredDueMs()).toBeNull();
+  });
+
   it("bursts above the ground, falling back to the centre's", () => {
     const show = new FireworkShow(() => 0);
     const flat: LaunchView = {

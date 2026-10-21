@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef } from "react";
 import type { Layer } from "@deck.gl/core";
 import { LngLat, type Map as MapLibreMap } from "maplibre-gl";
 import type { Season } from "../../domain/season.ts";
-import { burstDurationS } from "../../domain/fireworks.ts";
 import type { MapScheme } from "../basemap/basemap.ts";
 import { cappedViewBounds } from "../../utils/cappedViewBounds.ts";
 import {
@@ -129,7 +128,6 @@ export function useSeasonalFireworks({
     const show = new FireworkShow();
     let instances: SparkInstance[] = [];
     let epochMs = Date.now();
-    let epochKey = 0;
     // A frame that failed leaves the instances unknown; the next rebuilds.
     let stale = false;
     let failed = false;
@@ -148,14 +146,9 @@ export function useSeasonalFireworks({
           visible: true,
           scheme: current.current.scheme,
           timeS: (nowMs - epochMs) / 1000,
-          epochKey,
         }),
       );
     };
-    const inAir = (nowMs: number) =>
-      show.bursts().filter((b) => b.launchMs + burstDurationS() * 1000 > nowMs)
-        .length;
-
     // Asked for by the show only when it launches a rocket: unprojecting
     // raycasts the terrain on the CPU, which most frames have no need of.
     const view = (): LaunchView => {
@@ -211,6 +204,7 @@ export function useSeasonalFireworks({
             return false;
           }
         },
+        scatteredDueMs: () => show.scatteredDueMs(),
       },
       view,
       onFrame: (nowMs, changed) => {
@@ -222,11 +216,10 @@ export function useSeasonalFireworks({
           if (changed || stale) {
             stale = false;
             epochMs = nowMs;
-            epochKey++;
             instances = sparkInstances(show.bursts(), epochMs);
           }
           draw(nowMs);
-          if (import.meta.env.DEV) reportRockets(inAir(nowMs));
+          if (import.meta.env.DEV) reportRockets(show.inAir(nowMs));
         } catch (error) {
           fail(error);
           try {

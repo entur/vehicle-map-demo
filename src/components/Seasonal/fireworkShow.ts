@@ -4,7 +4,7 @@ import {
   type Spark,
 } from "../../domain/fireworks.ts";
 import {
-  BARRAGE_INTERVAL_MS,
+  slotStartMs,
   groundFor,
   scatteredDelayMs,
   scatteredLaunch,
@@ -99,6 +99,16 @@ export class FireworkShow {
     return this.current;
   }
 
+  /** The bursts still in the air at `nowMs`, some not pruned yet. */
+  inAir(nowMs: number): number {
+    return this.current.filter((b) => this.isInAir(b, nowMs)).length;
+  }
+
+  /** When the next scattered rocket goes up, or null when none is timed. */
+  scatteredDueMs(): number | null {
+    return this.nextScatteredMs;
+  }
+
   busy(nowMs: number): boolean {
     if (this.current.some((b) => this.isInAir(b, nowMs))) return true;
     this.loadSlot(nowMs);
@@ -115,8 +125,7 @@ export class FireworkShow {
   private loadSlot(nowMs: number): void {
     // The slot only changes every few minutes; `slotAt` formats a date, which
     // is too much to do on every frame.
-    const startMs =
-      Math.floor(nowMs / BARRAGE_INTERVAL_MS) * BARRAGE_INTERVAL_MS;
+    const startMs = slotStartMs(nowMs);
     if (startMs === this.slotStartMs) return;
     const slot = slotAt(nowMs);
     this.slotStartMs = slot.startMs;
