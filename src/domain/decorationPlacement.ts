@@ -1,5 +1,6 @@
 import type { Season } from "./season.ts";
 import type { ViewBounds } from "./vehiclesInView.ts";
+import { mulberry32 } from "./seededRandom.ts";
 
 /**
  * Where a season's decorations stand: a few at every stop, at random but the
@@ -152,17 +153,6 @@ export function hash(text: string) {
   return h >>> 0;
 }
 
-/** mulberry32: small, fast and good enough to scatter decorations. */
-function seededRandom(seed: number) {
-  let a = seed;
-  return () => {
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
 type XY = [number, number];
 
 function distanceToSegment([px, py]: XY, [ax, ay]: XY, [bx, by]: XY) {
@@ -286,7 +276,7 @@ export function decorationsAtStop(
   const { perStop, heightM, aspect, spreadM, candidates, tints } = spec;
   const reach = reachOf(spec);
   const key = stopKey(stop);
-  const random = seededRandom(hash(key));
+  const random = mulberry32(hash(key));
   const count =
     perStop[0] + Math.floor(random() * (perStop[1] - perStop[0] + 1));
 

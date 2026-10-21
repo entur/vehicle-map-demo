@@ -1,4 +1,5 @@
-import { FIREWORK_COLOURS, mulberry32, type Rgb } from "./fireworks.ts";
+import { FIREWORK_COLOURS, type Rgb } from "./fireworks.ts";
+import { mulberry32 } from "./seededRandom.ts";
 import type { ViewBounds } from "./vehiclesInView.ts";
 
 /** Barrages start on every fifth minute of the wall clock. */

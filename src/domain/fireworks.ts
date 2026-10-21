@@ -1,3 +1,5 @@
+import { mulberry32 } from "./seededRandom.ts";
+
 // The flight of a firework: a rocket climbing to its burst point, then sparks
 // flying out under drag and gravity. The shader in `fireworksExtension.ts`
 // repeats `rocketRise`, `sparkOffset` and `sparkBrightness`, so change both
@@ -59,17 +61,6 @@ export function sparkBrightness(tS: number): number {
 }
 
 export type Spark = { direction: Vec3; speed: number; colour: Rgb };
-
-export function mulberry32(seed: number): () => number {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
 
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
 const JITTER = 0.15;
