@@ -1,0 +1,129 @@
+import { FIREWORK_COLOURS, mulberry32, type Rgb } from "./fireworks.ts";
+import type { ViewBounds } from "./vehiclesInView.ts";
+
+/** Barrages start on every fifth minute of the wall clock. */
+export const BARRAGE_INTERVAL_MS = 300_000;
+export const BARRAGE = { rockets: 24, durationMs: 10_000 };
+/** Replaces the 00:00 barrage of 1 January, Oslo time. */
+export const FINALE = { rockets: 72, durationMs: 60_000 };
+/** Wait between scattered rockets while someone is at the screen. */
+export const SCATTERED_DELAY_MS: [number, number] = [2_000, 4_000];
+/** Metres above the ground at which a rocket bursts. */
+export const BURST_HEIGHT_M: [number, number] = [100, 300];
+/** Share of the view kept clear of launches on every side. */
+export const LAUNCH_INSET = 0.15;
+
+export type Slot = { startMs: number; finale: boolean };
+
+const osloParts = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Europe/Oslo",
+  month: "numeric",
+  day: "numeric",
+  hour: "numeric",
+  minute: "numeric",
+  hourCycle: "h23",
+});
+
+function isNewYearInOslo(ms: number): boolean {
+  const parts: Record<string, string> = {};
+  for (const p of osloParts.formatToParts(ms)) parts[p.type] = p.value;
+  return (
+    Number(parts.month) === 1 &&
+    Number(parts.day) === 1 &&
+    Number(parts.hour) === 0 &&
+    Number(parts.minute) === 0
+  );
+}
+
+/** The slot containing `nowMs`. Oslo's offset is whole hours, so the UTC floor is the Oslo floor. */
+export function slotAt(nowMs: number): Slot {
+  const startMs = Math.floor(nowMs / BARRAGE_INTERVAL_MS) * BARRAGE_INTERVAL_MS;
+  return { startMs, finale: isNewYearInOslo(startMs) };
+}
+
+/** The start of the first slot strictly after `nowMs`. */
+export function nextSlotStartMs(nowMs: number): number {
+  return (Math.floor(nowMs / BARRAGE_INTERVAL_MS) + 1) * BARRAGE_INTERVAL_MS;
+}
+
+export function slotEndMs(slot: Slot): number {
+  return slot.startMs + (slot.finale ? FINALE : BARRAGE).durationMs;
+}
+
+export type Launch = {
+  atMs: number;
+  /** Share of the view's width, west to east. */
+  fx: number;
+  /** Share of the view's height, south to north. */
+  fy: number;
+  heightM: number;
+  colours: [Rgb, Rgb];
+  seed: number;
+};
+
+function between(random: () => number, [low, high]: [number, number]): number {
+  return low + random() * (high - low);
+}
+
+function launchFrom(atMs: number, random: () => number): Launch {
+  const fx = between(random, [LAUNCH_INSET, 1 - LAUNCH_INSET]);
+  const fy = between(random, [LAUNCH_INSET, 1 - LAUNCH_INSET]);
+  const heightM = between(random, BURST_HEIGHT_M);
+  const first = Math.floor(random() * FIREWORK_COLOURS.length);
+  // Drawn from the remaining colours, so the two usually differ.
+  const second =
+    (first + 1 + Math.floor(random() * (FIREWORK_COLOURS.length - 1))) %
+    FIREWORK_COLOURS.length;
+  const seed = Math.floor(random() * 4294967296);
+  return {
+    atMs,
+    fx,
+    fy,
+    heightM,
+    colours: [FIREWORK_COLOURS[first], FIREWORK_COLOURS[second]],
+    seed,
+  };
+}
+
+/** Every rocket of a slot, deterministic in its start so all screens agree. */
+export function slotLaunches(slot: Slot): Launch[] {
+  const { rockets, durationMs } = slot.finale ? FINALE : BARRAGE;
+  const random = mulberry32(slot.startMs);
+  const launches: Launch[] = [];
+  for (let i = 0; i < rockets; i++) {
+    const atMs = slot.startMs + Math.floor(random() * durationMs);
+    launches.push(launchFrom(atMs, random));
+  }
+  return launches.sort((a, b) => a.atMs - b.atMs);
+}
+
+/** One rocket for an active screen, launched now. */
+export function scatteredLaunch(nowMs: number, random: () => number): Launch {
+  return launchFrom(nowMs, random);
+}
+
+export function scatteredDelayMs(random: () => number): number {
+  return between(random, SCATTERED_DELAY_MS);
+}
+
+/** Longitude and latitude of a share of the view, linear in both. */
+export function launchPoint(
+  [[west, south], [east, north]]: ViewBounds,
+  fx: number,
+  fy: number,
+): [number, number] {
+  return [west + (east - west) * fx, south + (north - south) * fy];
+}
+
+/**
+ * The ground height to burst above. MapLibre answers 0 (or null) for a
+ * terrain tile still loading, so a non-positive reading falls back to the
+ * view centre's.
+ */
+export function groundFor(
+  groundM: number | null,
+  centreGroundM: number | null,
+): number {
+  if (groundM !== null && groundM > 0) return groundM;
+  return Math.max(centreGroundM ?? 0, 0);
+}
