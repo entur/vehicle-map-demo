@@ -979,6 +979,71 @@ describe("flagModelFor", () => {
   }
 });
 
+describe("flagModelFor, rainbow", () => {
+  const FLAGGED: VehicleModeEnumeration[] = ["BUS", "COACH", "TRAM"];
+  const RAINBOW = [
+    MESH_COLOURS.rainbowRed,
+    MESH_COLOURS.rainbowOrange,
+    MESH_COLOURS.rainbowYellow,
+    MESH_COLOURS.rainbowGreen,
+    MESH_COLOURS.rainbowBlue,
+    MESH_COLOURS.rainbowViolet,
+  ];
+  const key = (c: ArrayLike<number>) =>
+    Array.from(c, (v) => v.toFixed(4)).join();
+
+  for (const mode of FLAGGED) {
+    describe(mode, () => {
+      const norway = flagModelFor(mode, "norway")!;
+      const rainbow = flagModelFor(mode, "rainbow")!;
+
+      it("is built once per mode and design", () => {
+        expect(flagModelFor(mode, "rainbow")).toBe(rainbow);
+        expect(rainbow).not.toBe(norway);
+        expect(flagModelFor(mode)).toBe(norway);
+      });
+
+      it("hangs from the same poles in the same outline as the Norwegian flag", () => {
+        expect(rainbow.poles).toBe(norway.poles);
+        const extent = (cloth: VehicleMesh) => {
+          const v = vertices(cloth);
+          return [0, 1, 2].map((c) => [
+            Math.min(...v.map((p) => p[c])),
+            Math.max(...v.map((p) => p[c])),
+          ]);
+        };
+        expect(extent(rainbow.cloth)).toEqual(extent(norway.cloth));
+        const u = Array.from(rainbow.cloth.texCoords.value).filter(
+          (_, i) => i % 2 === 0,
+        );
+        expect(Math.min(...u)).toBe(0);
+        expect(Math.max(...u)).toBeCloseTo(1, 6);
+        expect(new Set(u).size).toBeGreaterThanOrEqual(9);
+      });
+
+      it("is six equal stripes, red at the top to violet at the bottom", () => {
+        const { colors, texCoords } = rainbow.cloth;
+        const triangles = colors.value.length / 9;
+        for (let t = 0; t < triangles; t++) {
+          const colour = colors.value.slice(t * 9, t * 9 + 3);
+          // v is 0 at the top; the triangle's middle picks its stripe.
+          const v =
+            (texCoords.value[t * 6 + 1] +
+              texCoords.value[t * 6 + 3] +
+              texCoords.value[t * 6 + 5]) /
+            3;
+          expect(key(colour)).toBe(key(RAINBOW[Math.floor(v * 6)]));
+          for (let k = 0; k < 3; k++) {
+            const vk = texCoords.value[t * 6 + 2 * k + 1];
+            expect(vk * 6).toBeGreaterThanOrEqual(Math.floor(v * 6) - 1e-6);
+            expect(vk * 6).toBeLessThanOrEqual(Math.floor(v * 6) + 1 + 1e-6);
+          }
+        }
+      });
+    });
+  }
+});
+
 describe("sparkModel", () => {
   const mesh = sparkModel();
 

@@ -32,7 +32,7 @@ import { LIGHT_POOL_REACH } from "../../domain/lightPool.ts";
 import { StopPole, polesInView } from "../../domain/journeyStops.ts";
 import type { MapSourceDataEvent } from "maplibre-gl";
 import { stopPoleLayers } from "./stopPoleLayers.ts";
-import { FLAG_SEASON, type Season } from "../../domain/season.ts";
+import { flagDesignFor, type Season } from "../../domain/season.ts";
 import { useSeasonalDecorations } from "../Seasonal/useSeasonalDecorations.ts";
 import { useSeasonalFlags } from "../Seasonal/useSeasonalFlags.ts";
 import { useSeasonalFireworks } from "../Seasonal/useSeasonalFireworks.ts";
@@ -276,7 +276,7 @@ export function VehicleModels({
     fliesFlags(chasedVehicleStore.get()),
   );
   const chasedFlagged =
-    season === FLAG_SEASON && showVehicles && chasedDrawnFlagged;
+    flagDesignFor(season) !== null && showVehicles && chasedDrawnFlagged;
   // Called here rather than in the effect above, which must not run on a
   // flutter tick: the flags tick on their own, from the same vehicles.
   const { flutterNow } = useSeasonalFlags({
@@ -339,6 +339,7 @@ export function VehicleModels({
   }, [handOver, mapRef, stopPoles, opacity, scheme]);
 
   useEffect(() => {
+    const flagDesign = flagDesignFor(season);
     const publish = () => {
       const vehicle = chasedVehicleStore.get();
       // A new object every frame, so the cache never hits; look the ground up
@@ -361,11 +362,12 @@ export function VehicleModels({
             idPrefix: "vehicle-models-chased",
           }),
           // Rebuilt every frame with the rest, so the flags need no tick.
-          ...(season === FLAG_SEASON
+          ...(flagDesign
             ? flagLayers([vehicle], {
                 ...chased,
                 idPrefix: "vehicle-flags-chased",
                 flutter: flutterNow(),
+                design: flagDesign,
               })
             : []),
         ];

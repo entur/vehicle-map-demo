@@ -60,6 +60,7 @@ const options = (
   getTilt,
   positionTrigger: null,
   flutter,
+  design: "norway",
 });
 
 type FlutterProps = {
@@ -117,6 +118,16 @@ describe("flagLayers", () => {
     expect(poles.props.mesh).toBe(poleMesh);
     expect(cloth.props.mesh).toBe(clothMesh);
     expect(poles.props.data).toEqual([vehicles[0], vehicles[3]]);
+  });
+
+  it("flies the design it is given, from the same poles", () => {
+    const [poles, cloth] = flagLayers([vehicle("1")], {
+      ...options(),
+      design: "rainbow",
+    });
+    const rainbow = flagModelFor("BUS", "rainbow")!;
+    expect(cloth.props.mesh).toBe(rainbow.cloth);
+    expect(poles.props.mesh).toBe(flagModelFor("BUS")!.poles);
   });
 
   // Every vehicle is an instance: a layer per vehicle would crawl in May.

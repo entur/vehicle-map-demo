@@ -1,6 +1,7 @@
 import { VehicleModeEnumeration } from "../types.ts";
 import { dimensionsFor } from "./vehicleFootprint.ts";
 import { PUMPKIN_ASPECT, TREE_ASPECT } from "./decorationPlacement.ts";
+import type { FlagDesign } from "./season.ts";
 
 /**
  * Low-poly vehicle models built from boxes, prisms, lofted hulls and wheels,
@@ -87,6 +88,12 @@ export const MESH_COLOURS = {
   flagRed: rgb(0xba0c2f),
   flagWhite: rgb(0xf4f4f2),
   flagBlue: rgb(0x00205b),
+  rainbowRed: rgb(0xe40303),
+  rainbowOrange: rgb(0xff8c00),
+  rainbowYellow: rgb(0xffed00),
+  rainbowGreen: rgb(0x008026),
+  rainbowBlue: rgb(0x004dff),
+  rainbowViolet: rgb(0x750787),
   flagPole: rgb(0xd5d8dc),
 } as const;
 
@@ -2409,7 +2416,7 @@ export type FlagModel = {
   /** Both poles: a fixed colour, drawn untinted. */
   poles: VehicleMesh;
   /**
-   * Both cloths, double-sided and in the Nordic cross's colours. `u` runs
+   * Both cloths, double-sided and in the design's colours. `u` runs
    * along the cloth, 0 at the pole and 1 at the free edge, for the renderer
    * to bend it by; `v` is 0 at the top.
    */
@@ -2428,14 +2435,46 @@ const FLAG_HEIGHT_UNITS = 16;
 const stripe = (lines: number[], at: number) =>
   lines.filter((line) => line <= at).length;
 
-function flagColour(column: number, row: number): RGB {
-  if (column === 2 || row === 2) return MESH_COLOURS.flagBlue;
-  if (column === 1 || column === 3 || row === 1 || row === 3)
-    return MESH_COLOURS.flagWhite;
-  return MESH_COLOURS.flagRed;
-}
+/** The rainbow's six stripes, top to bottom. */
+const RAINBOW_STRIPES: RGB[] = [
+  MESH_COLOURS.rainbowRed,
+  MESH_COLOURS.rainbowOrange,
+  MESH_COLOURS.rainbowYellow,
+  MESH_COLOURS.rainbowGreen,
+  MESH_COLOURS.rainbowBlue,
+  MESH_COLOURS.rainbowViolet,
+];
 
-const flagCache = new Map<VehicleModeEnumeration, FlagModel>();
+/**
+ * A cloth's pattern in the flag's units: the row edges, top to bottom, and
+ * the colour of the cell at a column start (`c0`) and row. Columns are always
+ * `FLAG_COLUMNS`, so every design bends the same way.
+ */
+type FlagPattern = {
+  rowEdges: number[];
+  colour: (c0: number, row: number) => RGB;
+};
+
+const FLAG_PATTERNS: Record<FlagDesign, FlagPattern> = {
+  norway: {
+    rowEdges: [0, ...FLAG_CROSS_Y, FLAG_HEIGHT_UNITS],
+    colour: (c0, row) => {
+      const column = stripe(FLAG_CROSS_X, c0);
+      if (column === 2 || row === 2) return MESH_COLOURS.flagBlue;
+      if (column === 1 || column === 3 || row === 1 || row === 3)
+        return MESH_COLOURS.flagWhite;
+      return MESH_COLOURS.flagRed;
+    },
+  },
+  rainbow: {
+    rowEdges: RAINBOW_STRIPES.map(
+      (_, i) => (i * FLAG_HEIGHT_UNITS) / RAINBOW_STRIPES.length,
+    ).concat(FLAG_HEIGHT_UNITS),
+    colour: (_c0, row) => RAINBOW_STRIPES[row],
+  },
+};
+
+const flagCache = new Map<string, FlagModel>();
 
 /**
  * Where a flag pole stands on a body, for the +x side: on the roof's flat top
@@ -2479,13 +2518,20 @@ function flagMountFor(mode: VehicleModeEnumeration): FlagMount {
  * edges (`flagMountFor`), rising clear of it, with the cloth streaming back
  * straight back towards −y in its own y–z plane. Each cloth stays on its own
  * side of x = 0, which the renderer reads the side by.
- * Sizes are `FLAG_EXAGGERATION` times life size.
- * Null for a mode that carries none. Built once per mode.
+ * Sizes are `FLAG_EXAGGERATION` times life size. The cloth is `design`'s:
+ * every design has the same outline and columns, so it hangs and bends alike,
+ * and the poles are one mesh per mode whatever flies from them.
+ * Null for a mode that carries none. Built once per mode and design.
  */
-export function flagModelFor(mode: VehicleModeEnumeration): FlagModel | null {
+export function flagModelFor(
+  mode: VehicleModeEnumeration,
+  design: FlagDesign = "norway",
+): FlagModel | null {
   if (!FLAGGED_MODES.has(mode)) return null;
-  let model = flagCache.get(mode);
+  const cacheKey = `${mode}:${design}`;
+  let model = flagCache.get(cacheKey);
   if (!model) {
+    const pattern = FLAG_PATTERNS[design];
     const mount = flagMountFor(mode);
     const k = FLAG_EXAGGERATION;
     const poleTop = mount.z + FLAG.poleHeight * k;
@@ -2516,11 +2562,10 @@ export function flagModelFor(mode: VehicleModeEnumeration): FlagModel | null {
       );
       for (let i = 0; i + 1 < FLAG_COLUMNS.length; i++) {
         const [c0, c1] = [FLAG_COLUMNS[i], FLAG_COLUMNS[i + 1]];
-        const column = stripe(FLAG_CROSS_X, c0);
-        const rowEdges = [0, ...FLAG_CROSS_Y, FLAG_HEIGHT_UNITS];
-        for (let row = 0; row < 5; row++) {
+        const { rowEdges } = pattern;
+        for (let row = 0; row + 1 < rowEdges.length; row++) {
           const [r0, r1] = [rowEdges[row], rowEdges[row + 1]];
-          const colour = flagColour(column, row);
+          const colour = pattern.colour(c0, row);
           const sa = (c0 / FLAG_WIDTH_UNITS) * clothLength;
           const sb = (c1 / FLAG_WIDTH_UNITS) * clothLength;
           const za = clothTop - (r0 / FLAG_HEIGHT_UNITS) * clothHeight;
@@ -2548,7 +2593,11 @@ export function flagModelFor(mode: VehicleModeEnumeration): FlagModel | null {
       }
     }
     model = {
-      poles: poles.build().details,
+      // One pole mesh per mode, shared by every design.
+      poles:
+        design === "norway"
+          ? poles.build().details
+          : flagModelFor(mode, "norway")!.poles,
       cloth: {
         positions: { value: new Float32Array(positions), size: 3 },
         normals: { value: new Float32Array(normals), size: 3 },
@@ -2556,7 +2605,7 @@ export function flagModelFor(mode: VehicleModeEnumeration): FlagModel | null {
         texCoords: { value: new Float32Array(texCoords), size: 2 },
       },
     };
-    flagCache.set(mode, model);
+    flagCache.set(cacheKey, model);
   }
   return model;
 }

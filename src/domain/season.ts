@@ -1,5 +1,5 @@
 /** A season that decorates the map. */
-export type Season = "halloween" | "christmas" | "17mai";
+export type Season = "halloween" | "christmas" | "17mai" | "pride";
 
 export type MonthDay = [month: number, day: number];
 
@@ -41,10 +41,24 @@ export const SEASONS: {
     id: "17mai",
     isOn: (_year, month, day) => month === 5 && day <= 17,
   },
+  {
+    id: "pride",
+    isOn: (_year, month) => month === 6,
+  },
 ];
 
-/** The season whose flags go on the vehicles. */
-export const FLAG_SEASON: Season = "17mai";
+/** The flags the vehicles can fly: Norway's, or the six-stripe rainbow. */
+export type FlagDesign = "norway" | "rainbow";
+
+const FLAG_DESIGNS: Partial<Record<Season, FlagDesign>> = {
+  "17mai": "norway",
+  pride: "rainbow",
+};
+
+/** The flag the vehicles fly in `season`, or null when they fly none. */
+export function flagDesignFor(season: Season | null): FlagDesign | null {
+  return season === null ? null : (FLAG_DESIGNS[season] ?? null);
+}
 
 const OSLO_DATE = new Intl.DateTimeFormat("en-CA", {
   timeZone: "Europe/Oslo",

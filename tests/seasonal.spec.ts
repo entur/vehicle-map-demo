@@ -81,6 +81,15 @@ test("buses fly flags in the 17. mai season", async ({ page }) => {
   expect((await seasonal(page))?.season).toBe("17mai");
 });
 
+test("buses fly rainbow flags in the Pride season", async ({ page }) => {
+  test.setTimeout(90000);
+  await openIn3d(page, "?season=pride");
+  await expect
+    .poll(async () => (await seasonal(page))?.count ?? 0, { timeout: 60000 })
+    .toBeGreaterThan(0);
+  expect((await seasonal(page))?.season).toBe("pride");
+});
+
 test("no flags with season=none", async ({ page }) => {
   await openIn3d(page, "?season=none");
   // Long enough for the vehicle feed's first frames to arrive.

@@ -1,4 +1,5 @@
 import { SimpleMeshLayer } from "@deck.gl/mesh-layers";
+import type { FlagDesign } from "../../domain/season.ts";
 import type { VehicleModeEnumeration, VehicleUpdate } from "../../types.ts";
 import { hash } from "../../domain/decorationPlacement.ts";
 import { FLUTTER_PERIOD_S } from "../../domain/flutter.ts";
@@ -25,6 +26,8 @@ import {
 export type FlagLayerOptions = Omit<ModelLayerOptions, "idPrefix"> & {
   idPrefix: string;
   flutter: AnimationState;
+  /** Which flag flies: the season's (`flagDesignFor`). */
+  design: FlagDesign;
 };
 
 /**
@@ -94,7 +97,7 @@ function flaggedByMode(vehicles: VehicleUpdate[]) {
 }
 
 /**
- * The deck.gl layers drawing the 17. mai flags on the models: per flagged
+ * The deck.gl layers drawing the season's flags on the models: per flagged
  * mode, one layer for the poles and one for the cloth, every vehicle an
  * instance, placed and turned exactly as its model is. The colours are the
  * mesh's own under a white tint, lit like the body. A flutter tick changes the
@@ -111,6 +114,7 @@ export function flagLayers(
     getTilt,
     positionTrigger,
     flutter,
+    design,
   }: FlagLayerOptions,
 ): SimpleMeshLayer<VehicleUpdate>[] {
   if (!visible) return [];
@@ -135,7 +139,7 @@ export function flagLayers(
   };
 
   return [...flaggedByMode(vehicles)].flatMap(([mode, list]) => {
-    const { poles, cloth } = flagModelFor(mode)!;
+    const { poles, cloth } = flagModelFor(mode, design)!;
     return [
       new SimpleMeshLayer<VehicleUpdate>({
         ...shared,

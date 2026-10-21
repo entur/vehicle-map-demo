@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { Layer } from "@deck.gl/core";
 import type { Map as MapLibreMap } from "maplibre-gl";
 import type { VehicleUpdate } from "../../types.ts";
-import { FLAG_SEASON, type Season } from "../../domain/season.ts";
+import { flagDesignFor, type Season } from "../../domain/season.ts";
 import type { ModelLayerOptions } from "../Vehicle/vehicleModelLayers.ts";
 import { useKioskInput } from "../../hooks/useKioskInput.ts";
 import { AnimationClock, type AnimationState } from "./animationClock.ts";
@@ -27,7 +27,8 @@ type SeasonalWindow = {
 };
 
 /**
- * The 17. mai flags on the vehicle models, handed to `onLayers` as deck.gl
+ * The season's flags on the vehicle models — Norway's for 17. mai, the
+ * rainbow for Pride — handed to `onLayers` as deck.gl
  * layers: `VehicleModels` owns the map's only interleaved overlay. Outside the
  * season it hands over nothing and runs no clock.
  *
@@ -61,7 +62,8 @@ export function useSeasonalFlags({
   chasedFlagged?: boolean;
   onLayers: (layers: Layer[]) => void;
 }): { flutterNow: () => AnimationState } {
-  const inSeason = season === FLAG_SEASON;
+  const design = flagDesignFor(season);
+  const inSeason = design !== null;
   // One array per vehicle frame, handed to every tick until the next frame.
   const flagged = useMemo(
     () => (inSeason ? flaggedVehicles(vehicles) : NO_VEHICLES),
@@ -75,20 +77,21 @@ export function useSeasonalFlags({
   const draw = useCallback(
     (flutter: AnimationState) => {
       onLayers(
-        flying && options
+        flying && options && design
           ? flagLayers(flagged, {
               ...options,
               idPrefix: "vehicle-flags",
               flutter,
+              design,
             })
           : [],
       );
       // Lets the Playwright tests see the flags. Development builds only.
-      if (import.meta.env.DEV && inSeason) {
+      if (import.meta.env.DEV && season !== null && inSeason) {
         const w = window as SeasonalWindow;
         w.__seasonal = {
           ...w.__seasonal,
-          season: FLAG_SEASON,
+          season,
           // The flags drawn: none while the models are hidden.
           count:
             (flying ? flagged.length : 0) +
@@ -97,7 +100,17 @@ export function useSeasonalFlags({
         };
       }
     },
-    [flying, fluttering, flagged, options, inSeason, chasedFlagged, onLayers],
+    [
+      flying,
+      fluttering,
+      flagged,
+      options,
+      season,
+      inSeason,
+      design,
+      chasedFlagged,
+      onLayers,
+    ],
   );
   // The clock outlives a redraw; its ticks draw with whatever is current.
   const drawRef = useRef(draw);

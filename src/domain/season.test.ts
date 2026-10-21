@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { firstAdventSunday, fireworksOn, seasonOn } from "./season.ts";
+import {
+  firstAdventSunday,
+  fireworksOn,
+  flagDesignFor,
+  seasonOn,
+} from "./season.ts";
 
 describe("seasonOn", () => {
   it("is halloween from 24 Oct to 1 Nov inclusive", () => {
@@ -37,7 +42,7 @@ describe("seasonOn", () => {
       "halloween",
     );
     expect(
-      seasonOn(new Date("2026-06-01T12:00:00Z"), "?season=easter"),
+      seasonOn(new Date("2026-08-01T12:00:00Z"), "?season=easter"),
     ).toBeNull();
   });
 });
@@ -64,6 +69,44 @@ describe("seasonOn, 17. mai", () => {
     expect(
       seasonOn(new Date("2026-05-17T10:00:00Z"), "?season=none"),
     ).toBeNull();
+  });
+});
+
+describe("seasonOn, Pride", () => {
+  it("is pride from 1 June to 30 June inclusive", () => {
+    expect(seasonOn(new Date("2026-06-01T12:00:00+02:00"), "")).toBe("pride");
+    expect(seasonOn(new Date("2026-06-30T12:00:00+02:00"), "")).toBe("pride");
+    expect(seasonOn(new Date("2026-05-31T12:00:00+02:00"), "")).toBeNull();
+    expect(seasonOn(new Date("2026-07-01T12:00:00+02:00"), "")).toBeNull();
+  });
+
+  it("judges the edges in Oslo, not UTC", () => {
+    // 22:30 UTC on 31 May is 00:30 on 1 June in Oslo.
+    expect(seasonOn(new Date("2026-05-31T22:30:00Z"), "")).toBe("pride");
+    // 22:30 UTC on 30 June is 00:30 on 1 July in Oslo.
+    expect(seasonOn(new Date("2026-06-30T22:30:00Z"), "")).toBeNull();
+  });
+
+  it("is forced on and off by the query", () => {
+    expect(seasonOn(new Date("2026-08-01T12:00:00Z"), "?season=pride")).toBe(
+      "pride",
+    );
+    expect(
+      seasonOn(new Date("2026-06-15T10:00:00Z"), "?season=none"),
+    ).toBeNull();
+  });
+});
+
+describe("flagDesignFor", () => {
+  it("flies the Norwegian flag for 17. mai and the rainbow for Pride", () => {
+    expect(flagDesignFor("17mai")).toBe("norway");
+    expect(flagDesignFor("pride")).toBe("rainbow");
+  });
+
+  it("flies none in the other seasons or none", () => {
+    expect(flagDesignFor("halloween")).toBeNull();
+    expect(flagDesignFor("christmas")).toBeNull();
+    expect(flagDesignFor(null)).toBeNull();
   });
 });
 

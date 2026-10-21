@@ -1218,6 +1218,7 @@ describe("christmas trees", () => {
 describe("decorationSpecFor", () => {
   it("has no spec for 17mai or for no season", () => {
     expect(decorationSpecFor("17mai")).toBeNull();
+    expect(decorationSpecFor("pride")).toBeNull();
     expect(decorationSpecFor(null)).toBeNull();
   });
 
