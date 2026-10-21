@@ -40,3 +40,20 @@ export function animationWake(
   const t = Math.min(1, Math.max(0, (nowMs - wakeMs) / ANIMATION_SETTLE_MS));
   return fromAmount + (1 - fromAmount) * smoothstep(t);
 }
+
+/**
+ * How much of a seasonal animation to show while it is held awake from `fromMs`
+ * until `untilMs`, with `fromAmount` showing at `fromMs`: eased up as
+ * `animationWake` does, 1 until `untilMs`, then eased to 0 over
+ * ANIMATION_SETTLE_MS. A hold shorter than the ease up never reaches 1.
+ */
+export function animationHold(
+  nowMs: number,
+  fromMs: number,
+  untilMs: number,
+  fromAmount: number,
+): number {
+  const up = animationWake(nowMs, fromMs, fromAmount);
+  const t = Math.min(1, Math.max(0, (nowMs - untilMs) / ANIMATION_SETTLE_MS));
+  return Math.min(up, 1 - smoothstep(t));
+}

@@ -214,6 +214,80 @@ describe("AnimationClock", () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
+  describe("holdAwake", () => {
+    const settle = () =>
+      vi.advanceTimersByTime(ANIMATION_IDLE_MS + ANIMATION_SETTLE_MS + 200);
+
+    it("wakes a settled clock for the hold alone, then stops", () => {
+      const clock = make();
+      settle();
+      const n = ticks.length;
+      expect(vi.getTimerCount()).toBe(0);
+      clock.holdAwake(Date.now() + 10_000);
+      vi.advanceTimersByTime(ANIMATION_TICK_MS * 2);
+      expect(ticks.length).toBe(n + 2);
+      vi.advanceTimersByTime(5_000);
+      expect(clock.current().amount).toBe(1);
+      vi.advanceTimersByTime(5_000 + ANIMATION_SETTLE_MS);
+      expect(clock.current().amount).toBe(0);
+      const m = ticks.length;
+      expect(ticks[m - 1].amount).toBe(0);
+      expect(vi.getTimerCount()).toBe(0);
+      vi.advanceTimersByTime(10_000);
+      expect(ticks.length).toBe(m);
+    });
+
+    it("does not count as activity, however often it is held", () => {
+      const clock = make();
+      settle();
+      for (let i = 0; i < 2; i++) {
+        clock.holdAwake(Date.now() + 10_000);
+        vi.advanceTimersByTime(10_000 + ANIMATION_SETTLE_MS + 200);
+        expect(clock.current().amount).toBe(0);
+        expect(vi.getTimerCount()).toBe(0);
+        vi.advanceTimersByTime(300_000);
+      }
+      const n = ticks.length;
+      vi.advanceTimersByTime(120_000);
+      expect(ticks.length).toBe(n);
+    });
+
+    it("extends a running hold instead of restarting the ease up", () => {
+      const clock = make();
+      settle();
+      clock.holdAwake(Date.now() + 5_000);
+      vi.advanceTimersByTime(3_000);
+      const n = ticks.length;
+      clock.holdAwake(Date.now() + 10_000);
+      expect(clock.current().amount).toBe(1);
+      vi.advanceTimersByTime(ANIMATION_TICK_MS * 2);
+      expect(ticks.slice(n).every((t) => t.amount === 1)).toBe(true);
+      vi.advanceTimersByTime(8_000);
+      expect(clock.current().amount).toBe(1);
+      vi.advanceTimersByTime(2_000 + ANIMATION_SETTLE_MS);
+      expect(clock.current().amount).toBe(0);
+    });
+
+    it("lets activity during a hold wake it in the usual way", () => {
+      const clock = make();
+      settle();
+      clock.holdAwake(Date.now() + 2_000);
+      vi.advanceTimersByTime(500);
+      clock.activity();
+      vi.advanceTimersByTime(2_000 + ANIMATION_SETTLE_MS + 200);
+      expect(clock.current().amount).toBe(1);
+      expect(vi.getTimerCount()).toBe(1);
+    });
+
+    it("never ticks under reduced motion", () => {
+      const clock = make(true);
+      clock.holdAwake(Date.now() + 10_000);
+      vi.advanceTimersByTime(12_000);
+      expect(ticks.length).toBe(0);
+      expect(vi.getTimerCount()).toBe(0);
+    });
+  });
+
   it("does not tick after dispose and removes its listener", () => {
     const clock = make();
     vi.advanceTimersByTime(ANIMATION_TICK_MS * 2);

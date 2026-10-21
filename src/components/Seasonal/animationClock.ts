@@ -2,6 +2,7 @@ import type { Map as MapLibreMap } from "maplibre-gl";
 import {
   ANIMATION_IDLE_MS,
   animationAmount,
+  animationHold,
   animationWake,
 } from "../../domain/animationAmount.ts";
 
@@ -42,6 +43,10 @@ export class AnimationClock {
   /** When activity last woke a settling or settled clock, and from what. */
   private wakeMs = 0;
   private wakeFrom = 1;
+  /** A hold awake: from when, until when, and the amount showing at its start. */
+  private holdFromMs = 0;
+  private holdUntilMs = 0;
+  private holdFromAmount = 0;
   private timer: ReturnType<typeof setInterval> | null = null;
   private disposed = false;
 
@@ -63,6 +68,24 @@ export class AnimationClock {
   activity(): void {
     if (this.disposed) return;
     this.noteActivity();
+    this.start();
+  }
+
+  /**
+   * Animate until `untilMs` (then ease out) without counting as activity, so
+   * an idle screen is idle again as soon as the hold has faded. A hold still
+   * running is extended, not restarted.
+   */
+  holdAwake(untilMs: number): void {
+    if (this.disposed || this.options.reducedMotion) return;
+    const now = this.now();
+    if (now < this.holdUntilMs) {
+      this.holdUntilMs = Math.max(this.holdUntilMs, untilMs);
+    } else {
+      this.holdFromAmount = this.amountAt(now);
+      this.holdFromMs = now;
+      this.holdUntilMs = untilMs;
+    }
     this.start();
   }
 
@@ -88,9 +111,19 @@ export class AnimationClock {
   };
 
   private amountAt(now: number): number {
-    return Math.min(
+    const idle = Math.min(
       animationAmount(now, this.lastActivityMs, false),
       animationWake(now, this.wakeMs, this.wakeFrom),
+    );
+    if (this.holdUntilMs === 0) return idle;
+    return Math.max(
+      idle,
+      animationHold(
+        now,
+        this.holdFromMs,
+        this.holdUntilMs,
+        this.holdFromAmount,
+      ),
     );
   }
 

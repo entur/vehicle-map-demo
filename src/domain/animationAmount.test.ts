@@ -3,6 +3,7 @@ import {
   ANIMATION_IDLE_MS,
   ANIMATION_SETTLE_MS,
   animationAmount,
+  animationHold,
   animationWake,
 } from "./animationAmount.ts";
 import { twinkleBrightness } from "./twinkle.ts";
@@ -87,5 +88,28 @@ describe("animationWake", () => {
     expect(largestStep(amountAt, ANIMATION_IDLE_MS - 500)).toBeLessThanOrEqual(
       0.1,
     );
+  });
+});
+
+describe("animationHold", () => {
+  const from = 1_000;
+  const until = 11_000;
+
+  it("starts from the amount showing", () => {
+    expect(animationHold(from, from, until, 0.25)).toBe(0.25);
+  });
+
+  it("is 1 from the end of the ease up until the end of the hold", () => {
+    expect(animationHold(from + ANIMATION_SETTLE_MS, from, until, 0)).toBe(1);
+    expect(animationHold(6_000, from, until, 0)).toBe(1);
+    expect(animationHold(until, from, until, 0)).toBe(1);
+  });
+
+  it("eases out after the hold and is 0 once settled", () => {
+    const mid = animationHold(until + ANIMATION_SETTLE_MS / 2, from, until, 0);
+    expect(mid).toBeGreaterThan(0);
+    expect(mid).toBeLessThan(1);
+    expect(animationHold(until + ANIMATION_SETTLE_MS, from, until, 0)).toBe(0);
+    expect(animationHold(until + 5_000, from, until, 0)).toBe(0);
   });
 });
