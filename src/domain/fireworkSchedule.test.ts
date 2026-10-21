@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { SPARK_LIFE_S, SPARK_SPEED, sparkOffset } from "./fireworks.ts";
 import {
   BURST_HEIGHT_M,
   LAUNCH_INSET,
@@ -205,5 +206,17 @@ describe("launchBounds", () => {
       [10.76, 59.91],
     ];
     expect(launchBounds(corners, capped)).toEqual(capped);
+  });
+});
+
+describe("BURST_HEIGHT_M", () => {
+  it("keeps the lowest burst's sparks well above the models and stop poles", () => {
+    // Straight down at the fastest speed, to the end of its life: the lowest
+    // any spark goes. The stop poles stand about 9 m at their 3x scale.
+    const clearanceM = 15;
+    for (let t = 0; t <= SPARK_LIFE_S; t += 0.05) {
+      const [, , z] = sparkOffset([0, 0, -1], 1.05 * SPARK_SPEED, t);
+      expect(BURST_HEIGHT_M[0] + z).toBeGreaterThan(clearanceM);
+    }
   });
 });

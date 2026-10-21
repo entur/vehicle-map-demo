@@ -9,7 +9,7 @@ export const FINALE = { rockets: 72, durationMs: 60_000 };
 /** Wait between scattered rockets while someone is at the screen. */
 export const SCATTERED_DELAY_MS: [number, number] = [2_000, 4_000];
 /** Metres above the ground at which a rocket bursts. */
-export const BURST_HEIGHT_M: [number, number] = [100, 300];
+export const BURST_HEIGHT_M: [number, number] = [60, 120];
 /** Share of the view kept clear of launches on every side. */
 export const LAUNCH_INSET = 0.15;
 /**

@@ -14,9 +14,9 @@ export const SPARK_DRAG = 1.4;
 /** Samples in a spark's trail. */
 export const TRAIL_SAMPLES = 4;
 /** Seconds between a trail sample and the one ahead of it. */
-export const TRAIL_LAG_S = 0.05;
+export const TRAIL_LAG_S = 0.08;
 /** Launch speed of a spark, m/s, before the 85-105% spread. */
-export const SPARK_SPEED = 75;
+export const SPARK_SPEED = 35;
 
 /** East, north, up, in metres. */
 export type Vec3 = [number, number, number];

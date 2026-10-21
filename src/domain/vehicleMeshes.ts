@@ -2562,7 +2562,7 @@ export function flagModelFor(mode: VehicleModeEnumeration): FlagModel | null {
 }
 
 /** A New Year's spark's radius, in metres: big enough to read from a street. */
-export const SPARK_RADIUS_M = 2.5;
+export const SPARK_RADIUS_M = 1.5;
 
 let spark: VehicleMesh | undefined;
 
