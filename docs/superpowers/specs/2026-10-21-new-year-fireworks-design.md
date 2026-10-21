@@ -82,7 +82,11 @@ between Christmas and New Year, when the map is actually in use.
   those and a time uniform, in the way `FlutterExtension` and `TwinkleExtension` do. The curves are
   pure functions in `src/domain/` that the shader reproduces, with their constants interpolated
   into the GLSL. Rockets are added to the layer's data only when they launch, and removed in
-  batches after they have faded, not every frame.
+  batches after they have faded, not every frame. The per-instance numbers go to the shader packed
+  into two vertex attributes (a velocity and a vec4 of launch, trail lag, kind and height):
+  `SimpleMeshLayer` already uses 11 of the 16 that WebGL2 guarantees, and one attribute each made
+  17, which failed to link, so nothing was drawn. No unit test can see this; a test now counts the
+  layer's declared attributes.
 - **Frame rate.** The 80 ms tick that serves the lights and flags is too coarse for a burst. While
   anything is in the air, the fireworks repaint every frame. When nothing is in the air, they
   request no frames at all.
@@ -92,9 +96,14 @@ between Christmas and New Year, when the map is actually in use.
   honour without any activity, and the different meaning of "settling": no new scattered rockets
   rather than easing an amount to 0.
 - **Where rockets go up.** Inside the view the vehicles use (`cappedViewBounds`, never
-  `map.getBounds()`), so tilted towards the horizon they do not go up kilometres away. Bursts are
-  100–300 m above the ground at their launch point, with heights from
-  `map.queryTerrainElevation`. A height not yet loaded (0) must not put a burst underground on a
+  `map.getBounds()`), so tilted towards the horizon they do not go up kilometres away, and within
+  it over the ground under the **lower 60% of the screen** (`LAUNCH_SCREEN_SHARE`, `launchBounds`).
+  (Changed for the chase camera at Lasse's request: spread over the whole view's box, most rockets
+  went up over its far, upper part and burst above the top of the screen, in a chase nearly all.)
+  Bursts are **60–120 m** above the ground at their launch point, with heights from
+  `map.queryTerrainElevation`. (Lowered from 100–300 m for the chase camera at Lasse's request; the
+  sparks were slowed with it, so the lowest burst's sparks still end well above the models and
+  stop poles, which a test holds.) A height not yet loaded (0) must not put a burst underground on a
   hill. Bursts are true to scale or a little larger; the builder tunes them to read at the model
   zoom.
 - **Colours and blending, by scheme.** Sparks are bright colours plus white. In dark mode they
@@ -182,3 +191,69 @@ between Christmas and New Year, when the map is actually in use.
   - a barrage and the finale
   - render events while idle between barrages, with the vehicle feed closed: none
   - a chase, with and without fireworks
+
+## Measured (2026-10-21)
+
+On a production build (`vite build` with the development-only `window` hooks kept by a throwaway
+config, served by `vite preview`) in headless Chromium, as the trees and flags were measured. Each
+page was opened in 2D, switched with "Show 3D view", then put at Oslo sentrum (59.9111, 10.7522),
+zoom 16.5, pitch 60, with live vehicles from dev. Frames are counted with `requestAnimationFrame`,
+MapLibre repaints with `map.on("render")`, and "Rockets" is the most `window.__seasonal.rockets`
+seen. "Still" is 10 s with no input, straight after a key press, twice per page. The barrage
+(12 s from the slot's start) and the finale (20 s from 00:00:05 on 1 January) were reached by
+shifting `Date` alone, leaving `performance.now` and frames on real time; with the date in
+December the live feed's vehicles are all older than maxDataAge, so those rows have no vehicles,
+and "Still, shifted date" is their baseline. The chase is 20 s behind a vehicle picked near the
+centre, 8 s after it started. "After idle" is 10 s starting 68 s after the last input (60 s idle
+plus the last scattered rocket's flight), with the vehicle feed muted from that input on.
+
+On the GPU (Apple M1 Max through ANGLE Metal, 1560×784, dark unless stated):
+
+| Case                            | Rockets | fps         | p95 frame | Frames > 25 ms | Worst | Repaints  |
+| ------------------------------- | ------- | ----------- | --------- | -------------- | ----- | --------- |
+| Still, `?season=none`           | –       | 60.0 / 60.0 | 17 ms     | 0 / 0          | 17 ms | 122 / 176 |
+| Still, `?season=newyear`        | 2 / 3   | 60.0 / 60.0 | 17 ms     | 0 / 0          | 17 ms | 601 / 601 |
+| Still, light, none              | –       | 60.0 / 60.0 | 17 ms     | 0 / 0          | 17 ms | 107 / 165 |
+| Still, light, newyear           | 2 / 2   | 60.0 / 60.0 | 17 ms     | 0 / 0          | 17 ms | 601 / 601 |
+| Still, shifted date, none       | –       | 60.0        | 17 ms     | 0              | 17 ms | 148       |
+| Still, shifted date, newyear    | 2       | 60.0        | 17 ms     | 0              | 17 ms | 601       |
+| Barrage                         | 17      | 60.0        | 17 ms     | 0              | 17 ms | 721       |
+| Barrage, light                  | 16      | 60.0        | 17 ms     | 0              | 17 ms | 721       |
+| Finale                          | 10      | 60.0        | 17 ms     | 0              | 17 ms | 1201      |
+| Chase (a train), none           | –       | 60.0        | 17 ms     | 0              | 17 ms | 882       |
+| Chase (a train), newyear        | 15      | 60.0        | 17 ms     | 0              | 17 ms | 1201      |
+| After idle, feed muted, newyear | 0       | 60.0        | 17 ms     | 0              | 17 ms | **0**     |
+
+On swiftshader (`--use-angle=swiftshader`, a CPU renderer, at 640×400, as for the trees and flags;
+the chase at Stavanger byterminal, where a bus was in reach at this size):
+
+| Case                            | Rockets | fps         | p95 frame    | Frames > 25 ms | Worst  | Repaints |
+| ------------------------------- | ------- | ----------- | ------------ | -------------- | ------ | -------- |
+| Still, `?season=none`           | –       | 39.8 / 26.7 | 17 / 100 ms  | 14 / 16        | 1.0 s  | 18 / 16  |
+| Still, `?season=newyear`        | 2 / 2   | 8.4 / 9.0   | 167 / 150 ms | 83 / 90        | 533 ms | 84 / 91  |
+| Still, light, none              | –       | 60.0 / 60.0 | 17 ms        | 0 / 0          | 17 ms  | 0 / 0    |
+| Still, light, newyear           | 2 / 2   | 10.4 / 9.3  | 117 / 200 ms | 106 / 91       | 517 ms | 107 / 92 |
+| Still, shifted date, none       | –       | 56.5        | 17 ms        | 4              | 433 ms | 5        |
+| Still, shifted date, newyear    | 2       | 10.3        | 117 ms       | 103            | 583 ms | 104      |
+| Barrage                         | 16      | 9.1         | 150 ms       | 110            | 483 ms | 111      |
+| Barrage, light                  | 17      | 8.3         | 183 ms       | 100            | 650 ms | 101      |
+| Finale                          | 11      | 10.3        | 117 ms       | 207            | 467 ms | 208      |
+| Chase (a bus), none             | –       | 6.2         | 433 ms       | 124            | 467 ms | 125      |
+| Chase (a bus), newyear          | 2       | 4.7         | 517 ms       | 93             | 567 ms | 94       |
+| After idle, feed muted, newyear | 0       | 60.0        | 17 ms        | 0              | 17 ms  | **0**    |
+
+On the GPU the fireworks cost nothing measurable: 60 fps with no frame over 25 ms in every case,
+a barrage of 17 rockets and the finale included. They repaint the map every frame while anything
+is in the air (601 repaints in 10 s against 107–176 from the vehicles alone), which the GPU
+absorbs. Without a GPU every one of those repaints is a full render of the 3D map, about 100 ms
+here, so a map with rockets in the air draws 8–10 fps where the vehicles alone left it at 27–60.
+The cost is the repaint, not the sparks: two scattered rockets, a 17-rocket barrage and the finale
+all land at 8–10 fps, so a barrage leaves the map no slower than a single rocket does, and it
+stays usable. A chase already repaints every frame it can, so on the GPU fireworks change nothing (the GPU
+chase ran into a real barrage slot: 15 rockets) and on swiftshader the sparks' own drawing
+takes about a quarter more (6.2 to 4.7 fps). An idle map does no work between barrages: 0 repaints in 10 s on
+both renderers. With a page date set just before a slot (development build), an idle map with the
+feed muted repainted 0 times in the 10 s before the slot, woke for the barrage on its own (14
+rockets, 759 repaints in 12 s) and repainted 0 times again in the 10 s after it had faded. Under
+emulated `prefers-reduced-motion: reduce` no fireworks layer was ever built, `rockets` stayed 0
+while active and through a barrage slot, and the idle map repainted 0 times.
