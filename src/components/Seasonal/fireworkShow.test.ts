@@ -145,7 +145,7 @@ describe("FireworkShow", () => {
     const show = new FireworkShow(() => 0);
     const flat: LaunchView = {
       ...launchView,
-      groundAt: () => 0,
+      groundAt: () => null,
       centreGroundM: 250,
     };
     const b = run(show, BARRAGE_START, 10_000, false, 100, () => flat)[0];

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { SPARK_LIFE_S, SPARK_SPEED, sparkOffset } from "./fireworks.ts";
 import {
   BURST_HEIGHT_M,
@@ -110,13 +110,15 @@ describe("launchPoint", () => {
 });
 
 describe("groundFor", () => {
-  it("falls back to the centre's height", () => {
+  it("keeps the ground's height, the sea's 0 included", () => {
     expect(groundFor(120, 5)).toBe(120);
-    expect(groundFor(0, 80)).toBe(80);
+    expect(groundFor(0, 150)).toBe(0);
+    expect(groundFor(-3, 10)).toBe(-3);
+  });
+
+  it("falls back to the centre's height where there is no data yet", () => {
     expect(groundFor(null, 80)).toBe(80);
     expect(groundFor(null, null)).toBe(0);
-    expect(groundFor(0, 0)).toBe(0);
-    expect(groundFor(-3, 10)).toBe(10);
   });
 });
 
@@ -175,23 +177,49 @@ describe("placeLaunch", () => {
     [10.7, 59.9],
     [10.8, 59.95],
   ];
+  const at = (point: [number, number]) => () => point;
 
   it("keeps a point inside the view as it is", () => {
-    expect(placeLaunch([10.75, 59.92], view, 0.3, 0.7)).toEqual([10.75, 59.92]);
+    expect(placeLaunch(at([10.75, 59.92]), view, 0.3, 0.7)).toEqual([
+      10.75, 59.92,
+    ]);
   });
 
-  it("moves a point outside the view the vehicles use to its edge", () => {
-    // Tilted, the strip's top can reach past the capped view.
-    expect(placeLaunch([10.9, 60.1], view, 0.3, 0.7)).toEqual([10.8, 59.95]);
-    expect(placeLaunch([10.6, 59.8], view, 0.3, 0.7)).toEqual([10.7, 59.9]);
+  it("tries a point outside the view lower on the screen", () => {
+    // Tilted past 60°, the strip's top reaches beyond the capped view; the
+    // ground under it runs north as the share rises.
+    const groundAt = vi.fn((fy: number): [number, number] => [
+      10.75,
+      59.9 + fy * 0.1,
+    ]);
+    expect(placeLaunch(groundAt, view, 0.3, 0.8)).toEqual([10.75, 59.94]);
+    expect(groundAt.mock.calls.map(([fy]) => fy)).toEqual([0.8, 0.4]);
+  });
+
+  it("spreads launches beyond the view rather than lining them up on its edge", () => {
+    const groundAt =
+      (fx: number) =>
+      (fy: number): [number, number] => [10.7 + fx * 0.1, 59.9 + fy * 0.1];
+    const lats = [0.6, 0.7, 0.8, 0.9].map(
+      (fy) => placeLaunch(groundAt(0.5), view, 0.5, fy)[1],
+    );
+    expect(new Set(lats).size).toBe(lats.length);
+    for (const lat of lats) expect(lat).toBeLessThan(59.95);
+  });
+
+  it("moves a point to the view's edge when nothing lower is inside", () => {
+    expect(placeLaunch(at([10.9, 60.1]), view, 0.3, 0.7)).toEqual([
+      10.8, 59.95,
+    ]);
+    expect(placeLaunch(at([10.6, 59.8]), view, 0.3, 0.7)).toEqual([10.7, 59.9]);
   });
 
   it("falls back to the whole view when the point could not be placed", () => {
-    expect(placeLaunch([Number.NaN, 59.92], view, 0.3, 0.7)).toEqual(
+    expect(placeLaunch(at([Number.NaN, 59.92]), view, 0.3, 0.7)).toEqual(
       launchPoint(view, 0.3, 0.7),
     );
     expect(
-      placeLaunch([10.75, Number.POSITIVE_INFINITY], view, 0.3, 0.7),
+      placeLaunch(at([10.75, Number.POSITIVE_INFINITY]), view, 0.3, 0.7),
     ).toEqual(launchPoint(view, 0.3, 0.7));
   });
 });

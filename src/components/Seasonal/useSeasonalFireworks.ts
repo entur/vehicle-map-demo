@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import type { Layer } from "@deck.gl/core";
-import type { Map as MapLibreMap } from "maplibre-gl";
+import { LngLat, type Map as MapLibreMap } from "maplibre-gl";
 import type { Season } from "../../domain/season.ts";
 import { burstDurationS } from "../../domain/fireworks.ts";
 import type { MapScheme } from "../basemap/basemap.ts";
@@ -30,6 +30,20 @@ type SeasonalWindow = {
     rockets?: number;
   };
 };
+
+/**
+ * The terrain's height at `lngLat` as drawn, or null where no drawn tile has
+ * elevation data yet: `queryTerrainElevation` answers 0 there, which over a
+ * hillside would launch from inside the hill, while a 0 over the sea is real.
+ * Typed as always present, `terrain` is null in 2D.
+ */
+function elevationAt(map: MapLibreMap, lngLat: LngLat): number | null {
+  return (
+    (map.terrain as MapLibreMap["terrain"] | null)?.getDrawnElevationForLngLat(
+      lngLat,
+    ) ?? null
+  );
+}
 
 /** Lets the Playwright tests see the rockets. Development builds only. */
 function reportRockets(rockets: number) {
@@ -151,14 +165,26 @@ export function useSeasonalFireworks({
       const bottomPx = map.getPadding().bottom ?? 0;
       const bounds = cappedViewBounds(map);
       return {
-        pointAt: (fx, fy) => {
-          const ground = map.unproject(
-            launchScreenPoint(clientWidth, clientHeight, bottomPx, fx, fy),
-          );
-          return placeLaunch(ground.toArray(), bounds, fx, fy);
-        },
-        groundAt: (lngLat) => map.queryTerrainElevation(lngLat) ?? null,
-        centreGroundM: map.queryTerrainElevation(map.getCenter()) ?? null,
+        pointAt: (fx, fy) =>
+          placeLaunch(
+            (share) =>
+              map
+                .unproject(
+                  launchScreenPoint(
+                    clientWidth,
+                    clientHeight,
+                    bottomPx,
+                    fx,
+                    share,
+                  ),
+                )
+                .toArray(),
+            bounds,
+            fx,
+            fy,
+          ),
+        groundAt: (lngLat) => elevationAt(map, LngLat.convert(lngLat)),
+        centreGroundM: elevationAt(map, map.getCenter()),
       };
     };
 

@@ -145,21 +145,36 @@ export function launchScreenPoint(
   return [fx * width, bottom - fy * bottom * LAUNCH_SCREEN_SHARE];
 }
 
+/** Shares up the launch strip a launch is tried at, its own first. */
+const FALLBACK_SHARES = [1, 0.5, 0];
+
 /**
- * The longitude and latitude of a launch, from `ground`, the ground under its
- * screen point: kept inside `view`, the view the vehicles use, and when the
- * point could not be placed, spread over the whole view instead.
+ * The longitude and latitude of a launch, from `groundAt`, the ground under
+ * the screen point at a share up the launch strip, kept inside `view`, the
+ * view the vehicles use. Tilted past 60° the strip's upper part lies beyond
+ * that view, and clamping it to the edge would line those launches up along
+ * one side; such a launch is tried lower on the screen instead, keeping its
+ * share across. Clamped only when nothing lower is inside either, and spread
+ * over the whole view when no point could be placed.
  */
 export function placeLaunch(
-  [lng, lat]: [number, number],
+  groundAt: (fy: number) => [number, number],
   view: ViewBounds,
   fx: number,
   fy: number,
 ): [number, number] {
-  if (!Number.isFinite(lng) || !Number.isFinite(lat)) {
-    return launchPoint(view, fx, fy);
-  }
   const [[west, south], [east, north]] = view;
+  let placed: [number, number] | null = null;
+  for (const share of FALLBACK_SHARES) {
+    const [lng, lat] = groundAt(fy * share);
+    if (!Number.isFinite(lng) || !Number.isFinite(lat)) continue;
+    if (lng >= west && lng <= east && lat >= south && lat <= north) {
+      return [lng, lat];
+    }
+    placed ??= [lng, lat];
+  }
+  if (placed === null) return launchPoint(view, fx, fy);
+  const [lng, lat] = placed;
   return [
     Math.min(east, Math.max(west, lng)),
     Math.min(north, Math.max(south, lat)),
@@ -167,14 +182,14 @@ export function placeLaunch(
 }
 
 /**
- * The ground height to burst above. MapLibre answers 0 (or null) for a
- * terrain tile still loading, so a non-positive reading falls back to the
- * view centre's.
+ * The ground height to burst above: `groundM`, the ground under the launch,
+ * or the view centre's where there is no elevation data there yet. MapLibre
+ * answers 0 for a terrain tile still loading, so the caller passes null
+ * there; a 0 that is passed is the sea, and is kept.
  */
 export function groundFor(
   groundM: number | null,
   centreGroundM: number | null,
 ): number {
-  if (groundM !== null && groundM > 0) return groundM;
-  return Math.max(centreGroundM ?? 0, 0);
+  return groundM ?? centreGroundM ?? 0;
 }
