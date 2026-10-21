@@ -14,7 +14,7 @@ import {
   Placed,
 } from "./decorationController.ts";
 import {
-  DECORATIONS,
+  decorationSpecFor,
   type Decoration,
 } from "../../domain/decorationPlacement.ts";
 
@@ -70,12 +70,15 @@ export function useSeasonalDecorations({
   onLayers: (layers: Layer[]) => void;
 }) {
   const visible = opacity > 0;
+  // A season without stop decorations (17 May) has no controller, clock or
+  // layers here.
+  const spec = decorationSpecFor(season);
   const [placed, setPlaced] = useState<Placed>(NOTHING_PLACED);
 
   useEffect(() => {
-    if (!map || season === null || !visible) return;
+    if (!map || spec === null || !visible) return;
     const controller = new DecorationController(map, {
-      spec: DECORATIONS[season],
+      spec,
       viewBounds: () => cappedViewBounds(map),
       intervalMs: chasing
         ? DECORATION_CHASE_INTERVAL_MS
@@ -86,7 +89,7 @@ export function useSeasonalDecorations({
       controller.dispose();
       setPlaced(NOTHING_PLACED);
     };
-  }, [map, season, visible, chasing]);
+  }, [map, spec, visible, chasing]);
 
   // One accessor per placement, so a twinkle tick hands deck.gl the same one.
   const getElevation = useMemo(() => {
@@ -108,13 +111,17 @@ export function useSeasonalDecorations({
         getElevation,
         positionTrigger: placed.key,
       };
+      if (spec === null) {
+        onLayers([]);
+        return;
+      }
       onLayers(
         season === "christmas"
           ? christmasTreeLayers(placed.decorations, { ...options, twinkle })
           : pumpkinLayers(placed.decorations, options),
       );
     },
-    [season, placed, getElevation, visible, opacity, scheme, onLayers],
+    [season, spec, placed, getElevation, visible, opacity, scheme, onLayers],
   );
   // The clock outlives a redraw; its ticks draw with whatever is current.
   const drawRef = useRef(draw);
@@ -159,12 +166,12 @@ export function useSeasonalDecorations({
   useEffect(() => {
     if (!import.meta.env.DEV) return;
     (window as SeasonalWindow).__seasonal =
-      season === null
+      season === null || spec === null
         ? undefined
         : {
             season,
             count: placed.decorations.length,
             twinkling: treesShown && !prefersReducedMotion(),
           };
-  }, [season, placed, treesShown]);
+  }, [season, spec, placed, treesShown]);
 }

@@ -94,8 +94,11 @@ export const PUMPKIN_ASPECT = 1.3;
 /** A tree's widest canopy over its height; the mesh is built to it. */
 export const TREE_ASPECT = 0.55;
 
-/** Each season's decorations. */
-export const DECORATIONS: Record<Season, DecorationSpec> = {
+/**
+ * Each season's stop decorations. A season with none, like 17 May, decorates
+ * the vehicles instead; `satisfies` keeps the listed seasons' keys known.
+ */
+export const DECORATIONS = {
   halloween: {
     perStop: [1, 3],
     heightM: [2, 3],
@@ -120,7 +123,16 @@ export const DECORATIONS: Record<Season, DecorationSpec> = {
       [0x3f, 0x7d, 0x45],
     ],
   },
-};
+} satisfies Partial<Record<Season, DecorationSpec>>;
+
+/** The stop decorations of `season`, or null when it has none. */
+export function decorationSpecFor(
+  season: Season | null,
+): DecorationSpec | null {
+  if (season === null) return null;
+  const specs: Partial<Record<Season, DecorationSpec>> = DECORATIONS;
+  return specs[season] ?? null;
+}
 
 const M_PER_DEG_LAT = 110_574;
 const mPerDegLng = (lat: number) => 111_320 * Math.cos((lat * Math.PI) / 180);

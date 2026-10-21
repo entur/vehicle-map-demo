@@ -42,6 +42,31 @@ describe("seasonOn", () => {
   });
 });
 
+describe("seasonOn, 17. mai", () => {
+  it("is 17mai from 1 May to 17 May inclusive", () => {
+    expect(seasonOn(new Date("2026-05-01T12:00:00+02:00"), "")).toBe("17mai");
+    expect(seasonOn(new Date("2026-05-17T12:00:00+02:00"), "")).toBe("17mai");
+    expect(seasonOn(new Date("2026-04-30T12:00:00+02:00"), "")).toBeNull();
+    expect(seasonOn(new Date("2026-05-18T12:00:00+02:00"), "")).toBeNull();
+  });
+
+  it("judges the edges in Oslo, not UTC", () => {
+    // 22:30 UTC on 17 May is 00:30 on 18 May in Oslo.
+    expect(seasonOn(new Date("2026-05-17T22:30:00Z"), "")).toBeNull();
+    // 22:30 UTC on 30 Apr is 00:30 on 1 May in Oslo.
+    expect(seasonOn(new Date("2026-04-30T22:30:00Z"), "")).toBe("17mai");
+  });
+
+  it("is forced on and off by the query", () => {
+    expect(seasonOn(new Date("2026-06-01T12:00:00Z"), "?season=17mai")).toBe(
+      "17mai",
+    );
+    expect(
+      seasonOn(new Date("2026-05-17T10:00:00Z"), "?season=none"),
+    ).toBeNull();
+  });
+});
+
 describe("firstAdventSunday", () => {
   it.each([
     [2026, [11, 29]],

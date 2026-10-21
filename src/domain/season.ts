@@ -1,5 +1,5 @@
 /** A season that decorates the map. */
-export type Season = "halloween" | "christmas";
+export type Season = "halloween" | "christmas" | "17mai";
 
 export type MonthDay = [month: number, day: number];
 
@@ -37,7 +37,14 @@ export const SEASONS: {
       key(month, day) >= key(...firstAdventSunday(year)) ||
       (month === 1 && day <= 6),
   },
+  {
+    id: "17mai",
+    isOn: (_year, month, day) => month === 5 && day <= 17,
+  },
 ];
+
+/** The season whose flags go on the vehicles. */
+export const FLAG_SEASON: Season = "17mai";
 
 const OSLO_DATE = new Intl.DateTimeFormat("en-CA", {
   timeZone: "Europe/Oslo",

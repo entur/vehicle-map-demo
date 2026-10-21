@@ -3,6 +3,7 @@ import {
   BuildingRing,
   CLEARANCE_M,
   DECORATIONS,
+  decorationSpecFor,
   DECORATION_CAP,
   Decoration,
   DecorationCache,
@@ -1211,5 +1212,17 @@ describe("christmas trees", () => {
     }
     for (let i = 1; i < phases.length; i++)
       expect(phases[i]).not.toBe(phases[i - 1]);
+  });
+});
+
+describe("decorationSpecFor", () => {
+  it("has no spec for 17mai or for no season", () => {
+    expect(decorationSpecFor("17mai")).toBeNull();
+    expect(decorationSpecFor(null)).toBeNull();
+  });
+
+  it("gives a season its spec", () => {
+    expect(decorationSpecFor("halloween")).toBe(DECORATIONS.halloween);
+    expect(decorationSpecFor("christmas")).toBe(DECORATIONS.christmas);
   });
 });
