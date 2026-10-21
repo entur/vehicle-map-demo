@@ -44,7 +44,10 @@ type SeasonalWindow = {
  *
  * `flutterNow` gives the chased vehicle's flags, rebuilt every chase frame,
  * the same pose as the rest. They are drawn by the caller, but the clock runs
- * for them too (`chasedFlagged`), even when no other vehicle flies a flag.
+ * for them too (`chasedFlagged`), even when no other vehicle flies a flag;
+ * its ticks then call `onChasedTick` rather than handing over no flags, which
+ * would re-send every other layer for nothing. A chase frame is skipped while
+ * the vehicle stands still, so without it the chased flags would freeze.
  */
 export function useSeasonalFlags({
   map,
@@ -53,6 +56,7 @@ export function useSeasonalFlags({
   options,
   chasedFlagged = false,
   onLayers,
+  onChasedTick,
 }: {
   map: MapLibreMap | undefined;
   season: Season | null;
@@ -61,31 +65,40 @@ export function useSeasonalFlags({
   /** Whether the chased vehicle, left out of `vehicles`, flies flags. */
   chasedFlagged?: boolean;
   onLayers: (layers: Layer[]) => void;
+  /** Redraws the chased vehicle's flags, on a tick with no others to draw. */
+  onChasedTick?: () => void;
 }): { flutterNow: () => AnimationState } {
   const design = flagDesignFor(season);
   const inSeason = design !== null;
-  // One array per vehicle frame, handed to every tick until the next frame.
-  const flagged = useMemo(
-    () => (inSeason ? flaggedVehicles(vehicles) : NO_VEHICLES),
-    [inSeason, vehicles],
-  );
   const shown = inSeason && options !== null && options.visible;
+  // One array per vehicle frame, handed to every tick until the next frame.
+  // Not looked for while no flag can be shown: zoomed out, `vehicles` is the
+  // whole feed.
+  const flagged = useMemo(
+    () => (shown ? flaggedVehicles(vehicles) : NO_VEHICLES),
+    [shown, vehicles],
+  );
   const flying = shown && flagged.length > 0;
   // The clock runs for the chased vehicle's flags as well.
   const fluttering = flying || (shown && chasedFlagged);
 
   const draw = useCallback(
-    (flutter: AnimationState) => {
-      onLayers(
-        flying && options && design
-          ? flagLayers(flagged, {
-              ...options,
-              idPrefix: "vehicle-flags",
-              flutter,
-              design,
-            })
-          : [],
-      );
+    (flutter: AnimationState, tick = false) => {
+      // A tick with no flags but the chased vehicle's has nothing to hand
+      // over: the last draw already handed over none.
+      if (tick && !flying) onChasedTick?.();
+      else {
+        onLayers(
+          flying && options && design
+            ? flagLayers(flagged, {
+                ...options,
+                idPrefix: "vehicle-flags",
+                flutter,
+                design,
+              })
+            : [],
+        );
+      }
       // Lets the Playwright tests see the flags. Development builds only.
       if (import.meta.env.DEV && season !== null && inSeason) {
         const w = window as SeasonalWindow;
@@ -110,6 +123,7 @@ export function useSeasonalFlags({
       design,
       chasedFlagged,
       onLayers,
+      onChasedTick,
     ],
   );
   // The clock outlives a redraw; its ticks draw with whatever is current.
@@ -160,7 +174,7 @@ export function useSeasonalFlags({
     if (!map || !fluttering) return;
     const clock = new AnimationClock(map, {
       reducedMotion: prefersReducedMotion(),
-      onTick: (state) => drawRef.current(state),
+      onTick: (state) => drawRef.current(state, true),
       ...since.current,
     });
     clockRef.current = clock;

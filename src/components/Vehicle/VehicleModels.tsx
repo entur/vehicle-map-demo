@@ -37,6 +37,7 @@ import { useSeasonalDecorations } from "../Seasonal/useSeasonalDecorations.ts";
 import { useSeasonalFlags } from "../Seasonal/useSeasonalFlags.ts";
 import { useSeasonalFireworks } from "../Seasonal/useSeasonalFireworks.ts";
 import { flagLayers, fliesFlags } from "../Seasonal/flagLayers.ts";
+import { ANIMATION_TICK_MS } from "../Seasonal/animationClock.ts";
 
 const NO_VEHICLES: VehicleUpdate[] = [];
 
@@ -264,6 +265,14 @@ export function VehicleModels({
     },
     [handOver],
   );
+  // Set by the chase's effect below; a flutter tick redraws the chased flags
+  // through it unless a chase frame has just done so.
+  const publishChased = useRef<(() => void) | null>(null);
+  const chasedPublishedMs = useRef(0);
+  const onChasedTick = useCallback(() => {
+    if (Date.now() - chasedPublishedMs.current < ANIMATION_TICK_MS) return;
+    publishChased.current?.();
+  }, []);
   // Asked of the vehicle the chase draws, not of `data`: the chase goes on
   // drawing its last report after the live cache has dropped the vehicle, and
   // its flags must not freeze then. A boolean, so a frame that changes
@@ -286,6 +295,7 @@ export function VehicleModels({
     options: modelOptions,
     chasedFlagged,
     onLayers: onFlagLayers,
+    onChasedTick,
   });
 
   useEffect(() => {
@@ -341,6 +351,7 @@ export function VehicleModels({
   useEffect(() => {
     const flagDesign = flagDesignFor(season);
     const publish = () => {
+      chasedPublishedMs.current = Date.now();
       const vehicle = chasedVehicleStore.get();
       // A new object every frame, so the cache never hits; look the ground up
       // once here rather than once per model layer.
@@ -375,9 +386,11 @@ export function VehicleModels({
       handOver();
     };
     publish();
+    publishChased.current = publish;
     const unsubscribe = chasedVehicleStore.subscribe(publish);
     return () => {
       unsubscribe();
+      publishChased.current = null;
       chasedLayers.current = [];
     };
   }, [handOver, chasedVehicleStore, showVehicles, season, flutterNow]);
