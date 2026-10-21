@@ -2560,3 +2560,38 @@ export function flagModelFor(mode: VehicleModeEnumeration): FlagModel | null {
   }
   return model;
 }
+
+/** A New Year's spark's radius, in metres: big enough to read from a street. */
+export const SPARK_RADIUS_M = 2.5;
+
+let spark: VehicleMesh | undefined;
+
+/**
+ * One firework spark, and the rocket's head: a white octahedron of
+ * `SPARK_RADIUS_M` around the origin, coloured per spark by the renderer. Its
+ * flight is the shader's; the mesh only has to read as a point of light from
+ * any side, in as few triangles as do that.
+ */
+export function sparkModel(): VehicleMesh {
+  if (!spark) {
+    const r = SPARK_RADIUS_M;
+    const m = new MeshBuilder();
+    const centre: Vec3 = [0, 0, 0];
+    const ring: Vec3[] = [
+      [r, 0, 0],
+      [0, r, 0],
+      [-r, 0, 0],
+      [0, -r, 0],
+    ];
+    for (const apex of [
+      [0, 0, r],
+      [0, 0, -r],
+    ] as Vec3[]) {
+      ring.forEach((a, i) => {
+        m.triangle(a, ring[(i + 1) % ring.length], apex, PAINT, centre);
+      });
+    }
+    spark = m.build().body;
+  }
+  return spark;
+}

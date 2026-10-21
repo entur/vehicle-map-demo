@@ -34,7 +34,7 @@ const DEFAULT_MATERIAL = {
 };
 
 /** Lit by ambient light alone, so the same from every side. */
-const glowing = (strength: number): Material => ({
+export const glowing = (strength: number): Material => ({
   ambient: strength,
   diffuse: 0,
   shininess: 1,
@@ -72,7 +72,7 @@ export const MODEL_MATERIALS: Record<
  * brighten the dark road rather than paint over it, and without writing depth,
  * so the models drawn after them are not hidden behind a transparent quad.
  */
-const LIGHT_POOL_PARAMETERS = {
+export const LIGHT_POOL_PARAMETERS = {
   depthWriteEnabled: false,
   blend: true,
   blendColorOperation: "add",

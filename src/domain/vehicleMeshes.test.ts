@@ -17,6 +17,8 @@ import {
   christmasTreeModel,
   modelFor,
   pumpkinModel,
+  SPARK_RADIUS_M,
+  sparkModel,
   stopPoleModel,
   unknownHeadingMeshUnit,
 } from "./vehicleMeshes.ts";
@@ -975,4 +977,41 @@ describe("flagModelFor", () => {
       });
     });
   }
+});
+
+describe("sparkModel", () => {
+  const mesh = sparkModel();
+
+  it("is an octahedron of the spark's radius", () => {
+    expect(mesh.positions.value.length).toBe(8 * 9);
+    for (const v of vertices(mesh)) {
+      expect(Math.hypot(...v)).toBeCloseTo(SPARK_RADIUS_M, 5);
+    }
+  });
+
+  it("is white, so the renderer's colour is the spark's", () => {
+    expect(mesh.colors.value.every((channel) => channel === 1)).toBe(true);
+  });
+
+  it("has outward unit normals", () => {
+    const p = mesh.positions.value;
+    const n = mesh.normals.value;
+    for (let t = 0; t < p.length / 9; t++) {
+      const centroid = [0, 1, 2].map(
+        (axis) =>
+          (p[t * 9 + axis] + p[t * 9 + 3 + axis] + p[t * 9 + 6 + axis]) / 3,
+      );
+      for (let v = 0; v < 3; v++) {
+        const i = t * 9 + v * 3;
+        expect(Math.hypot(n[i], n[i + 1], n[i + 2])).toBeCloseTo(1, 5);
+        expect(
+          n[i] * centroid[0] + n[i + 1] * centroid[1] + n[i + 2] * centroid[2],
+        ).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it("is built once", () => {
+    expect(sparkModel()).toBe(sparkModel());
+  });
 });
