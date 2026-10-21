@@ -151,7 +151,6 @@ export function fireworkLayers(
       getKind: (d) => d.kind,
       getHeightM: (d) => d.heightM,
       fireworksTimeS: timeS,
-      fireworksAdditive: scheme === "dark",
       updateTriggers: {
         getPosition: epochKey,
         getColor: epochKey,

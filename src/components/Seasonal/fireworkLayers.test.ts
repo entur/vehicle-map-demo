@@ -140,15 +140,11 @@ describe("fireworkLayers", () => {
     }
   });
 
-  it("passes the time and the scheme's blending to the shader", () => {
-    const props = (scheme: "light" | "dark") =>
-      fireworkLayers(instances, options(scheme))[0].props as unknown as {
-        fireworksTimeS: number;
-        fireworksAdditive: boolean;
-      };
-    expect(props("dark").fireworksTimeS).toBe(2);
-    expect(props("dark").fireworksAdditive).toBe(true);
-    expect(props("light").fireworksAdditive).toBe(false);
+  it("passes the time to the shader", () => {
+    const props = fireworkLayers(instances, options())[0].props as unknown as {
+      fireworksTimeS: number;
+    };
+    expect(props.fireworksTimeS).toBe(2);
   });
 });
 
@@ -170,11 +166,10 @@ describe("FireworksExtension", () => {
   it("declares its uniforms in the order and types of uniformTypes", () => {
     expect(fireworksShaderModule.uniformTypes).toEqual({
       timeS: "f32",
-      additive: "f32",
     });
     const block = fireworksShaderModule.vs.replace(/\s+/g, " ");
     expect(block).toContain(
-      "uniform fireworksUniforms { float timeS; float additive; } fireworks;",
+      "uniform fireworksUniforms { float timeS; } fireworks;",
     );
   });
 
@@ -216,6 +211,14 @@ describe("FireworksExtension", () => {
     ]) {
       expect(decl).toContain(attribute);
     }
+  });
+
+  it("fades by alpha alone, which both blends scale by", () => {
+    // Additive blending's source factor is src-alpha too: fading the colour
+    // as well would dim a dark-mode spark by its brightness squared.
+    const fade = fireworksShaderModule.inject["vs:DECKGL_FILTER_COLOR"];
+    expect(fade).toContain("color.a *= fireworks_brightness;");
+    expect(fade).not.toContain("color.rgb");
   });
 
   it("never runs a spark's flight backwards", () => {

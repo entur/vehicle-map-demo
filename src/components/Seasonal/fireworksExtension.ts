@@ -13,8 +13,6 @@ import {
 export type FireworksExtensionProps<D> = {
   /** Seconds since launch are this less the instance's `getLaunchS`. */
   fireworksTimeS: number;
-  /** Additive blending, where a fading spark must dim its colour too. */
-  fireworksAdditive: boolean;
   getLaunchS: (d: D) => number;
   /** The spark's unit direction, east, north, up. */
   getDirection: (d: D) => Vec3;
@@ -29,7 +27,6 @@ export type FireworksExtensionProps<D> = {
 
 type FireworksUniforms = {
   timeS: number;
-  additive: number;
 };
 
 /** A GLSL float literal: `3` must be written `3.0`. */
@@ -50,7 +47,6 @@ const uniformBlock = /* glsl */ `\
 
 layout(std140) uniform fireworksUniforms {
   float timeS;
-  float additive;
 } fireworks;
 `;
 
@@ -115,12 +111,12 @@ const filterSize = /* glsl */ `\
 `;
 
 /**
- * Fades by alpha, which ordinary blending needs; additive blending ignores
- * what alpha does not scale, so there the colour fades as well.
+ * Fades by alpha alone, in both schemes: the light map's ordinary blending and
+ * the dark map's additive blending both take the source at `src-alpha`, so
+ * fading the colour as well would fade a spark twice.
  */
 const filterColor = /* glsl */ `\
   color.a *= fireworks_brightness;
-  color.rgb *= mix(1.0, fireworks_brightness, fireworks.additive);
 `;
 
 /**
@@ -138,10 +134,9 @@ export const fireworksShaderModule = {
   },
   uniformTypes: {
     timeS: "f32",
-    additive: "f32",
   },
   // Nothing in the air until the first draw sets the real time.
-  defaultUniforms: { timeS: 0, additive: 0 },
+  defaultUniforms: { timeS: 0 },
 } as const;
 
 type FireworksLayer = Layer<FireworksExtensionProps<unknown>>;
@@ -157,11 +152,11 @@ export class FireworksExtension extends LayerExtension {
 
   static defaultProps = {
     fireworksTimeS: 0,
-    fireworksAdditive: false,
     getLaunchS: { type: "accessor", value: 0 },
     getDirection: { type: "accessor", value: [0, 0, 1] },
     getSpeed: { type: "accessor", value: 0 },
     getLagS: { type: "accessor", value: 0 },
+    // A spark, by far the common kind: a burst has one head.
     getKind: { type: "accessor", value: 1 },
     getHeightM: { type: "accessor", value: 0 },
   };
@@ -182,11 +177,10 @@ export class FireworksExtension extends LayerExtension {
   }
 
   draw(this: FireworksLayer) {
-    const { fireworksTimeS, fireworksAdditive } = this.props;
+    const { fireworksTimeS } = this.props;
     this.setShaderModuleProps({
       fireworks: {
         timeS: fireworksTimeS,
-        additive: fireworksAdditive ? 1 : 0,
       } satisfies FireworksUniforms,
     });
   }
