@@ -153,3 +153,77 @@ Both carry over from the earlier seasons:
   - a still map while fluttering, against `?season=none`
   - render events after 60 s idle with the vehicle feed closed
   - a chase, with and without flags
+
+## Measured (2026-10-21)
+
+On a production build (`vite build` with the development-only `window` hooks kept by a throwaway
+config, served by `vite preview`) in headless Chromium, as the Christmas trees were measured.
+Each page was opened in 2D, switched with "Show 3D view", then put at zoom 16.5, pitch 60, with
+live vehicles from dev. Frames are counted with `requestAnimationFrame`, MapLibre repaints with
+`map.on("render")`. "Still" is 10 s with no input, straight after a key press, twice per page;
+the chase is 20 s behind a bus picked near the centre, 8 s after it started; "after idle" is
+10 s starting 62 s after the last input, with the vehicle feed muted from that input on (the
+subscription's frames dropped in a routed WebSocket, so the last vehicles, and their flags, stay
+drawn). "Flagged" is `window.__seasonal.count`: vehicles flying flags, two each, in the models'
+view, which reaches past the screen's edges, plus the chased one.
+
+**Oslo bussterminal had almost nothing to fly flags on.** At 16.5 the models there were trains;
+the most flagged vehicles seen in view were two, and no bus came near the centre for a chase on
+the GPU. Buses publish positions sparsely in Oslo on dev (six with a bearing over the whole city
+at zoom 11.5). So the same cases were run again at **Stavanger byterminal** (58.9667, 5.7325),
+the densest cluster found that also reports every few seconds (Bergen sentrum had more, but
+reports about once a minute).
+
+On the GPU (Apple M1 Max through ANGLE Metal, 1560×784, dark unless stated):
+
+| Case                                     | Flagged | fps         | Frames > 25 ms | Worst | Repaints  |
+| ---------------------------------------- | ------- | ----------- | -------------- | ----- | --------- |
+| Oslo, still, `?season=none`              | –       | 60.0 / 60.0 | 0 / 0          | 17 ms | 11 / 21   |
+| Oslo, still, `?season=17mai`             | 0 / 0   | 60.0 / 60.0 | 0 / 0          | 17 ms | 20 / 0    |
+| Oslo, still, light, none                 | –       | 60.0 / 60.0 | 0 / 0          | 17 ms | 0 / 0     |
+| Oslo, still, light, 17mai                | 0 / 0   | 60.0 / 60.0 | 0 / 0          | 17 ms | 0 / 42    |
+| Oslo, after idle, feed muted, 17mai      | 2       | 60.0        | 0              | 17 ms | **0**     |
+| Stavanger, still, none                   | –       | 60.0 / 60.0 | 0 / 0          | 17 ms | 222 / 304 |
+| Stavanger, still while fluttering        | 11 / 12 | 60.0 / 60.0 | 0 / 0          | 17 ms | 288 / 282 |
+| Stavanger, still, light, none            | –       | 60.0 / 60.0 | 0 / 0          | 17 ms | 219 / 243 |
+| Stavanger, still while fluttering, light | 11 / 12 | 60.0 / 60.0 | 0 / 0          | 17 ms | 329 / 275 |
+| Stavanger, chase, none                   | –       | 60.0        | 0              | 17 ms | 1150      |
+| Stavanger, chase, 17mai                  | 34      | 60.0        | 0              | 17 ms | 1182      |
+| Stavanger, after idle, feed muted, none  | –       | 60.0        | 0              | 17 ms | **0**     |
+| Stavanger, after idle, feed muted, 17mai | 14      | 60.0        | 0              | 17 ms | **0**     |
+
+On this GPU the flags cost nothing measurable: not one frame over 25 ms in any case, still,
+chased or idle. In Stavanger the vehicles already repaint the map 20–30 times a second, so the
+flutter's ticks (12.5 a second) mostly land in frames that are drawn anyway, adding about 10–50
+repaints in 10 s. After 60 s idle with the feed muted the map repaints **not once** in 10 s with
+14 flagged vehicles drawn, as without flags: the clock settles to the still pose and stops.
+
+On swiftshader (`--use-angle=swiftshader`, a CPU renderer, at 640×400, as for the trees):
+
+| Case                                     | Flagged | fps         | Frames > 25 ms | Worst  | Repaints  |
+| ---------------------------------------- | ------- | ----------- | -------------- | ------ | --------- |
+| Oslo, still, none                        | –       | 60.0 / 58.0 | 0 / 2          | 317 ms | 0 / 1     |
+| Oslo, still while fluttering             | 1 / 1   | 49.9 / 59.9 | 19 / 1         | 333 ms | 120 / 125 |
+| Oslo, still, light, none                 | –       | 57.6 / 60.0 | 4 / 0          | 300 ms | 5 / 0     |
+| Oslo, still while fluttering, light      | 1 / 1   | 57.0 / 55.4 | 9 / 7          | 333 ms | 124 / 121 |
+| Oslo, after idle, feed muted, 17mai      | 1       | 60.0        | 0              | 17 ms  | **0**     |
+| Stavanger, still, none                   | –       | 23.7 / 28.4 | 34 / 26        | 467 ms | 43 / 34   |
+| Stavanger, still while fluttering        | 12 / 12 | 8.9 / 9.2   | 89 / 89        | 467 ms | 89 / 89   |
+| Stavanger, still, light, none            | –       | 27.6 / 28.9 | 32 / 27        | 517 ms | 40 / 35   |
+| Stavanger, still while fluttering, light | 9 / 11  | 8.6 / 8.9   | 87 / 87        | 467 ms | 87 / 87   |
+| Stavanger, chase, none                   | –       | 2.3         | 46             | 767 ms | 47        |
+| Stavanger, chase, 17mai                  | 33      | 2.2         | 45             | 800 ms | 46        |
+| Stavanger, after idle, feed muted, none  | –       | 60.0        | 0              | 17 ms  | **0**     |
+| Stavanger, after idle, feed muted, 17mai | 11      | 60.0        | 0              | 17 ms  | **0**     |
+
+(The Oslo chase on swiftshader followed a bus without flags, since none was flagged near the
+centre with the season on, so it is left out.) Without a GPU the flags cost what the twinkle
+did: every tick is a full repaint of the 3D map, about 100 ms here, so a still Stavanger map that
+drew 24–29 fps between vehicle frames draws 9 while the flags flutter, and one flagged coach in
+Oslo makes the otherwise idle map repaint 12 times a second. That lasts until 60 s after the last
+input, after which the map is idle again — no repaint in 10 s, flags or not. A chase costs the
+same with and without flags: the chase camera already repaints every frame it can.
+
+Looked at in Stavanger in light mode, zoom 18.3: two flagged buses in one frame, and the same
+view 0.5 s later, show each vehicle's flags in a different pose in each frame and the two
+vehicles not in step.
