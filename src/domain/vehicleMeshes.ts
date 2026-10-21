@@ -2394,7 +2394,7 @@ export function christmasTreeModel(): ChristmasTreeModel {
   return christmasTree;
 }
 
-/** The 17. mai flags' size, in life-size metres; the renderer draws them larger. */
+/** The flags' size, in life-size metres; the renderer draws them larger. */
 export const FLAG_EXAGGERATION = 3;
 export const FLAG = {
   clothLength: 0.3,

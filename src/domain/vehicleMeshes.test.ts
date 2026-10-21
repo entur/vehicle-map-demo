@@ -997,6 +997,16 @@ describe("flagModelFor, rainbow", () => {
       const norway = flagModelFor(mode, "norway")!;
       const rainbow = flagModelFor(mode, "rainbow")!;
 
+      it("leaves the Norwegian cloth as it was: 13 columns by 5 rows", () => {
+        // Two triangles a cell, two faces, two flags.
+        expect(norway.cloth.positions.value.length / 9).toBe(
+          13 * 5 * 2 * 2 * 2,
+        );
+        expect(rainbow.cloth.positions.value.length / 9).toBe(
+          13 * 6 * 2 * 2 * 2,
+        );
+      });
+
       it("is built once per mode and design", () => {
         expect(flagModelFor(mode, "rainbow")).toBe(rainbow);
         expect(rainbow).not.toBe(norway);
