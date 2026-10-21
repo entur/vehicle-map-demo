@@ -14,8 +14,14 @@ type TestWindow = {
 
 /** Majorstuen: stops with room beside them, so some get pumpkins. */
 const MAJORSTUEN: [number, number] = [10.7156, 59.9298];
+/** Oslo bussterminal: buses standing and leaving at any hour of service. */
+const OSLO_BUSSTERMINAL: [number, number] = [10.7577, 59.9116];
 
 async function openAtMajorstuen(page: Page, search: string) {
+  await openAt(page, search, MAJORSTUEN);
+}
+
+async function openAt(page: Page, search: string, center: [number, number]) {
   await page.goto(`/${search}`);
   await page.waitForFunction(
     () => (window as unknown as TestWindow).__vehicleMap !== undefined,
@@ -30,7 +36,7 @@ async function openAtMajorstuen(page: Page, search: string) {
         map.jumpTo({ center, zoom: 17.5 });
         map.once("idle", resolve);
       }),
-    MAJORSTUEN,
+    center,
   );
 }
 
@@ -47,6 +53,30 @@ test("pumpkins stand near stops in the Halloween season", async ({ page }) => {
 
 test("no decorations with season=none", async ({ page }) => {
   await openAtMajorstuen(page, "?season=none");
+  expect(await seasonal(page)).toBeUndefined();
+});
+
+// Opened in 2D and switched: loaded cold in 3D, the whole country's terrain
+// keeps software WebGL from reaching the map's "load" within the test.
+async function openIn3d(page: Page, search: string) {
+  await openAt(page, search, OSLO_BUSSTERMINAL);
+  await page.getByRole("button", { name: "Show 3D view" }).click();
+}
+
+test("buses fly flags in the 17. mai season", async ({ page }) => {
+  // Vehicle frames, then models built for them, all in software WebGL.
+  test.setTimeout(90000);
+  await openIn3d(page, "?season=17mai");
+  await expect
+    .poll(async () => (await seasonal(page))?.count ?? 0, { timeout: 60000 })
+    .toBeGreaterThan(0);
+  expect((await seasonal(page))?.season).toBe("17mai");
+});
+
+test("no flags with season=none", async ({ page }) => {
+  await openIn3d(page, "?season=none");
+  // Long enough for the vehicle feed's first frames to arrive.
+  await page.waitForTimeout(5000);
   expect(await seasonal(page)).toBeUndefined();
 });
 

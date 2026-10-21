@@ -25,8 +25,10 @@ import { LIGHT_POOL_REACH } from "../../domain/lightPool.ts";
 import { StopPole, polesInView } from "../../domain/journeyStops.ts";
 import type { MapSourceDataEvent } from "maplibre-gl";
 import { stopPoleLayers } from "./stopPoleLayers.ts";
-import type { Season } from "../../domain/season.ts";
+import { FLAG_SEASON, type Season } from "../../domain/season.ts";
 import { useSeasonalDecorations } from "../Seasonal/useSeasonalDecorations.ts";
+import { useSeasonalFlags } from "../Seasonal/useSeasonalFlags.ts";
+import { flaggedVehicles, flagLayers } from "../Seasonal/flagLayers.ts";
 
 const NO_VEHICLES: VehicleUpdate[] = [];
 
@@ -56,7 +58,7 @@ type Props = {
   ghostStore: VehicleStore;
   /** The selected journey's stops, drawn as poles with name boards. */
   stopPoles: StopPole[];
-  /** The season whose decorations stand near the stops, if any. */
+  /** The season whose decorations stand near the stops or fly on the models, if any. */
   season: Season | null;
 };
 
@@ -72,8 +74,8 @@ type Props = {
  * camera. The schedule ghost is drawn the same way, from `ghostStore`, faded.
  *
  * The selected journey's stops are drawn here too, as poles, and the seasonal
- * decorations: deck.gl keeps one interleaved overlay per map, so everything
- * 3D shares this one.
+ * decorations and flags: deck.gl keeps one interleaved overlay per map, so
+ * everything 3D shares this one.
  */
 export function VehicleModels({
   showVehicles,
@@ -109,6 +111,7 @@ export function VehicleModels({
   const ghostLayers = useRef<Layer[]>([]);
   const stopLayers = useRef<Layer[]>([]);
   const seasonalLayers = useRef<Layer[]>([]);
+  const flagLayersRef = useRef<Layer[]>([]);
   const options = useRef<Omit<ModelLayerOptions, "idPrefix"> | null>(null);
 
   // Every handover of layers goes through here, so that deck.gl can add its
@@ -124,6 +127,7 @@ export function VehicleModels({
           ...ghostLayers.current,
           ...stopLayers.current,
           ...seasonalLayers.current,
+          ...flagLayersRef.current,
         ],
       }),
     );
@@ -191,9 +195,14 @@ export function VehicleModels({
     [viewDimension],
   );
 
-  useEffect(() => {
+  // How the models are drawn: one object until the zoom, scheme or terrain
+  // changes, so the flags can be built with it as well.
+  const modelOptions = useMemo((): Omit<
+    ModelLayerOptions,
+    "idPrefix"
+  > | null => {
     const map = mapRef?.getMap();
-    if (!map) return;
+    if (!map) return null;
 
     // The terrain under the vehicle, or level at sea level when there is no
     // terrain (2D) or its tiles have not loaded yet — the next vehicle frame
@@ -211,7 +220,7 @@ export function VehicleModels({
       if (found?.complete) grounds.byReport.set(vehicle, found);
       return found ?? LEVEL;
     };
-    options.current = {
+    return {
       visible: opacity > 0,
       opacity,
       scheme,
@@ -223,12 +232,48 @@ export function VehicleModels({
       getTilt: getGround,
       positionTrigger: viewDimension,
     };
+  }, [mapRef, opacity, scheme, viewDimension, grounds]);
+
+  useEffect(() => {
+    if (!modelOptions) return;
+    options.current = modelOptions;
     baseLayers.current = vehicleModelLayers(unchased, {
-      ...options.current,
+      ...modelOptions,
       idPrefix: "vehicle-models",
     });
     handOver();
-  }, [handOver, mapRef, unchased, opacity, scheme, viewDimension, grounds]);
+  }, [handOver, unchased, modelOptions]);
+
+  const onFlagLayers = useCallback(
+    (layers: Layer[]) => {
+      flagLayersRef.current = layers;
+      handOver();
+    },
+    [handOver],
+  );
+  const chasedFlagged = useMemo(
+    () =>
+      season === FLAG_SEASON &&
+      showVehicles &&
+      flaggedVehicles(
+        data.filter(
+          (vehicle) =>
+            vehicle.vehicleId + "_" + vehicle.serviceJourney.id ===
+            chasedVehicleKey,
+        ),
+      ).length > 0,
+    [season, showVehicles, data, chasedVehicleKey],
+  );
+  // Called here rather than in the effect above, which must not run on a
+  // flutter tick: the flags tick on their own, from the same vehicles.
+  const { flutterNow } = useSeasonalFlags({
+    map: mapRef?.getMap(),
+    season,
+    vehicles: unchased,
+    options: modelOptions,
+    chasedFlagged,
+    onLayers: onFlagLayers,
+  });
 
   useEffect(() => {
     const map = mapRef?.getMap();
@@ -287,17 +332,31 @@ export function VehicleModels({
       // once here rather than once per model layer.
       const position = vehicle && options.current?.getPosition(vehicle);
       const tilt = vehicle && options.current?.getTilt(vehicle);
-      chasedLayers.current =
-        vehicle && options.current && position && tilt && showVehicles
-          ? vehicleModelLayers([vehicle], {
-              ...options.current,
-              idPrefix: "vehicle-models-chased",
-              getPosition: () => position,
-              getTilt: () => tilt,
-              // A new position every frame, so a new trigger every frame.
-              positionTrigger: position,
-            })
-          : [];
+      if (!(vehicle && options.current && position && tilt && showVehicles)) {
+        chasedLayers.current = [];
+      } else {
+        const chased = {
+          ...options.current,
+          getPosition: () => position,
+          getTilt: () => tilt,
+          // A new position every frame, so a new trigger every frame.
+          positionTrigger: position,
+        };
+        chasedLayers.current = [
+          ...vehicleModelLayers([vehicle], {
+            ...chased,
+            idPrefix: "vehicle-models-chased",
+          }),
+          // Rebuilt every frame with the rest, so the flags need no tick.
+          ...(season === FLAG_SEASON
+            ? flagLayers([vehicle], {
+                ...chased,
+                idPrefix: "vehicle-flags-chased",
+                flutter: flutterNow(),
+              })
+            : []),
+        ];
+      }
       handOver();
     };
     publish();
@@ -306,7 +365,7 @@ export function VehicleModels({
       unsubscribe();
       chasedLayers.current = [];
     };
-  }, [handOver, chasedVehicleStore, showVehicles]);
+  }, [handOver, chasedVehicleStore, showVehicles, season, flutterNow]);
 
   useEffect(() => {
     const publish = () => {

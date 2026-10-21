@@ -165,6 +165,8 @@ export function useSeasonalDecorations({
   // Lets the Playwright tests see the decorations. Development builds only.
   useEffect(() => {
     if (!import.meta.env.DEV) return;
+    // A season with nothing at the stops (17 May) is reported by its own hook.
+    if (season !== null && spec === null) return;
     (window as SeasonalWindow).__seasonal =
       season === null || spec === null
         ? undefined
