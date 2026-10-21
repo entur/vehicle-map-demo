@@ -40,6 +40,27 @@ function vertices(mesh: VehicleMesh): [number, number, number][] {
   ]);
 }
 
+/**
+ * The highest point of `mesh` straight above or below (x, y), or null where
+ * the plan point is outside it.
+ */
+function surfaceAt(mesh: VehicleMesh, x: number, y: number): number | null {
+  const v = vertices(mesh);
+  let top: number | null = null;
+  for (let t = 0; t + 2 < v.length; t += 3) {
+    const [a, b, c] = [v[t], v[t + 1], v[t + 2]];
+    const d = (b[1] - c[1]) * (a[0] - c[0]) + (c[0] - b[0]) * (a[1] - c[1]);
+    if (Math.abs(d) < 1e-12) continue;
+    const l1 = ((b[1] - c[1]) * (x - c[0]) + (c[0] - b[0]) * (y - c[1])) / d;
+    const l2 = ((c[1] - a[1]) * (x - c[0]) + (a[0] - c[0]) * (y - c[1])) / d;
+    const l3 = 1 - l1 - l2;
+    if (l1 < -1e-9 || l2 < -1e-9 || l3 < -1e-9) continue;
+    const z = l1 * a[2] + l2 * b[2] + l3 * c[2];
+    if (top === null || z > top) top = z;
+  }
+  return top;
+}
+
 /** Every part as one mesh, for checks about the model as a whole. */
 function whole({ body, sign, details, lamps }: VehicleModel): VehicleMesh {
   const parts = [body, sign, details, lamps];
@@ -716,8 +737,11 @@ describe("flagModelFor", () => {
 
   for (const mode of FLAGGED) {
     describe(mode, () => {
-      const { length, width, height } = dimensionsFor(mode);
+      const { length, width } = dimensionsFor(mode);
       const model = flagModelFor(mode)!;
+      const vehicle = whole(modelFor(mode));
+      const poleOn = (side: number) =>
+        vertices(model.poles).filter((p) => Math.sign(p[0]) === side);
 
       it("has whole triangles, unit normals and per-vertex colours", () => {
         for (const mesh of [model.poles, model.cloth]) {
@@ -737,23 +761,64 @@ describe("flagModelFor", () => {
         );
       });
 
-      it("stands two poles at the front corners", () => {
-        const v = vertices(model.poles);
-        for (const side of [-1, 1]) {
-          const own = v.filter(
-            (p) => Math.abs(p[0] - side * (width / 2)) < 0.05,
-          );
+      it("stands a pole at each front corner, one either side", () => {
+        const left = poleOn(-1);
+        const right = poleOn(1);
+        expect(left.length + right.length).toBe(vertices(model.poles).length);
+        for (const own of [left, right]) {
           expect(own.length).toBeGreaterThan(0);
-          for (const p of own)
-            expect(Math.abs(p[1] - length / 2)).toBeLessThan(0.1);
-          expect(Math.max(...own.map((p) => p[2]))).toBeCloseTo(
-            height + FLAG.poleHeight * FLAG_EXAGGERATION,
-            2,
+          // In the front few metres, and nearer the side than the middle.
+          for (const p of own) {
+            expect(p[1]).toBeGreaterThan(length / 2 - 2.5);
+            expect(Math.abs(p[0])).toBeGreaterThan(width / 4);
+          }
+        }
+        // Mirror images.
+        const xs = (own: number[][]) => own.map((p) => Math.abs(p[0]));
+        expect(Math.min(...xs(left))).toBeCloseTo(Math.min(...xs(right)), 5);
+        expect(Math.max(...xs(left))).toBeCloseTo(Math.max(...xs(right)), 5);
+      });
+
+      it("plants each pole's foot on the body, inside its outline", () => {
+        for (const side of [-1, 1]) {
+          const own = poleOn(side);
+          const foot = Math.min(...own.map((p) => p[2]));
+          const footCorners = own.filter((p) => p[2] === foot);
+          expect(footCorners.length).toBeGreaterThan(0);
+          for (const [x, y, z] of footCorners) {
+            const surface = surfaceAt(vehicle, x, y);
+            // Over the body, not beyond its rounded corner or raked front.
+            expect(surface).not.toBeNull();
+            // Touching it: neither hovering nor sunk deep into it.
+            expect(Math.abs(z - surface!)).toBeLessThan(0.05);
+          }
+        }
+      });
+
+      it("rises the pole's height above the body", () => {
+        for (const side of [-1, 1]) {
+          const zs = poleOn(side).map((p) => p[2]);
+          expect(Math.max(...zs) - Math.min(...zs)).toBeCloseTo(
+            FLAG.poleHeight * FLAG_EXAGGERATION,
+            1,
           );
         }
-        expect(
-          v.every((p) => Math.abs(Math.abs(p[0]) - width / 2) < 0.05),
-        ).toBe(true);
+      });
+
+      it("flies the cloth above the roof and the destination signs", () => {
+        const cloth = vertices(model.cloth);
+        const roof = Math.max(...vertices(vehicle).map((p) => p[2]));
+        const signTop = Math.max(
+          ...vertices(modelFor(mode).sign).map((p) => p[2]),
+        );
+        const bottom = Math.min(...cloth.map((p) => p[2]));
+        expect(bottom).toBeGreaterThan(roof);
+        expect(bottom).toBeGreaterThan(signTop);
+        // And from the pole's top, not beyond it.
+        const poleTop = Math.max(...vertices(model.poles).map((p) => p[2]));
+        expect(Math.max(...cloth.map((p) => p[2]))).toBeLessThanOrEqual(
+          poleTop,
+        );
       });
 
       it("runs the cloth from the pole towards -y at 16:22", () => {
@@ -762,7 +827,13 @@ describe("flagModelFor", () => {
         const zs = v.map((p) => p[2]);
         const long = Math.max(...ys) - Math.min(...ys);
         const high = Math.max(...zs) - Math.min(...zs);
-        expect(Math.max(...ys)).toBeCloseTo(length / 2, 2);
+        // From the pole, the far side of it from the front.
+        const pole = vertices(model.poles).filter((p) => p[0] > 0);
+        const poleYs = pole.map((p) => p[1]);
+        expect(Math.max(...ys)).toBeCloseTo(
+          (Math.max(...poleYs) + Math.min(...poleYs)) / 2,
+          2,
+        );
         expect(long).toBeCloseTo(FLAG.clothLength * FLAG_EXAGGERATION, 2);
         expect(high / long).toBeCloseTo(16 / 22, 2);
       });

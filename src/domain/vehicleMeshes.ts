@@ -857,16 +857,11 @@ function busBody(spec: BusSpec): {
   return { m, frontY };
 }
 
-/**
- * A low-floor city bus: three doors, a flat front with lamps low in the
- * corners, a tall rear lamp cluster either side of the engine grille, and an
- * air-conditioning unit and battery housing on the roof.
- */
-function cityBus(L: number, W: number, H: number): VehicleModel {
-  const { headlight, taillight, indicator, roofUnit, dark } = MESH_COLOURS;
+/** The city bus's hull, which its flags stand on as well. */
+function cityBusSpec(L: number, W: number, H: number): BusSpec {
   const roofTop = H - 0.2;
   const axles = [L / 2 - 2.7, -L / 2 + 3.3];
-  const { m } = busBody({
+  return {
     length: L,
     width: W,
     height: H,
@@ -889,7 +884,19 @@ function cityBus(L: number, W: number, H: number): VehicleModel {
     wheelRadius: 0.5,
     archRadius: 0.62,
     rabbitEarMirrors: true,
-  });
+  };
+}
+
+/**
+ * A low-floor city bus: three doors, a flat front with lamps low in the
+ * corners, a tall rear lamp cluster either side of the engine grille, and an
+ * air-conditioning unit and battery housing on the roof.
+ */
+function cityBus(L: number, W: number, H: number): VehicleModel {
+  const { headlight, taillight, indicator, roofUnit, dark } = MESH_COLOURS;
+  const spec = cityBusSpec(L, W, H);
+  const { roofTop } = spec;
+  const { m } = busBody(spec);
 
   for (const side of [-1, 1]) {
     m.box(side * 0.62, L / 2 + 0.015, 0.62, 0.3, 0.03, 0.16, headlight);
@@ -920,21 +927,14 @@ function cityBus(L: number, W: number, H: number): VehicleModel {
   return m.build();
 }
 
-/**
- * A high-floor coach: one door ahead of the front axle, a raked windscreen
- * over a grille and slim lamp clusters, a tag axle sharing the rear arch,
- * luggage bays between the axles, a small rear window above the engine, and
- * a low air-conditioning hump on the roof.
- */
-function coach(L: number, W: number, H: number): VehicleModel {
-  const { headlight, taillight, indicator, roofUnit, dark, hub } = MESH_COLOURS;
-  const half = W / 2;
+/** The coach's hull, which its flags stand on as well. */
+function coachSpec(L: number, W: number, H: number): BusSpec {
   const roofTop = H - 0.14;
   const bottom = 0.4;
   const skirtTop = 0.62;
   const windowBottom = 1.75;
   const axles = [L / 2 - 2.8, -L / 2 + 3.6, -L / 2 + 2.3];
-  const { m, frontY } = busBody({
+  return {
     length: L,
     width: W,
     height: H,
@@ -957,7 +957,21 @@ function coach(L: number, W: number, H: number): VehicleModel {
     wheelRadius: 0.5,
     archRadius: 0.62,
     rabbitEarMirrors: true,
-  });
+  };
+}
+
+/**
+ * A high-floor coach: one door ahead of the front axle, a raked windscreen
+ * over a grille and slim lamp clusters, a tag axle sharing the rear arch,
+ * luggage bays between the axles, a small rear window above the engine, and
+ * a low air-conditioning hump on the roof.
+ */
+function coach(L: number, W: number, H: number): VehicleModel {
+  const { headlight, taillight, indicator, roofUnit, dark, hub } = MESH_COLOURS;
+  const half = W / 2;
+  const spec = coachSpec(L, W, H);
+  const { roofTop, skirtTop, windowBottom, axles } = spec;
+  const { m, frontY } = busBody(spec);
 
   // Front: a grille with a badge between slim lamp clusters, all below the
   // foot of the windscreen, where the front is still upright.
@@ -1570,8 +1584,13 @@ function train(L: number, W: number, H: number): VehicleModel {
  * rather than under it, and a pantograph on the middle section.
  */
 function tram(L: number, W: number, H: number): VehicleModel {
+  return multipleUnit(tramSpec(L, W, H));
+}
+
+/** The tram's hull, which its flags stand on as well. */
+function tramSpec(L: number, W: number, H: number): MultipleUnitSpec {
   const cars = 3;
-  return multipleUnit({
+  return {
     length: L,
     width: W,
     height: H,
@@ -1607,7 +1626,7 @@ function tram(L: number, W: number, H: number): VehicleModel {
     deflector: false,
     sideSignFromTip: 8.4,
     sideSignLength: 1.4,
-  });
+  };
 }
 
 /**
@@ -2419,8 +2438,45 @@ function flagColour(column: number, row: number): RGB {
 const flagCache = new Map<VehicleModeEnumeration, FlagModel>();
 
 /**
+ * Where a flag pole stands on a body, for the +x side: on the roof's flat top
+ * at its front edge, inside the rounded roof edge. `z` is the roof's height.
+ */
+type FlagMount = { x: number; y: number; z: number };
+
+/**
+ * A bus or coach: behind the rounded plan corner, where the roof has not yet
+ * started to drop, and behind the raked windscreen's top, which carries the
+ * roof's front edge back by the rake.
+ */
+const busFlagMount = (spec: BusSpec): FlagMount => ({
+  x: spec.width / 2 - spec.roofRadius,
+  y: spec.length / 2 - spec.corner - spec.rake,
+  z: spec.roofTop,
+});
+
+/** A tram: where the front cab's nose starts to narrow and lower. */
+const unitFlagMount = (spec: MultipleUnitSpec): FlagMount => ({
+  x: spec.width / 2 - spec.roofRadius,
+  y: spec.length / 2 - spec.noseLength,
+  z: spec.roofTop,
+});
+
+function flagMountFor(mode: VehicleModeEnumeration): FlagMount {
+  const { length, width, height } = dimensionsFor(mode);
+  switch (mode) {
+    case "COACH":
+      return busFlagMount(coachSpec(length, width, height));
+    case "TRAM":
+      return unitFlagMount(tramSpec(length, width, height));
+    default:
+      return busFlagMount(cityBusSpec(length, width, height));
+  }
+}
+
+/**
  * Two flags for a vehicle's front corners, in model space (+y forward):
- * a pole at each, rising clear of the roof, with the cloth streaming back
+ * a pole planted on the roof at each, inside the body's rounded corners and
+ * edges (`flagMountFor`), rising clear of it, with the cloth streaming back
  * towards −y in the y–z plane. Sizes are `FLAG_EXAGGERATION` times life size.
  * Null for a mode that carries none. Built once per mode.
  */
@@ -2428,10 +2484,12 @@ export function flagModelFor(mode: VehicleModeEnumeration): FlagModel | null {
   if (!FLAGGED_MODES.has(mode)) return null;
   let model = flagCache.get(mode);
   if (!model) {
-    const { length, width, height } = dimensionsFor(mode);
+    const mount = flagMountFor(mode);
     const k = FLAG_EXAGGERATION;
-    const poleTop = height + FLAG.poleHeight * k;
+    const poleTop = mount.z + FLAG.poleHeight * k;
     const poleWidth = FLAG.poleWidth * k;
+    // The pole's centre, with all of its foot on the roof.
+    const poleY = mount.y - poleWidth / 2;
     const clothLength = FLAG.clothLength * k;
     const clothHeight = FLAG.clothHeight * k;
     // The cloth hangs from just under the pole's top.
@@ -2442,12 +2500,12 @@ export function flagModelFor(mode: VehicleModeEnumeration): FlagModel | null {
     const colors: number[] = [];
     const texCoords: number[] = [];
     for (const side of [-1, 1]) {
-      const x = side * (width / 2);
-      // Starts a little below the roof line, so it is planted rather than hovering.
-      const base = height - 0.3;
+      const x = side * (mount.x - poleWidth / 2);
+      // Sunk a little into the roof, so no seam shows at its foot.
+      const base = mount.z - 0.02;
       poles.box(
         x,
-        length / 2,
+        poleY,
         base,
         poleWidth,
         poleWidth,
@@ -2461,8 +2519,8 @@ export function flagModelFor(mode: VehicleModeEnumeration): FlagModel | null {
         for (let row = 0; row < 5; row++) {
           const [r0, r1] = [rowEdges[row], rowEdges[row + 1]];
           const colour = flagColour(column, row);
-          const ya = length / 2 - (c0 / FLAG_WIDTH_UNITS) * clothLength;
-          const yb = length / 2 - (c1 / FLAG_WIDTH_UNITS) * clothLength;
+          const ya = poleY - (c0 / FLAG_WIDTH_UNITS) * clothLength;
+          const yb = poleY - (c1 / FLAG_WIDTH_UNITS) * clothLength;
           const za = clothTop - (r0 / FLAG_HEIGHT_UNITS) * clothHeight;
           const zb = clothTop - (r1 / FLAG_HEIGHT_UNITS) * clothHeight;
           // Corners: top-near, top-far, bottom-far, bottom-near.
