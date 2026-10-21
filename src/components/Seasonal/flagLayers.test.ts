@@ -3,6 +3,7 @@ import type { VehicleModeEnumeration, VehicleUpdate } from "../../types.ts";
 import {
   flaggedVehicles,
   flagLayers,
+  fliesFlags,
   type FlagLayerOptions,
   vehiclePhase,
 } from "./flagLayers.ts";
@@ -209,6 +210,20 @@ describe("flagLayers", () => {
     const [poles, cloth] = flagLayers([vehicle("1")], options());
     expect(cloth.props.parameters).toMatchObject({ cullMode: "back" });
     expect(poles.props.parameters ?? {}).not.toHaveProperty("cullMode");
+  });
+});
+
+describe("fliesFlags", () => {
+  it("is true for the drawn vehicle of a flagged mode with a bearing", () => {
+    expect(fliesFlags(vehicle("1", "BUS"))).toBe(true);
+    expect(fliesFlags(vehicle("1", "COACH"))).toBe(true);
+    expect(fliesFlags(vehicle("1", "TRAM"))).toBe(true);
+  });
+
+  it("is false with nothing drawn, another mode or no bearing", () => {
+    expect(fliesFlags(null)).toBe(false);
+    expect(fliesFlags(vehicle("1", "RAIL"))).toBe(false);
+    expect(fliesFlags(vehicle("1", "BUS", null))).toBe(false);
   });
 });
 

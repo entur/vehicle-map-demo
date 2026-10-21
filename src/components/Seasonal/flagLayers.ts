@@ -61,6 +61,15 @@ export function flaggedVehicles(vehicles: VehicleUpdate[]): VehicleUpdate[] {
 }
 
 /**
+ * Whether a vehicle drawn on its own — the chased one, as the chase camera
+ * draws it — flies flags. Asked of the drawn vehicle rather than the live
+ * feed, which drops a vehicle the chase still draws from its last report.
+ */
+export function fliesFlags(vehicle: VehicleUpdate | null): boolean {
+  return vehicle !== null && flaggedVehicles([vehicle]).length > 0;
+}
+
+/**
  * The flagged vehicles by mode, kept per input array: a flutter tick builds
  * the layers again from the same vehicles, and new data arrays would make
  * deck.gl upload every instance attribute again.

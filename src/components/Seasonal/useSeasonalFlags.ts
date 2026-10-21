@@ -27,8 +27,12 @@ type SeasonalWindow = {
  * season it hands over nothing and runs no clock.
  *
  * The flags flutter by an `AnimationClock`, which exists only while flags are
- * shown, created and fed as the Christmas lights' is. A tick builds the flags
- * again from the same flagged vehicles — the same array, so deck.gl keeps
+ * shown, fed as the Christmas lights' is. Whether any are shown changes with
+ * the feed, not with anyone at the screen, so the hook keeps the clock's start
+ * and the last activity across clocks, watching input and camera movement all
+ * season: a clock created on a map left alone starts settled and does not
+ * tick, and one created while someone is there carries on. A tick builds the
+ * flags again from the same flagged vehicles — the same array, so deck.gl keeps
  * their instance data and only the cloth's uniforms change — and sets no React
  * state. The models themselves are never rebuilt by it.
  *
@@ -95,6 +99,40 @@ export function useSeasonalFlags({
   }, [draw]);
 
   const clockRef = useRef<AnimationClock | null>(null);
+  // When the flutter's time began and when someone was last there, kept
+  // across clocks. The season starting counts as activity.
+  const since = useRef<{ startMs: number; lastActivityMs: number } | null>(
+    null,
+  );
+
+  const onInput = useCallback(() => {
+    if (since.current) since.current.lastActivityMs = Date.now();
+    clockRef.current?.activity();
+  }, []);
+  useKioskInput(inSeason, onInput);
+
+  // Watches for someone being there all season, with or without a clock.
+  useEffect(() => {
+    if (!map || !inSeason) return;
+    if (!since.current) {
+      const now = Date.now();
+      since.current = { startMs: now, lastActivityMs: now };
+    }
+    const onMove = () => {
+      if (since.current) since.current.lastActivityMs = Date.now();
+    };
+    map.on("move", onMove);
+    // The clock stops its timer on a hidden page; coming back counts as
+    // someone being there again, which starts it.
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") onInput();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      map.off("move", onMove);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [map, inSeason, onInput]);
 
   // Declared before the drawing effect, so a clock started in this commit is
   // already there when the drawing effect reads it.
@@ -103,23 +141,14 @@ export function useSeasonalFlags({
     const clock = new AnimationClock(map, {
       reducedMotion: prefersReducedMotion(),
       onTick: (state) => drawRef.current(state),
+      ...since.current,
     });
     clockRef.current = clock;
-    // The clock stops its timer on a hidden page; coming back counts as
-    // someone being there again, which starts it.
-    const onVisibility = () => {
-      if (document.visibilityState === "visible") clock.activity();
-    };
-    document.addEventListener("visibilitychange", onVisibility);
     return () => {
-      document.removeEventListener("visibilitychange", onVisibility);
       clock.dispose();
       clockRef.current = null;
     };
   }, [map, fluttering]);
-
-  const onInput = useCallback(() => clockRef.current?.activity(), []);
-  useKioskInput(fluttering, onInput);
 
   useEffect(() => {
     draw(clockRef.current?.current() ?? STILL);

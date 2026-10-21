@@ -47,12 +47,16 @@ describe("AnimationClock", () => {
     vi.useRealTimers();
   });
 
-  function make(reducedMotion = false) {
+  function make(
+    reducedMotion = false,
+    since: { startMs?: number; lastActivityMs?: number } = {},
+  ) {
     return new AnimationClock(map as never, {
       reducedMotion,
       onTick: (s) => ticks.push(s),
       now: () => Date.now(),
       isVisible: () => visible,
+      ...since,
     });
   }
 
@@ -166,6 +170,48 @@ describe("AnimationClock", () => {
     clock.activity();
     vi.advanceTimersByTime(ANIMATION_TICK_MS * 2);
     expect(ticks.length).toBe(2);
+  });
+
+  it("starts settled when the last activity was before the idle time", () => {
+    const clock = make(false, {
+      lastActivityMs: Date.now() - ANIMATION_IDLE_MS - ANIMATION_SETTLE_MS - 1,
+    });
+    expect(clock.current().amount).toBe(0);
+    expect(vi.getTimerCount()).toBe(0);
+    vi.advanceTimersByTime(10_000);
+    expect(ticks.length).toBe(0);
+    expect(map.repaints).toBe(0);
+  });
+
+  it("wakes a clock that started settled with the usual ease", () => {
+    const clock = make(false, {
+      lastActivityMs: Date.now() - ANIMATION_IDLE_MS - ANIMATION_SETTLE_MS - 1,
+    });
+    clock.activity();
+    vi.advanceTimersByTime(ANIMATION_SETTLE_MS + ANIMATION_TICK_MS * 2);
+    expect(ticks[0].amount).toBeLessThan(0.1);
+    expect(largestAmountStep(0)).toBeLessThanOrEqual(0.13);
+    expect(ticks[ticks.length - 1].amount).toBe(1);
+  });
+
+  it("wakes a clock that started settled on a map move", () => {
+    make(false, {
+      lastActivityMs: Date.now() - ANIMATION_IDLE_MS - ANIMATION_SETTLE_MS - 1,
+    });
+    map.emit("move");
+    vi.advanceTimersByTime(ANIMATION_SETTLE_MS + ANIMATION_TICK_MS * 2);
+    expect(ticks[0].amount).toBeLessThan(0.1);
+    expect(ticks[ticks.length - 1].amount).toBe(1);
+  });
+
+  it("continues from an earlier activity and start", () => {
+    const startMs = Date.now() - 50_000;
+    const clock = make(false, { startMs, lastActivityMs: startMs + 10_000 });
+    expect(clock.current()).toEqual({ timeS: 50, amount: 1 });
+    // Settles 60 s after that activity, 20 s from now, not 60 s from now.
+    vi.advanceTimersByTime(20_000 + ANIMATION_SETTLE_MS + 200);
+    expect(ticks[ticks.length - 1].amount).toBe(0);
+    expect(vi.getTimerCount()).toBe(0);
   });
 
   it("does not tick after dispose and removes its listener", () => {

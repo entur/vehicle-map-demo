@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { useControl, useMap } from "react-map-gl/maplibre";
 import { MapLibreOverlay } from "@deck.gl/maplibre";
 import { useColorScheme } from "@mui/material/styles";
@@ -28,7 +35,7 @@ import { stopPoleLayers } from "./stopPoleLayers.ts";
 import { FLAG_SEASON, type Season } from "../../domain/season.ts";
 import { useSeasonalDecorations } from "../Seasonal/useSeasonalDecorations.ts";
 import { useSeasonalFlags } from "../Seasonal/useSeasonalFlags.ts";
-import { flaggedVehicles, flagLayers } from "../Seasonal/flagLayers.ts";
+import { flagLayers, fliesFlags } from "../Seasonal/flagLayers.ts";
 
 const NO_VEHICLES: VehicleUpdate[] = [];
 
@@ -251,19 +258,19 @@ export function VehicleModels({
     },
     [handOver],
   );
-  const chasedFlagged = useMemo(
-    () =>
-      season === FLAG_SEASON &&
-      showVehicles &&
-      flaggedVehicles(
-        data.filter(
-          (vehicle) =>
-            vehicle.vehicleId + "_" + vehicle.serviceJourney.id ===
-            chasedVehicleKey,
-        ),
-      ).length > 0,
-    [season, showVehicles, data, chasedVehicleKey],
+  // Asked of the vehicle the chase draws, not of `data`: the chase goes on
+  // drawing its last report after the live cache has dropped the vehicle, and
+  // its flags must not freeze then. A boolean, so a frame that changes
+  // nothing about it renders nothing.
+  const subscribeChased = useCallback(
+    (listener: () => void) => chasedVehicleStore.subscribe(listener),
+    [chasedVehicleStore],
   );
+  const chasedDrawnFlagged = useSyncExternalStore(subscribeChased, () =>
+    fliesFlags(chasedVehicleStore.get()),
+  );
+  const chasedFlagged =
+    season === FLAG_SEASON && showVehicles && chasedDrawnFlagged;
   // Called here rather than in the effect above, which must not run on a
   // flutter tick: the flags tick on their own, from the same vehicles.
   const { flutterNow } = useSeasonalFlags({

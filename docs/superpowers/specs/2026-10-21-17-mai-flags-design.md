@@ -196,8 +196,10 @@ On the GPU (Apple M1 Max through ANGLE Metal, 1560×784, dark unless stated):
 
 On this GPU the flags cost nothing measurable: not one frame over 25 ms in any case, still,
 chased or idle. In Stavanger the vehicles already repaint the map 20–30 times a second, so the
-flutter's ticks (12.5 a second) mostly land in frames that are drawn anyway, adding about 10–50
-repaints in 10 s. After 60 s idle with the feed muted the map repaints **not once** in 10 s with
+flutter's ticks (12.5 a second) mostly land in frames that are drawn anyway: the still rows with
+flags differ from those without by −22 to +110 repaints in 10 s, within the vehicle frames' own
+variation between two runs of one case (up to about +100). The Oslo rows with no flag drawn
+repaint too (42, 20): those are vehicle frames, not ticks. After 60 s idle with the feed muted the map repaints **not once** in 10 s with
 14 flagged vehicles drawn, as without flags: the clock settles to the still pose and stops.
 
 On swiftshader (`--use-angle=swiftshader`, a CPU renderer, at 640×400, as for the trees):

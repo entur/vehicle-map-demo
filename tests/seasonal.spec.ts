@@ -14,8 +14,11 @@ type TestWindow = {
 
 /** Majorstuen: stops with room beside them, so some get pumpkins. */
 const MAJORSTUEN: [number, number] = [10.7156, 59.9298];
-/** Oslo bussterminal: buses standing and leaving at any hour of service. */
-const OSLO_BUSSTERMINAL: [number, number] = [10.7577, 59.9116];
+/**
+ * Stavanger byterminal: the densest cluster of buses reporting every few
+ * seconds that the flags were measured at — 11 to 14 flagged in view.
+ */
+const STAVANGER_BYTERMINAL: [number, number] = [5.7325, 58.9667];
 
 async function openAtMajorstuen(page: Page, search: string) {
   await openAt(page, search, MAJORSTUEN);
@@ -59,7 +62,7 @@ test("no decorations with season=none", async ({ page }) => {
 // Opened in 2D and switched: loaded cold in 3D, the whole country's terrain
 // keeps software WebGL from reaching the map's "load" within the test.
 async function openIn3d(page: Page, search: string) {
-  await openAt(page, search, OSLO_BUSSTERMINAL);
+  await openAt(page, search, STAVANGER_BYTERMINAL);
   await page.getByRole("button", { name: "Show 3D view" }).click();
 }
 

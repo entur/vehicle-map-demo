@@ -8,7 +8,7 @@ export const FLUTTER_WAVES = 1;
 export const FLUTTER_STILL = 0.06;
 
 /**
- * Sideways offset (model x), as a share of the cloth's length, of the point
+ * Offset across the cloth's own splayed plane, as a share of the cloth's length, of the point
  * `u` along the cloth (0 at the pole, 1 at the free edge). `amount` 0 is the
  * still pose, 1 the full flutter. The shader reproduces this curve exactly,
  * so change both together.

@@ -15,6 +15,15 @@ type Options = {
   onTick: (state: AnimationState) => void;
   now?: () => number;
   isVisible?: () => boolean;
+  /**
+   * Carried over from an earlier clock for the same animation: when its time
+   * began, and the last activity seen. A clock created on a map left alone
+   * for longer than the idle time then starts settled, and one created while
+   * someone is there carries on rather than starting again. Both default to
+   * the clock's creation, which counts as activity.
+   */
+  startMs?: number;
+  lastActivityMs?: number;
 };
 
 const pageVisible = () =>
@@ -42,10 +51,12 @@ export class AnimationClock {
   ) {
     this.now = options.now ?? Date.now;
     this.isVisible = options.isVisible ?? pageVisible;
-    this.startMs = this.now();
-    this.lastActivityMs = this.startMs;
+    const now = this.now();
+    this.startMs = options.startMs ?? now;
+    this.lastActivityMs = options.lastActivityMs ?? now;
     this.map.on("move", this.onMove);
-    this.start();
+    // Already settled: no timer until someone is there.
+    if (this.amountAt(now) > 0) this.start();
   }
 
   /** Input or camera movement: ease back to full animation. */
