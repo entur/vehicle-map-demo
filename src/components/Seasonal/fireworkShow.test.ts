@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { burstDurationS } from "../../domain/fireworks.ts";
 import {
   launchPoint,
@@ -12,6 +12,12 @@ import {
   LAUNCH_GRACE_MS,
   type LaunchView,
 } from "./fireworkShow.ts";
+
+vi.mock("../../domain/fireworkSchedule.ts", async (original) => {
+  const actual =
+    await original<typeof import("../../domain/fireworkSchedule.ts")>();
+  return { ...actual, slotAt: vi.fn(actual.slotAt) };
+});
 
 const view: LaunchView = {
   bounds: [
@@ -144,5 +150,15 @@ describe("FireworkShow", () => {
     const flat: LaunchView = { ...view, groundAt: () => 0, centreGroundM: 250 };
     const b = run(show, BARRAGE_START, 10_000, false, 100, flat)[0];
     expect(b.position[2]).toBe(250 + b.heightM);
+  });
+
+  it("looks the slot up once per slot, not per update or busy call", () => {
+    const show = new FireworkShow(() => 0);
+    vi.mocked(slotAt).mockClear();
+    for (let t = BARRAGE_START; t < BARRAGE_START + 20_000; t += 100) {
+      show.update(t, view, false);
+      show.busy(t);
+    }
+    expect(slotAt).toHaveBeenCalledTimes(1);
   });
 });

@@ -4,6 +4,7 @@ import {
   type Spark,
 } from "../../domain/fireworks.ts";
 import {
+  BARRAGE_INTERVAL_MS,
   groundFor,
   launchPoint,
   scatteredDelayMs,
@@ -106,8 +107,12 @@ export class FireworkShow {
   }
 
   private loadSlot(nowMs: number): void {
+    // The slot only changes every few minutes; `slotAt` formats a date, which
+    // is too much to do on every frame.
+    const startMs =
+      Math.floor(nowMs / BARRAGE_INTERVAL_MS) * BARRAGE_INTERVAL_MS;
+    if (startMs === this.slotStartMs) return;
     const slot = slotAt(nowMs);
-    if (slot.startMs === this.slotStartMs) return;
     this.slotStartMs = slot.startMs;
     this.launches = slotLaunches(slot);
     this.next = 0;
