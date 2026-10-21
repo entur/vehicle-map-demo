@@ -12,6 +12,13 @@ export const SCATTERED_DELAY_MS: [number, number] = [2_000, 4_000];
 export const BURST_HEIGHT_M: [number, number] = [100, 300];
 /** Share of the view kept clear of launches on every side. */
 export const LAUNCH_INSET = 0.15;
+/**
+ * Share of the screen, from its bottom edge, over whose ground rockets go up.
+ * Over the upper part a burst is above the top edge: at pitch 60 the height
+ * left in view above the ground falls to nothing at the top of the screen, and
+ * the view's box puts most of its area there.
+ */
+export const LAUNCH_SCREEN_SHARE = 0.6;
 
 export type Slot = { startMs: number; finale: boolean };
 
@@ -113,6 +120,48 @@ export function launchPoint(
   fy: number,
 ): [number, number] {
   return [west + (east - west) * fx, south + (north - south) * fy];
+}
+
+/**
+ * The screen points, in pixels, whose ground bounds the launches: the corners
+ * of the lower `LAUNCH_SCREEN_SHARE` of a `width` × `height` screen.
+ */
+export function launchStrip(width: number, height: number): [number, number][] {
+  const top = height * (1 - LAUNCH_SCREEN_SHARE);
+  return [
+    [0, top],
+    [width, top],
+    [0, height],
+    [width, height],
+  ];
+}
+
+/**
+ * Where rockets go up: the box around the ground under the launch strip
+ * (`corners`, longitude and latitude), within the view the vehicles use. A
+ * strip that misses that view, or a corner that could not be placed, leaves
+ * the whole view.
+ */
+export function launchBounds(
+  corners: readonly [number, number][],
+  [[west, south], [east, north]]: ViewBounds,
+): ViewBounds {
+  const lngs = corners.map(([lng]) => lng);
+  const lats = corners.map(([, lat]) => lat);
+  const w = Math.max(west, Math.min(...lngs));
+  const e = Math.min(east, Math.max(...lngs));
+  const s = Math.max(south, Math.min(...lats));
+  const n = Math.min(north, Math.max(...lats));
+  if (!(w < e && s < n)) {
+    return [
+      [west, south],
+      [east, north],
+    ];
+  }
+  return [
+    [w, s],
+    [e, n],
+  ];
 }
 
 /**

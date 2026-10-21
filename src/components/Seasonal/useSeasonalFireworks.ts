@@ -5,6 +5,7 @@ import type { Season } from "../../domain/season.ts";
 import { burstDurationS } from "../../domain/fireworks.ts";
 import type { MapScheme } from "../basemap/basemap.ts";
 import { cappedViewBounds } from "../../utils/cappedViewBounds.ts";
+import { launchBounds, launchStrip } from "../../domain/fireworkSchedule.ts";
 import { useKioskInput } from "../../hooks/useKioskInput.ts";
 import { FireworkShow, type LaunchView } from "./fireworkShow.ts";
 import { FireworksClock } from "./fireworksClock.ts";
@@ -143,8 +144,14 @@ export function useSeasonalFireworks({
       failed = false;
       try {
         const centre = map.getCenter();
+        // Rockets go up over the ground under the lower part of the screen,
+        // so that their bursts are in view; see `LAUNCH_SCREEN_SHARE`.
+        const { clientWidth, clientHeight } = map.getContainer();
+        const corners = launchStrip(clientWidth, clientHeight).map((point) =>
+          map.unproject(point).toArray(),
+        );
         return {
-          bounds: cappedViewBounds(map),
+          bounds: launchBounds(corners, cappedViewBounds(map)),
           groundAt: (lngLat) => map.queryTerrainElevation(lngLat) ?? null,
           centreGroundM: map.queryTerrainElevation(centre) ?? null,
         };

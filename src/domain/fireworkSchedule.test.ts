@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   BURST_HEIGHT_M,
   LAUNCH_INSET,
+  LAUNCH_SCREEN_SHARE,
   groundFor,
+  launchBounds,
+  launchStrip,
   launchPoint,
   nextSlotStartMs,
   scatteredDelayMs,
@@ -113,5 +116,94 @@ describe("groundFor", () => {
     expect(groundFor(null, null)).toBe(0);
     expect(groundFor(0, 0)).toBe(0);
     expect(groundFor(-3, 10)).toBe(10);
+  });
+});
+
+describe("launchStrip", () => {
+  it("is the corners of the lower share of the screen, in screen pixels", () => {
+    const top = 800 * (1 - LAUNCH_SCREEN_SHARE);
+    expect(launchStrip(1280, 800)).toEqual([
+      [0, top],
+      [1280, top],
+      [0, 800],
+      [1280, 800],
+    ]);
+  });
+
+  it("is the lower 60% of the screen", () => {
+    expect(LAUNCH_SCREEN_SHARE).toBe(0.6);
+  });
+});
+
+describe("launchBounds", () => {
+  const capped: [[number, number], [number, number]] = [
+    [10.7, 59.9],
+    [10.8, 59.95],
+  ];
+
+  it("is the box around the strip's ground when it lies inside the view", () => {
+    const corners: [number, number][] = [
+      [10.72, 59.93],
+      [10.78, 59.93],
+      [10.74, 59.91],
+      [10.76, 59.91],
+    ];
+    expect(launchBounds(corners, capped)).toEqual([
+      [10.72, 59.91],
+      [10.78, 59.93],
+    ]);
+  });
+
+  it("is clipped to the vehicles' view", () => {
+    // Tilted, the strip's upper corners can reach past the capped view.
+    const corners: [number, number][] = [
+      [10.6, 60.1],
+      [10.9, 60.1],
+      [10.74, 59.91],
+      [10.76, 59.91],
+    ];
+    expect(launchBounds(corners, capped)).toEqual([
+      [10.7, 59.91],
+      [10.8, 59.95],
+    ]);
+  });
+
+  it("lands every launch inside both the strip and the view", () => {
+    const corners: [number, number][] = [
+      [10.65, 59.94],
+      [10.79, 59.94],
+      [10.73, 59.905],
+      [10.77, 59.905],
+    ];
+    const bounds = launchBounds(corners, capped);
+    for (const fx of [0, LAUNCH_INSET, 0.5, 1 - LAUNCH_INSET, 1]) {
+      for (const fy of [0, LAUNCH_INSET, 0.5, 1 - LAUNCH_INSET, 1]) {
+        const [lng, lat] = launchPoint(bounds, fx, fy);
+        expect(lng).toBeGreaterThanOrEqual(10.7);
+        expect(lng).toBeLessThanOrEqual(10.79);
+        expect(lat).toBeGreaterThanOrEqual(59.905);
+        expect(lat).toBeLessThanOrEqual(59.94);
+      }
+    }
+  });
+
+  it("falls back to the view when the strip misses it", () => {
+    const corners: [number, number][] = [
+      [11, 61],
+      [11.1, 61],
+      [11, 60.9],
+      [11.1, 60.9],
+    ];
+    expect(launchBounds(corners, capped)).toEqual(capped);
+  });
+
+  it("falls back to the view when a corner could not be placed", () => {
+    const corners: [number, number][] = [
+      [Number.NaN, 59.93],
+      [10.78, 59.93],
+      [10.74, 59.91],
+      [10.76, 59.91],
+    ];
+    expect(launchBounds(corners, capped)).toEqual(capped);
   });
 });
