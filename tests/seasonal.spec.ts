@@ -92,12 +92,26 @@ test("fireworks go up in the New Year season", async ({ page }) => {
   // A scattered rocket goes up 2–4 s after the click, or a barrage's slot
   // fires; either way after the map has loaded in software WebGL.
   test.setTimeout(90000);
+  // `rockets` counts what the show tracks, not what the GPU draws: it rose
+  // while the shader could not link. Drawing failures only reach the console.
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
   await openIn3d(page, "?season=newyear");
   await expect
     .poll(async () => (await seasonal(page))?.rockets ?? 0, {
       timeout: 60000,
     })
     .toBeGreaterThan(0);
+  // Long enough for the layer to be drawn a good many times.
+  await page.waitForTimeout(3000);
+  expect(
+    errors.filter((text) =>
+      /shader|link|compile|luma|webgl|deck|Fireworks failed/i.test(text),
+    ),
+  ).toEqual([]);
 });
 
 test("no fireworks with season=christmas", async ({ page }) => {
