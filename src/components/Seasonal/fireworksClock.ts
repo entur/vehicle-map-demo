@@ -48,6 +48,7 @@ export class FireworksClock {
   private slot: Slot | null = null;
   private announcedMs = Number.NaN;
   private disposed = false;
+  private logged = false;
 
   constructor(
     private readonly map: Pick<MapLibreMap, "on" | "off" | "triggerRepaint">,
@@ -128,8 +129,15 @@ export class FireworksClock {
 
   private slotFor(now: number): Slot {
     const startMs = Math.floor(now / BARRAGE_INTERVAL_MS) * BARRAGE_INTERVAL_MS;
-    if (this.slot === null || this.slot.startMs !== startMs)
-      this.slot = slotAt(now);
+    if (this.slot === null || this.slot.startMs !== startMs) {
+      try {
+        this.slot = slotAt(now);
+      } catch (error) {
+        // Not knowing whether it is the finale must not stop the frames.
+        this.fail(error);
+        this.slot = { startMs, finale: false };
+      }
+    }
     return this.slot;
   }
 
@@ -143,7 +151,22 @@ export class FireworksClock {
     if (slot.startMs === this.announcedMs) return;
     this.announcedMs = slot.startMs;
     const endMs = slotEndMs(slot);
-    if (now < endMs) this.options.onBarrage(endMs + burstDurationS() * 1000);
+    if (now >= endMs) return;
+    try {
+      this.options.onBarrage(endMs + burstDurationS() * 1000);
+    } catch (error) {
+      this.fail(error);
+    }
+  }
+
+  /**
+   * Logged once. Nothing the clock calls out to may end its frames or its
+   * timer: an idle wall screen would have no fireworks until it reloads.
+   */
+  private fail(error: unknown): void {
+    if (this.logged) return;
+    this.logged = true;
+    console.error("Fireworks clock failed; carrying on", error);
   }
 
   private clearSleep(): void {

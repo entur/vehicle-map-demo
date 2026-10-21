@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ANIMATION_IDLE_MS } from "../../domain/animationAmount.ts";
 import { burstDurationS } from "../../domain/fireworks.ts";
 import {
@@ -9,6 +9,12 @@ import {
 } from "../../domain/fireworkSchedule.ts";
 import { FireworksClock } from "./fireworksClock.ts";
 import type { LaunchView } from "./fireworkShow.ts";
+
+vi.mock("../../domain/fireworkSchedule.ts", async (original) => {
+  const actual =
+    await original<typeof import("../../domain/fireworkSchedule.ts")>();
+  return { ...actual, slotAt: vi.fn(actual.slotAt) };
+});
 
 type Listener = () => void;
 
@@ -51,6 +57,7 @@ describe("FireworksClock", () => {
   let cancelled: number[];
   let viewCalls: number;
   let viewsHanded: unknown[];
+  let onBarrage: (untilMs: number) => void;
 
   beforeEach(() => {
     map = new FakeMap();
@@ -66,6 +73,11 @@ describe("FireworksClock", () => {
     cancelled = [];
     viewCalls = 0;
     viewsHanded = [];
+    onBarrage = (u) => barrages.push(u);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   function make(reducedMotion = false, lastActivityMs?: number) {
@@ -88,7 +100,7 @@ describe("FireworksClock", () => {
         };
       },
       onFrame: (n) => frameNows.push(n),
-      onBarrage: (u) => barrages.push(u),
+      onBarrage: (u) => onBarrage(u),
       lastActivityMs,
       now: () => nowMs,
       isVisible: () => visible,
@@ -265,5 +277,35 @@ describe("FireworksClock", () => {
     expect(viewsHanded).toHaveLength(2);
     expect(viewsHanded.every((v) => typeof v === "function")).toBe(true);
     expect(viewCalls).toBe(0);
+  });
+
+  it("keeps an idle screen's barrages coming when onBarrage throws", () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    onBarrage = () => {
+      throw new Error("lights");
+    };
+    nowMs = SLOT + 120_000;
+    make(false, nowMs - ANIMATION_IDLE_MS - 1);
+    fireTimer();
+    expect(frames.size).toBe(1);
+    frame(nowMs + 16);
+    expect(frameNows).toHaveLength(1);
+    expect(frames.size).toBe(1);
+    // The next slot, also failing, is logged no more.
+    frame(nowMs + BARRAGE_INTERVAL_MS);
+    expect(frames.size).toBe(1);
+    expect(error).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps running when looking the slot up throws", () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    make();
+    vi.mocked(slotAt).mockImplementationOnce(() => {
+      throw new Error("Intl");
+    });
+    frame(SLOT + BARRAGE_INTERVAL_MS + 16);
+    expect(frameNows).toHaveLength(1);
+    expect(frames.size).toBe(1);
+    expect(error).toHaveBeenCalledTimes(1);
   });
 });
