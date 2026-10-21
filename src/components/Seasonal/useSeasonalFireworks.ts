@@ -200,7 +200,7 @@ export function useSeasonalFireworks({
             instances = sparkInstances(show.bursts(), epochMs);
           }
           draw(nowMs);
-          reportRockets(inAir(nowMs));
+          if (import.meta.env.DEV) reportRockets(inAir(nowMs));
         } catch (error) {
           fail(error);
           try {

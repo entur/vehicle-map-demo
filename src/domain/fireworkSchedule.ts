@@ -77,7 +77,7 @@ function launchFrom(atMs: number, random: () => number): Launch {
   const fy = between(random, [LAUNCH_INSET, 1 - LAUNCH_INSET]);
   const heightM = between(random, BURST_HEIGHT_M);
   const first = Math.floor(random() * FIREWORK_COLOURS.length);
-  // Drawn from the remaining colours, so the two usually differ.
+  // Drawn from the remaining colours, so the two always differ.
   const second =
     (first + 1 + Math.floor(random() * (FIREWORK_COLOURS.length - 1))) %
     FIREWORK_COLOURS.length;
