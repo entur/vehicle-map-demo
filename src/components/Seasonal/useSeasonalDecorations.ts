@@ -34,7 +34,12 @@ const prefersReducedMotion = () =>
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 type SeasonalWindow = {
-  __seasonal?: { season: Season; count: number; twinkling: boolean };
+  __seasonal?: {
+    season: Season;
+    count: number;
+    twinkling: boolean;
+    rockets?: number;
+  };
 };
 
 /**
@@ -52,7 +57,8 @@ type SeasonalWindow = {
  * The trees' lights twinkle by an `AnimationClock`, which exists only while trees
  * are placed and shown. Each tick draws the same trees again with a new
  * twinkle state — only the bulb layers' uniforms change — and sets no React
- * state.
+ * state. `holdAwake` keeps them twinkling through a fireworks barrage, even
+ * on a screen nobody is at.
  */
 export function useSeasonalDecorations({
   map,
@@ -68,7 +74,7 @@ export function useSeasonalDecorations({
   scheme: MapScheme;
   chasing: boolean;
   onLayers: (layers: Layer[]) => void;
-}) {
+}): { holdAwake: (untilMs: number) => void } {
   const visible = opacity > 0;
   // A season without stop decorations (17 May) has no controller, clock or
   // layers here.
@@ -167,13 +173,22 @@ export function useSeasonalDecorations({
     if (!import.meta.env.DEV) return;
     // A season with nothing at the stops (17 May) is reported by its own hook.
     if (season !== null && spec === null) return;
-    (window as SeasonalWindow).__seasonal =
+    // Spread, so the fireworks' count is kept.
+    const w = window as SeasonalWindow;
+    w.__seasonal =
       season === null || spec === null
         ? undefined
         : {
+            ...w.__seasonal,
             season,
             count: placed.decorations.length,
             twinkling: treesShown && !prefersReducedMotion(),
           };
   }, [season, spec, placed, treesShown]);
+
+  const holdAwake = useCallback(
+    (untilMs: number) => clockRef.current?.holdAwake(untilMs),
+    [],
+  );
+  return { holdAwake };
 }

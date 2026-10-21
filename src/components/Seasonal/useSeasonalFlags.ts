@@ -18,7 +18,12 @@ const prefersReducedMotion = () =>
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 type SeasonalWindow = {
-  __seasonal?: { season: Season; count: number; twinkling: boolean };
+  __seasonal?: {
+    season: Season;
+    count: number;
+    twinkling: boolean;
+    rockets?: number;
+  };
 };
 
 /**
@@ -80,7 +85,9 @@ export function useSeasonalFlags({
       );
       // Lets the Playwright tests see the flags. Development builds only.
       if (import.meta.env.DEV && inSeason) {
-        (window as SeasonalWindow).__seasonal = {
+        const w = window as SeasonalWindow;
+        w.__seasonal = {
+          ...w.__seasonal,
           season: FLAG_SEASON,
           // The flags drawn: none while the models are hidden.
           count:

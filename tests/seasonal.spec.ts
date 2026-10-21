@@ -9,7 +9,12 @@ type TestWindow = {
     }): void;
     once(event: "idle", listener: () => void): void;
   };
-  __seasonal?: { season: string; count: number; twinkling: boolean };
+  __seasonal?: {
+    season: string;
+    count: number;
+    twinkling: boolean;
+    rockets?: number;
+  };
 };
 
 /** Majorstuen: stops with room beside them, so some get pumpkins. */
@@ -81,6 +86,27 @@ test("no flags with season=none", async ({ page }) => {
   // Long enough for the vehicle feed's first frames to arrive.
   await page.waitForTimeout(5000);
   expect(await seasonal(page)).toBeUndefined();
+});
+
+test("fireworks go up in the New Year season", async ({ page }) => {
+  // A scattered rocket goes up 2–4 s after the click, or a barrage's slot
+  // fires; either way after the map has loaded in software WebGL.
+  test.setTimeout(90000);
+  await openIn3d(page, "?season=newyear");
+  await expect
+    .poll(async () => (await seasonal(page))?.rockets ?? 0, {
+      timeout: 60000,
+    })
+    .toBeGreaterThan(0);
+});
+
+test("no fireworks with season=christmas", async ({ page }) => {
+  // The 15 s wait on top of loading the map overran the default 30 s.
+  test.setTimeout(60000);
+  await openIn3d(page, "?season=christmas");
+  // Several times the scattered rockets' delay.
+  await page.waitForTimeout(15000);
+  expect((await seasonal(page))?.rockets ?? 0).toBe(0);
 });
 
 test("Christmas trees stand near stops in Advent", async ({ page }) => {

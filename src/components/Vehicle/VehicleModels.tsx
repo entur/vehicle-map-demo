@@ -35,6 +35,7 @@ import { stopPoleLayers } from "./stopPoleLayers.ts";
 import { FLAG_SEASON, type Season } from "../../domain/season.ts";
 import { useSeasonalDecorations } from "../Seasonal/useSeasonalDecorations.ts";
 import { useSeasonalFlags } from "../Seasonal/useSeasonalFlags.ts";
+import { useSeasonalFireworks } from "../Seasonal/useSeasonalFireworks.ts";
 import { flagLayers, fliesFlags } from "../Seasonal/flagLayers.ts";
 
 const NO_VEHICLES: VehicleUpdate[] = [];
@@ -67,6 +68,8 @@ type Props = {
   stopPoles: StopPole[];
   /** The season whose decorations stand near the stops or fly on the models, if any. */
   season: Season | null;
+  /** New Year's fireworks over the map, drawn in 3D while the models are shown. */
+  fireworks: boolean;
 };
 
 /**
@@ -93,6 +96,7 @@ export function VehicleModels({
   ghostStore,
   stopPoles,
   season,
+  fireworks,
 }: Props) {
   // StrictMode adds, removes and re-adds this control, so two Decks attach to
   // the map's one WebGL context. luma creates the device asynchronously, so
@@ -119,6 +123,7 @@ export function VehicleModels({
   const stopLayers = useRef<Layer[]>([]);
   const seasonalLayers = useRef<Layer[]>([]);
   const flagLayersRef = useRef<Layer[]>([]);
+  const fireworkLayersRef = useRef<Layer[]>([]);
   const options = useRef<Omit<ModelLayerOptions, "idPrefix"> | null>(null);
 
   // Every handover of layers goes through here, so that deck.gl can add its
@@ -135,6 +140,7 @@ export function VehicleModels({
           ...stopLayers.current,
           ...seasonalLayers.current,
           ...flagLayersRef.current,
+          ...fireworkLayersRef.current,
         ],
       }),
     );
@@ -409,13 +415,30 @@ export function VehicleModels({
     },
     [handOver],
   );
-  useSeasonalDecorations({
+  const { holdAwake } = useSeasonalDecorations({
     map: mapRef?.getMap(),
     season,
     opacity,
     scheme,
     chasing,
     onLayers: onSeasonalLayers,
+  });
+
+  const onFireworkLayers = useCallback(
+    (layers: Layer[]) => {
+      fireworkLayersRef.current = layers;
+      handOver();
+    },
+    [handOver],
+  );
+  // A barrage keeps the Christmas lights awake under it.
+  useSeasonalFireworks({
+    map: mapRef?.getMap(),
+    on: fireworks,
+    shown: viewDimension === "3d" && opacity > 0,
+    scheme,
+    onLayers: onFireworkLayers,
+    onBarrage: holdAwake,
   });
 
   return null;
