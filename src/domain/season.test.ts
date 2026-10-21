@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { firstAdventSunday, seasonOn } from "./season.ts";
+import { firstAdventSunday, fireworksOn, seasonOn } from "./season.ts";
 
 describe("seasonOn", () => {
   it("is halloween from 24 Oct to 1 Nov inclusive", () => {
@@ -108,4 +108,35 @@ describe("christmas", () => {
       seasonOn(new Date("2026-12-24T12:00:00+01:00"), "?season=none"),
     ).toBeNull();
   });
+});
+
+describe("fireworksOn", () => {
+  it("is on from 27 Dec to 1 Jan inclusive, Oslo dates", () => {
+    expect(fireworksOn(new Date("2026-12-26T12:00:00+01:00"), "")).toBe(false);
+    expect(fireworksOn(new Date("2026-12-27T00:30:00+01:00"), "")).toBe(true);
+    expect(fireworksOn(new Date("2026-12-31T23:59:00+01:00"), "")).toBe(true);
+    expect(fireworksOn(new Date("2027-01-01T23:59:00+01:00"), "")).toBe(true);
+    expect(fireworksOn(new Date("2027-01-02T00:00:00+01:00"), "")).toBe(false);
+  });
+  it("judges the date in Oslo, not UTC", () => {
+    // 23:30 UTC on 26 Dec is 00:30 on 27 Dec in Oslo.
+    expect(fireworksOn(new Date("2026-12-26T23:30:00Z"), "")).toBe(true);
+    // 23:30 UTC on 1 Jan is 00:30 on 2 Jan in Oslo.
+    expect(fireworksOn(new Date("2027-01-01T23:30:00Z"), "")).toBe(false);
+  });
+  it("is forced on by season=newyear, off by any other forced season", () => {
+    const june = new Date("2026-06-01T12:00:00Z");
+    const dec28 = new Date("2026-12-28T12:00:00Z");
+    expect(fireworksOn(june, "?season=newyear")).toBe(true);
+    expect(fireworksOn(dec28, "?season=christmas")).toBe(false);
+    expect(fireworksOn(dec28, "?season=none")).toBe(false);
+    expect(fireworksOn(dec28, "?season=easter")).toBe(true);
+  });
+});
+
+it("keeps the trees up under the fireworks", () => {
+  expect(seasonOn(new Date("2026-12-28T12:00:00Z"), "")).toBe("christmas");
+  expect(seasonOn(new Date("2026-06-01T12:00:00Z"), "?season=newyear")).toBe(
+    "christmas",
+  );
 });
