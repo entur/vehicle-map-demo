@@ -59,9 +59,9 @@ export function slotEndMs(slot: Slot): number {
 
 export type Launch = {
   atMs: number;
-  /** Share of the view's width, west to east. */
+  /** Share across the screen, left to right (`launchScreenPoint`). */
   fx: number;
-  /** Share of the view's height, south to north. */
+  /** Share up the launch strip, from the screen's bottom edge. */
   fy: number;
   heightM: number;
   colours: [Rgb, Rgb];
@@ -113,7 +113,10 @@ export function scatteredDelayMs(random: () => number): number {
   return between(random, SCATTERED_DELAY_MS);
 }
 
-/** Longitude and latitude of a share of the view, linear in both. */
+/**
+ * Longitude and latitude of a share of the view, linear in both: where a
+ * launch goes when its screen point could not be placed.
+ */
 export function launchPoint(
   [[west, south], [east, north]]: ViewBounds,
   fx: number,
@@ -123,64 +126,39 @@ export function launchPoint(
 }
 
 /**
- * The screen points, in pixels, whose ground the launches spread over: the
- * corners of the lower `LAUNCH_SCREEN_SHARE` of the part of a `width` ×
- * `height` screen the map is seen through, top left, top right, bottom left,
- * bottom right. `bottomPx` is the map's bottom padding, which covers it (the
- * phone's detail sheet, the kiosk's band); the other edges' padding frames the
- * camera rather than covering the map, as the chase's top padding does.
+ * The screen point, in pixels, a launch goes up from: `fx` across a `width` ×
+ * `height` screen and `fy` up the lower `LAUNCH_SCREEN_SHARE` of the part the
+ * map is seen through, from its bottom edge. `bottomPx` is the map's bottom
+ * padding, which covers it (the phone's detail sheet, the kiosk's band); the
+ * other edges' padding frames the camera rather than covering the map, as the
+ * chase's top padding does. Spread evenly on the screen, not on the ground,
+ * which tilted would crowd them towards the horizon.
  */
-export function launchStrip(
+export function launchScreenPoint(
   width: number,
   height: number,
-  bottomPx = 0,
-): [Corner, Corner, Corner, Corner] {
-  const bottom = Math.max(0, height - bottomPx);
-  const top = bottom * (1 - LAUNCH_SCREEN_SHARE);
-  return [
-    [0, top],
-    [width, top],
-    [0, bottom],
-    [width, bottom],
-  ];
-}
-
-type Corner = [number, number];
-
-/**
- * Where rockets may go up: `strip`, the ground under `launchStrip`'s corners
- * as longitude and latitude in the same order, and `view`, the view the
- * vehicles use.
- */
-export type LaunchArea = {
-  strip: [Corner, Corner, Corner, Corner];
-  view: ViewBounds;
-};
-
-/**
- * The longitude and latitude of a launch: `fx` across the screen, `fy` up from
- * its bottom edge, interpolated over the strip's own four corners rather than
- * over their box, which on a turned map (a chase follows the vehicle's
- * heading) is up to twice the strip and reaches off screen. A point outside
- * the view the vehicles use is moved to its edge; a corner that could not be
- * placed leaves the whole view.
- */
-export function launchPointIn(
-  { strip, view }: LaunchArea,
+  bottomPx: number,
   fx: number,
   fy: number,
 ): [number, number] {
-  if (
-    !strip.every(([lng, lat]) => Number.isFinite(lng) && Number.isFinite(lat))
-  ) {
+  const bottom = Math.max(0, height - bottomPx);
+  return [fx * width, bottom - fy * bottom * LAUNCH_SCREEN_SHARE];
+}
+
+/**
+ * The longitude and latitude of a launch, from `ground`, the ground under its
+ * screen point: kept inside `view`, the view the vehicles use, and when the
+ * point could not be placed, spread over the whole view instead.
+ */
+export function placeLaunch(
+  [lng, lat]: [number, number],
+  view: ViewBounds,
+  fx: number,
+  fy: number,
+): [number, number] {
+  if (!Number.isFinite(lng) || !Number.isFinite(lat)) {
     return launchPoint(view, fx, fy);
   }
-  const [tl, tr, bl, br] = strip;
-  const lerp = (a: Corner, b: Corner, f: number): Corner => [
-    a[0] + (b[0] - a[0]) * f,
-    a[1] + (b[1] - a[1]) * f,
-  ];
-  const [lng, lat] = lerp(lerp(bl, br, fx), lerp(tl, tr, fx), fy);
   const [[west, south], [east, north]] = view;
   return [
     Math.min(east, Math.max(west, lng)),

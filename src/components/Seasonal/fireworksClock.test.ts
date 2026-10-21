@@ -8,6 +8,7 @@ import {
   slotEndMs,
 } from "../../domain/fireworkSchedule.ts";
 import { FireworksClock } from "./fireworksClock.ts";
+import type { LaunchView } from "./fireworkShow.ts";
 
 type Listener = () => void;
 
@@ -48,6 +49,8 @@ describe("FireworksClock", () => {
   let barrages: number[];
   let updates: boolean[];
   let cancelled: number[];
+  let viewCalls: number;
+  let viewsHanded: unknown[];
 
   beforeEach(() => {
     map = new FakeMap();
@@ -61,34 +64,29 @@ describe("FireworksClock", () => {
     barrages = [];
     updates = [];
     cancelled = [];
+    viewCalls = 0;
+    viewsHanded = [];
   });
 
   function make(reducedMotion = false, lastActivityMs?: number) {
     return new FireworksClock(map as never, {
       reducedMotion,
       show: {
-        update: (_n, _v, scattering) => {
+        update: (_n, v, scattering) => {
+          viewsHanded.push(v);
           updates.push(scattering);
           return false;
         },
         busy: () => busy,
       },
-      view: () => ({
-        area: {
-          strip: [
-            [0, 1],
-            [1, 1],
-            [0, 0],
-            [1, 0],
-          ],
-          view: [
-            [0, 0],
-            [1, 1],
-          ],
-        },
-        groundAt: () => 0,
-        centreGroundM: 0,
-      }),
+      view: (): LaunchView => {
+        viewCalls++;
+        return {
+          pointAt: () => [0, 0],
+          groundAt: () => 0,
+          centreGroundM: 0,
+        };
+      },
       onFrame: (n) => frameNows.push(n),
       onBarrage: (u) => barrages.push(u),
       lastActivityMs,
@@ -258,5 +256,14 @@ describe("FireworksClock", () => {
     clock.activity();
     frame(nowMs + ANIMATION_IDLE_MS + 1);
     expect(timers.size).toBe(1);
+  });
+
+  it("hands the show the view to ask for, and never reads it itself", () => {
+    make();
+    frame(nowMs + 16);
+    frame(nowMs + 16);
+    expect(viewsHanded).toHaveLength(2);
+    expect(viewsHanded.every((v) => typeof v === "function")).toBe(true);
+    expect(viewCalls).toBe(0);
   });
 });

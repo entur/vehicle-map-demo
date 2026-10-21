@@ -1,10 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { burstDurationS } from "../../domain/fireworks.ts";
-import {
-  launchPointIn,
-  slotAt,
-  slotLaunches,
-} from "../../domain/fireworkSchedule.ts";
+import { slotAt, slotLaunches } from "../../domain/fireworkSchedule.ts";
 import {
   BURST_SPARKS,
   type Burst,
@@ -19,22 +15,16 @@ vi.mock("../../domain/fireworkSchedule.ts", async (original) => {
   return { ...actual, slotAt: vi.fn(actual.slotAt) };
 });
 
-const view: LaunchView = {
-  area: {
-    strip: [
-      [10, 60],
-      [11, 60],
-      [10, 59],
-      [11, 59],
-    ],
-    view: [
-      [10, 59],
-      [11, 60],
-    ],
-  },
+const pointAt = (fx: number, fy: number): [number, number] => [
+  10 + fx,
+  59 + fy,
+];
+const launchView: LaunchView = {
+  pointAt,
   groundAt: () => 100,
   centreGroundM: 100,
 };
+const view = () => launchView;
 // A plain barrage slot and the 00:00 finale slot of 1 January 2027, Oslo.
 const BARRAGE_START = Date.UTC(2026, 11, 28, 12, 0);
 const FINALE_START = Date.UTC(2026, 11, 31, 23, 0);
@@ -46,7 +36,7 @@ function run(
   durationMs: number,
   scattering = false,
   stepMs = 100,
-  v: LaunchView = view,
+  v: () => LaunchView = view,
 ): Burst[] {
   const seen = new Map<string, Burst>();
   for (let t = from; t < from + durationMs; t += stepMs) {
@@ -66,9 +56,7 @@ describe("FireworkShow", () => {
       const l = launches[i];
       expect(b.key).toBe(`slot:${BARRAGE_START}:${i}`);
       expect(b.launchMs).toBe(l.atMs);
-      expect(b.position.slice(0, 2)).toEqual(
-        launchPointIn(view.area, l.fx, l.fy),
-      );
+      expect(b.position.slice(0, 2)).toEqual(pointAt(l.fx, l.fy));
       expect(b.sparks).toHaveLength(BURST_SPARKS);
     });
   });
@@ -155,9 +143,39 @@ describe("FireworkShow", () => {
 
   it("bursts above the ground, falling back to the centre's", () => {
     const show = new FireworkShow(() => 0);
-    const flat: LaunchView = { ...view, groundAt: () => 0, centreGroundM: 250 };
-    const b = run(show, BARRAGE_START, 10_000, false, 100, flat)[0];
+    const flat: LaunchView = {
+      ...launchView,
+      groundAt: () => 0,
+      centreGroundM: 250,
+    };
+    const b = run(show, BARRAGE_START, 10_000, false, 100, () => flat)[0];
     expect(b.position[2]).toBe(250 + b.heightM);
+  });
+
+  it("asks for the view only on an update that launches, and once", () => {
+    const show = new FireworkShow(() => 0);
+    const spy = vi.fn(view);
+    const launches = slotLaunches(slotAt(BARRAGE_START));
+    let launching = 0;
+    for (let t = BARRAGE_START; t < BARRAGE_START + 20_000; t += 100) {
+      const calls = spy.mock.calls.length;
+      show.update(t, spy, false);
+      const launched = launches.some((l) => l.atMs > t - 100 && l.atMs <= t);
+      if (launched) launching++;
+      expect(spy.mock.calls.length - calls).toBe(launched ? 1 : 0);
+    }
+    expect(spy).toHaveBeenCalledTimes(launching);
+    expect(launching).toBeLessThan(200);
+  });
+
+  it("does not ask for the view while waiting to scatter", () => {
+    const start = BARRAGE_START + 60_000;
+    const show = new FireworkShow(() => 0);
+    const spy = vi.fn(view);
+    for (let t = start; t < start + 1_900; t += 100) show.update(t, spy, true);
+    expect(spy).not.toHaveBeenCalled();
+    show.update(start + 2_000, spy, true);
+    expect(spy).toHaveBeenCalledTimes(1);
   });
 
   it("looks the slot up once per slot, not per update or busy call", () => {

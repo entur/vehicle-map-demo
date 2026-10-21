@@ -6,13 +6,11 @@ import {
 import {
   BARRAGE_INTERVAL_MS,
   groundFor,
-  launchPointIn,
   scatteredDelayMs,
   scatteredLaunch,
   slotAt,
   slotLaunches,
   type Launch,
-  type LaunchArea,
 } from "../../domain/fireworkSchedule.ts";
 
 /** A due launch older than this is skipped, not fired late. */
@@ -29,8 +27,10 @@ export type Burst = {
   sparks: Spark[];
 };
 
+/** What a burst is placed with, asked for only when one is built. */
 export type LaunchView = {
-  area: LaunchArea;
+  /** Longitude and latitude of a launch's shares across and up the screen. */
+  pointAt: (fx: number, fy: number) => [number, number];
   groundAt: (lngLat: [number, number]) => number | null;
   centreGroundM: number | null;
 };
@@ -47,8 +47,14 @@ export class FireworkShow {
 
   constructor(private readonly random: () => number = Math.random) {}
 
-  update(nowMs: number, view: LaunchView, scattering: boolean): boolean {
+  /**
+   * `view` is called at most once, and only when a rocket is launched: placing
+   * one reads the map, which most frames have no need to do.
+   */
+  update(nowMs: number, view: () => LaunchView, scattering: boolean): boolean {
     const added: Burst[] = [];
+    let launchView: LaunchView | null = null;
+    const place = () => (launchView ??= view());
     this.loadSlot(nowMs);
     while (
       this.next < this.launches.length &&
@@ -58,7 +64,7 @@ export class FireworkShow {
       const launch = this.launches[index];
       if (nowMs - launch.atMs > LAUNCH_GRACE_MS) continue;
       added.push(
-        this.burstFor(`slot:${this.slotStartMs}:${index}`, launch, view),
+        this.burstFor(`slot:${this.slotStartMs}:${index}`, launch, place()),
       );
     }
 
@@ -72,7 +78,7 @@ export class FireworkShow {
         this.burstFor(
           `scattered:${nowMs}:${this.scatteredCount++}`,
           launch,
-          view,
+          place(),
         ),
       );
       this.nextScatteredMs = nowMs + scatteredDelayMs(this.random);
@@ -119,7 +125,7 @@ export class FireworkShow {
   }
 
   private burstFor(key: string, launch: Launch, view: LaunchView): Burst {
-    const point = launchPointIn(view.area, launch.fx, launch.fy);
+    const point = view.pointAt(launch.fx, launch.fy);
     const ground = groundFor(view.groundAt(point), view.centreGroundM);
     return {
       key,

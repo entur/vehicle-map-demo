@@ -97,10 +97,15 @@ between Christmas and New Year, when the map is actually in use.
   rather than easing an amount to 0.
 - **Where rockets go up.** Inside the view the vehicles use (`cappedViewBounds`, never
   `map.getBounds()`), so tilted towards the horizon they do not go up kilometres away, and within
-  it over the ground under the **lower 60% of the screen** (`LAUNCH_SCREEN_SHARE`, `launchPointIn`): a launch's share across and up the screen is
-  interpolated over the four corners of that strip's ground, not over their box, since a chase turns
-  the map with the vehicle and a turned strip's box is up to twice the strip; the map's bottom
-  padding (the phone's sheet, the kiosk's band) is left out of the screen.
+  it over the ground under the **lower 60% of the screen** (`LAUNCH_SCREEN_SHARE`): each launch
+  has its own screen point in that strip, its share across the screen and up the strip from the
+  bottom edge (`launchScreenPoint`), and only that point is unprojected, when the rocket is
+  launched — spread evenly on the screen rather than on the ground, which tilted would crowd them
+  towards the far edge, and on a turned map (a chase follows the vehicle's heading) inside the
+  strip rather than its box. The point is then kept inside the capped view (`placeLaunch`); one that
+  cannot be placed falls back to the whole view. The map's bottom padding (the phone's sheet, the
+  kiosk's band) is left out of the screen. Nothing is read from the map on a frame that launches
+  nothing.
   (Changed for the chase camera at Lasse's request: spread over the whole view's box, most rockets
   went up over its far, upper part and burst above the top of the screen, in a chase nearly all.)
   Bursts are **60–120 m** above the ground at their launch point, with heights from

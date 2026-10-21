@@ -5,10 +5,10 @@ import {
   LAUNCH_INSET,
   LAUNCH_SCREEN_SHARE,
   groundFor,
-  launchPointIn,
-  launchStrip,
   launchPoint,
+  launchScreenPoint,
   nextSlotStartMs,
+  placeLaunch,
   scatteredDelayMs,
   scatteredLaunch,
   slotAt,
@@ -120,14 +120,15 @@ describe("groundFor", () => {
   });
 });
 
-describe("launchStrip", () => {
-  it("is the corners of the lower share of the screen, in screen pixels", () => {
+describe("launchScreenPoint", () => {
+  it("runs fx across the screen and fy up the lower share from its bottom edge", () => {
     const top = 800 * (1 - LAUNCH_SCREEN_SHARE);
-    expect(launchStrip(1280, 800)).toEqual([
-      [0, top],
-      [1280, top],
-      [0, 800],
-      [1280, 800],
+    expect(launchScreenPoint(1280, 800, 0, 0, 0)).toEqual([0, 800]);
+    expect(launchScreenPoint(1280, 800, 0, 1, 0)).toEqual([1280, 800]);
+    expect(launchScreenPoint(1280, 800, 0, 0, 1)).toEqual([0, top]);
+    expect(launchScreenPoint(1280, 800, 0, 0.5, 0.5)).toEqual([
+      640,
+      800 - (800 - top) / 2,
     ]);
   });
 
@@ -135,116 +136,63 @@ describe("launchStrip", () => {
     expect(LAUNCH_SCREEN_SHARE).toBe(0.6);
   });
 
+  it("is even on the screen, so launches do not crowd towards the horizon", () => {
+    // Equal steps in fy are equal steps in pixels, whatever the ground does.
+    const ys = [0, 0.25, 0.5, 0.75, 1].map(
+      (fy) => launchScreenPoint(1280, 800, 0, 0.5, fy)[1],
+    );
+    const steps = ys.slice(1).map((y, i) => ys[i] - y);
+    for (const step of steps) expect(step).toBeCloseTo(steps[0], 9);
+  });
+
   it("leaves out what the bottom padding covers", () => {
     // The phone's detail sheet or the kiosk's band: the map under it is hidden.
     const visible = 800 - 300;
     const top = visible * (1 - LAUNCH_SCREEN_SHARE);
-    expect(launchStrip(1280, 800, 300)).toEqual([
-      [0, top],
-      [1280, top],
-      [0, visible],
-      [1280, visible],
-    ]);
+    expect(launchScreenPoint(1280, 800, 300, 0, 0)).toEqual([0, visible]);
+    expect(launchScreenPoint(1280, 800, 300, 1, 1)).toEqual([1280, top]);
   });
-});
 
-type Point = [number, number];
-
-/** Whether `p` is inside the convex quadrilateral `quad`, given in order around it. */
-function insideConvex(p: Point, quad: Point[]): boolean {
-  let sign = 0;
-  for (let i = 0; i < quad.length; i++) {
-    const [ax, ay] = quad[i];
-    const [bx, by] = quad[(i + 1) % quad.length];
-    const cross = (bx - ax) * (p[1] - ay) - (by - ay) * (p[0] - ax);
-    if (Math.abs(cross) < 1e-12) continue;
-    const s = Math.sign(cross);
-    if (sign === 0) sign = s;
-    else if (s !== sign) return false;
-  }
-  return true;
-}
-
-describe("launchPointIn", () => {
-  const wide: [Point, Point] = [
-    [10, 59],
-    [11, 60],
-  ];
-
-  /**
-   * The ground under the strip of a map turned 45°: a trapezoid, narrow at
-   * the screen's bottom edge and wide at the strip's top, its axis running
-   * north-east. Its box is about twice its area.
-   */
-  function rotatedStrip(): [Point, Point, Point, Point] {
-    const centre: Point = [10.5, 59.5];
-    const turn = ([x, y]: Point): Point => {
-      const c = Math.SQRT1_2;
-      return [centre[0] + c * (x - y), centre[1] + c * (x + y)];
-    };
-    // In the strip's own frame: x across the screen, y ahead.
-    return [
-      turn([-0.2, 0.2]), // top left
-      turn([0.2, 0.2]), // top right
-      turn([-0.08, -0.1]), // bottom left
-      turn([0.08, -0.1]), // bottom right
-    ];
-  }
-
-  it("puts every slot's launches inside a turned strip, not just its box", () => {
-    const strip = rotatedStrip();
-    const [tl, tr, bl, br] = strip;
-    const around = [bl, br, tr, tl];
+  it("keeps every slot's launches inside the strip", () => {
+    const top = 800 * (1 - LAUNCH_SCREEN_SHARE);
     for (const slot of [
       slotAt(Date.parse("2026-12-28T14:05:00+01:00")),
       slotAt(Date.parse("2026-12-31T23:00:00Z")),
     ]) {
       for (const { fx, fy } of slotLaunches(slot)) {
-        const p = launchPointIn({ strip, view: wide }, fx, fy);
-        expect(insideConvex(p, around)).toBe(true);
+        const [x, y] = launchScreenPoint(1280, 800, 0, fx, fy);
+        expect(x).toBeGreaterThanOrEqual(0);
+        expect(x).toBeLessThanOrEqual(1280);
+        expect(y).toBeGreaterThanOrEqual(top);
+        expect(y).toBeLessThanOrEqual(800);
       }
     }
   });
+});
 
-  it("runs fx across the screen and fy up from its bottom edge", () => {
-    const strip = rotatedStrip();
-    const [tl, tr, bl, br] = strip;
-    const area = { strip, view: wide };
-    expect(launchPointIn(area, 0, 0)).toEqual(bl);
-    expect(launchPointIn(area, 1, 0)).toEqual(br);
-    expect(launchPointIn(area, 0, 1)).toEqual(tl);
-    expect(launchPointIn(area, 1, 1)).toEqual(tr);
+describe("placeLaunch", () => {
+  const view: [[number, number], [number, number]] = [
+    [10.7, 59.9],
+    [10.8, 59.95],
+  ];
+
+  it("keeps a point inside the view as it is", () => {
+    expect(placeLaunch([10.75, 59.92], view, 0.3, 0.7)).toEqual([10.75, 59.92]);
   });
 
-  it("keeps launches inside the view the vehicles use", () => {
+  it("moves a point outside the view the vehicles use to its edge", () => {
     // Tilted, the strip's top can reach past the capped view.
-    const strip: [Point, Point, Point, Point] = [
-      [10.6, 60.1],
-      [10.9, 60.1],
-      [10.74, 59.91],
-      [10.76, 59.91],
-    ];
-    const view: [Point, Point] = [
-      [10.7, 59.9],
-      [10.8, 59.95],
-    ];
-    for (const fx of [0, 0.15, 0.5, 0.85, 1]) {
-      for (const fy of [0, 0.15, 0.5, 0.85, 1]) {
-        const [lng, lat] = launchPointIn({ strip, view }, fx, fy);
-        expect(lng).toBeGreaterThanOrEqual(10.7);
-        expect(lng).toBeLessThanOrEqual(10.8);
-        expect(lat).toBeGreaterThanOrEqual(59.9);
-        expect(lat).toBeLessThanOrEqual(59.95);
-      }
-    }
+    expect(placeLaunch([10.9, 60.1], view, 0.3, 0.7)).toEqual([10.8, 59.95]);
+    expect(placeLaunch([10.6, 59.8], view, 0.3, 0.7)).toEqual([10.7, 59.9]);
   });
 
-  it("falls back to the view when a corner could not be placed", () => {
-    const strip = rotatedStrip();
-    strip[0] = [Number.NaN, 59.5];
-    expect(launchPointIn({ strip, view: wide }, 0.3, 0.7)).toEqual(
-      launchPoint(wide, 0.3, 0.7),
+  it("falls back to the whole view when the point could not be placed", () => {
+    expect(placeLaunch([Number.NaN, 59.92], view, 0.3, 0.7)).toEqual(
+      launchPoint(view, 0.3, 0.7),
     );
+    expect(
+      placeLaunch([10.75, Number.POSITIVE_INFINITY], view, 0.3, 0.7),
+    ).toEqual(launchPoint(view, 0.3, 0.7));
   });
 });
 

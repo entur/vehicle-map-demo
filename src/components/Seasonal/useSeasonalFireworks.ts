@@ -5,7 +5,10 @@ import type { Season } from "../../domain/season.ts";
 import { burstDurationS } from "../../domain/fireworks.ts";
 import type { MapScheme } from "../basemap/basemap.ts";
 import { cappedViewBounds } from "../../utils/cappedViewBounds.ts";
-import { launchStrip } from "../../domain/fireworkSchedule.ts";
+import {
+  launchScreenPoint,
+  placeLaunch,
+} from "../../domain/fireworkSchedule.ts";
 import { useKioskInput } from "../../hooks/useKioskInput.ts";
 import { FireworkShow, type LaunchView } from "./fireworkShow.ts";
 import { FireworksClock } from "./fireworksClock.ts";
@@ -139,44 +142,34 @@ export function useSeasonalFireworks({
       show.bursts().filter((b) => b.launchMs + burstDurationS() * 1000 > nowMs)
         .length;
 
-    // Called first in every frame, so it also clears the last frame's failure.
+    // Asked for by the show only when it launches a rocket: unprojecting
+    // raycasts the terrain on the CPU, which most frames have no need of.
     const view = (): LaunchView => {
-      failed = false;
-      try {
-        const centre = map.getCenter();
-        // Rockets go up over the ground under the lower part of the screen,
-        // so that their bursts are in view; see `LAUNCH_SCREEN_SHARE`.
-        const { clientWidth, clientHeight } = map.getContainer();
-        const [tl, tr, bl, br] = launchStrip(
-          clientWidth,
-          clientHeight,
-          map.getPadding().bottom,
-        ).map((point) => map.unproject(point).toArray());
-        return {
-          area: { strip: [tl, tr, bl, br], view: cappedViewBounds(map) },
-          groundAt: (lngLat) => map.queryTerrainElevation(lngLat) ?? null,
-          centreGroundM: map.queryTerrainElevation(centre) ?? null,
-        };
-      } catch (error) {
-        fail(error);
-        const nowhere: [number, number] = [0, 0];
-        return {
-          area: {
-            strip: [nowhere, nowhere, nowhere, nowhere],
-            view: [nowhere, nowhere],
-          },
-          groundAt: () => null,
-          centreGroundM: null,
-        };
-      }
+      // Rockets go up over the ground under the lower part of the screen,
+      // so that their bursts are in view; see `LAUNCH_SCREEN_SHARE`.
+      const { clientWidth, clientHeight } = map.getContainer();
+      const bottomPx = map.getPadding().bottom ?? 0;
+      const bounds = cappedViewBounds(map);
+      return {
+        pointAt: (fx, fy) => {
+          const ground = map.unproject(
+            launchScreenPoint(clientWidth, clientHeight, bottomPx, fx, fy),
+          );
+          return placeLaunch(ground.toArray(), bounds, fx, fy);
+        },
+        groundAt: (lngLat) => map.queryTerrainElevation(lngLat) ?? null,
+        centreGroundM: map.queryTerrainElevation(map.getCenter()) ?? null,
+      };
     };
 
     const clock = new FireworksClock(map, {
       reducedMotion: false,
       lastActivityMs: lastActivityMs.current ?? undefined,
       show: {
+        // Called first in every frame, so it also clears the last frame's
+        // failure.
         update: (nowMs, launchView, scattering) => {
-          if (failed) return false;
+          failed = false;
           try {
             return show.update(nowMs, launchView, scattering);
           } catch (error) {

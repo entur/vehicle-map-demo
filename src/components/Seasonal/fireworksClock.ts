@@ -13,6 +13,7 @@ import type { FireworkShow, LaunchView } from "./fireworkShow.ts";
 type Options = {
   reducedMotion: boolean;
   show: Pick<FireworkShow, "update" | "busy">;
+  /** Handed to the show uncalled: it reads the map only to place a launch. */
   view: () => LaunchView;
   onFrame: (nowMs: number, changed: boolean) => void;
   /** A barrage has begun: the time its last spark fades. */
@@ -100,7 +101,7 @@ export class FireworksClock {
     const now = this.now();
     this.announce(now);
     const active = now - this.lastActivityMs < ANIMATION_IDLE_MS;
-    const changed = this.options.show.update(now, this.options.view(), active);
+    const changed = this.options.show.update(now, this.options.view, active);
     this.options.onFrame(now, changed);
     this.map.triggerRepaint();
     this.continueOrSleep(now, active);
