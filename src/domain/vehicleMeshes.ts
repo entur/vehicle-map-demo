@@ -84,6 +84,10 @@ export const MESH_COLOURS = {
   bulbRed: rgb(0xe8343a),
   bulbGold: rgb(0xffb52e),
   bulbBlue: rgb(0x3d7bff),
+  flagRed: rgb(0xba0c2f),
+  flagWhite: rgb(0xf4f4f2),
+  flagBlue: rgb(0x00205b),
+  flagPole: rgb(0xd5d8dc),
 } as const;
 
 /**
@@ -2362,4 +2366,137 @@ export function christmasTreeModel(): ChristmasTreeModel {
     };
   }
   return christmasTree;
+}
+
+/** The 17. mai flags' size, in life-size metres; the renderer draws them larger. */
+export const FLAG_EXAGGERATION = 3;
+export const FLAG = {
+  clothLength: 0.3,
+  /** Height from the cross's 22:16. */
+  clothHeight: (0.3 * 16) / 22,
+  poleHeight: 0.5,
+  /** The pole's thickness, life size. */
+  poleWidth: 0.015,
+} as const;
+
+/** The modes that fly flags. */
+export const FLAGGED_MODES: ReadonlySet<VehicleModeEnumeration> = new Set([
+  "BUS",
+  "COACH",
+  "TRAM",
+]);
+
+export type FlagModel = {
+  /** Both poles: a fixed colour, drawn untinted. */
+  poles: VehicleMesh;
+  /**
+   * Both cloths, double-sided and in the Nordic cross's colours. `u` runs
+   * along the cloth, 0 at the pole and 1 at the free edge, for the renderer
+   * to bend it by; `v` is 0 at the top.
+   */
+  cloth: VehicleMesh & { texCoords: { value: Float32Array; size: 2 } };
+};
+
+/** Column edges in the cross's units, split so each stripe has several columns. */
+const FLAG_COLUMNS = [0, 2, 4, 6, 7, 8, 9, 10, 12, 14, 16, 18, 20, 22];
+/** The cross's lines, in the same units. */
+const FLAG_CROSS_X = [6, 7, 9, 10];
+const FLAG_CROSS_Y = [6, 7, 9, 10];
+const FLAG_WIDTH_UNITS = 22;
+const FLAG_HEIGHT_UNITS = 16;
+
+/** Which of the cross's five stripes a coordinate falls in. */
+const stripe = (lines: number[], at: number) =>
+  lines.filter((line) => line <= at).length;
+
+function flagColour(column: number, row: number): RGB {
+  if (column === 2 || row === 2) return MESH_COLOURS.flagBlue;
+  if (column === 1 || column === 3 || row === 1 || row === 3)
+    return MESH_COLOURS.flagWhite;
+  return MESH_COLOURS.flagRed;
+}
+
+const flagCache = new Map<VehicleModeEnumeration, FlagModel>();
+
+/**
+ * Two flags for a vehicle's front corners, in model space (+y forward):
+ * a pole at each, rising clear of the roof, with the cloth streaming back
+ * towards −y in the y–z plane. Sizes are `FLAG_EXAGGERATION` times life size.
+ * Null for a mode that carries none. Built once per mode.
+ */
+export function flagModelFor(mode: VehicleModeEnumeration): FlagModel | null {
+  if (!FLAGGED_MODES.has(mode)) return null;
+  let model = flagCache.get(mode);
+  if (!model) {
+    const { length, width, height } = dimensionsFor(mode);
+    const k = FLAG_EXAGGERATION;
+    const poleTop = height + FLAG.poleHeight * k;
+    const poleWidth = FLAG.poleWidth * k;
+    const clothLength = FLAG.clothLength * k;
+    const clothHeight = FLAG.clothHeight * k;
+    // The cloth hangs from just under the pole's top.
+    const clothTop = poleTop - 0.05 * k;
+    const poles = new MeshBuilder();
+    const positions: number[] = [];
+    const normals: number[] = [];
+    const colors: number[] = [];
+    const texCoords: number[] = [];
+    for (const side of [-1, 1]) {
+      const x = side * (width / 2);
+      // Starts a little below the roof line, so it is planted rather than hovering.
+      const base = height - 0.3;
+      poles.box(
+        x,
+        length / 2,
+        base,
+        poleWidth,
+        poleWidth,
+        poleTop - base,
+        MESH_COLOURS.flagPole,
+      );
+      for (let i = 0; i + 1 < FLAG_COLUMNS.length; i++) {
+        const [c0, c1] = [FLAG_COLUMNS[i], FLAG_COLUMNS[i + 1]];
+        const column = stripe(FLAG_CROSS_X, c0);
+        const rowEdges = [0, ...FLAG_CROSS_Y, FLAG_HEIGHT_UNITS];
+        for (let row = 0; row < 5; row++) {
+          const [r0, r1] = [rowEdges[row], rowEdges[row + 1]];
+          const colour = flagColour(column, row);
+          const ya = length / 2 - (c0 / FLAG_WIDTH_UNITS) * clothLength;
+          const yb = length / 2 - (c1 / FLAG_WIDTH_UNITS) * clothLength;
+          const za = clothTop - (r0 / FLAG_HEIGHT_UNITS) * clothHeight;
+          const zb = clothTop - (r1 / FLAG_HEIGHT_UNITS) * clothHeight;
+          // Corners: top-near, top-far, bottom-far, bottom-near.
+          const corners: [number, number, number, number][] = [
+            [ya, za, c0, r0],
+            [yb, za, c1, r0],
+            [yb, zb, c1, r1],
+            [ya, zb, c0, r1],
+          ];
+          // Front faces +x with this order; the back face reverses it.
+          for (const facing of [1, -1]) {
+            const order =
+              facing === 1 ? [0, 1, 2, 0, 2, 3] : [0, 2, 1, 0, 3, 2];
+            for (const j of order) {
+              const [y, z, cu, rv] = corners[j];
+              positions.push(x, y, z);
+              normals.push(facing, 0, 0);
+              colors.push(...colour);
+              texCoords.push(cu / FLAG_WIDTH_UNITS, rv / FLAG_HEIGHT_UNITS);
+            }
+          }
+        }
+      }
+    }
+    model = {
+      poles: poles.build().details,
+      cloth: {
+        positions: { value: new Float32Array(positions), size: 3 },
+        normals: { value: new Float32Array(normals), size: 3 },
+        colors: { value: new Float32Array(colors), size: 3 },
+        texCoords: { value: new Float32Array(texCoords), size: 2 },
+      },
+    };
+    flagCache.set(mode, model);
+  }
+  return model;
 }

@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { VehicleModeEnumeration } from "../types.ts";
 import { dimensionsFor } from "./vehicleFootprint.ts";
+import { STOP_POLE_EXAGGERATION } from "../components/Vehicle/stopPoleLayers.ts";
 import { PUMPKIN_ASPECT, TREE_ASPECT } from "./decorationPlacement.ts";
 import {
+  FLAG,
+  FLAG_EXAGGERATION,
   MESH_COLOURS,
+  flagModelFor,
   SIGN_TEXTURE_ASPECT,
   VehicleMesh,
   VehicleModel,
@@ -676,4 +680,150 @@ describe("bodyColourFor", () => {
       }
     }
   });
+});
+
+describe("flagModelFor", () => {
+  const FLAGGED: VehicleModeEnumeration[] = ["BUS", "COACH", "TRAM"];
+  const colourOf = (mesh: VehicleMesh, i: number) =>
+    Array.from(mesh.colors.value.slice(i * 3, i * 3 + 3));
+  const key = (c: number[]) => c.map((v) => v.toFixed(4)).join();
+  const triangleArea = (mesh: VehicleMesh, t: number) => {
+    const p = vertices(mesh).slice(t * 3, t * 3 + 3);
+    const u = [p[1][0] - p[0][0], p[1][1] - p[0][1], p[1][2] - p[0][2]];
+    const v = [p[2][0] - p[0][0], p[2][1] - p[0][1], p[2][2] - p[0][2]];
+    return (
+      Math.hypot(
+        u[1] * v[2] - u[2] * v[1],
+        u[2] * v[0] - u[0] * v[2],
+        u[0] * v[1] - u[1] * v[0],
+      ) / 2
+    );
+  };
+
+  it("is the same exaggeration as the stop poles", () => {
+    expect(FLAG_EXAGGERATION).toBe(STOP_POLE_EXAGGERATION);
+  });
+
+  it("has none for an unflagged mode", () => {
+    for (const mode of ["METRO", "RAIL", "FERRY", "TAXI"] as const)
+      expect(flagModelFor(mode)).toBeNull();
+    expect(flagModelFor("nonsense" as VehicleModeEnumeration)).toBeNull();
+  });
+
+  it("is built once per mode", () => {
+    expect(flagModelFor("BUS")).toBe(flagModelFor("BUS"));
+  });
+
+  for (const mode of FLAGGED) {
+    describe(mode, () => {
+      const { length, width, height } = dimensionsFor(mode);
+      const model = flagModelFor(mode)!;
+
+      it("has whole triangles, unit normals and per-vertex colours", () => {
+        for (const mesh of [model.poles, model.cloth]) {
+          const count = mesh.positions.value.length / 3;
+          expect(count % 3).toBe(0);
+          expect(mesh.normals.value.length).toBe(count * 3);
+          expect(mesh.colors.value.length).toBe(count * 3);
+          for (let i = 0; i < count; i++) {
+            const n = mesh.normals.value;
+            expect(
+              Math.hypot(n[i * 3], n[i * 3 + 1], n[i * 3 + 2]),
+            ).toBeCloseTo(1, 5);
+          }
+        }
+        expect(model.cloth.texCoords.value.length).toBe(
+          (model.cloth.positions.value.length / 3) * 2,
+        );
+      });
+
+      it("stands two poles at the front corners", () => {
+        const v = vertices(model.poles);
+        for (const side of [-1, 1]) {
+          const own = v.filter(
+            (p) => Math.abs(p[0] - side * (width / 2)) < 0.05,
+          );
+          expect(own.length).toBeGreaterThan(0);
+          for (const p of own)
+            expect(Math.abs(p[1] - length / 2)).toBeLessThan(0.1);
+          expect(Math.max(...own.map((p) => p[2]))).toBeCloseTo(
+            height + FLAG.poleHeight * FLAG_EXAGGERATION,
+            2,
+          );
+        }
+        expect(
+          v.every((p) => Math.abs(Math.abs(p[0]) - width / 2) < 0.05),
+        ).toBe(true);
+      });
+
+      it("runs the cloth from the pole towards -y at 16:22", () => {
+        const v = vertices(model.cloth).filter((p) => p[0] > 0);
+        const ys = v.map((p) => p[1]);
+        const zs = v.map((p) => p[2]);
+        const long = Math.max(...ys) - Math.min(...ys);
+        const high = Math.max(...zs) - Math.min(...zs);
+        expect(Math.max(...ys)).toBeCloseTo(length / 2, 2);
+        expect(long).toBeCloseTo(FLAG.clothLength * FLAG_EXAGGERATION, 2);
+        expect(high / long).toBeCloseTo(16 / 22, 2);
+      });
+
+      it("has u 0 at the pole, 1 at the free edge, monotonic in -y", () => {
+        const u = model.cloth.texCoords.value;
+        const v = vertices(model.cloth);
+        const byY = v.map((p, i) => ({ y: p[1], u: u[i * 2] }));
+        const top = Math.max(...byY.map((p) => p.y));
+        const bottom = Math.min(...byY.map((p) => p.y));
+        for (const { y, u: value } of byY) {
+          expect(value).toBeCloseTo((top - y) / (top - bottom), 4);
+        }
+        expect(Math.min(...byY.map((p) => p.u))).toBe(0);
+        expect(Math.max(...byY.map((p) => p.u))).toBeCloseTo(1, 5);
+      });
+
+      it("has at least 8 columns along u", () => {
+        const us = new Set(
+          Array.from(model.cloth.texCoords.value)
+            .filter((_, i) => i % 2 === 0)
+            .map((u) => u.toFixed(5)),
+        );
+        expect(us.size).toBeGreaterThanOrEqual(9);
+      });
+
+      it("is double-sided", () => {
+        const { positions, normals } = model.cloth;
+        const faces = new Map<string, number>();
+        const triangles = positions.value.length / 9;
+        const faceKey = (t: number, flip: number) => {
+          const ps = vertices(model.cloth)
+            .slice(t * 3, t * 3 + 3)
+            .map((p) => p.map((c) => c.toFixed(4)).join())
+            .sort()
+            .join("|");
+          return `${ps}@${flip * Math.sign(normals.value[t * 9])}`;
+        };
+        for (let t = 0; t < triangles; t++) faces.set(faceKey(t, 1), t);
+        for (let t = 0; t < triangles; t++)
+          expect(faces.has(faceKey(t, -1))).toBe(true);
+      });
+
+      it("is only red, white and blue, blue about a fifth of the area", () => {
+        const { flagRed, flagWhite, flagBlue } = MESH_COLOURS;
+        const names = new Map([
+          [key([...flagRed]), "red"],
+          [key([...flagWhite]), "white"],
+          [key([...flagBlue]), "blue"],
+        ]);
+        const area = { red: 0, white: 0, blue: 0 };
+        for (let t = 0; t < model.cloth.positions.value.length / 9; t++) {
+          const name = names.get(key(colourOf(model.cloth, t * 3)));
+          expect(name).toBeDefined();
+          area[name as keyof typeof area] += triangleArea(model.cloth, t);
+        }
+        const total = area.red + area.white + area.blue;
+        const expected = (2 * 22 + 2 * 16 - 4) / (22 * 16);
+        expect(area.blue / total).toBeGreaterThan(expected * 0.9);
+        expect(area.blue / total).toBeLessThan(expected * 1.1);
+      });
+    });
+  }
 });
