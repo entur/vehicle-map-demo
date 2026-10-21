@@ -6,6 +6,7 @@ import { PUMPKIN_ASPECT, TREE_ASPECT } from "./decorationPlacement.ts";
 import {
   FLAG,
   FLAG_EXAGGERATION,
+  FLAG_SPLAY_DEG,
   MESH_COLOURS,
   flagModelFor,
   SIGN_TEXTURE_ASPECT,
@@ -821,34 +822,115 @@ describe("flagModelFor", () => {
         );
       });
 
-      it("runs the cloth from the pole towards -y at 16:22", () => {
-        const v = vertices(model.cloth).filter((p) => p[0] > 0);
-        const ys = v.map((p) => p[1]);
-        const zs = v.map((p) => p[2]);
-        const long = Math.max(...ys) - Math.min(...ys);
-        const high = Math.max(...zs) - Math.min(...zs);
-        // From the pole, the far side of it from the front.
-        const pole = vertices(model.poles).filter((p) => p[0] > 0);
-        const poleYs = pole.map((p) => p[1]);
-        expect(Math.max(...ys)).toBeCloseTo(
-          (Math.max(...poleYs) + Math.min(...poleYs)) / 2,
-          2,
-        );
-        expect(long).toBeCloseTo(FLAG.clothLength * FLAG_EXAGGERATION, 2);
-        expect(high / long).toBeCloseTo(16 / 22, 2);
+      /** One side's cloth: its vertices with their u, and the plan direction. */
+      const clothOn = (side: number) => {
+        const u = model.cloth.texCoords.value;
+        const own = vertices(model.cloth)
+          .map((p, i) => ({ p, u: u[i * 2] }))
+          .filter(({ p }) => Math.sign(p[0]) === side);
+        const edge = (at: number) => {
+          const ps = own.filter((v) => v.u === at).map((v) => v.p);
+          return [0, 1].map(
+            (c) => ps.reduce((sum, p) => sum + p[c], 0) / ps.length,
+          );
+        };
+        const pole = edge(0);
+        const free = edge(1);
+        const along = [free[0] - pole[0], free[1] - pole[1]];
+        const length = Math.hypot(along[0], along[1]);
+        return {
+          own,
+          pole,
+          length,
+          direction: [along[0] / length, along[1] / length],
+        };
+      };
+
+      it("splays each cloth out from -y to its own side", () => {
+        expect(FLAG_SPLAY_DEG).toBe(20);
+        for (const side of [-1, 1]) {
+          const { direction } = clothOn(side);
+          const angle = (Math.acos(-direction[1]) * 180) / Math.PI;
+          expect(Math.abs(angle - FLAG_SPLAY_DEG)).toBeLessThan(0.5);
+          // Outward: the free edge further out on its side than the pole.
+          expect(Math.sign(direction[0])).toBe(side);
+        }
       });
 
-      it("has u 0 at the pole, 1 at the free edge, monotonic in -y", () => {
-        const u = model.cloth.texCoords.value;
-        const v = vertices(model.cloth);
-        const byY = v.map((p, i) => ({ y: p[1], u: u[i * 2] }));
-        const top = Math.max(...byY.map((p) => p.y));
-        const bottom = Math.min(...byY.map((p) => p.y));
-        for (const { y, u: value } of byY) {
-          expect(value).toBeCloseTo((top - y) / (top - bottom), 4);
+      it("keeps each cloth wholly on its own side of the axis", () => {
+        // The shader takes the side from the sign of model x.
+        for (const side of [-1, 1])
+          for (const { p } of clothOn(side).own)
+            expect(side * p[0]).toBeGreaterThan(width / 4);
+        expect(clothOn(-1).own.length + clothOn(1).own.length).toBe(
+          vertices(model.cloth).length,
+        );
+      });
+
+      it("runs the cloth from the pole, its length along its plane, at 16:22", () => {
+        for (const side of [-1, 1]) {
+          const { own, pole, length } = clothOn(side);
+          const zs = own.map(({ p }) => p[2]);
+          const high = Math.max(...zs) - Math.min(...zs);
+          // Hung from the pole's centre.
+          const poleVs = poleOn(side);
+          const mid = (c: number) =>
+            (Math.max(...poleVs.map((p) => p[c])) +
+              Math.min(...poleVs.map((p) => p[c]))) /
+            2;
+          expect(pole[0]).toBeCloseTo(mid(0), 4);
+          expect(pole[1]).toBeCloseTo(mid(1), 4);
+          expect(
+            Math.abs(length - FLAG.clothLength * FLAG_EXAGGERATION),
+          ).toBeLessThan(0.01);
+          expect(high / length).toBeCloseTo(16 / 22, 2);
         }
-        expect(Math.min(...byY.map((p) => p.u))).toBe(0);
-        expect(Math.max(...byY.map((p) => p.u))).toBeCloseTo(1, 5);
+      });
+
+      it("has u 0 at the pole, 1 at the free edge, along the cloth", () => {
+        for (const side of [-1, 1]) {
+          const { own, pole, length, direction } = clothOn(side);
+          for (const { p, u } of own) {
+            const along =
+              (p[0] - pole[0]) * direction[0] + (p[1] - pole[1]) * direction[1];
+            expect(u).toBeCloseTo(along / length, 4);
+          }
+          expect(Math.min(...own.map(({ u }) => u))).toBe(0);
+          expect(Math.max(...own.map(({ u }) => u))).toBeCloseTo(1, 5);
+        }
+      });
+
+      it("turns the normals with the cloth, in its winding", () => {
+        const p = vertices(model.cloth);
+        const n = model.cloth.normals.value;
+        const directions = new Map(
+          [-1, 1].map((side) => [side, clothOn(side).direction]),
+        );
+        for (let t = 0; t < p.length / 3; t++) {
+          const [a, b, c] = p.slice(t * 3, t * 3 + 3);
+          const e1 = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
+          const e2 = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
+          const cross = [
+            e1[1] * e2[2] - e1[2] * e2[1],
+            e1[2] * e2[0] - e1[0] * e2[2],
+            e1[0] * e2[1] - e1[1] * e2[0],
+          ];
+          const direction = directions.get(Math.sign(a[0]))!;
+          for (let k = 0; k < 3; k++) {
+            const i = (t * 3 + k) * 3;
+            const normal = [n[i], n[i + 1], n[i + 2]];
+            expect(
+              cross[0] * normal[0] +
+                cross[1] * normal[1] +
+                cross[2] * normal[2],
+            ).toBeGreaterThan(0);
+            // Perpendicular to the splayed plane.
+            expect(normal[2]).toBeCloseTo(0, 6);
+            expect(
+              normal[0] * direction[0] + normal[1] * direction[1],
+            ).toBeCloseTo(0, 4);
+          }
+        }
       });
 
       it("has at least 8 columns along u", () => {

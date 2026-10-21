@@ -2398,6 +2398,13 @@ export const FLAG = {
   poleWidth: 0.015,
 } as const;
 
+/**
+ * The angle in plan between each cloth and the model's −y, opening outward
+ * to its own side: streaming straight back, a flag is edge-on to the chase
+ * camera behind.
+ */
+export const FLAG_SPLAY_DEG = 20;
+
 /** The modes that fly flags. */
 export const FLAGGED_MODES: ReadonlySet<VehicleModeEnumeration> = new Set([
   "BUS",
@@ -2477,7 +2484,9 @@ function flagMountFor(mode: VehicleModeEnumeration): FlagMount {
  * Two flags for a vehicle's front corners, in model space (+y forward):
  * a pole planted on the roof at each, inside the body's rounded corners and
  * edges (`flagMountFor`), rising clear of it, with the cloth streaming back
- * towards −y in the y–z plane. Sizes are `FLAG_EXAGGERATION` times life size.
+ * towards −y and turned `FLAG_SPLAY_DEG` out to its own side, upright. Each
+ * cloth stays on its own side of x = 0, which the renderer reads the side by.
+ * Sizes are `FLAG_EXAGGERATION` times life size.
  * Null for a mode that carries none. Built once per mode.
  */
 export function flagModelFor(mode: VehicleModeEnumeration): FlagModel | null {
@@ -2494,6 +2503,7 @@ export function flagModelFor(mode: VehicleModeEnumeration): FlagModel | null {
     const clothHeight = FLAG.clothHeight * k;
     // The cloth hangs from just under the pole's top.
     const clothTop = poleTop - 0.05 * k;
+    const splay = (FLAG_SPLAY_DEG * Math.PI) / 180;
     const poles = new MeshBuilder();
     const positions: number[] = [];
     const normals: number[] = [];
@@ -2501,6 +2511,9 @@ export function flagModelFor(mode: VehicleModeEnumeration): FlagModel | null {
     const texCoords: number[] = [];
     for (const side of [-1, 1]) {
       const x = side * (mount.x - poleWidth / 2);
+      // Along the cloth in plan, and the front face's normal across it.
+      const [dx, dy] = [side * Math.sin(splay), -Math.cos(splay)];
+      const [nx, ny] = [Math.cos(splay), side * Math.sin(splay)];
       // Sunk a little into the roof, so no seam shows at its foot.
       const base = mount.z - 0.02;
       poles.box(
@@ -2519,25 +2532,25 @@ export function flagModelFor(mode: VehicleModeEnumeration): FlagModel | null {
         for (let row = 0; row < 5; row++) {
           const [r0, r1] = [rowEdges[row], rowEdges[row + 1]];
           const colour = flagColour(column, row);
-          const ya = poleY - (c0 / FLAG_WIDTH_UNITS) * clothLength;
-          const yb = poleY - (c1 / FLAG_WIDTH_UNITS) * clothLength;
+          const sa = (c0 / FLAG_WIDTH_UNITS) * clothLength;
+          const sb = (c1 / FLAG_WIDTH_UNITS) * clothLength;
           const za = clothTop - (r0 / FLAG_HEIGHT_UNITS) * clothHeight;
           const zb = clothTop - (r1 / FLAG_HEIGHT_UNITS) * clothHeight;
           // Corners: top-near, top-far, bottom-far, bottom-near.
           const corners: [number, number, number, number][] = [
-            [ya, za, c0, r0],
-            [yb, za, c1, r0],
-            [yb, zb, c1, r1],
-            [ya, zb, c0, r1],
+            [sa, za, c0, r0],
+            [sb, za, c1, r0],
+            [sb, zb, c1, r1],
+            [sa, zb, c0, r1],
           ];
-          // Front faces +x with this order; the back face reverses it.
+          // Front faces (nx, ny) with this order; the back face reverses it.
           for (const facing of [1, -1]) {
             const order =
               facing === 1 ? [0, 1, 2, 0, 2, 3] : [0, 2, 1, 0, 3, 2];
             for (const j of order) {
-              const [y, z, cu, rv] = corners[j];
-              positions.push(x, y, z);
-              normals.push(facing, 0, 0);
+              const [along, z, cu, rv] = corners[j];
+              positions.push(x + dx * along, poleY + dy * along, z);
+              normals.push(facing * nx, facing * ny, 0);
               colors.push(...colour);
               texCoords.push(cu / FLAG_WIDTH_UNITS, rv / FLAG_HEIGHT_UNITS);
             }
