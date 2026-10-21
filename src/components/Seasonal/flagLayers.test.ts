@@ -19,7 +19,6 @@ import {
 import {
   FLAG,
   FLAG_EXAGGERATION,
-  FLAG_SPLAY_DEG,
   flagModelFor,
 } from "../../domain/vehicleMeshes.ts";
 import {
@@ -275,16 +274,11 @@ describe("FlutterExtension", () => {
     expect(glsl).toContain("instanceFlutterPhases");
   });
 
-  it("displaces each cloth across its own splayed plane", () => {
+  it("displaces each cloth outward along model x, to its own side", () => {
     // The side from model x, which a face and its back face share.
     expect(glsl).toContain("sign(positions.x)");
     expect(glsl).toContain("instanceModelMatrixCol0");
-    expect(glsl).toContain("instanceModelMatrixCol1");
-    const radians = (FLAG_SPLAY_DEG * Math.PI) / 180;
-    const define = (name: string) =>
-      Number(glsl.match(new RegExp(`#define ${name} (\\S+)`))?.[1]);
-    expect(define("FLAG_SPLAY_COS")).toBeCloseTo(Math.cos(radians), 6);
-    expect(define("FLAG_SPLAY_SIN")).toBeCloseTo(Math.sin(radians), 6);
+    expect(glsl).not.toContain("instanceModelMatrixCol1");
   });
 
   it("carries the FLUTTER_* constants from the domain", () => {

@@ -6,7 +6,6 @@ import {
   FLUTTER_STILL,
   FLUTTER_WAVES,
 } from "../../domain/flutter.ts";
-import { FLAG_SPLAY_DEG } from "../../domain/vehicleMeshes.ts";
 
 export type FlutterExtensionProps<D> = {
   /** Each vehicle's phase, 0–1, so flags do not flutter in step. */
@@ -32,16 +31,12 @@ const glslFloat = (n: number) =>
  * The block's members must be in the order and of the types of `uniformTypes`:
  * luma.gl packs the values by that table, not by name.
  */
-const splay = (FLAG_SPLAY_DEG * Math.PI) / 180;
-
 const uniformBlock = /* glsl */ `\
 #define FLUTTER_PERIOD_S ${glslFloat(FLUTTER_PERIOD_S)}
 #define FLUTTER_AMPLITUDE ${glslFloat(FLUTTER_AMPLITUDE)}
 #define FLUTTER_WAVES ${glslFloat(FLUTTER_WAVES)}
 #define FLUTTER_STILL ${glslFloat(FLUTTER_STILL)}
 #define FLUTTER_PI 3.141592653589793
-#define FLAG_SPLAY_COS ${glslFloat(Math.cos(splay))}
-#define FLAG_SPLAY_SIN ${glslFloat(Math.sin(splay))}
 
 layout(std140) uniform flutterUniforms {
   float timeS;
@@ -51,16 +46,15 @@ layout(std140) uniform flutterUniforms {
 `;
 
 /**
- * `flutterOffset` in src/domain/flutter.ts, per vertex, across the cloth's own
- * plane: each cloth is turned `FLAG_SPLAY_DEG` out from −y to its side, so its
- * outward normal in model space is (side·cos, sin, 0). The side is the sign of
- * model x, where `flagModelFor` keeps each cloth wholly: a face and its back
- * face share their positions and so move together, which the normal's sign
- * would not give, and the mesh needs no extra attribute. The mesh's positions
- * are an attribute and cannot be rewritten, and no hook runs before the
- * instance transform, so the offset is taken through it here, where the
- * attributes are in scope: columns 0 and 1 of the instance's model matrix are
- * where model x and y land. `fract` keeps `sin`'s argument within one turn,
+ * `flutterOffset` in src/domain/flutter.ts, per vertex, along model x and
+ * outward to each cloth's own side, so the two flags mirror each other. The
+ * side is the sign of model x, where `flagModelFor` keeps each cloth wholly: a
+ * face and its back face share their positions and so move together, which
+ * the normal's sign would not give, and the mesh needs no extra attribute. The
+ * mesh's positions are an attribute and cannot be rewritten, and no hook runs
+ * before the instance transform, so the offset is taken through it here, where
+ * the attributes are in scope: column 0 of the instance's model matrix is
+ * where model x lands. `fract` keeps `sin`'s argument within one turn,
  * which some mobile GPUs reduce poorly.
  */
 const mainStart = /* glsl */ `\
@@ -73,9 +67,7 @@ const mainStart = /* glsl */ `\
     + flutter.amount * FLUTTER_AMPLITUDE * flutterTravelling
   );
   float flutterSide = sign(positions.x);
-  vec3 flutterAcross = instanceModelMatrixCol0 * (flutterSide * FLAG_SPLAY_COS)
-    + instanceModelMatrixCol1 * FLAG_SPLAY_SIN;
-  flutter_displacement = flutterAcross * (flutterShare * flutter.clothLength);
+  flutter_displacement = instanceModelMatrixCol0 * (flutterSide * flutterShare * flutter.clothLength);
 `;
 
 /**

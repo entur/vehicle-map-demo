@@ -6,7 +6,6 @@ import { PUMPKIN_ASPECT, TREE_ASPECT } from "./decorationPlacement.ts";
 import {
   FLAG,
   FLAG_EXAGGERATION,
-  FLAG_SPLAY_DEG,
   MESH_COLOURS,
   flagModelFor,
   SIGN_TEXTURE_ASPECT,
@@ -846,14 +845,11 @@ describe("flagModelFor", () => {
         };
       };
 
-      it("splays each cloth out from -y to its own side", () => {
-        expect(FLAG_SPLAY_DEG).toBe(20);
+      it("streams each cloth straight back along -y", () => {
         for (const side of [-1, 1]) {
           const { direction } = clothOn(side);
-          const angle = (Math.acos(-direction[1]) * 180) / Math.PI;
-          expect(Math.abs(angle - FLAG_SPLAY_DEG)).toBeLessThan(0.5);
-          // Outward: the free edge further out on its side than the pole.
-          expect(Math.sign(direction[0])).toBe(side);
+          expect(direction[0]).toBeCloseTo(0, 6);
+          expect(direction[1]).toBeCloseTo(-1, 6);
         }
       });
 
@@ -924,7 +920,7 @@ describe("flagModelFor", () => {
                 cross[1] * normal[1] +
                 cross[2] * normal[2],
             ).toBeGreaterThan(0);
-            // Perpendicular to the splayed plane.
+            // Perpendicular to the cloth.
             expect(normal[2]).toBeCloseTo(0, 6);
             expect(
               normal[0] * direction[0] + normal[1] * direction[1],

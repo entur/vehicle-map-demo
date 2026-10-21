@@ -23,8 +23,8 @@ This is the first decoration that rides **on the vehicles** rather than standing
   seeing it, so it is one constant.
 - The flags **flutter gently**:
   - each vehicle's flags in their own rhythm
-  - streaming back from the pole, away from the direction of travel, each cloth angled about
-    20° out to its own side so the chase camera behind sees it rather than its edge
+  - streaming straight back from the pole, away from the direction of travel (a 20° outward
+    angle was tried for the chase camera behind and dropped: they looked better straight)
   - lying still under `prefers-reduced-motion: reduce`
   - settling after 60 s without input or camera movement, like the Christmas lights
 - `?season=17mai` forces the season on any date, and `?season=none` still forces everything off.
@@ -111,7 +111,7 @@ Both carry over from the earlier seasons:
 - **Mounting:** on the front corners, high enough to clear the roof line from a camera behind,
   with the pole at the corner.
 - **Flutter:** each vehicle has its own phase, and the cloth streams backwards in model space,
-  turned 20° out to its side (`FLAG_SPLAY_DEG`), fluttering across its own plane.
+  fluttering outward to its own side, so the two flags mirror each other.
   The wind and the vehicle's speed are ignored, because most feeds publish no speed.
 - **Flag colours:** `#BA0C2F` and `#00205B`.
 - **In the 2D view:** flags are drawn wherever models are drawn, which includes the 2D view
