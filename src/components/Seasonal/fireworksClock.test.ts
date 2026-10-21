@@ -74,10 +74,18 @@ describe("FireworksClock", () => {
         busy: () => busy,
       },
       view: () => ({
-        bounds: [
-          [0, 0],
-          [1, 1],
-        ],
+        area: {
+          strip: [
+            [0, 1],
+            [1, 1],
+            [0, 0],
+            [1, 0],
+          ],
+          view: [
+            [0, 0],
+            [1, 1],
+          ],
+        },
         groundAt: () => 0,
         centreGroundM: 0,
       }),

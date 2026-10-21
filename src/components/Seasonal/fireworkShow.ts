@@ -6,14 +6,14 @@ import {
 import {
   BARRAGE_INTERVAL_MS,
   groundFor,
-  launchPoint,
+  launchPointIn,
   scatteredDelayMs,
   scatteredLaunch,
   slotAt,
   slotLaunches,
   type Launch,
+  type LaunchArea,
 } from "../../domain/fireworkSchedule.ts";
-import type { ViewBounds } from "../../domain/vehiclesInView.ts";
 
 /** A due launch older than this is skipped, not fired late. */
 export const LAUNCH_GRACE_MS = 500;
@@ -30,7 +30,7 @@ export type Burst = {
 };
 
 export type LaunchView = {
-  bounds: ViewBounds;
+  area: LaunchArea;
   groundAt: (lngLat: [number, number]) => number | null;
   centreGroundM: number | null;
 };
@@ -119,7 +119,7 @@ export class FireworkShow {
   }
 
   private burstFor(key: string, launch: Launch, view: LaunchView): Burst {
-    const point = launchPoint(view.bounds, launch.fx, launch.fy);
+    const point = launchPointIn(view.area, launch.fx, launch.fy);
     const ground = groundFor(view.groundAt(point), view.centreGroundM);
     return {
       key,

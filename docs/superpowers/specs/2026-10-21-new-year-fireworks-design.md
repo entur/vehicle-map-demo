@@ -97,7 +97,10 @@ between Christmas and New Year, when the map is actually in use.
   rather than easing an amount to 0.
 - **Where rockets go up.** Inside the view the vehicles use (`cappedViewBounds`, never
   `map.getBounds()`), so tilted towards the horizon they do not go up kilometres away, and within
-  it over the ground under the **lower 60% of the screen** (`LAUNCH_SCREEN_SHARE`, `launchBounds`).
+  it over the ground under the **lower 60% of the screen** (`LAUNCH_SCREEN_SHARE`, `launchPointIn`): a launch's share across and up the screen is
+  interpolated over the four corners of that strip's ground, not over their box, since a chase turns
+  the map with the vehicle and a turned strip's box is up to twice the strip; the map's bottom
+  padding (the phone's sheet, the kiosk's band) is left out of the screen.
   (Changed for the chase camera at Lasse's request: spread over the whole view's box, most rockets
   went up over its far, upper part and burst above the top of the screen, in a chase nearly all.)
   Bursts are **60–120 m** above the ground at their launch point, with heights from
@@ -249,9 +252,10 @@ absorbs. Without a GPU every one of those repaints is a full render of the 3D ma
 here, so a map with rockets in the air draws 8–10 fps where the vehicles alone left it at 27–60.
 The cost is the repaint, not the sparks: two scattered rockets, a 17-rocket barrage and the finale
 all land at 8–10 fps, so a barrage leaves the map no slower than a single rocket does, and it
-stays usable. A chase already repaints every frame it can, so on the GPU fireworks change nothing (the GPU
-chase ran into a real barrage slot: 15 rockets) and on swiftshader the sparks' own drawing
-takes about a quarter more (6.2 to 4.7 fps). An idle map does no work between barrages: 0 repaints in 10 s on
+stays usable. In a chase on the GPU the fireworks raise repaints from 882 to 1201 in 20 s (the chase camera
+alone repaints most frames, the fireworks every one), and frame rate stays at 60 fps with no frame
+over 25 ms; that run met a real barrage slot, 15 rockets. On swiftshader, with 2 rockets in the
+air, the chase dropped from 6.2 to 4.7 fps: mean frame time from 161 to 213 ms, 32% more. An idle map does no work between barrages: 0 repaints in 10 s on
 both renderers. With a page date set just before a slot (development build), an idle map with the
 feed muted repainted 0 times in the 10 s before the slot, woke for the barrage on its own (14
 rockets, 759 repaints in 12 s) and repainted 0 times again in the 10 s after it had faded. Under

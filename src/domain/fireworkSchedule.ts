@@ -123,44 +123,68 @@ export function launchPoint(
 }
 
 /**
- * The screen points, in pixels, whose ground bounds the launches: the corners
- * of the lower `LAUNCH_SCREEN_SHARE` of a `width` × `height` screen.
+ * The screen points, in pixels, whose ground the launches spread over: the
+ * corners of the lower `LAUNCH_SCREEN_SHARE` of the part of a `width` ×
+ * `height` screen the map is seen through, top left, top right, bottom left,
+ * bottom right. `bottomPx` is the map's bottom padding, which covers it (the
+ * phone's detail sheet, the kiosk's band); the other edges' padding frames the
+ * camera rather than covering the map, as the chase's top padding does.
  */
-export function launchStrip(width: number, height: number): [number, number][] {
-  const top = height * (1 - LAUNCH_SCREEN_SHARE);
+export function launchStrip(
+  width: number,
+  height: number,
+  bottomPx = 0,
+): [Corner, Corner, Corner, Corner] {
+  const bottom = Math.max(0, height - bottomPx);
+  const top = bottom * (1 - LAUNCH_SCREEN_SHARE);
   return [
     [0, top],
     [width, top],
-    [0, height],
-    [width, height],
+    [0, bottom],
+    [width, bottom],
   ];
 }
 
+type Corner = [number, number];
+
 /**
- * Where rockets go up: the box around the ground under the launch strip
- * (`corners`, longitude and latitude), within the view the vehicles use. A
- * strip that misses that view, or a corner that could not be placed, leaves
- * the whole view.
+ * Where rockets may go up: `strip`, the ground under `launchStrip`'s corners
+ * as longitude and latitude in the same order, and `view`, the view the
+ * vehicles use.
  */
-export function launchBounds(
-  corners: readonly [number, number][],
-  [[west, south], [east, north]]: ViewBounds,
-): ViewBounds {
-  const lngs = corners.map(([lng]) => lng);
-  const lats = corners.map(([, lat]) => lat);
-  const w = Math.max(west, Math.min(...lngs));
-  const e = Math.min(east, Math.max(...lngs));
-  const s = Math.max(south, Math.min(...lats));
-  const n = Math.min(north, Math.max(...lats));
-  if (!(w < e && s < n)) {
-    return [
-      [west, south],
-      [east, north],
-    ];
+export type LaunchArea = {
+  strip: [Corner, Corner, Corner, Corner];
+  view: ViewBounds;
+};
+
+/**
+ * The longitude and latitude of a launch: `fx` across the screen, `fy` up from
+ * its bottom edge, interpolated over the strip's own four corners rather than
+ * over their box, which on a turned map (a chase follows the vehicle's
+ * heading) is up to twice the strip and reaches off screen. A point outside
+ * the view the vehicles use is moved to its edge; a corner that could not be
+ * placed leaves the whole view.
+ */
+export function launchPointIn(
+  { strip, view }: LaunchArea,
+  fx: number,
+  fy: number,
+): [number, number] {
+  if (
+    !strip.every(([lng, lat]) => Number.isFinite(lng) && Number.isFinite(lat))
+  ) {
+    return launchPoint(view, fx, fy);
   }
+  const [tl, tr, bl, br] = strip;
+  const lerp = (a: Corner, b: Corner, f: number): Corner => [
+    a[0] + (b[0] - a[0]) * f,
+    a[1] + (b[1] - a[1]) * f,
+  ];
+  const [lng, lat] = lerp(lerp(bl, br, fx), lerp(tl, tr, fx), fy);
+  const [[west, south], [east, north]] = view;
   return [
-    [w, s],
-    [e, n],
+    Math.min(east, Math.max(west, lng)),
+    Math.min(north, Math.max(south, lat)),
   ];
 }
 

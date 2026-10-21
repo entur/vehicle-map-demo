@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { burstDurationS } from "../../domain/fireworks.ts";
 import {
-  launchPoint,
+  launchPointIn,
   slotAt,
   slotLaunches,
 } from "../../domain/fireworkSchedule.ts";
@@ -20,10 +20,18 @@ vi.mock("../../domain/fireworkSchedule.ts", async (original) => {
 });
 
 const view: LaunchView = {
-  bounds: [
-    [10, 59],
-    [11, 60],
-  ],
+  area: {
+    strip: [
+      [10, 60],
+      [11, 60],
+      [10, 59],
+      [11, 59],
+    ],
+    view: [
+      [10, 59],
+      [11, 60],
+    ],
+  },
   groundAt: () => 100,
   centreGroundM: 100,
 };
@@ -59,7 +67,7 @@ describe("FireworkShow", () => {
       expect(b.key).toBe(`slot:${BARRAGE_START}:${i}`);
       expect(b.launchMs).toBe(l.atMs);
       expect(b.position.slice(0, 2)).toEqual(
-        launchPoint(view.bounds, l.fx, l.fy),
+        launchPointIn(view.area, l.fx, l.fy),
       );
       expect(b.sparks).toHaveLength(BURST_SPARKS);
     });
