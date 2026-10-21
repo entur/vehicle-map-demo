@@ -11,18 +11,17 @@ import {
 } from "../../domain/fireworks.ts";
 
 export type FireworksExtensionProps<D> = {
-  /** Seconds since launch are this less the instance's `getLaunchS`. */
+  /** Seconds since launch are this less the instance's launch. */
   fireworksTimeS: number;
-  getLaunchS: (d: D) => number;
-  /** The spark's unit direction, east, north, up. */
-  getDirection: (d: D) => Vec3;
-  getSpeed: (d: D) => number;
-  /** How far a trail sample runs behind its spark, in seconds. */
-  getLagS: (d: D) => number;
-  /** 0 the rocket's head, 1 a spark. */
-  getKind: (d: D) => number;
-  /** How far below the burst the rocket starts, in metres. */
-  getHeightM: (d: D) => number;
+  /** The spark's launch velocity, east, north, up, in m/s. */
+  getVelocity: (d: D) => Vec3;
+  /**
+   * The rest of the instance's flight, packed into one attribute: launch in
+   * seconds, how far a trail sample runs behind its spark in seconds, kind (0
+   * the rocket's head, 1 a spark) and how far below the burst the rocket
+   * starts, in metres.
+   */
+  getFlight: (d: D) => [number, number, number, number];
 };
 
 type FireworksUniforms = {
@@ -51,12 +50,8 @@ layout(std140) uniform fireworksUniforms {
 `;
 
 const declarations = /* glsl */ `\
-in float instanceFireworkLaunchS;
-in vec3 instanceFireworkDirections;
-in float instanceFireworkSpeeds;
-in float instanceFireworkLagS;
-in float instanceFireworkKinds;
-in float instanceFireworkHeightM;
+in vec3 instanceFireworkVelocities;
+in vec4 instanceFireworkFlights;
 vec3 fireworks_offset;
 float fireworks_brightness;
 `;
@@ -74,25 +69,29 @@ float fireworks_brightness;
  * Each trail sample is dimmer than the one ahead of it.
  */
 const mainStart = /* glsl */ `\
-  float fireworksAge = fireworks.timeS - instanceFireworkLaunchS;
-  if (instanceFireworkKinds < 0.5) {
+  float fireworksLaunchS = instanceFireworkFlights.x;
+  float fireworksLagS = instanceFireworkFlights.y;
+  float fireworksKind = instanceFireworkFlights.z;
+  float fireworksHeightM = instanceFireworkFlights.w;
+  float fireworksAge = fireworks.timeS - fireworksLaunchS;
+  if (fireworksKind < 0.5) {
     float fireworksU = clamp(fireworksAge / FIREWORKS_RISE_S, 0.0, 1.0);
     float fireworksRise = 1.0 - (1.0 - fireworksU) * (1.0 - fireworksU);
-    fireworks_offset = vec3(0.0, 0.0, (fireworksRise - 1.0) * instanceFireworkHeightM);
+    fireworks_offset = vec3(0.0, 0.0, (fireworksRise - 1.0) * fireworksHeightM);
     fireworks_brightness =
       fireworksAge >= 0.0 && fireworksAge < FIREWORKS_RISE_S ? 1.0 : 0.0;
   } else {
-    float fireworksSparkT = fireworksAge - FIREWORKS_RISE_S - instanceFireworkLagS;
+    float fireworksSparkT = fireworksAge - FIREWORKS_RISE_S - fireworksLagS;
     float fireworksT = max(fireworksSparkT, 0.0);
     float fireworksD = 1.0 - exp(-FIREWORKS_SPARK_DRAG * fireworksT);
-    float fireworksReach = instanceFireworkSpeeds * fireworksD / FIREWORKS_SPARK_DRAG;
+    float fireworksReach = fireworksD / FIREWORKS_SPARK_DRAG;
     float fireworksFall = FIREWORKS_SPARK_GRAVITY / FIREWORKS_SPARK_DRAG
       * (fireworksT - fireworksD / FIREWORKS_SPARK_DRAG);
-    fireworks_offset = instanceFireworkDirections * fireworksReach
+    fireworks_offset = instanceFireworkVelocities * fireworksReach
       - vec3(0.0, 0.0, fireworksFall);
     float fireworksLife = 1.0 - min(1.0, fireworksT / FIREWORKS_SPARK_LIFE_S);
     float fireworksTrail = 1.0
-      - instanceFireworkLagS / FIREWORKS_TRAIL_LAG_S / FIREWORKS_TRAIL_SAMPLES;
+      - fireworksLagS / FIREWORKS_TRAIL_LAG_S / FIREWORKS_TRAIL_SAMPLES;
     fireworks_brightness = fireworksSparkT < 0.0
       ? 0.0
       : fireworksLife * fireworksLife * fireworksTrail;
@@ -142,23 +141,22 @@ export const fireworksShaderModule = {
 type FireworksLayer = Layer<FireworksExtensionProps<unknown>>;
 
 /**
- * Flies a `SimpleMeshLayer`'s sparks in the shader: each instance's launch,
- * direction, speed, trail lag, kind and height are instanced attributes
- * uploaded with the data, and the time is a uniform, so a frame changes a
- * uniform only.
+ * Flies a `SimpleMeshLayer`'s sparks in the shader: each instance's velocity,
+ * launch, trail lag, kind and height are instanced attributes uploaded with
+ * the data, and the time is a uniform, so a frame changes a uniform only.
+ *
+ * They are packed into two attributes because `SimpleMeshLayer` already uses
+ * 11 of the 16 WebGL2 guarantees: one each, they made 17, and the program
+ * failed to link.
  */
 export class FireworksExtension extends LayerExtension {
   static extensionName = "FireworksExtension";
 
   static defaultProps = {
     fireworksTimeS: 0,
-    getLaunchS: { type: "accessor", value: 0 },
-    getDirection: { type: "accessor", value: [0, 0, 1] },
-    getSpeed: { type: "accessor", value: 0 },
-    getLagS: { type: "accessor", value: 0 },
+    getVelocity: { type: "accessor", value: [0, 0, 0] },
     // A spark, by far the common kind: a burst has one head.
-    getKind: { type: "accessor", value: 1 },
-    getHeightM: { type: "accessor", value: 0 },
+    getFlight: { type: "accessor", value: [0, 0, 1, 0] },
   };
 
   getShaders() {
@@ -167,12 +165,8 @@ export class FireworksExtension extends LayerExtension {
 
   initializeState(this: FireworksLayer) {
     this.getAttributeManager()?.addInstanced({
-      instanceFireworkLaunchS: { size: 1, accessor: "getLaunchS" },
-      instanceFireworkDirections: { size: 3, accessor: "getDirection" },
-      instanceFireworkSpeeds: { size: 1, accessor: "getSpeed" },
-      instanceFireworkLagS: { size: 1, accessor: "getLagS" },
-      instanceFireworkKinds: { size: 1, accessor: "getKind" },
-      instanceFireworkHeightM: { size: 1, accessor: "getHeightM" },
+      instanceFireworkVelocities: { size: 3, accessor: "getVelocity" },
+      instanceFireworkFlights: { size: 4, accessor: "getFlight" },
     });
   }
 

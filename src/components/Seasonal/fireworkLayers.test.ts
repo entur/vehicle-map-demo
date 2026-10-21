@@ -129,15 +129,56 @@ describe("fireworkLayers", () => {
     for (const accessor of [
       "getPosition",
       "getColor",
-      "getLaunchS",
-      "getDirection",
-      "getSpeed",
-      "getLagS",
-      "getKind",
-      "getHeightM",
+      "getVelocity",
+      "getFlight",
     ]) {
       expect(updateTriggers[accessor]).toBe(42);
     }
+  });
+
+  it("packs each instance's flight into two attributes", () => {
+    const props = fireworkLayers(instances, options())[0].props as unknown as {
+      getVelocity: (i: SparkInstance) => number[];
+      getFlight: (i: SparkInstance) => number[];
+    };
+    const spark = instances[2];
+    expect(props.getVelocity(spark)).toEqual(
+      spark.direction.map((c) => c * spark.speed),
+    );
+    expect(props.getFlight(spark)).toEqual([
+      spark.launchS,
+      spark.lagS,
+      spark.kind,
+      spark.heightM,
+    ]);
+  });
+
+  it("fits the 16 vertex attributes WebGL2 guarantees", () => {
+    // Over 16, the program fails to link and nothing is drawn, with no error
+    // but luma.gl's in the console.
+    const [layer] = fireworkLayers(instances, options());
+    const shaders = (
+      Object.assign(layer, {
+        context: { defaultShaderModules: [] },
+      }) as never as {
+        getShaders: () => {
+          vs: string;
+          modules: { vs?: string; inject?: Record<string, string> }[];
+        };
+      }
+    ).getShaders();
+    const sources = [
+      shaders.vs,
+      ...shaders.modules.flatMap((m) => [
+        m.vs ?? "",
+        m.inject?.["vs:#decl"] ?? "",
+      ]),
+    ];
+    const attributes = sources.flatMap(
+      (source) => source.match(/^\s*in\s+\w+\s+\w+\s*;/gm) ?? [],
+    );
+    expect(attributes.length).toBeGreaterThan(10);
+    expect(attributes.length).toBeLessThanOrEqual(16);
   });
 
   it("passes the time to the shader", () => {
@@ -202,12 +243,8 @@ describe("FireworksExtension", () => {
   it("reads every instance's launch data", () => {
     const decl = fireworksShaderModule.inject["vs:#decl"];
     for (const attribute of [
-      "in float instanceFireworkLaunchS;",
-      "in vec3 instanceFireworkDirections;",
-      "in float instanceFireworkSpeeds;",
-      "in float instanceFireworkLagS;",
-      "in float instanceFireworkKinds;",
-      "in float instanceFireworkHeightM;",
+      "in vec3 instanceFireworkVelocities;",
+      "in vec4 instanceFireworkFlights;",
     ]) {
       expect(decl).toContain(attribute);
     }
