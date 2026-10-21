@@ -7,7 +7,7 @@ import { cappedViewBounds } from "../../utils/cappedViewBounds.ts";
 import { useKioskInput } from "../../hooks/useKioskInput.ts";
 import { pumpkinLayers } from "./pumpkinLayers.ts";
 import { christmasTreeLayers } from "./christmasTreeLayers.ts";
-import { TwinkleClock, type TwinkleState } from "./twinkleClock.ts";
+import { AnimationClock, type AnimationState } from "./animationClock.ts";
 import {
   DecorationController,
   NOTHING_PLACED,
@@ -27,7 +27,7 @@ export const DECORATION_CHASE_INTERVAL_MS = 1000;
 const DECORATION_INTERVAL_MS = 250;
 
 /** Lights fully lit and still: no clock, or reduced motion. */
-const STEADY: TwinkleState = { timeS: 0, amount: 0 };
+const STEADY: AnimationState = { timeS: 0, amount: 0 };
 
 const prefersReducedMotion = () =>
   typeof window !== "undefined" &&
@@ -49,7 +49,7 @@ type SeasonalWindow = {
  * lighting, and both only draw the same decorations again. Off-season nothing
  * is listened to or read.
  *
- * The trees' lights twinkle by a `TwinkleClock`, which exists only while trees
+ * The trees' lights twinkle by an `AnimationClock`, which exists only while trees
  * are placed and shown. Each tick draws the same trees again with a new
  * twinkle state — only the bulb layers' uniforms change — and sets no React
  * state.
@@ -103,7 +103,7 @@ export function useSeasonalDecorations({
   }, [placed]);
 
   const draw = useCallback(
-    (twinkle: TwinkleState) => {
+    (twinkle: AnimationState) => {
       const options = {
         visible,
         opacity,
@@ -131,13 +131,13 @@ export function useSeasonalDecorations({
 
   const treesShown =
     season === "christmas" && visible && placed.decorations.length > 0;
-  const clockRef = useRef<TwinkleClock | null>(null);
+  const clockRef = useRef<AnimationClock | null>(null);
 
   // Declared before the drawing effect, so a clock started in this commit is
   // already there when the drawing effect reads it.
   useEffect(() => {
     if (!map || !treesShown) return;
-    const clock = new TwinkleClock(map, {
+    const clock = new AnimationClock(map, {
       reducedMotion: prefersReducedMotion(),
       onTick: (state) => drawRef.current(state),
     });

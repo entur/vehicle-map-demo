@@ -1,6 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { TWINKLE_IDLE_MS, TWINKLE_SETTLE_MS } from "../../domain/twinkle.ts";
-import { TWINKLE_TICK_MS, TwinkleClock, TwinkleState } from "./twinkleClock.ts";
+import {
+  ANIMATION_IDLE_MS,
+  ANIMATION_SETTLE_MS,
+} from "../../domain/animationAmount.ts";
+import {
+  ANIMATION_TICK_MS,
+  AnimationClock,
+  AnimationState,
+} from "./animationClock.ts";
 
 type Listener = () => void;
 
@@ -25,9 +32,9 @@ class FakeMap {
   }
 }
 
-describe("TwinkleClock", () => {
+describe("AnimationClock", () => {
   let map: FakeMap;
-  let ticks: TwinkleState[];
+  let ticks: AnimationState[];
   let visible: boolean;
 
   beforeEach(() => {
@@ -41,7 +48,7 @@ describe("TwinkleClock", () => {
   });
 
   function make(reducedMotion = false) {
-    return new TwinkleClock(map as never, {
+    return new AnimationClock(map as never, {
       reducedMotion,
       onTick: (s) => ticks.push(s),
       now: () => Date.now(),
@@ -51,7 +58,7 @@ describe("TwinkleClock", () => {
 
   it("ticks and repaints while active", () => {
     make();
-    vi.advanceTimersByTime(TWINKLE_TICK_MS * 10);
+    vi.advanceTimersByTime(ANIMATION_TICK_MS * 10);
     expect(ticks.length).toBe(10);
     expect(map.repaints).toBe(10);
     expect(ticks.every((t) => t.amount === 1)).toBe(true);
@@ -60,7 +67,7 @@ describe("TwinkleClock", () => {
 
   it("stops after idle and settle, with a last tick at amount 0", () => {
     const clock = make();
-    vi.advanceTimersByTime(TWINKLE_IDLE_MS + TWINKLE_SETTLE_MS + 200);
+    vi.advanceTimersByTime(ANIMATION_IDLE_MS + ANIMATION_SETTLE_MS + 200);
     expect(ticks[ticks.length - 1].amount).toBe(0);
     expect(clock.current().amount).toBe(0);
     const repaints = map.repaints;
@@ -72,23 +79,23 @@ describe("TwinkleClock", () => {
 
   it("restarts on a map move", () => {
     make();
-    vi.advanceTimersByTime(TWINKLE_IDLE_MS + TWINKLE_SETTLE_MS + 200);
+    vi.advanceTimersByTime(ANIMATION_IDLE_MS + ANIMATION_SETTLE_MS + 200);
     const n = ticks.length;
     map.emit("move");
-    vi.advanceTimersByTime(TWINKLE_TICK_MS * 3);
+    vi.advanceTimersByTime(ANIMATION_TICK_MS * 3);
     expect(ticks.length).toBe(n + 3);
-    vi.advanceTimersByTime(TWINKLE_SETTLE_MS);
+    vi.advanceTimersByTime(ANIMATION_SETTLE_MS);
     expect(ticks[ticks.length - 1].amount).toBe(1);
   });
 
   it("restarts on activity()", () => {
     const clock = make();
-    vi.advanceTimersByTime(TWINKLE_IDLE_MS + TWINKLE_SETTLE_MS + 200);
+    vi.advanceTimersByTime(ANIMATION_IDLE_MS + ANIMATION_SETTLE_MS + 200);
     const n = ticks.length;
     clock.activity();
-    vi.advanceTimersByTime(TWINKLE_TICK_MS * 2);
+    vi.advanceTimersByTime(ANIMATION_TICK_MS * 2);
     expect(ticks.length).toBeGreaterThanOrEqual(n + 2);
-    vi.advanceTimersByTime(TWINKLE_SETTLE_MS);
+    vi.advanceTimersByTime(ANIMATION_SETTLE_MS);
     expect(clock.current().amount).toBe(1);
   });
 
@@ -104,11 +111,11 @@ describe("TwinkleClock", () => {
 
   it("eases the lights back in when activity wakes it from idle", () => {
     const clock = make();
-    vi.advanceTimersByTime(TWINKLE_IDLE_MS + TWINKLE_SETTLE_MS + 200);
+    vi.advanceTimersByTime(ANIMATION_IDLE_MS + ANIMATION_SETTLE_MS + 200);
     const n = ticks.length;
     expect(ticks[n - 1].amount).toBe(0);
     clock.activity();
-    vi.advanceTimersByTime(TWINKLE_SETTLE_MS + TWINKLE_TICK_MS * 2);
+    vi.advanceTimersByTime(ANIMATION_SETTLE_MS + ANIMATION_TICK_MS * 2);
     expect(ticks[n].amount).toBeLessThan(0.1);
     expect(largestAmountStep(n - 1)).toBeLessThanOrEqual(0.13);
     expect(ticks[ticks.length - 1].amount).toBe(1);
@@ -116,13 +123,13 @@ describe("TwinkleClock", () => {
 
   it("eases back up from where it was when a move comes mid-settle", () => {
     make();
-    vi.advanceTimersByTime(TWINKLE_IDLE_MS + TWINKLE_SETTLE_MS / 2);
+    vi.advanceTimersByTime(ANIMATION_IDLE_MS + ANIMATION_SETTLE_MS / 2);
     const n = ticks.length;
     const before = ticks[n - 1].amount;
     expect(before).toBeGreaterThan(0.2);
     expect(before).toBeLessThan(0.8);
     map.emit("move");
-    vi.advanceTimersByTime(TWINKLE_SETTLE_MS + TWINKLE_TICK_MS * 2);
+    vi.advanceTimersByTime(ANIMATION_SETTLE_MS + ANIMATION_TICK_MS * 2);
     expect(Math.abs(ticks[n].amount - before)).toBeLessThan(0.13);
     expect(largestAmountStep(n - 1)).toBeLessThanOrEqual(0.13);
     expect(ticks[ticks.length - 1].amount).toBe(1);
@@ -130,8 +137,8 @@ describe("TwinkleClock", () => {
 
   it("is not held back by moves every frame while easing in", () => {
     make();
-    vi.advanceTimersByTime(TWINKLE_IDLE_MS + TWINKLE_SETTLE_MS + 200);
-    for (let i = 0; i < (TWINKLE_SETTLE_MS / 16) * 1.2; i++) {
+    vi.advanceTimersByTime(ANIMATION_IDLE_MS + ANIMATION_SETTLE_MS + 200);
+    for (let i = 0; i < (ANIMATION_SETTLE_MS / 16) * 1.2; i++) {
       map.emit("move");
       vi.advanceTimersByTime(16);
     }
@@ -157,13 +164,13 @@ describe("TwinkleClock", () => {
     expect(vi.getTimerCount()).toBe(0);
     visible = true;
     clock.activity();
-    vi.advanceTimersByTime(TWINKLE_TICK_MS * 2);
+    vi.advanceTimersByTime(ANIMATION_TICK_MS * 2);
     expect(ticks.length).toBe(2);
   });
 
   it("does not tick after dispose and removes its listener", () => {
     const clock = make();
-    vi.advanceTimersByTime(TWINKLE_TICK_MS * 2);
+    vi.advanceTimersByTime(ANIMATION_TICK_MS * 2);
     clock.dispose();
     const n = ticks.length;
     expect(map.count("move")).toBe(0);

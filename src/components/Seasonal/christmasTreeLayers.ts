@@ -8,14 +8,14 @@ import {
   UNTINTED,
 } from "../Vehicle/vehicleModelLayers.ts";
 import type { PumpkinLayerOptions } from "./pumpkinLayers.ts";
-import type { TwinkleState } from "./twinkleClock.ts";
+import type { AnimationState } from "./animationClock.ts";
 import {
   TwinkleExtension,
   type TwinkleExtensionProps,
 } from "./twinkleExtension.ts";
 
 export type TreeLayerOptions = PumpkinLayerOptions & {
-  twinkle: TwinkleState;
+  twinkle: AnimationState;
 };
 
 /**

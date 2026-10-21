@@ -1,18 +1,18 @@
 import type { Map as MapLibreMap } from "maplibre-gl";
 import {
-  TWINKLE_IDLE_MS,
-  twinkleAmount,
-  twinkleWake,
-} from "../../domain/twinkle.ts";
+  ANIMATION_IDLE_MS,
+  animationAmount,
+  animationWake,
+} from "../../domain/animationAmount.ts";
 
-export type TwinkleState = { timeS: number; amount: number };
+export type AnimationState = { timeS: number; amount: number };
 
 /** Roughly twelve updates a second: slow fades need no more. */
-export const TWINKLE_TICK_MS = 80;
+export const ANIMATION_TICK_MS = 80;
 
 type Options = {
   reducedMotion: boolean;
-  onTick: (state: TwinkleState) => void;
+  onTick: (state: AnimationState) => void;
   now?: () => number;
   isVisible?: () => boolean;
 };
@@ -21,11 +21,11 @@ const pageVisible = () =>
   typeof document === "undefined" || document.visibilityState === "visible";
 
 /**
- * Decides when the twinkle ticks. It runs while someone is there (input or
- * camera movement), ends with one tick at amount 0, then stops its timer so a
- * still map is not repainted.
+ * Decides when a seasonal animation ticks. It runs while someone is there
+ * (input or camera movement), ends with one tick at amount 0, then stops its
+ * timer so a still map is not repainted.
  */
-export class TwinkleClock {
+export class AnimationClock {
   private readonly now: () => number;
   private readonly isVisible: () => boolean;
   private readonly startMs: number;
@@ -48,14 +48,14 @@ export class TwinkleClock {
     this.start();
   }
 
-  /** Input or camera movement: ease back to full twinkle. */
+  /** Input or camera movement: ease back to full animation. */
   activity(): void {
     if (this.disposed) return;
     this.noteActivity();
     this.start();
   }
 
-  current(): TwinkleState {
+  current(): AnimationState {
     if (this.options.reducedMotion) return { timeS: 0, amount: 0 };
     const now = this.now();
     return {
@@ -78,8 +78,8 @@ export class TwinkleClock {
 
   private amountAt(now: number): number {
     return Math.min(
-      twinkleAmount(now, this.lastActivityMs, false),
-      twinkleWake(now, this.wakeMs, this.wakeFrom),
+      animationAmount(now, this.lastActivityMs, false),
+      animationWake(now, this.wakeMs, this.wakeFrom),
     );
   }
 
@@ -91,7 +91,7 @@ export class TwinkleClock {
    */
   private noteActivity(): void {
     const now = this.now();
-    if (now - this.lastActivityMs > TWINKLE_IDLE_MS) {
+    if (now - this.lastActivityMs > ANIMATION_IDLE_MS) {
       this.wakeFrom = this.amountAt(now);
       this.wakeMs = now;
     }
@@ -101,7 +101,7 @@ export class TwinkleClock {
   private start(): void {
     if (this.timer !== null || this.disposed || this.options.reducedMotion)
       return;
-    this.timer = setInterval(this.tick, TWINKLE_TICK_MS);
+    this.timer = setInterval(this.tick, ANIMATION_TICK_MS);
   }
 
   private stop(): void {

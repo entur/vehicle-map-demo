@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { christmasTreeLayers } from "./christmasTreeLayers.ts";
 import { TwinkleExtension, twinkleShaderModule } from "./twinkleExtension.ts";
-import type { TwinkleState } from "./twinkleClock.ts";
+import type { AnimationState } from "./animationClock.ts";
 import type { Decoration } from "../../domain/decorationPlacement.ts";
 import { christmasTreeModel, TREE } from "../../domain/vehicleMeshes.ts";
 import { TWINKLE_PERIOD_S, twinkleBrightness } from "../../domain/twinkle.ts";
@@ -25,7 +25,7 @@ const U = tree("b#0", 0.7);
 const options = (
   scheme: MapScheme = "light",
   visible = true,
-  twinkle: TwinkleState = { timeS: 1.25, amount: 0.8 },
+  twinkle: AnimationState = { timeS: 1.25, amount: 0.8 },
 ) => ({
   visible,
   opacity: visible ? 1 : 0,
