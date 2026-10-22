@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { useControl, useMap } from "react-map-gl/maplibre";
 import { MapLibreOverlay } from "@deck.gl/maplibre";
 import { useColorScheme } from "@mui/material/styles";
@@ -25,6 +32,12 @@ import { LIGHT_POOL_REACH } from "../../domain/lightPool.ts";
 import { StopPole, polesInView } from "../../domain/journeyStops.ts";
 import type { MapSourceDataEvent } from "maplibre-gl";
 import { stopPoleLayers } from "./stopPoleLayers.ts";
+import { flagDesignFor, type Season } from "../../domain/season.ts";
+import { useSeasonalDecorations } from "../Seasonal/useSeasonalDecorations.ts";
+import { useSeasonalFlags } from "../Seasonal/useSeasonalFlags.ts";
+import { useSeasonalFireworks } from "../Seasonal/useSeasonalFireworks.ts";
+import { flagLayers, fliesFlags } from "../Seasonal/flagLayers.ts";
+import { ANIMATION_TICK_MS } from "../Seasonal/animationClock.ts";
 
 const NO_VEHICLES: VehicleUpdate[] = [];
 
@@ -54,6 +67,10 @@ type Props = {
   ghostStore: VehicleStore;
   /** The selected journey's stops, drawn as poles with name boards. */
   stopPoles: StopPole[];
+  /** The season whose decorations stand near the stops or fly on the models, if any. */
+  season: Season | null;
+  /** New Year's fireworks over the map, drawn in 3D while the models are shown. */
+  fireworks: boolean;
 };
 
 /**
@@ -67,8 +84,9 @@ type Props = {
  * — otherwise its model would sit at the newest report, seconds ahead of the
  * camera. The schedule ghost is drawn the same way, from `ghostStore`, faded.
  *
- * The selected journey's stops are drawn here too, as poles: deck.gl keeps one
- * interleaved overlay per map, so everything 3D shares this one.
+ * The selected journey's stops are drawn here too, as poles, and the seasonal
+ * decorations and flags: deck.gl keeps one interleaved overlay per map, so
+ * everything 3D shares this one.
  */
 export function VehicleModels({
   showVehicles,
@@ -78,9 +96,24 @@ export function VehicleModels({
   chasedVehicleStore,
   ghostStore,
   stopPoles,
+  season,
+  fireworks,
 }: Props) {
+  // StrictMode adds, removes and re-adds this control, so two Decks attach to
+  // the map's one WebGL context. luma creates the device asynchronously, so
+  // both pass its "already attached?" check and the second throws, leaving
+  // no 3D at all. `_reuseDevices` hands the second the first's device — what
+  // deck.gl itself passes when it creates a context, but not when it attaches
+  // to one, and the interleaved overlay accepts no `device` of its own.
+  // An underscore luma prop, but typed in DeviceProps; without it `npm run dev`
+  // shows no 3D at all, while a production build (one mount) is unaffected.
   const overlay = useControl(
-    () => new MapLibreOverlay({ interleaved: true, layers: [] }),
+    () =>
+      new MapLibreOverlay({
+        interleaved: true,
+        layers: [],
+        deviceProps: { _reuseDevices: true },
+      }),
   );
   const { current: mapRef } = useMap();
   const scheme = mapSchemeFor(useColorScheme().colorScheme);
@@ -89,6 +122,9 @@ export function VehicleModels({
   const chasedLayers = useRef<Layer[]>([]);
   const ghostLayers = useRef<Layer[]>([]);
   const stopLayers = useRef<Layer[]>([]);
+  const seasonalLayers = useRef<Layer[]>([]);
+  const flagLayersRef = useRef<Layer[]>([]);
+  const fireworkLayersRef = useRef<Layer[]>([]);
   const options = useRef<Omit<ModelLayerOptions, "idPrefix"> | null>(null);
 
   // Every handover of layers goes through here, so that deck.gl can add its
@@ -103,6 +139,9 @@ export function VehicleModels({
           ...chasedLayers.current,
           ...ghostLayers.current,
           ...stopLayers.current,
+          ...seasonalLayers.current,
+          ...flagLayersRef.current,
+          ...fireworkLayersRef.current,
         ],
       }),
     );
@@ -170,9 +209,14 @@ export function VehicleModels({
     [viewDimension],
   );
 
-  useEffect(() => {
+  // How the models are drawn: one object until the zoom, scheme or terrain
+  // changes, so the flags can be built with it as well.
+  const modelOptions = useMemo((): Omit<
+    ModelLayerOptions,
+    "idPrefix"
+  > | null => {
     const map = mapRef?.getMap();
-    if (!map) return;
+    if (!map) return null;
 
     // The terrain under the vehicle, or level at sea level when there is no
     // terrain (2D) or its tiles have not loaded yet — the next vehicle frame
@@ -190,7 +234,7 @@ export function VehicleModels({
       if (found?.complete) grounds.byReport.set(vehicle, found);
       return found ?? LEVEL;
     };
-    options.current = {
+    return {
       visible: opacity > 0,
       opacity,
       scheme,
@@ -202,12 +246,58 @@ export function VehicleModels({
       getTilt: getGround,
       positionTrigger: viewDimension,
     };
+  }, [mapRef, opacity, scheme, viewDimension, grounds]);
+
+  useEffect(() => {
+    if (!modelOptions) return;
+    options.current = modelOptions;
     baseLayers.current = vehicleModelLayers(unchased, {
-      ...options.current,
+      ...modelOptions,
       idPrefix: "vehicle-models",
     });
     handOver();
-  }, [handOver, mapRef, unchased, opacity, scheme, viewDimension, grounds]);
+  }, [handOver, unchased, modelOptions]);
+
+  const onFlagLayers = useCallback(
+    (layers: Layer[]) => {
+      flagLayersRef.current = layers;
+      handOver();
+    },
+    [handOver],
+  );
+  // Set by the chase's effect below; a flutter tick redraws the chased flags
+  // through it unless a chase frame has just done so. `send` is false when
+  // the tick hands over the other flags right after, which carries these.
+  const publishChased = useRef<((send: boolean) => void) | null>(null);
+  const chasedPublishedMs = useRef(0);
+  const onChasedTick = useCallback((send: boolean) => {
+    if (Date.now() - chasedPublishedMs.current < ANIMATION_TICK_MS) return;
+    publishChased.current?.(send);
+  }, []);
+  // Asked of the vehicle the chase draws, not of `data`: the chase goes on
+  // drawing its last report after the live cache has dropped the vehicle, and
+  // its flags must not freeze then. A boolean, so a frame that changes
+  // nothing about it renders nothing.
+  const subscribeChased = useCallback(
+    (listener: () => void) => chasedVehicleStore.subscribe(listener),
+    [chasedVehicleStore],
+  );
+  const chasedDrawnFlagged = useSyncExternalStore(subscribeChased, () =>
+    fliesFlags(chasedVehicleStore.get()),
+  );
+  const chasedFlagged =
+    flagDesignFor(season) !== null && showVehicles && chasedDrawnFlagged;
+  // Called here rather than in the effect above, which must not run on a
+  // flutter tick: the flags tick on their own, from the same vehicles.
+  const { flutterNow } = useSeasonalFlags({
+    map: mapRef?.getMap(),
+    season,
+    vehicles: unchased,
+    options: modelOptions,
+    chasedFlagged,
+    onLayers: onFlagLayers,
+    onChasedTick,
+  });
 
   useEffect(() => {
     const map = mapRef?.getMap();
@@ -260,32 +350,51 @@ export function VehicleModels({
   }, [handOver, mapRef, stopPoles, opacity, scheme]);
 
   useEffect(() => {
-    const publish = () => {
+    const flagDesign = flagDesignFor(season);
+    const publish = (send = true) => {
+      chasedPublishedMs.current = Date.now();
       const vehicle = chasedVehicleStore.get();
       // A new object every frame, so the cache never hits; look the ground up
       // once here rather than once per model layer.
       const position = vehicle && options.current?.getPosition(vehicle);
       const tilt = vehicle && options.current?.getTilt(vehicle);
-      chasedLayers.current =
-        vehicle && options.current && position && tilt && showVehicles
-          ? vehicleModelLayers([vehicle], {
-              ...options.current,
-              idPrefix: "vehicle-models-chased",
-              getPosition: () => position,
-              getTilt: () => tilt,
-              // A new position every frame, so a new trigger every frame.
-              positionTrigger: position,
-            })
-          : [];
-      handOver();
+      if (!(vehicle && options.current && position && tilt && showVehicles)) {
+        chasedLayers.current = [];
+      } else {
+        const chased = {
+          ...options.current,
+          getPosition: () => position,
+          getTilt: () => tilt,
+          // A new position every frame, so a new trigger every frame.
+          positionTrigger: position,
+        };
+        chasedLayers.current = [
+          ...vehicleModelLayers([vehicle], {
+            ...chased,
+            idPrefix: "vehicle-models-chased",
+          }),
+          // Rebuilt every frame with the rest, so the flags need no tick.
+          ...(flagDesign
+            ? flagLayers([vehicle], {
+                ...chased,
+                idPrefix: "vehicle-flags-chased",
+                flutter: flutterNow(),
+                design: flagDesign,
+              })
+            : []),
+        ];
+      }
+      if (send) handOver();
     };
     publish();
-    const unsubscribe = chasedVehicleStore.subscribe(publish);
+    publishChased.current = publish;
+    const unsubscribe = chasedVehicleStore.subscribe(() => publish());
     return () => {
       unsubscribe();
+      publishChased.current = null;
       chasedLayers.current = [];
     };
-  }, [handOver, chasedVehicleStore, showVehicles]);
+  }, [handOver, chasedVehicleStore, showVehicles, season, flutterNow]);
 
   useEffect(() => {
     const publish = () => {
@@ -314,6 +423,39 @@ export function VehicleModels({
       ghostLayers.current = [];
     };
   }, [handOver, ghostStore, showVehicles]);
+
+  const onSeasonalLayers = useCallback(
+    (layers: Layer[]) => {
+      seasonalLayers.current = layers;
+      handOver();
+    },
+    [handOver],
+  );
+  const { holdAwake } = useSeasonalDecorations({
+    map: mapRef?.getMap(),
+    season,
+    opacity,
+    scheme,
+    chasing,
+    onLayers: onSeasonalLayers,
+  });
+
+  const onFireworkLayers = useCallback(
+    (layers: Layer[]) => {
+      fireworkLayersRef.current = layers;
+      handOver();
+    },
+    [handOver],
+  );
+  // A barrage keeps the Christmas lights awake under it.
+  useSeasonalFireworks({
+    map: mapRef?.getMap(),
+    on: fireworks,
+    shown: viewDimension === "3d" && opacity > 0,
+    scheme,
+    onLayers: onFireworkLayers,
+    onBarrage: holdAwake,
+  });
 
   return null;
 }

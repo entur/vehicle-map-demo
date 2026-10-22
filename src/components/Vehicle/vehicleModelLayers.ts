@@ -34,7 +34,7 @@ const DEFAULT_MATERIAL = {
 };
 
 /** Lit by ambient light alone, so the same from every side. */
-const glowing = (strength: number): Material => ({
+export const glowing = (strength: number): Material => ({
   ambient: strength,
   diffuse: 0,
   shininess: 1,
@@ -72,7 +72,7 @@ export const MODEL_MATERIALS: Record<
  * brighten the dark road rather than paint over it, and without writing depth,
  * so the models drawn after them are not hidden behind a transparent quad.
  */
-const LIGHT_POOL_PARAMETERS = {
+export const LIGHT_POOL_PARAMETERS = {
   depthWriteEnabled: false,
   blend: true,
   blendColorOperation: "add",
@@ -98,6 +98,22 @@ export type ModelLayerOptions = {
 };
 
 export type Tilt = { pitch: number; poolPitch: number };
+
+// deck.gl yaw turns counter-clockwise; bearing is clockwise from north.
+const yawOf = (vehicle: VehicleUpdate) =>
+  -(normaliseBearing(vehicle.bearing) ?? 0);
+
+/**
+ * A model's orientation for deck.gl: yawed to the bearing and leaning by the
+ * tilt's pitch. What deck.gl calls roll turns about the model's x axis, which
+ * with the model pointing along +y is what lifts the nose: a slope goes there.
+ * Everything mounted on a model shares it, so it turns and leans with it.
+ */
+export function modelOrientation(
+  getTilt: ModelLayerOptions["getTilt"],
+): (vehicle: VehicleUpdate) => [number, number, number] {
+  return (vehicle) => [0, yawOf(vehicle), getTilt(vehicle).pitch];
+}
 
 /**
  * The deck.gl layers drawing `vehicles` as models: split by mode, since each
@@ -145,19 +161,14 @@ export function vehicleModelLayers(
     },
   };
 
-  // deck.gl yaw turns counter-clockwise; bearing is clockwise from north.
-  // What deck.gl calls roll turns about the model's x axis, which with the
-  // model pointing along +y is what lifts the nose: a slope goes there.
-  const yaw = (vehicle: VehicleUpdate) =>
-    -(normaliseBearing(vehicle.bearing) ?? 0);
-  const getOrientation = (vehicle: VehicleUpdate): [number, number, number] => [
-    0,
-    yaw(vehicle),
-    getTilt(vehicle).pitch,
-  ];
+  const getOrientation = modelOrientation(getTilt);
   const getPoolOrientation = (
     vehicle: VehicleUpdate,
-  ): [number, number, number] => [0, yaw(vehicle), getTilt(vehicle).poolPitch];
+  ): [number, number, number] => [
+    0,
+    yawOf(vehicle),
+    getTilt(vehicle).poolPitch,
+  ];
 
   // Layers per mode, sharing transforms: the white body coloured per vehicle,
   // the details and the lamps drawn in their own fixed colours, and the signs,

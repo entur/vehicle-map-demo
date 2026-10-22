@@ -1,5 +1,7 @@
 import { VehicleModeEnumeration } from "../types.ts";
 import { dimensionsFor } from "./vehicleFootprint.ts";
+import { PUMPKIN_ASPECT, TREE_ASPECT } from "./decorationPlacement.ts";
+import type { FlagDesign } from "./season.ts";
 
 /**
  * Low-poly vehicle models built from boxes, prisms, lofted hulls and wheels,
@@ -75,6 +77,24 @@ export const MESH_COLOURS = {
   starboard: rgb(0x2e9e4f),
   raft: rgb(0xe9e6dd),
   rescueBoat: rgb(0xf26b1d),
+  pumpkinStem: rgb(0x4a6b2a),
+  jackOLantern: rgb(0xffb030),
+  treeTrunk: rgb(0x5a3b24),
+  treeStar: rgb(0xffd23f),
+  bulbWarm: rgb(0xffe6a8),
+  bulbRed: rgb(0xe8343a),
+  bulbGold: rgb(0xffb52e),
+  bulbBlue: rgb(0x3d7bff),
+  flagRed: rgb(0xba0c2f),
+  flagWhite: rgb(0xf4f4f2),
+  flagBlue: rgb(0x00205b),
+  rainbowRed: rgb(0xe40303),
+  rainbowOrange: rgb(0xff8c00),
+  rainbowYellow: rgb(0xffed00),
+  rainbowGreen: rgb(0x008026),
+  rainbowBlue: rgb(0x004dff),
+  rainbowViolet: rgb(0x750787),
+  flagPole: rgb(0xd5d8dc),
 } as const;
 
 /**
@@ -87,6 +107,12 @@ const LAMP_COLOURS: ReadonlySet<RGB> = new Set([
   MESH_COLOURS.taillight,
   MESH_COLOURS.indicator,
   MESH_COLOURS.starboard,
+  MESH_COLOURS.jackOLantern,
+  MESH_COLOURS.treeStar,
+  MESH_COLOURS.bulbWarm,
+  MESH_COLOURS.bulbRed,
+  MESH_COLOURS.bulbGold,
+  MESH_COLOURS.bulbBlue,
 ]);
 
 /**
@@ -838,16 +864,11 @@ function busBody(spec: BusSpec): {
   return { m, frontY };
 }
 
-/**
- * A low-floor city bus: three doors, a flat front with lamps low in the
- * corners, a tall rear lamp cluster either side of the engine grille, and an
- * air-conditioning unit and battery housing on the roof.
- */
-function cityBus(L: number, W: number, H: number): VehicleModel {
-  const { headlight, taillight, indicator, roofUnit, dark } = MESH_COLOURS;
+/** The city bus's hull, which its flags stand on as well. */
+function cityBusSpec(L: number, W: number, H: number): BusSpec {
   const roofTop = H - 0.2;
   const axles = [L / 2 - 2.7, -L / 2 + 3.3];
-  const { m } = busBody({
+  return {
     length: L,
     width: W,
     height: H,
@@ -870,7 +891,19 @@ function cityBus(L: number, W: number, H: number): VehicleModel {
     wheelRadius: 0.5,
     archRadius: 0.62,
     rabbitEarMirrors: true,
-  });
+  };
+}
+
+/**
+ * A low-floor city bus: three doors, a flat front with lamps low in the
+ * corners, a tall rear lamp cluster either side of the engine grille, and an
+ * air-conditioning unit and battery housing on the roof.
+ */
+function cityBus(L: number, W: number, H: number): VehicleModel {
+  const { headlight, taillight, indicator, roofUnit, dark } = MESH_COLOURS;
+  const spec = cityBusSpec(L, W, H);
+  const { roofTop } = spec;
+  const { m } = busBody(spec);
 
   for (const side of [-1, 1]) {
     m.box(side * 0.62, L / 2 + 0.015, 0.62, 0.3, 0.03, 0.16, headlight);
@@ -901,21 +934,14 @@ function cityBus(L: number, W: number, H: number): VehicleModel {
   return m.build();
 }
 
-/**
- * A high-floor coach: one door ahead of the front axle, a raked windscreen
- * over a grille and slim lamp clusters, a tag axle sharing the rear arch,
- * luggage bays between the axles, a small rear window above the engine, and
- * a low air-conditioning hump on the roof.
- */
-function coach(L: number, W: number, H: number): VehicleModel {
-  const { headlight, taillight, indicator, roofUnit, dark, hub } = MESH_COLOURS;
-  const half = W / 2;
+/** The coach's hull, which its flags stand on as well. */
+function coachSpec(L: number, W: number, H: number): BusSpec {
   const roofTop = H - 0.14;
   const bottom = 0.4;
   const skirtTop = 0.62;
   const windowBottom = 1.75;
   const axles = [L / 2 - 2.8, -L / 2 + 3.6, -L / 2 + 2.3];
-  const { m, frontY } = busBody({
+  return {
     length: L,
     width: W,
     height: H,
@@ -938,7 +964,21 @@ function coach(L: number, W: number, H: number): VehicleModel {
     wheelRadius: 0.5,
     archRadius: 0.62,
     rabbitEarMirrors: true,
-  });
+  };
+}
+
+/**
+ * A high-floor coach: one door ahead of the front axle, a raked windscreen
+ * over a grille and slim lamp clusters, a tag axle sharing the rear arch,
+ * luggage bays between the axles, a small rear window above the engine, and
+ * a low air-conditioning hump on the roof.
+ */
+function coach(L: number, W: number, H: number): VehicleModel {
+  const { headlight, taillight, indicator, roofUnit, dark, hub } = MESH_COLOURS;
+  const half = W / 2;
+  const spec = coachSpec(L, W, H);
+  const { roofTop, skirtTop, windowBottom, axles } = spec;
+  const { m, frontY } = busBody(spec);
 
   // Front: a grille with a badge between slim lamp clusters, all below the
   // foot of the windscreen, where the front is still upright.
@@ -1551,8 +1591,13 @@ function train(L: number, W: number, H: number): VehicleModel {
  * rather than under it, and a pantograph on the middle section.
  */
 function tram(L: number, W: number, H: number): VehicleModel {
+  return multipleUnit(tramSpec(L, W, H));
+}
+
+/** The tram's hull, which its flags stand on as well. */
+function tramSpec(L: number, W: number, H: number): MultipleUnitSpec {
   const cars = 3;
-  return multipleUnit({
+  return {
     length: L,
     width: W,
     height: H,
@@ -1588,7 +1633,7 @@ function tram(L: number, W: number, H: number): VehicleModel {
     deflector: false,
     sideSignFromTip: 8.4,
     sideSignLength: 1.4,
-  });
+  };
 }
 
 /**
@@ -2064,4 +2109,538 @@ export function stopPoleModel(): VehicleModel {
     stopPole = m.build();
   }
   return stopPole;
+}
+
+/** The seasonal pumpkin, one unit tall; scaled per pumpkin by its height. */
+export const PUMPKIN = {
+  height: 1,
+  width: PUMPKIN_ASPECT,
+  /** The body's top; the stem stands above it to `height`. */
+  bodyHeight: 0.86,
+  ribs: 8,
+  /** How deep the grooves between the ribs are, as a share of the radius. */
+  groove: 0.08,
+} as const;
+
+let pumpkin: VehicleModel | undefined;
+
+/**
+ * A seasonal pumpkin: a ribbed, squashed sphere lathed around +z, standing on
+ * the origin, with a stem on top and a jack-o'-lantern face on the +y side.
+ * The body is `body`, tinted per pumpkin by the renderer; the stem is
+ * `details`; the face is `lamps`, a hair proud of the surface, so in dark
+ * mode it glows and in light mode it is simply not drawn. No sign.
+ */
+export function pumpkinModel(): VehicleModel {
+  if (!pumpkin) {
+    const { height, width, bodyHeight, ribs, groove } = PUMPKIN;
+    const m = new MeshBuilder();
+    const inside: Vec3 = [0, 0, bodyHeight / 2];
+    const rings = 8;
+    const segments = ribs * 3;
+
+    // φ from the bottom (0) to the top (π), θ around from +x towards +y.
+    const surface = (phi: number, theta: number, lift = 0): Vec3 => {
+      const rib = 1 - (groove * (1 - Math.cos(ribs * theta))) / 2;
+      const radius = (Math.sin(phi) * width * rib) / 2 + lift;
+      return [
+        radius * Math.cos(theta),
+        radius * Math.sin(theta),
+        (bodyHeight * (1 - Math.cos(phi))) / 2 + lift * -Math.cos(phi),
+      ];
+    };
+
+    for (let j = 0; j < rings; j++) {
+      const [phi0, phi1] = [(j / rings) * Math.PI, ((j + 1) / rings) * Math.PI];
+      for (let i = 0; i < segments; i++) {
+        const theta0 = (i / segments) * 2 * Math.PI;
+        const theta1 = ((i + 1) / segments) * 2 * Math.PI;
+        m.quad(
+          surface(phi0, theta0),
+          surface(phi0, theta1),
+          surface(phi1, theta1),
+          surface(phi1, theta0),
+          PAINT,
+          inside,
+        );
+      }
+    }
+
+    const stemWidth = 0.08;
+    m.box(
+      0,
+      0,
+      bodyHeight - 0.06,
+      stemWidth,
+      stemWidth,
+      height - bodyHeight + 0.06,
+      MESH_COLOURS.pumpkinStem,
+    );
+
+    // The face, on +y (θ = π/2), a centimetre proud so it never fights the
+    // body for depth. φ is up the face, θ across it.
+    const face = (phi: number, theta: number) =>
+      surface(phi * Math.PI, Math.PI / 2 + theta, 0.01);
+    const lit = MESH_COLOURS.jackOLantern;
+    for (const side of [-1, 1]) {
+      // Eyes: triangles pointing up.
+      m.triangle(
+        face(0.7, side * 0.35),
+        face(0.6, side * 0.35 - 0.13),
+        face(0.6, side * 0.35 + 0.13),
+        lit,
+        inside,
+      );
+    }
+    m.triangle(face(0.56, 0), face(0.5, -0.06), face(0.5, 0.06), lit, inside);
+    // Mouth: a grin of four segments, curving up at the corners, each with a
+    // tooth notched out of its top edge on alternate segments.
+    const mouth = [-0.5, -0.25, 0, 0.25, 0.5];
+    const lower = (t: number) => 0.34 + 0.08 * (t * 2) ** 2;
+    for (let k = 0; k < mouth.length - 1; k++) {
+      const [t0, t1] = [mouth[k], mouth[k + 1]];
+      const top = (t: number) => lower(t) + 0.08 - (k % 2 === 1 ? 0.03 : 0);
+      m.quad(
+        face(lower(t0), t0),
+        face(lower(t1), t1),
+        face(top(t1), t1),
+        face(top(t0), t0),
+        lit,
+        inside,
+      );
+    }
+    pumpkin = m.build();
+  }
+  return pumpkin;
+}
+
+/** The seasonal Christmas tree, one unit tall; scaled per tree by its height. */
+export const TREE = {
+  height: 1,
+  width: TREE_ASPECT,
+  /** The trunk's top; the canopy's lowest tier stands on it. */
+  trunkHeight: 0.12,
+  tiers: 3,
+  /** Groups of bulbs, each drawn by its own layer so each can fade alone. */
+  bulbGroups: 3,
+  bulbs: 24,
+} as const;
+
+export type ChristmasTreeModel = {
+  /** White; tinted per tree by the renderer. */
+  canopy: VehicleMesh;
+  /** Fixed brown; drawn untinted. */
+  trunk: VehicleMesh;
+  /** A lamp colour, lit steadily. */
+  star: VehicleMesh;
+  /** `TREE.bulbGroups` meshes of lamp colours, every group carrying every colour. */
+  bulbs: VehicleMesh[];
+};
+
+/** Sides of each tier's cone. */
+const TREE_SIDES = 8;
+/** Bulbs are cubes this wide, their centres this far out from the canopy. */
+const BULB_SIZE = 0.025;
+const BULB_PROUD = BULB_SIZE / 2;
+/**
+ * The star: `crossed` five-pointed stars at equal angles about the vertical,
+ * so it reads as a star from any side. Each is a closed bipyramid, its points
+ * `outer` from the centre, its notches `inner`, its faces rising to `depth`
+ * either side of its plane. Its top point is at the tree's height.
+ */
+const STAR = { outer: 0.06, inner: 0.025, depth: 0.012, crossed: 3 };
+/** The trunk's square section. */
+const TRUNK_WIDTH = 0.07;
+/** The golden angle, which spreads bulbs round the tree without lining up. */
+const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
+
+type Tier = { base: number; apex: number; radius: number };
+
+/**
+ * The canopy's three cones, bottom to top, each narrower and higher. Each
+ * tier's skirt hangs over the cone below, so a tier shows only between its own
+ * base and the next one's.
+ */
+const TREE_TIERS: readonly Tier[] = [
+  { base: TREE.trunkHeight, apex: 0.62, radius: TREE_ASPECT / 2 },
+  { base: 0.34, apex: 0.8, radius: 0.21 },
+  { base: 0.54, apex: 0.94, radius: 0.145 },
+];
+
+/**
+ * How far out a tier's octagonal cone is at height z and angle θ: the corner
+ * radius scaled down the cone, and in from a corner to a face's middle.
+ */
+function tierRadiusAt({ base, apex, radius }: Tier, z: number, theta: number) {
+  if (z < base || z > apex) return -Infinity;
+  const side = (2 * Math.PI) / TREE_SIDES;
+  const across = (((theta % side) + side) % side) - side / 2;
+  return (
+    ((radius * (apex - z)) / (apex - base)) *
+    (Math.cos(side / 2) / Math.cos(across))
+  );
+}
+
+let christmasTree: ChristmasTreeModel | undefined;
+
+/**
+ * A seasonal Christmas tree in the pumpkin's low-poly style, standing on the
+ * origin: a square trunk, three stacked eight-sided cones, the bottom one
+ * `TREE_ASPECT` wide at its corners, a star on top and `TREE.bulbs` bulbs a
+ * hair proud of the canopy. The canopy is white, tinted per tree by the
+ * renderer. The bulbs go up the canopy on a golden-angle spiral; bulb `i` is in
+ * group `i % bulbGroups` and takes colour `i % 4`, so no colour repeats within
+ * four bulbs up the spiral, every stretch of the canopy shows all four, and —
+ * three groups and four colours sharing no factor — every group carries every
+ * colour.
+ */
+export function christmasTreeModel(): ChristmasTreeModel {
+  if (!christmasTree) {
+    const { height, trunkHeight, bulbGroups, bulbs } = TREE;
+    const m = new MeshBuilder();
+    const corner = (tier: Tier, k: number): Vec3 => {
+      const theta = (k / TREE_SIDES) * 2 * Math.PI;
+      return [
+        tier.radius * Math.cos(theta),
+        tier.radius * Math.sin(theta),
+        tier.base,
+      ];
+    };
+
+    m.box(
+      0,
+      0,
+      0,
+      TRUNK_WIDTH,
+      TRUNK_WIDTH,
+      trunkHeight,
+      MESH_COLOURS.treeTrunk,
+    );
+
+    for (const tier of TREE_TIERS) {
+      const apex: Vec3 = [0, 0, tier.apex];
+      const middle: Vec3 = [0, 0, tier.base];
+      const inside: Vec3 = [0, 0, (tier.base * 3 + tier.apex) / 4];
+      for (let k = 0; k < TREE_SIDES; k++) {
+        const [a, b] = [corner(tier, k), corner(tier, k + 1)];
+        m.triangle(a, b, apex, PAINT, inside);
+        m.triangle(a, b, middle, PAINT, [0, 0, tier.base + 0.01]);
+      }
+    }
+
+    const { outer, inner, depth, crossed } = STAR;
+    const centre: Vec3 = [0, 0, height - outer];
+    for (let star = 0; star < crossed; star++) {
+      const yaw = (star / crossed) * Math.PI;
+      const [ux, uy] = [Math.cos(yaw), Math.sin(yaw)];
+      const at = (across: number, up: number, out: number): Vec3 => [
+        across * ux - out * uy,
+        across * uy + out * ux,
+        centre[2] + up,
+      ];
+      // Points and notches alternate round the rim, the first point straight up.
+      const rim = Array.from({ length: 10 }, (_, k) => {
+        const angle = Math.PI / 2 + (k * Math.PI) / 5;
+        const r = k % 2 === 0 ? outer : inner;
+        return at(r * Math.cos(angle), r * Math.sin(angle), 0);
+      });
+      for (const side of [-depth, depth]) {
+        const tip = at(0, 0, side);
+        for (let k = 0; k < rim.length; k++) {
+          m.triangle(
+            rim[k],
+            rim[(k + 1) % rim.length],
+            tip,
+            MESH_COLOURS.treeStar,
+            centre,
+          );
+        }
+      }
+    }
+
+    // The spiral runs from just above the lowest tier's rim to below the
+    // star, each bulb on whichever tier is outermost at its height — the one
+    // that shows there.
+    const { bulbWarm, bulbRed, bulbGold, bulbBlue } = MESH_COLOURS;
+    const colours = [bulbWarm, bulbRed, bulbGold, bulbBlue];
+    const [low, high] = [trunkHeight + 0.04, TREE_TIERS[2].apex - 0.08];
+    const groups = Array.from({ length: bulbGroups }, () => new MeshBuilder());
+    for (let i = 0; i < bulbs; i++) {
+      const z = low + ((high - low) * (i + 0.5)) / bulbs;
+      const theta = i * GOLDEN_ANGLE;
+      const surface = Math.max(
+        ...TREE_TIERS.map((tier) => tierRadiusAt(tier, z, theta)),
+      );
+      const r = surface + BULB_PROUD;
+      groups[i % bulbGroups].box(
+        r * Math.cos(theta),
+        r * Math.sin(theta),
+        z - BULB_SIZE / 2,
+        BULB_SIZE,
+        BULB_SIZE,
+        BULB_SIZE,
+        colours[i % colours.length],
+      );
+    }
+
+    const tree = m.build();
+    christmasTree = {
+      canopy: tree.body,
+      trunk: tree.details,
+      star: tree.lamps,
+      bulbs: groups.map((group) => group.build().lamps),
+    };
+  }
+  return christmasTree;
+}
+
+/** The flags' size, in life-size metres; the renderer draws them larger. */
+export const FLAG_EXAGGERATION = 3;
+export const FLAG = {
+  clothLength: 0.3,
+  /** Height from the cross's 22:16. */
+  clothHeight: (0.3 * 16) / 22,
+  poleHeight: 0.5,
+  /** The pole's thickness, life size. */
+  poleWidth: 0.015,
+} as const;
+
+/** The modes that fly flags. */
+export const FLAGGED_MODES: ReadonlySet<VehicleModeEnumeration> = new Set([
+  "BUS",
+  "COACH",
+  "TRAM",
+]);
+
+export type FlagModel = {
+  /** Both poles: a fixed colour, drawn untinted. */
+  poles: VehicleMesh;
+  /**
+   * Both cloths, double-sided and in the design's colours. `u` runs
+   * along the cloth, 0 at the pole and 1 at the free edge, for the renderer
+   * to bend it by; `v` is 0 at the top.
+   */
+  cloth: VehicleMesh & { texCoords: { value: Float32Array; size: 2 } };
+};
+
+/** Column edges in the cross's units, split so each stripe has several columns. */
+const FLAG_COLUMNS = [0, 2, 4, 6, 7, 8, 9, 10, 12, 14, 16, 18, 20, 22];
+/** The cross's lines, in the same units. */
+const FLAG_CROSS_X = [6, 7, 9, 10];
+const FLAG_CROSS_Y = [6, 7, 9, 10];
+const FLAG_WIDTH_UNITS = 22;
+const FLAG_HEIGHT_UNITS = 16;
+
+/** Which of the cross's five stripes a coordinate falls in. */
+const stripe = (lines: number[], at: number) =>
+  lines.filter((line) => line <= at).length;
+
+/** The rainbow's six stripes, top to bottom. */
+const RAINBOW_STRIPES: RGB[] = [
+  MESH_COLOURS.rainbowRed,
+  MESH_COLOURS.rainbowOrange,
+  MESH_COLOURS.rainbowYellow,
+  MESH_COLOURS.rainbowGreen,
+  MESH_COLOURS.rainbowBlue,
+  MESH_COLOURS.rainbowViolet,
+];
+
+/**
+ * A cloth's pattern in the flag's units: the row edges, top to bottom, and
+ * the colour of the cell at a column start (`c0`) and row. Columns are always
+ * `FLAG_COLUMNS`, so every design bends the same way.
+ */
+type FlagPattern = {
+  rowEdges: number[];
+  colour: (c0: number, row: number) => RGB;
+};
+
+const FLAG_PATTERNS: Record<FlagDesign, FlagPattern> = {
+  norway: {
+    rowEdges: [0, ...FLAG_CROSS_Y, FLAG_HEIGHT_UNITS],
+    colour: (c0, row) => {
+      const column = stripe(FLAG_CROSS_X, c0);
+      if (column === 2 || row === 2) return MESH_COLOURS.flagBlue;
+      if (column === 1 || column === 3 || row === 1 || row === 3)
+        return MESH_COLOURS.flagWhite;
+      return MESH_COLOURS.flagRed;
+    },
+  },
+  rainbow: {
+    rowEdges: RAINBOW_STRIPES.map(
+      (_, i) => (i * FLAG_HEIGHT_UNITS) / RAINBOW_STRIPES.length,
+    ).concat(FLAG_HEIGHT_UNITS),
+    colour: (_c0, row) => RAINBOW_STRIPES[row],
+  },
+};
+
+const flagCache = new Map<string, FlagModel>();
+
+/**
+ * Where a flag pole stands on a body, for the +x side: on the roof's flat top
+ * at its front edge, inside the rounded roof edge. `z` is the roof's height.
+ */
+type FlagMount = { x: number; y: number; z: number };
+
+/**
+ * A bus or coach: behind the rounded plan corner, where the roof has not yet
+ * started to drop, and behind the raked windscreen's top, which carries the
+ * roof's front edge back by the rake.
+ */
+const busFlagMount = (spec: BusSpec): FlagMount => ({
+  x: spec.width / 2 - spec.roofRadius,
+  y: spec.length / 2 - spec.corner - spec.rake,
+  z: spec.roofTop,
+});
+
+/** A tram: where the front cab's nose starts to narrow and lower. */
+const unitFlagMount = (spec: MultipleUnitSpec): FlagMount => ({
+  x: spec.width / 2 - spec.roofRadius,
+  y: spec.length / 2 - spec.noseLength,
+  z: spec.roofTop,
+});
+
+function flagMountFor(mode: VehicleModeEnumeration): FlagMount {
+  const { length, width, height } = dimensionsFor(mode);
+  switch (mode) {
+    case "COACH":
+      return busFlagMount(coachSpec(length, width, height));
+    case "TRAM":
+      return unitFlagMount(tramSpec(length, width, height));
+    default:
+      return busFlagMount(cityBusSpec(length, width, height));
+  }
+}
+
+/**
+ * Two flags for a vehicle's front corners, in model space (+y forward):
+ * a pole planted on the roof at each, inside the body's rounded corners and
+ * edges (`flagMountFor`), rising clear of it, with the cloth streaming back
+ * straight back towards −y in its own y–z plane. Each cloth stays on its own
+ * side of x = 0, which the renderer reads the side by.
+ * Sizes are `FLAG_EXAGGERATION` times life size. The cloth is `design`'s:
+ * every design has the same outline and columns, so it hangs and bends alike,
+ * and the poles are one mesh per mode whatever flies from them.
+ * Null for a mode that carries none. Built once per mode and design.
+ */
+export function flagModelFor(
+  mode: VehicleModeEnumeration,
+  design: FlagDesign = "norway",
+): FlagModel | null {
+  if (!FLAGGED_MODES.has(mode)) return null;
+  const cacheKey = `${mode}:${design}`;
+  let model = flagCache.get(cacheKey);
+  if (!model) {
+    const pattern = FLAG_PATTERNS[design];
+    const mount = flagMountFor(mode);
+    const k = FLAG_EXAGGERATION;
+    const poleTop = mount.z + FLAG.poleHeight * k;
+    const poleWidth = FLAG.poleWidth * k;
+    // The pole's centre, with all of its foot on the roof.
+    const poleY = mount.y - poleWidth / 2;
+    const clothLength = FLAG.clothLength * k;
+    const clothHeight = FLAG.clothHeight * k;
+    // The cloth hangs from just under the pole's top.
+    const clothTop = poleTop - 0.05 * k;
+    const poles = new MeshBuilder();
+    const positions: number[] = [];
+    const normals: number[] = [];
+    const colors: number[] = [];
+    const texCoords: number[] = [];
+    for (const side of [-1, 1]) {
+      const x = side * (mount.x - poleWidth / 2);
+      // Sunk a little into the roof, so no seam shows at its foot.
+      const base = mount.z - 0.02;
+      poles.box(
+        x,
+        poleY,
+        base,
+        poleWidth,
+        poleWidth,
+        poleTop - base,
+        MESH_COLOURS.flagPole,
+      );
+      for (let i = 0; i + 1 < FLAG_COLUMNS.length; i++) {
+        const [c0, c1] = [FLAG_COLUMNS[i], FLAG_COLUMNS[i + 1]];
+        const { rowEdges } = pattern;
+        for (let row = 0; row + 1 < rowEdges.length; row++) {
+          const [r0, r1] = [rowEdges[row], rowEdges[row + 1]];
+          const colour = pattern.colour(c0, row);
+          const sa = (c0 / FLAG_WIDTH_UNITS) * clothLength;
+          const sb = (c1 / FLAG_WIDTH_UNITS) * clothLength;
+          const za = clothTop - (r0 / FLAG_HEIGHT_UNITS) * clothHeight;
+          const zb = clothTop - (r1 / FLAG_HEIGHT_UNITS) * clothHeight;
+          // Corners: top-near, top-far, bottom-far, bottom-near.
+          const corners: [number, number, number, number][] = [
+            [sa, za, c0, r0],
+            [sb, za, c1, r0],
+            [sb, zb, c1, r1],
+            [sa, zb, c0, r1],
+          ];
+          // Front faces +x with this order; the back face reverses it.
+          for (const facing of [1, -1]) {
+            const order =
+              facing === 1 ? [0, 1, 2, 0, 2, 3] : [0, 2, 1, 0, 3, 2];
+            for (const j of order) {
+              const [along, z, cu, rv] = corners[j];
+              positions.push(x, poleY - along, z);
+              normals.push(facing, 0, 0);
+              colors.push(...colour);
+              texCoords.push(cu / FLAG_WIDTH_UNITS, rv / FLAG_HEIGHT_UNITS);
+            }
+          }
+        }
+      }
+    }
+    model = {
+      // One pole mesh per mode, shared by every design.
+      poles:
+        design === "norway"
+          ? poles.build().details
+          : flagModelFor(mode, "norway")!.poles,
+      cloth: {
+        positions: { value: new Float32Array(positions), size: 3 },
+        normals: { value: new Float32Array(normals), size: 3 },
+        colors: { value: new Float32Array(colors), size: 3 },
+        texCoords: { value: new Float32Array(texCoords), size: 2 },
+      },
+    };
+    flagCache.set(cacheKey, model);
+  }
+  return model;
+}
+
+/** A New Year's spark's radius, in metres: big enough to read from a street. */
+export const SPARK_RADIUS_M = 1.5;
+
+let spark: VehicleMesh | undefined;
+
+/**
+ * One firework spark, and the rocket's head: a white octahedron of
+ * `SPARK_RADIUS_M` around the origin, coloured per spark by the renderer. Its
+ * flight is the shader's; the mesh only has to read as a point of light from
+ * any side, in as few triangles as do that.
+ */
+export function sparkModel(): VehicleMesh {
+  if (!spark) {
+    const r = SPARK_RADIUS_M;
+    const m = new MeshBuilder();
+    const centre: Vec3 = [0, 0, 0];
+    const ring: Vec3[] = [
+      [r, 0, 0],
+      [0, r, 0],
+      [-r, 0, 0],
+      [0, -r, 0],
+    ];
+    for (const apex of [
+      [0, 0, r],
+      [0, 0, -r],
+    ] as Vec3[]) {
+      ring.forEach((a, i) => {
+        m.triangle(a, ring[(i + 1) % ring.length], apex, PAINT, centre);
+      });
+    }
+    spark = m.build().body;
+  }
+  return spark;
 }

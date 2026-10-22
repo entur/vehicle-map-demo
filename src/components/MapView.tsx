@@ -76,6 +76,7 @@ import { AerialImageryLayers } from "./AerialImageryLayers.tsx";
 import { AerialBuildingColours } from "./AerialBuildingColours.tsx";
 import { ChaseCamera } from "./Vehicle/ChaseCamera.tsx";
 import { ChasedVehicle, VehicleStore } from "./Vehicle/chasedVehicleStore.ts";
+import { useSeasonToday } from "./Seasonal/useSeasonToday.ts";
 import { MapBottomPadding } from "./MapBottomPadding.tsx";
 import { DETAIL_SHEET_MEDIA_QUERY } from "./detailDrawer.ts";
 import { SURFACE_INSET } from "./theme.ts";
@@ -208,6 +209,7 @@ export function MapView({
     null,
   );
   const [chasedVehicleStore] = useState(() => new VehicleStore());
+  const { season, fireworks } = useSeasonToday();
   const [ghostStore] = useState(() => new VehicleStore());
   // The "Ghost vehicle" switch in the Layers panel. Off by default: it is
   // something to switch on and look for, not a mark to explain unasked.
@@ -640,6 +642,8 @@ export function MapView({
               chasedVehicleStore={chasedVehicleStore}
               ghostStore={ghostStore}
               stopPoles={journeyStopPoles}
+              season={season}
+              fireworks={fireworks}
             />
             {chasedVehicle && (
               <ChaseCamera
