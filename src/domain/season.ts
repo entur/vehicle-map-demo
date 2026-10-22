@@ -97,6 +97,51 @@ export function seasonOn(now: Date, search: string): Season | null {
   return SEASONS.find(({ isOn }) => isOn(year, month, day))?.id ?? null;
 }
 
+const OSLO_TIME = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Europe/Oslo",
+  year: "numeric",
+  month: "numeric",
+  day: "numeric",
+  hour: "numeric",
+  minute: "numeric",
+  second: "numeric",
+  hourCycle: "h23",
+});
+
+/** Oslo's wall clock at `ms`, read as if it were UTC. */
+function osloWallMs(ms: number): number {
+  const parts = OSLO_TIME.formatToParts(new Date(ms));
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    Number(parts.find((p) => p.type === type)?.value);
+  return (
+    Date.UTC(
+      part("year"),
+      part("month") - 1,
+      part("day"),
+      part("hour"),
+      part("minute"),
+      part("second"),
+    ) +
+    (ms % 1000)
+  );
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Milliseconds from `now` to the next midnight in Oslo, when `seasonOn` and
+ * `fireworksOn` can next change their answer. Exact across a daylight saving
+ * change: the clocks go forward or back at night, never at midnight, so the
+ * offset at the first guess is the offset at midnight.
+ */
+export function msUntilNextOsloDay(now: Date): number {
+  const nowMs = now.getTime();
+  const wall = osloWallMs(nowMs);
+  const offset = wall - nowMs;
+  const guess = wall - (((wall % DAY_MS) + DAY_MS) % DAY_MS) + DAY_MS - offset;
+  return guess + offset - (osloWallMs(guess) - guess) - nowMs;
+}
+
 /**
  * Whether the New Year's fireworks are on at `now`: 27 December to 1 January
  * inclusive by the date in Oslo. They are an addition on top of the season,

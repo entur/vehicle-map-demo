@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   firstAdventSunday,
   fireworksOn,
+  msUntilNextOsloDay,
   flagDesignFor,
   seasonOn,
 } from "./season.ts";
@@ -174,6 +175,30 @@ describe("fireworksOn", () => {
     expect(fireworksOn(dec28, "?season=christmas")).toBe(false);
     expect(fireworksOn(dec28, "?season=none")).toBe(false);
     expect(fireworksOn(dec28, "?season=easter")).toBe(true);
+  });
+});
+
+describe("msUntilNextOsloDay", () => {
+  const until = (iso: string) => msUntilNextOsloDay(new Date(iso));
+  const HOUR = 60 * 60 * 1000;
+
+  it("counts to the next midnight in Oslo, not UTC", () => {
+    expect(until("2026-12-26T23:30:00+01:00")).toBe(HOUR / 2);
+    // 23:30 UTC on 26 Dec is already 00:30 on 27 Dec in Oslo.
+    expect(until("2026-12-26T23:30:00Z")).toBe(23.5 * HOUR);
+    expect(until("2026-05-16T12:00:00.250+02:00")).toBe(12 * HOUR - 250);
+  });
+
+  it("counts a full day from midnight itself", () => {
+    expect(until("2026-10-24T00:00:00+02:00")).toBe(24 * HOUR);
+  });
+
+  it("follows the clocks going forward and back", () => {
+    // 29 March 2026 is 23 hours long in Oslo, 25 October 25 hours.
+    expect(until("2026-03-29T00:00:00+01:00")).toBe(23 * HOUR);
+    expect(until("2026-03-28T23:00:00+01:00")).toBe(HOUR);
+    expect(until("2026-10-25T00:00:00+02:00")).toBe(25 * HOUR);
+    expect(until("2026-10-25T12:00:00+01:00")).toBe(12 * HOUR);
   });
 });
 
