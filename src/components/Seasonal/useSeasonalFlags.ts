@@ -44,10 +44,11 @@ type SeasonalWindow = {
  *
  * `flutterNow` gives the chased vehicle's flags, rebuilt every chase frame,
  * the same pose as the rest. They are drawn by the caller, but the clock runs
- * for them too (`chasedFlagged`), even when no other vehicle flies a flag;
- * its ticks then call `onChasedTick` rather than handing over no flags, which
- * would re-send every other layer for nothing. A chase frame is skipped while
- * the vehicle stands still, so without it the chased flags would freeze.
+ * for them too (`chasedFlagged`), even when no other vehicle flies a flag.
+ * Every tick calls `onChasedTick` for them, other flags in view or not: a
+ * chase frame is skipped while the vehicle stands still, so without it the
+ * chased flags would freeze. A tick with no other flags hands over nothing
+ * more, which would re-send every other layer for nothing.
  */
 export function useSeasonalFlags({
   map,
@@ -65,7 +66,7 @@ export function useSeasonalFlags({
   /** Whether the chased vehicle, left out of `vehicles`, flies flags. */
   chasedFlagged?: boolean;
   onLayers: (layers: Layer[]) => void;
-  /** Redraws the chased vehicle's flags, on a tick with no others to draw. */
+  /** Redraws the chased vehicle's flags, on every tick while it flies them. */
   onChasedTick?: () => void;
 }): { flutterNow: () => AnimationState } {
   const design = flagDesignFor(season);
@@ -84,10 +85,12 @@ export function useSeasonalFlags({
 
   const draw = useCallback(
     (flutter: AnimationState, tick = false) => {
+      // The chased vehicle's flags are redrawn on every tick, other flags in
+      // view or not: a chase standing still publishes no frames to do it.
+      if (tick && shown && chasedFlagged) onChasedTick?.();
       // A tick with no flags but the chased vehicle's has nothing to hand
       // over: the last draw already handed over none.
-      if (tick && !flying) onChasedTick?.();
-      else {
+      if (!tick || flying) {
         onLayers(
           flying && options && design
             ? flagLayers(flagged, {
@@ -114,6 +117,7 @@ export function useSeasonalFlags({
       }
     },
     [
+      shown,
       flying,
       fluttering,
       flagged,
