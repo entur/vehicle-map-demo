@@ -266,12 +266,13 @@ export function VehicleModels({
     [handOver],
   );
   // Set by the chase's effect below; a flutter tick redraws the chased flags
-  // through it unless a chase frame has just done so.
-  const publishChased = useRef<(() => void) | null>(null);
+  // through it unless a chase frame has just done so. `send` is false when
+  // the tick hands over the other flags right after, which carries these.
+  const publishChased = useRef<((send: boolean) => void) | null>(null);
   const chasedPublishedMs = useRef(0);
-  const onChasedTick = useCallback(() => {
+  const onChasedTick = useCallback((send: boolean) => {
     if (Date.now() - chasedPublishedMs.current < ANIMATION_TICK_MS) return;
-    publishChased.current?.();
+    publishChased.current?.(send);
   }, []);
   // Asked of the vehicle the chase draws, not of `data`: the chase goes on
   // drawing its last report after the live cache has dropped the vehicle, and
@@ -350,7 +351,7 @@ export function VehicleModels({
 
   useEffect(() => {
     const flagDesign = flagDesignFor(season);
-    const publish = () => {
+    const publish = (send = true) => {
       chasedPublishedMs.current = Date.now();
       const vehicle = chasedVehicleStore.get();
       // A new object every frame, so the cache never hits; look the ground up
@@ -383,11 +384,11 @@ export function VehicleModels({
             : []),
         ];
       }
-      handOver();
+      if (send) handOver();
     };
     publish();
     publishChased.current = publish;
-    const unsubscribe = chasedVehicleStore.subscribe(publish);
+    const unsubscribe = chasedVehicleStore.subscribe(() => publish());
     return () => {
       unsubscribe();
       publishChased.current = null;

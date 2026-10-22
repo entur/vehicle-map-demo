@@ -47,8 +47,9 @@ type SeasonalWindow = {
  * for them too (`chasedFlagged`), even when no other vehicle flies a flag.
  * Every tick calls `onChasedTick` for them, other flags in view or not: a
  * chase frame is skipped while the vehicle stands still, so without it the
- * chased flags would freeze. A tick with no other flags hands over nothing
- * more, which would re-send every other layer for nothing.
+ * chased flags would freeze. A tick with other flags hands both over in one
+ * `onLayers`; one without hands over nothing more, which would re-send every
+ * other layer for nothing.
  */
 export function useSeasonalFlags({
   map,
@@ -66,8 +67,11 @@ export function useSeasonalFlags({
   /** Whether the chased vehicle, left out of `vehicles`, flies flags. */
   chasedFlagged?: boolean;
   onLayers: (layers: Layer[]) => void;
-  /** Redraws the chased vehicle's flags, on every tick while it flies them. */
-  onChasedTick?: () => void;
+  /**
+   * Redraws the chased vehicle's flags, on every tick while it flies them;
+   * hands them over only when `send`, since otherwise `onLayers` follows.
+   */
+  onChasedTick?: (send: boolean) => void;
 }): { flutterNow: () => AnimationState } {
   const design = flagDesignFor(season);
   const inSeason = design !== null;
@@ -85,12 +89,14 @@ export function useSeasonalFlags({
 
   const draw = useCallback(
     (flutter: AnimationState, tick = false) => {
-      // The chased vehicle's flags are redrawn on every tick, other flags in
-      // view or not: a chase standing still publishes no frames to do it.
-      if (tick && shown && chasedFlagged) onChasedTick?.();
       // A tick with no flags but the chased vehicle's has nothing to hand
       // over: the last draw already handed over none.
-      if (!tick || flying) {
+      const handsOver = !tick || flying;
+      // The chased vehicle's flags are redrawn on every tick, other flags in
+      // view or not: a chase standing still publishes no frames to do it.
+      // Sent with the other flags when there are any, in one handover.
+      if (tick && shown && chasedFlagged) onChasedTick?.(!handsOver);
+      if (handsOver) {
         onLayers(
           flying && options && design
             ? flagLayers(flagged, {
