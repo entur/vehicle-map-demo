@@ -36,22 +36,26 @@ export default defineConfig({
     trace: "on-first-retry",
   },
 
-  /* Configure projects for major browsers */
+  /* Chromium only unless ALL_BROWSERS is set: every test draws the map in
+     software WebGL, and Firefox and WebKit tripled the run for little. */
   projects: [
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
     },
 
-    {
-      name: "firefox",
-      use: { ...devices["Desktop Firefox"] },
-    },
-
-    {
-      name: "webkit",
-      use: { ...devices["Desktop Safari"] },
-    },
+    ...(process.env.ALL_BROWSERS
+      ? [
+          {
+            name: "firefox",
+            use: { ...devices["Desktop Firefox"] },
+          },
+          {
+            name: "webkit",
+            use: { ...devices["Desktop Safari"] },
+          },
+        ]
+      : []),
 
     /* Test against mobile viewports. */
     // {
