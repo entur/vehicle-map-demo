@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 import { METRES_PER_DEGREE_LAT } from "./vehicleFootprint.ts";
 import {
   CHASE_BOX_MIN_HALF_SIZE_M,
+  CHASE_MODEL_RADIUS_M,
+  CHASE_MODEL_STEP_M,
+  chaseModelArea,
+  vehiclesNear,
   ChaseSample,
   FAST_INTERVAL_MS,
   addSample,
@@ -516,5 +520,69 @@ describe("cameraBearing", () => {
     const side: ChaseOrbit = { bearingOffset: 90, pitch: CHASE_PITCH };
     expect(cameraBearing(0, side)).toBe(90);
     expect(cameraBearing(300, side)).toBe(30);
+  });
+});
+
+describe("chaseModelArea", () => {
+  /** `metres` north of Oslo. */
+  const north = (metres: number) => ({
+    lon: OSLO.lon,
+    lat: OSLO.lat + metres / METRES_PER_DEGREE_LAT,
+  });
+
+  // At the chase's zoom the view reaches well over a kilometre, and a bus
+  // that far off is a few pixels: the subscription keeps it, no model does.
+  it("reaches no further than the cap, however far the view does", () => {
+    expect(chaseModelArea(null, OSLO, 1500).radius).toBe(CHASE_MODEL_RADIUS_M);
+    expect(chaseModelArea(null, OSLO, Infinity).radius).toBe(
+      CHASE_MODEL_RADIUS_M,
+    );
+  });
+
+  // The centre lags the vehicle by up to a step, so the area covers it.
+  it("covers a view zoomed in closer than the cap", () => {
+    expect(chaseModelArea(null, OSLO, 50).radius).toBe(50 + CHASE_MODEL_STEP_M);
+  });
+
+  // Every new area rebuilds the models, and the chase moves every frame.
+  it("keeps the same area while the vehicle stays within a step of its centre", () => {
+    const area = chaseModelArea(null, OSLO, 1500);
+    expect(chaseModelArea(area, north(CHASE_MODEL_STEP_M - 1), 1500)).toBe(
+      area,
+    );
+  });
+
+  it("moves the area once the vehicle is a step from its centre", () => {
+    const area = chaseModelArea(null, OSLO, 1500);
+    const moved = chaseModelArea(area, north(CHASE_MODEL_STEP_M), 1500);
+    expect(moved).not.toBe(area);
+    expect(moved.centre).toEqual(north(CHASE_MODEL_STEP_M));
+  });
+
+  it("resizes the area when zooming changes the view's reach", () => {
+    const area = chaseModelArea(null, OSLO, 1500);
+    expect(chaseModelArea(area, OSLO, 100).radius).toBe(
+      100 + CHASE_MODEL_STEP_M,
+    );
+  });
+});
+
+describe("vehiclesNear", () => {
+  const at = (metresNorth: number) => ({
+    location: {
+      longitude: OSLO.lon,
+      latitude: OSLO.lat + metresNorth / METRES_PER_DEGREE_LAT,
+    },
+  });
+
+  it("keeps the vehicles within the radius, in their order", () => {
+    const near = at(-490);
+    const nearer = at(10);
+    expect(
+      vehiclesNear([near, at(510), nearer, at(-2000)], {
+        centre: OSLO,
+        radius: 500,
+      }),
+    ).toEqual([near, nearer]);
   });
 });
