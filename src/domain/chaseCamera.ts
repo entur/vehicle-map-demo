@@ -313,6 +313,57 @@ export function chaseBoundingBox(
   ];
 }
 
+/**
+ * The farthest a vehicle can be from the chased one and still get a model.
+ * The subscription box reaches kilometres, for slack before it is reopened,
+ * and at the chase's zoom a bus that far off is a few pixels; every model
+ * costs layers and terrain lookups however small it is drawn.
+ */
+export const CHASE_MODEL_RADIUS_M = 750;
+
+/** How far the chased vehicle goes before the model area is moved after it. */
+export const CHASE_MODEL_STEP_M = 100;
+
+/** The circle of vehicles a chase builds models for. */
+export type ChaseModelArea = { centre: LngLat; radius: number };
+
+/**
+ * The model area around `centre`, the chased vehicle, given how far the view
+ * reaches from it. It reaches the view plus a step, since its centre lags the
+ * vehicle by up to one, but never past `CHASE_MODEL_RADIUS_M`. Returned
+ * unchanged (same identity) while the vehicle stays within a step of its
+ * centre and the reach is unchanged: the chase moves the camera every frame,
+ * and every new area rebuilds the models.
+ */
+export function chaseModelArea(
+  area: ChaseModelArea | null,
+  centre: LngLat,
+  viewReachMetres: number,
+): ChaseModelArea {
+  const radius = Math.min(
+    viewReachMetres + CHASE_MODEL_STEP_M,
+    CHASE_MODEL_RADIUS_M,
+  );
+  if (
+    area &&
+    area.radius === radius &&
+    distanceMetres(area.centre, centre) < CHASE_MODEL_STEP_M
+  ) {
+    return area;
+  }
+  return { centre, radius };
+}
+
+/** The vehicles within `area`, in their original order. */
+export function vehiclesNear<
+  T extends { location: { longitude: number; latitude: number } },
+>(vehicles: T[], { centre, radius }: ChaseModelArea): T[] {
+  return vehicles.filter(
+    ({ location: { longitude, latitude } }) =>
+      distanceMetres(centre, { lon: longitude, lat: latitude }) <= radius,
+  );
+}
+
 /** Share of the visible map padded off the top, so the road ahead shows. */
 export const CHASE_TOP_PADDING_SHARE = 0.35;
 

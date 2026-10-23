@@ -20,8 +20,17 @@ import {
   vehicleModelLayers,
 } from "./vehicleModelLayers.ts";
 import { withLayerAsStyleLoaded } from "../../utils/withLayerAsStyleLoaded.ts";
-import { cappedViewBounds } from "../../utils/cappedViewBounds.ts";
-import { ViewBounds, vehiclesInView } from "../../domain/vehiclesInView.ts";
+import { cappedViewBounds, viewCamera } from "../../utils/cappedViewBounds.ts";
+import {
+  ViewBounds,
+  referenceReachMetres,
+  vehiclesInView,
+} from "../../domain/vehiclesInView.ts";
+import {
+  ChaseModelArea,
+  chaseModelArea,
+  vehiclesNear,
+} from "../../domain/chaseCamera.ts";
 import { VehicleStore } from "./chasedVehicleStore.ts";
 import { VehicleGround, vehicleGround } from "../../domain/vehicleGround.ts";
 import {
@@ -47,6 +56,14 @@ const LEVEL: VehicleGround = {
   poolPitch: 0,
   complete: false,
 };
+
+/** The vehicles in `area`, or all of them before the chase has measured one. */
+function vehiclesNearOf(
+  vehicles: VehicleUpdate[],
+  area: ChaseModelArea | null,
+) {
+  return area ? vehiclesNear(vehicles, area) : vehicles;
+}
 
 /** Fades the models in over the same half zoom level the icons fade out. */
 function modelOpacity(zoom: number) {
@@ -174,10 +191,36 @@ export function VehicleModels({
     };
   }, [mapRef, chasing]);
 
+  // During a chase, the circle around the vehicle that gets models. Its
+  // centre is the map's: the chase's padding puts the vehicle there. Read on
+  // every chase frame, but a new circle only every `CHASE_MODEL_STEP_M`.
+  const [chaseArea, setChaseArea] = useState<ChaseModelArea | null>(null);
+  useEffect(() => {
+    const map = mapRef?.getMap();
+    if (!map || !chasing) return;
+    const update = () => {
+      const camera = viewCamera(map);
+      setChaseArea((area) =>
+        chaseModelArea(
+          area,
+          { lon: camera.longitude, lat: camera.latitude },
+          referenceReachMetres(camera),
+        ),
+      );
+    };
+    update();
+    map.on("moveend", update);
+    return () => {
+      map.off("moveend", update);
+      setChaseArea(null);
+    };
+  }, [mapRef, chasing]);
+
   // Only vehicles in view get models. The data normally matches the view
   // already, but straight after a jump from the whole country to one street
   // it is still the country until the next frame: over a thousand layers,
-  // which froze the page for seconds.
+  // which froze the page for seconds. During a chase only those near the
+  // vehicle do: the chase's subscription box reaches kilometres.
   // With the Vehicles switch off it is the same empty list on every frame, so
   // the effect that builds the models does not run again for each one.
   const unchased = useMemo(
@@ -185,15 +228,18 @@ export function VehicleModels({
       !showVehicles
         ? NO_VEHICLES
         : chasing
-          ? data.filter(
-              (vehicle) =>
-                vehicle.vehicleId + "_" + vehicle.serviceJourney.id !==
-                chasedVehicleKey,
+          ? vehiclesNearOf(
+              data.filter(
+                (vehicle) =>
+                  vehicle.vehicleId + "_" + vehicle.serviceJourney.id !==
+                  chasedVehicleKey,
+              ),
+              chaseArea,
             )
           : viewBounds
             ? vehiclesInView(data, viewBounds)
             : data,
-    [showVehicles, data, chasing, chasedVehicleKey, viewBounds],
+    [showVehicles, data, chasing, chasedVehicleKey, viewBounds, chaseArea],
   );
 
   // The ground under each vehicle report — its height and slope. The vehicle
