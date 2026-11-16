@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { contrastRatio } from "./contrast.ts";
 import {
+  CHART_BAR,
   DELAY_EARLY,
   DELAY_LATE,
   DELAY_ON_TIME,
@@ -55,6 +56,15 @@ describe("occupancy glyph colours", () => {
   ])("%s reaches 2:1 on both panels", (colour) => {
     for (const panel of PANELS) {
       expect(contrastRatio(colour, panel)).toBeGreaterThanOrEqual(2);
+    }
+  });
+});
+
+describe("chart marks", () => {
+  // A bar's count is printed beside it, so 3:1 (WCAG non-text) suffices.
+  it("CHART_BAR reaches 3:1 on both panels", () => {
+    for (const panel of PANELS) {
+      expect(contrastRatio(CHART_BAR, panel)).toBeGreaterThanOrEqual(3);
     }
   });
 });

@@ -8,6 +8,7 @@ import { TOOL_LABELS } from "./toolLabels.ts";
 import { ModeSwitch } from "../ModeSwitch.tsx";
 import { FloatingCard } from "../FloatingCard.tsx";
 import { SURFACE_INSET } from "../theme.ts";
+import { IntervalRecords } from "../../domain/updateIntervals.ts";
 import { AppMode, isWideTool, rightRailTools } from "../../domain/appMode.ts";
 import { ViewDimension } from "../../domain/viewDimension.ts";
 
@@ -30,6 +31,7 @@ interface RightMenuProps {
   setShowWeather: (show: boolean) => void;
   viewDimension: ViewDimension;
   data: VehicleUpdate[];
+  updateIntervals: IntervalRecords;
   kiosk: KioskTool;
 }
 
@@ -50,6 +52,7 @@ export const RightMenu = ({
   setShowWeather,
   viewDimension,
   data,
+  updateIntervals,
   kiosk,
 }: RightMenuProps) => {
   const [activeContent, setActiveContent] = useState<RightContentType | null>(
@@ -142,6 +145,7 @@ export const RightMenu = ({
               setShowWeather={setShowWeather}
               viewDimension={viewDimension}
               data={panelData}
+              updateIntervals={updateIntervals}
               kiosk={kiosk}
             />
           </FloatingCard>

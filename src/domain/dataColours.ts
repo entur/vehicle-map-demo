@@ -19,6 +19,8 @@ export const SEVERITY_MUTED = "#9aa1ad";
 export const ROUTE = "#1bb4ac";
 export const SELECTION_HALO = "#4c86f5";
 export const TRACE = "#b06bc0";
+/** The one series in the statistics panel's charts. */
+export const CHART_BAR = "#3478d4";
 
 export const DELAY_LATE = "#e5483a";
 export const DELAY_EARLY = "#3d9be0";

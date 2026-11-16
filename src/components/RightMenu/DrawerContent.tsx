@@ -9,6 +9,7 @@ import { Legend } from "../Legend.tsx";
 import { InfoBox } from "../InfoBox.tsx";
 import { SituationsPanel } from "../SituationsPanel";
 import { SituationStatsTables } from "../SituationsPanel/SituationStatsTables.tsx";
+import { IntervalRecords } from "../../domain/updateIntervals.ts";
 import { AppMode } from "../../domain/appMode.ts";
 import { ViewDimension } from "../../domain/viewDimension.ts";
 
@@ -29,6 +30,7 @@ type DrawerContentProps = {
   setShowWeather: (show: boolean) => void;
   viewDimension: ViewDimension;
   data: VehicleUpdate[];
+  updateIntervals: IntervalRecords;
   kiosk: KioskTool;
 };
 
@@ -49,6 +51,7 @@ export const DrawerContent = memo(function DrawerContent({
   setShowWeather,
   viewDimension,
   data,
+  updateIntervals,
   kiosk,
 }: DrawerContentProps) {
   return (
@@ -80,7 +83,11 @@ export const DrawerContent = memo(function DrawerContent({
       )}
       {activeContent === "stoplight" && currentFilter && <DataChecker />}
       {activeContent === "statistics" && currentFilter && (
-        <InfoBox data={data} />
+        <InfoBox
+          data={data}
+          updateIntervals={updateIntervals}
+          filter={currentFilter}
+        />
       )}
       {activeContent === "situations" && <SituationsPanel />}
       {activeContent === "situationStats" && <SituationStatsTables />}
