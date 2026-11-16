@@ -41,8 +41,17 @@ test.describe("kiosk mode", () => {
   test("chases, pauses on input and restores its setup on resume", async ({
     page,
   }) => {
+    const IDLE_MS = 20000;
     // Locking on can take up to a minute, which is longer than the default.
-    test.setTimeout(120000);
+    test.setTimeout(150000);
+    // A 20 s idle period rather than the suite's 6 s. While a vehicle is
+    // chased in software WebGL every Playwright round trip takes seconds:
+    // measured, pressing Shift, seeing the pill and clicking it took 5.5 to
+    // 7.5 s, so with 6 s the kiosk often resumed and unmounted the pill
+    // before the click landed. Runs after the beforeEach script, so it wins.
+    await page.addInitScript((ms) => {
+      (window as unknown as KioskWindow).__kioskIdleMs = ms;
+    }, IDLE_MS);
     await page.goto("/?kiosk=20");
 
     const chased = await page
@@ -68,20 +77,21 @@ test.describe("kiosk mode", () => {
     await expect(situations).toBeVisible();
 
     // A visitor switches modes and walks away.
-    // The pill is still settling and the idle period is only 6 s, so skip
-    // the stability wait or the kiosk resumes before the click lands.
+    // The pill is still settling, so skip the stability wait, which only
+    // spends more of the idle period before the click lands.
     await situations.click({ force: true });
     await expect(page).toHaveURL(/mode=situations/);
 
-    // 6 s later the kiosk resumes and puts its own setup back.
-    await expect(page).toHaveURL(/mode=vehicles/, { timeout: 15000 });
+    // After the idle period the kiosk resumes and puts its own setup back.
+    await expect(page).toHaveURL(/mode=vehicles/, { timeout: 2 * IDLE_MS });
     await expect(situations).toHaveCount(0);
 
-    // Paused again, the pill's button resumes at once, well inside the 6 s.
+    // Paused again, the pill's button resumes well inside the idle period, so
+    // it was the button and not the timer.
     await page.keyboard.press("Shift");
     await expect(situations).toBeVisible();
     await page.getByRole("button", { name: "Resume kiosk" }).click();
-    await expect(situations).toHaveCount(0, { timeout: 3000 });
+    await expect(situations).toHaveCount(0, { timeout: IDLE_MS / 2 });
     await expect(page.getByText(/Kiosk paused/)).toHaveCount(0);
   });
 
