@@ -38,6 +38,7 @@ import { SelectedVehicleHalo } from "./Vehicle/SelectedVehicleHalo.tsx";
 import { useTimetableSubscription } from "../hooks/useTimetableSubscription.ts";
 import { useServiceJourneyRoute } from "../hooks/useServiceJourneyRoute.ts";
 import { buildSchedule } from "../domain/scheduleGhost.ts";
+import { useUpdateIntervals } from "../hooks/useUpdateIntervals.ts";
 import {
   journeyStopFeatures,
   routeBearings,
@@ -549,6 +550,7 @@ export function MapView({
     () => data.map((vehicle) => vehicle.vehicleUpdate),
     [data],
   );
+  const updateIntervals = useUpdateIntervals(vehicleUpdates);
 
   const kioskTarget = kiosk.state ? targetOf(kiosk.state.phase) : null;
   const kioskVehicle = kioskTarget
@@ -600,6 +602,7 @@ export function MapView({
             mode={mode}
             setMode={switchMode}
             data={vehicleUpdates}
+            updateIntervals={updateIntervals}
             setCurrentFilter={setCurrentFilter}
             currentFilter={currentFilter}
             mapViewOptions={mapViewOptions}
