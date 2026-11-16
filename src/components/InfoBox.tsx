@@ -62,7 +62,16 @@ function IntervalChart({ counts }: { counts: number[] }) {
     <Box
       component="ul"
       aria-label="Vehicles by update interval"
-      sx={{ listStyle: "none", margin: 0, padding: 0 }}
+      sx={{
+        listStyle: "none",
+        margin: 0,
+        padding: 0,
+        display: "grid",
+        // Label and value columns fit their widest row, so "1234 · 100%"
+        // never wraps into the row below.
+        gridTemplateColumns: "max-content 1fr max-content",
+        columnGap: 1,
+      }}
     >
       {INTERVAL_BUCKETS.map((bucket, i) => {
         const count = counts[i];
@@ -74,10 +83,11 @@ function IntervalChart({ counts }: { counts: number[] }) {
             title={`${bucket.label}: ${count} vehicles (${share}%)`}
             sx={{
               display: "grid",
-              gridTemplateColumns: "56px 1fr 64px",
+              gridColumn: "1 / -1",
+              gridTemplateColumns: "subgrid",
               alignItems: "center",
-              columnGap: 1,
               height: 22,
+              whiteSpace: "nowrap",
               fontSize: 12,
               fontVariantNumeric: "tabular-nums",
               borderRadius: "var(--mui-shape-borderRadius)",
