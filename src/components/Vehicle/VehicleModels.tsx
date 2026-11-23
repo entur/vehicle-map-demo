@@ -88,6 +88,11 @@ type Props = {
   season: Season | null;
   /** New Year's fireworks over the map, drawn in 3D while the models are shown. */
   fireworks: boolean;
+  /**
+   * The seasonal lights and flags hold still, as under
+   * `prefers-reduced-motion`, and no fireworks are run.
+   */
+  reducedMotion: boolean;
 };
 
 /**
@@ -115,6 +120,7 @@ export function VehicleModels({
   stopPoles,
   season,
   fireworks,
+  reducedMotion,
 }: Props) {
   // StrictMode adds, removes and re-adds this control, so two Decks attach to
   // the map's one WebGL context. luma creates the device asynchronously, so
@@ -341,6 +347,7 @@ export function VehicleModels({
     vehicles: unchased,
     options: modelOptions,
     chasedFlagged,
+    reducedMotion,
     onLayers: onFlagLayers,
     onChasedTick,
   });
@@ -483,6 +490,7 @@ export function VehicleModels({
     opacity,
     scheme,
     chasing,
+    reducedMotion,
     onLayers: onSeasonalLayers,
   });
 
@@ -499,6 +507,7 @@ export function VehicleModels({
     on: fireworks,
     shown: viewDimension === "3d" && opacity > 0,
     scheme,
+    reducedMotion,
     onLayers: onFireworkLayers,
     onBarrage: holdAwake,
   });

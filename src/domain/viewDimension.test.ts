@@ -12,6 +12,7 @@ import {
   parseViewDimension,
   rotatedBearing,
   terrainFor,
+  visible3dLayers,
 } from "./viewDimension.ts";
 
 describe("parseViewDimension", () => {
@@ -59,6 +60,18 @@ describe("terrainFor", () => {
     expect(terrain).not.toBeNull();
     expect(mapStyle.sources[terrain!.source].type).toBe("raster-dem");
     expect(terrainFor("2d")).toBeNull();
+  });
+});
+
+describe("visible3dLayers", () => {
+  it("shows every 3D layer in 3D and none in 2D", () => {
+    expect(visible3dLayers("3d", true)).toEqual(VIEW_3D_LAYERS);
+    expect(visible3dLayers("2d", true)).toEqual([]);
+  });
+
+  it("leaves out only the hillshade without it", () => {
+    expect(visible3dLayers("3d", false)).toEqual(["buildings-3d-layer"]);
+    expect(visible3dLayers("2d", false)).toEqual([]);
   });
 });
 

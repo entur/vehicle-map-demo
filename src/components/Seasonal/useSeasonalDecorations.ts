@@ -66,6 +66,7 @@ export function useSeasonalDecorations({
   opacity,
   scheme,
   chasing,
+  reducedMotion,
   onLayers,
 }: {
   map: MapLibreMap | undefined;
@@ -73,6 +74,8 @@ export function useSeasonalDecorations({
   opacity: number;
   scheme: MapScheme;
   chasing: boolean;
+  /** Forces reduced motion on top of `prefers-reduced-motion`. */
+  reducedMotion: boolean;
   onLayers: (layers: Layer[]) => void;
 }): { holdAwake: (untilMs: number) => void } {
   const visible = opacity > 0;
@@ -144,7 +147,7 @@ export function useSeasonalDecorations({
   useEffect(() => {
     if (!map || !treesShown) return;
     const clock = new AnimationClock(map, {
-      reducedMotion: prefersReducedMotion(),
+      reducedMotion: prefersReducedMotion() || reducedMotion,
       onTick: (state) => drawRef.current(state),
     });
     clockRef.current = clock;
@@ -159,14 +162,17 @@ export function useSeasonalDecorations({
       clock.dispose();
       clockRef.current = null;
     };
-  }, [map, treesShown]);
+  }, [map, treesShown, reducedMotion]);
 
   const onInput = useCallback(() => clockRef.current?.activity(), []);
   useKioskInput(treesShown, onInput);
 
+  // Also when `reducedMotion` changes: the clock effect above, declared first
+  // so it runs first, has then made a new clock, and a clock under reduced
+  // motion draws nothing more by itself.
   useEffect(() => {
     draw(clockRef.current?.current() ?? STEADY);
-  }, [draw]);
+  }, [draw, reducedMotion]);
 
   // Lets the Playwright tests see the decorations. Development builds only.
   useEffect(() => {
@@ -182,9 +188,9 @@ export function useSeasonalDecorations({
             ...w.__seasonal,
             season,
             count: placed.decorations.length,
-            twinkling: treesShown && !prefersReducedMotion(),
+            twinkling: treesShown && !prefersReducedMotion() && !reducedMotion,
           };
-  }, [season, spec, placed, treesShown]);
+  }, [season, spec, placed, treesShown, reducedMotion]);
 
   const holdAwake = useCallback(
     (untilMs: number) => clockRef.current?.holdAwake(untilMs),

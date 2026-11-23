@@ -15,6 +15,7 @@ import {
   transitNetworkPaint,
 } from "../domain/baseMapScheme.ts";
 import { BASE_LAYERS } from "../domain/viewDimension.ts";
+import { MODE_LAYERS } from "../domain/appMode.ts";
 import {
   TRANSIT_NETWORK_LABEL_LAYERS,
   TRANSIT_NETWORK_LAYERS,
@@ -216,6 +217,22 @@ describe("buildMapStyle", () => {
     }
     for (const id of Object.keys(style.sources)) {
       expect(id).not.toMatch(/^(light|dark)\//);
+    }
+  });
+
+  // Under terrain each unbroken run of draped layers is one full terrain draw
+  // per frame, empty or not (see the comment above the run in mapStyle.ts).
+  it("keeps every vehicles-mode ground layer in one run", () => {
+    const layers = buildMapStyle("light").layers;
+    const vehicles = new Set(MODE_LAYERS.vehicles);
+    const draped = (type: string) => type === "line" || type === "fill";
+    const at = layers.flatMap((l, i) =>
+      vehicles.has(l.id) && draped(l.type) ? [i] : [],
+    );
+    expect(at.length).toBeGreaterThan(0);
+    const run = layers.slice(at[0], at[at.length - 1] + 1);
+    for (const layer of run) {
+      expect(draped(layer.type), layer.id).toBe(true);
     }
   });
 

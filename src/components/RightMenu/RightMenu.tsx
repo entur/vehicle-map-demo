@@ -11,6 +11,7 @@ import { SURFACE_INSET } from "../theme.ts";
 import { IntervalRecords } from "../../domain/updateIntervals.ts";
 import { AppMode, isWideTool, rightRailTools } from "../../domain/appMode.ts";
 import { ViewDimension } from "../../domain/viewDimension.ts";
+import { RenderQuality } from "../../domain/renderQuality.ts";
 
 const NO_DATA: VehicleUpdate[] = [];
 
@@ -30,6 +31,8 @@ interface RightMenuProps {
   showWeather: boolean;
   setShowWeather: (show: boolean) => void;
   viewDimension: ViewDimension;
+  quality: RenderQuality;
+  setQuality: (quality: RenderQuality) => void;
   data: VehicleUpdate[];
   updateIntervals: IntervalRecords;
   kiosk: KioskTool;
@@ -51,6 +54,8 @@ export const RightMenu = ({
   showWeather,
   setShowWeather,
   viewDimension,
+  quality,
+  setQuality,
   data,
   updateIntervals,
   kiosk,
@@ -144,6 +149,8 @@ export const RightMenu = ({
               showWeather={showWeather}
               setShowWeather={setShowWeather}
               viewDimension={viewDimension}
+              quality={quality}
+              setQuality={setQuality}
               data={panelData}
               updateIntervals={updateIntervals}
               kiosk={kiosk}

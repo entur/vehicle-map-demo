@@ -74,6 +74,7 @@ export function useSeasonalFireworks({
   on,
   shown,
   scheme,
+  reducedMotion,
   onLayers,
   onBarrage,
 }: {
@@ -81,6 +82,8 @@ export function useSeasonalFireworks({
   on: boolean;
   shown: boolean;
   scheme: MapScheme;
+  /** Forces reduced motion on top of `prefers-reduced-motion`: no show runs. */
+  reducedMotion: boolean;
   onLayers: (layers: Layer[]) => void;
   onBarrage: (untilMs: number) => void;
 }): void {
@@ -124,7 +127,7 @@ export function useSeasonalFireworks({
   }, [map, on, onInput]);
 
   useEffect(() => {
-    if (!map || !running || prefersReducedMotion()) return;
+    if (!map || !running || reducedMotion || prefersReducedMotion()) return;
     const show = new FireworkShow();
     let instances: SparkInstance[] = [];
     let epochMs = Date.now();
@@ -243,7 +246,7 @@ export function useSeasonalFireworks({
       current.current.onLayers([]);
       reportRockets(0);
     };
-  }, [map, running]);
+  }, [map, running, reducedMotion]);
 
   // A scheme switch changes the blending; a sleeping clock draws no frame.
   useEffect(() => {

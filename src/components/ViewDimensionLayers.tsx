@@ -5,8 +5,10 @@ import {
   ViewDimension,
   cameraFor,
   terrainFor,
+  visible3dLayers,
 } from "../domain/viewDimension.ts";
 import { whenLayerExists } from "../utils/whenLayerExists.ts";
+import { buildingsOpacity } from "./mapStyle.ts";
 
 /**
  * Turns terrain on or off, reveals the 3D-only base layers and tilts the
@@ -21,12 +23,21 @@ import { whenLayerExists } from "../utils/whenLayerExists.ts";
  * link is read after the map opened on the kiosk's camera. Read when the
  * dimension changes and not otherwise, so a kiosk pausing or resuming moves
  * nothing by itself.
+ *
+ * `hillshade` and `translucentBuildings` are the render quality's: the
+ * hillshade stays hidden in 3D without the first, the buildings are drawn
+ * opaque without the second. Both are set apart from the camera, so a
+ * quality change moves nothing.
  */
 export function ViewDimensionLayers({
   dimension,
+  hillshade,
+  translucentBuildings,
   camera,
 }: {
   dimension: ViewDimension;
+  hillshade: boolean;
+  translucentBuildings: boolean;
   camera?: { pitch: number; bearing: number };
 }) {
   const { current: mapRef } = useMap();
@@ -42,12 +53,6 @@ export function ViewDimensionLayers({
 
     const apply = () => {
       map.setTerrain(terrainFor(dimension));
-      const visibility = dimension === "3d" ? "visible" : "none";
-      for (const id of VIEW_3D_LAYERS) {
-        if (map.getLayer(id)) {
-          map.setLayoutProperty(id, "visibility", visibility);
-        }
-      }
       const target = cameraOverride.current ?? cameraFor(dimension);
       if (
         map.getPitch() !== target.pitch ||
@@ -61,6 +66,35 @@ export function ViewDimensionLayers({
     // not map.isStyleLoaded().
     return whenLayerExists(map, VIEW_3D_LAYERS[0], apply);
   }, [dimension, mapRef]);
+
+  useEffect(() => {
+    const map = mapRef?.getMap();
+    if (!map) return;
+    const visible = visible3dLayers(dimension, hillshade);
+    return whenLayerExists(map, VIEW_3D_LAYERS[0], () => {
+      for (const id of VIEW_3D_LAYERS) {
+        if (map.getLayer(id)) {
+          map.setLayoutProperty(
+            id,
+            "visibility",
+            visible.includes(id) ? "visible" : "none",
+          );
+        }
+      }
+    });
+  }, [dimension, hillshade, mapRef]);
+
+  useEffect(() => {
+    const map = mapRef?.getMap();
+    if (!map) return;
+    return whenLayerExists(map, "buildings-3d-layer", () =>
+      map.setPaintProperty(
+        "buildings-3d-layer",
+        "fill-extrusion-opacity",
+        buildingsOpacity(translucentBuildings),
+      ),
+    );
+  }, [translucentBuildings, mapRef]);
 
   return null;
 }

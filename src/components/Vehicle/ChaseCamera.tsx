@@ -64,13 +64,6 @@ const DRAG_THRESHOLD_PX = 3;
 const HUD_REFRESH_MS = 250;
 /** A wheel quiet this long has stopped; MapLibre's scroll zoom waits as long. */
 const WHEEL_END_MS = 200;
-/**
- * The chase moves the camera at most this often. Every camera move is a full
- * map redraw with terrain, which dominates the chase's CPU cost, and
- * requestAnimationFrame follows the display: on a 120 Hz screen an uncapped
- * chase redraws twice as often for motion no smoother to the eye.
- */
-const CHASE_FPS = 30;
 /** Slack for frame timing jitter, so a frame due at the cap is not skipped. */
 const FRAME_SLACK_MS = 2;
 
@@ -143,6 +136,8 @@ type Props = {
    * chased. Hidden, the HUD covers nothing and reports 0.
    */
   hudHidden: boolean;
+  /** At most this many camera moves a second (`QualitySettings.chaseFps`). */
+  maxFps: number;
 };
 
 /** Gap between the HUD and the sheet below it, the same as between cards. */
@@ -174,6 +169,7 @@ export function ChaseCamera({
   bottomInset,
   onCoveredChange,
   hudHidden,
+  maxFps,
 }: Props) {
   const { current: mapRef } = useMap();
 
@@ -226,9 +222,11 @@ export function ChaseCamera({
   // Read by the long-lived effects below without restarting them.
   const viewDimensionRef = useRef(viewDimension);
   const onStopRef = useRef(onStop);
+  const maxFpsRef = useRef(maxFps);
   useEffect(() => {
     viewDimensionRef.current = viewDimension;
     onStopRef.current = onStop;
+    maxFpsRef.current = maxFps;
   });
 
   const keepBoxAroundVehicle = useCallback(() => {
@@ -470,7 +468,7 @@ export function ChaseCamera({
     window.addEventListener("keydown", onKeyDown);
 
     const tick = (frameTime: number) => {
-      if (frameTime - lastFrame < 1000 / CHASE_FPS - FRAME_SLACK_MS) {
+      if (frameTime - lastFrame < 1000 / maxFpsRef.current - FRAME_SLACK_MS) {
         frame = requestAnimationFrame(tick);
         return;
       }

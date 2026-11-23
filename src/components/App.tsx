@@ -7,6 +7,11 @@ import { COLOR_SCHEME_STORAGE_KEY, theme } from "./theme.ts";
 import { useFilterQueryParams } from "../hooks/useFilterQueryParams.ts";
 import { useModeQueryParam } from "../hooks/useModeQueryParam.ts";
 import { useViewDimensionQueryParam } from "../hooks/useViewDimensionQueryParam.ts";
+import {
+  initialRenderQuality,
+  useRenderQualityQueryParam,
+} from "../hooks/useRenderQualityQueryParam.ts";
+import { RenderQuality } from "../domain/renderQuality.ts";
 import { ViewDimension } from "../domain/viewDimension.ts";
 import { SituationsProvider } from "../situations/SituationsProvider.tsx";
 import {
@@ -19,6 +24,7 @@ function App() {
   const [currentFilter, setCurrentFilter] = useState<Filter | null>(null);
   const [mode, setMode] = useState<AppMode>("vehicles");
   const [viewDimension, setViewDimension] = useState<ViewDimension>("2d");
+  const [quality, setQuality] = useState<RenderQuality>(initialRenderQuality);
   // Base map context shared by both modes, so not a MapViewOptions key: those
   // are single-mode switches and re-open the vehicle subscription.
   const [showTransitNetwork, setShowTransitNetwork] = useState(true);
@@ -42,6 +48,7 @@ function App() {
   useFilterQueryParams(currentFilter, setCurrentFilter);
   useModeQueryParam(mode, setMode);
   useViewDimensionQueryParam(viewDimension, setViewDimension);
+  useRenderQualityQueryParam(quality);
 
   return (
     // dvh, not vh: on a phone 100vh is the height with the URL bar hidden, so
@@ -66,6 +73,8 @@ function App() {
             setMode={setMode}
             viewDimension={viewDimension}
             setViewDimension={setViewDimension}
+            quality={quality}
+            setQuality={setQuality}
             showTransitNetwork={showTransitNetwork}
             setShowTransitNetwork={setShowTransitNetwork}
             showAerial={showAerial}

@@ -7,6 +7,8 @@ import { MapScheme } from "./basemap/basemap.ts";
 type WeatherOverlayProps = {
   /** The weather at the map's centre, from `WeatherFeed`; null draws nothing. */
   weather: Weather | null;
+  /** Forces reduced motion on top of `prefers-reduced-motion`: nothing falls. */
+  reducedMotion: boolean;
 };
 
 type Kind = "rain" | "snow";
@@ -70,19 +72,25 @@ type Particle = {
  * and always leans the same way on screen whatever the map's bearing.
  *
  * Nothing is mounted or animated unless something is falling there, and
- * nothing at all for someone who has asked for reduced motion — the sky,
+ * nothing at all under reduced motion, asked for by the person or by Low
+ * render quality — the sky,
  * which `BaseMapScheme` colours from the same weather, is not motion and
  * still follows it.
  */
-export function WeatherOverlay({ weather }: WeatherOverlayProps) {
-  const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)", {
-    noSsr: true,
-  });
+export function WeatherOverlay({
+  weather,
+  reducedMotion,
+}: WeatherOverlayProps) {
+  const prefersReducedMotion = useMediaQuery(
+    "(prefers-reduced-motion: reduce)",
+    { noSsr: true },
+  );
   const scheme = mapSchemeFor(useColorScheme().colorScheme);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
+  const still = reducedMotion || prefersReducedMotion;
   const kind =
-    weather && weather.kind !== "none" && !reducedMotion ? weather.kind : null;
+    weather && weather.kind !== "none" && !still ? weather.kind : null;
   const intensity = weather?.intensity ?? 0;
   const slant = weather?.slant ?? 0;
 

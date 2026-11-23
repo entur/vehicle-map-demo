@@ -12,6 +12,7 @@ import { SituationStatsTables } from "../SituationsPanel/SituationStatsTables.ts
 import { IntervalRecords } from "../../domain/updateIntervals.ts";
 import { AppMode } from "../../domain/appMode.ts";
 import { ViewDimension } from "../../domain/viewDimension.ts";
+import { RenderQuality } from "../../domain/renderQuality.ts";
 
 type DrawerContentProps = {
   mode: AppMode;
@@ -29,6 +30,8 @@ type DrawerContentProps = {
   showWeather: boolean;
   setShowWeather: (show: boolean) => void;
   viewDimension: ViewDimension;
+  quality: RenderQuality;
+  setQuality: (quality: RenderQuality) => void;
   data: VehicleUpdate[];
   updateIntervals: IntervalRecords;
   kiosk: KioskTool;
@@ -50,6 +53,8 @@ export const DrawerContent = memo(function DrawerContent({
   showWeather,
   setShowWeather,
   viewDimension,
+  quality,
+  setQuality,
   data,
   updateIntervals,
   kiosk,
@@ -79,6 +84,8 @@ export const DrawerContent = memo(function DrawerContent({
           showWeather={showWeather}
           setShowWeather={setShowWeather}
           viewDimension={viewDimension}
+          quality={quality}
+          setQuality={setQuality}
         />
       )}
       {activeContent === "stoplight" && currentFilter && <DataChecker />}
@@ -91,7 +98,9 @@ export const DrawerContent = memo(function DrawerContent({
       )}
       {activeContent === "situations" && <SituationsPanel />}
       {activeContent === "situationStats" && <SituationStatsTables />}
-      {activeContent === "kiosk" && <KioskPanel {...kiosk} />}
+      {activeContent === "kiosk" && (
+        <KioskPanel {...kiosk} quality={quality} setQuality={setQuality} />
+      )}
     </>
   );
 });
