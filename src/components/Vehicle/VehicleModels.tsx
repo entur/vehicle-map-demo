@@ -447,7 +447,17 @@ export function VehicleModels({
       publishChased.current = null;
       chasedLayers.current = [];
     };
-  }, [handOver, chasedVehicleStore, showVehicles, season, flutterNow]);
+    // reducedMotion: the flags' hook, called above, then has a new clock,
+    // which never ticks, and a chase standing still publishes no frames, so
+    // without a publish here the chased flags would keep their last pose.
+  }, [
+    handOver,
+    chasedVehicleStore,
+    showVehicles,
+    season,
+    flutterNow,
+    reducedMotion,
+  ]);
 
   useEffect(() => {
     const publish = () => {
