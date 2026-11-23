@@ -12,10 +12,10 @@ Playwright runs Chromium only; `ALL_BROWSERS=1 npx playwright test` adds Firefox
 
 The app does **not** use Vite env vars for endpoints. Instead, `src/main.tsx` fetches `/bootstrap.json` at startup and provides it via `ConfigContext`. All hooks read endpoints (`vehicle-positions-graphql-endpoint`, `vehicle-positions-subscriptions-endpoint`, `vehicle-positions-et-client-name`) from this context — see `src/config/ConfigContext.ts` and `src/hooks/useRequestHeaders.ts`.
 
-- Local dev: `public/bootstrap.json` is served as-is (currently points at `api.dev.entur.io`). Edit it to point at a different backend; do not commit personal client names.
+- Local dev: `public/bootstrap.json` is served as-is. It is gitignored, so a fresh checkout has none and the app fails to start with a JSON parse error; create it with `cp .github/environments/config-dev.json public/bootstrap.json` (pointing at `api.dev.entur.io`) and edit it locally to point at a different backend.
 - Deploys: `.github/workflows/deploy.yml` copies `.github/environments/config-{dev,staging,prod}.json` to `dist/bootstrap.json` before Firebase Hosting deploy. Add or change endpoints in those files, not in code.
 
-When introducing a new config key, update the `Config` interface in `ConfigContext.ts` and every `config-*.json` in `.github/environments/` plus `public/bootstrap.json`.
+When introducing a new config key, update the `Config` interface in `ConfigContext.ts` and every `config-*.json` in `.github/environments/`; a local `public/bootstrap.json` picks it up by being copied again.
 
 ## Data flow
 
