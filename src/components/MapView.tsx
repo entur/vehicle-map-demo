@@ -63,6 +63,9 @@ import { SituationDetailPanel } from "./SituationsPanel/SituationDetailPanel.tsx
 import { AppMode } from "../domain/appMode.ts";
 import { ModeLayers } from "./ModeLayers.tsx";
 import { ViewDimension } from "../domain/viewDimension.ts";
+import { QUALITY_SETTINGS, RenderQuality } from "../domain/renderQuality.ts";
+import { RenderResolution } from "./RenderResolution.tsx";
+import { LabelFade } from "./LabelFade.tsx";
 import { MAX_VIEW_PITCH } from "../domain/vehiclesInView.ts";
 import { RotateControl } from "./RotateControl.tsx";
 import { ViewDimensionControl } from "./ViewDimensionControl.tsx";
@@ -99,6 +102,8 @@ type MapViewProps = {
   setMode: (mode: AppMode) => void;
   viewDimension: ViewDimension;
   setViewDimension: (viewDimension: ViewDimension) => void;
+  quality: RenderQuality;
+  setQuality: (quality: RenderQuality) => void;
   showTransitNetwork: boolean;
   setShowTransitNetwork: (show: boolean) => void;
   showAerial: boolean;
@@ -133,6 +138,8 @@ export function MapView({
   setMode,
   viewDimension,
   setViewDimension,
+  quality,
+  setQuality,
   showTransitNetwork,
   setShowTransitNetwork,
   showAerial,
@@ -143,6 +150,7 @@ export function MapView({
   mapViewOptions,
   setMapViewOptions,
 }: MapViewProps) {
+  const qualitySettings = QUALITY_SETTINGS[quality];
   const { colorScheme } = useColorScheme();
   // Built once, for the scheme in force at mount, and never replaced: a new
   // style object makes react-map-gl call setStyle, which resets GeoJSON data,
@@ -588,9 +596,16 @@ export function MapView({
           credit={weatherEnabled ? WEATHER_CREDIT : undefined}
         />
         <WeatherFeed enabled={weatherEnabled} onChange={setWeatherReading} />
-        <WeatherOverlay weather={weather} />
+        <RenderResolution maxPixels={qualitySettings.maxPixels} />
+        <LabelFade fade={qualitySettings.labelFade} />
+        <WeatherOverlay
+          weather={weather}
+          reducedMotion={!qualitySettings.animations}
+        />
         <ViewDimensionLayers
           dimension={viewDimension}
+          hillshade={qualitySettings.hillshade}
+          translucentBuildings={qualitySettings.translucentBuildings}
           camera={fixedViewRunning ? fixedSession?.camera : undefined}
         />
         <BaseMapScheme builtFor={builtScheme} weather={weather} />
@@ -616,6 +631,8 @@ export function MapView({
             showWeather={showWeather}
             setShowWeather={setShowWeather}
             viewDimension={viewDimension}
+            quality={quality}
+            setQuality={setQuality}
             kiosk={kioskTool}
           />
         )}
@@ -647,6 +664,7 @@ export function MapView({
               stopPoles={journeyStopPoles}
               season={season}
               fireworks={fireworks}
+              reducedMotion={!qualitySettings.animations}
             />
             {chasedVehicle && (
               <ChaseCamera
@@ -660,6 +678,7 @@ export function MapView({
                 bottomInset={sheetBottomInset}
                 onCoveredChange={setChaseHudCovered}
                 hudHidden={kioskRunning}
+                maxFps={qualitySettings.chaseFps}
               />
             )}
             {mapViewOptions.showVehicleTraces && <VehicleTraces data={data} />}

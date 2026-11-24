@@ -57,6 +57,7 @@ export function useSeasonalFlags({
   vehicles,
   options,
   chasedFlagged = false,
+  reducedMotion,
   onLayers,
   onChasedTick,
 }: {
@@ -66,6 +67,8 @@ export function useSeasonalFlags({
   options: Omit<ModelLayerOptions, "idPrefix"> | null;
   /** Whether the chased vehicle, left out of `vehicles`, flies flags. */
   chasedFlagged?: boolean;
+  /** Forces reduced motion on top of `prefers-reduced-motion`. */
+  reducedMotion: boolean;
   onLayers: (layers: Layer[]) => void;
   /**
    * Redraws the chased vehicle's flags, on every tick while it flies them;
@@ -183,7 +186,7 @@ export function useSeasonalFlags({
   useEffect(() => {
     if (!map || !fluttering) return;
     const clock = new AnimationClock(map, {
-      reducedMotion: prefersReducedMotion(),
+      reducedMotion: prefersReducedMotion() || reducedMotion,
       onTick: (state) => drawRef.current(state, true),
       ...since.current,
     });
@@ -192,11 +195,14 @@ export function useSeasonalFlags({
       clock.dispose();
       clockRef.current = null;
     };
-  }, [map, fluttering]);
+  }, [map, fluttering, reducedMotion]);
 
+  // Also when `reducedMotion` changes: the clock effect above, declared first
+  // so it runs first, has then made a new clock, and a clock under reduced
+  // motion draws nothing more by itself.
   useEffect(() => {
     draw(clockRef.current?.current() ?? STILL);
-  }, [draw]);
+  }, [draw, reducedMotion]);
 
   const flutterNow = useCallback(
     () => clockRef.current?.current() ?? STILL,

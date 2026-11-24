@@ -13,6 +13,8 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 import LinkIcon from "@mui/icons-material/Link";
 import { KioskTool } from "./RightMenu/types.ts";
+import { RenderQualityControl } from "./RenderQualityControl.tsx";
+import { RenderQuality } from "../domain/renderQuality.ts";
 import {
   DEFAULT_DWELL_MS,
   IDLE_MS,
@@ -51,7 +53,12 @@ export function KioskPanel({
   onStop,
   readCamera,
   dimension,
-}: KioskTool) {
+  quality,
+  setQuality,
+}: KioskTool & {
+  quality: RenderQuality;
+  setQuality: (quality: RenderQuality) => void;
+}) {
   const [kind, setKind] = useState<KioskSettings["kind"]>(
     () => session?.kind ?? "chase",
   );
@@ -158,6 +165,14 @@ export function KioskPanel({
           Set in the Filter panel.
         </Typography>
       )}
+
+      {/* Shown during a run too: it is not the run's, and a paused wall
+          screen is where someone finds it stuttering. */}
+      <RenderQualityControl
+        quality={quality}
+        setQuality={setQuality}
+        note="Takes effect now. Copy link includes it."
+      />
 
       <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
         {session ? (

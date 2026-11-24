@@ -64,8 +64,8 @@ async function zoomTo(page: Page, zoom: number) {
 
 // Opens in 2D and switches: in the test browser a page loaded cold in 3D can
 // take over a minute to hand out its map, with terrain tiles still loading.
-async function open3d(page: Page, zoom = 17) {
-  await page.goto("/");
+async function open3d(page: Page, zoom = 17, search = "") {
+  await page.goto(`/${search}`);
   await zoomTo(page, zoom);
   await page.getByRole("button", { name: "Show 3D view" }).click();
 }
@@ -213,6 +213,17 @@ test("reduced motion draws no weather", async ({ page }) => {
   await page.getByLabel("Weather").check();
 
   await expect(page.getByLabel("Weather")).toBeChecked();
+  await expect(overlay(page)).toHaveCount(0);
+});
+
+// Low render quality asks for reduced motion on the screen's behalf. The
+// reading still arrives — the card shows it — and only the particles go.
+test("low render quality draws no weather", async ({ page }) => {
+  await stubNowcast(page, nowcast(2, "rain"));
+  await open3d(page, 17, "?quality=low");
+  await switchWeatherOn(page);
+
+  await expect(card(page)).toBeVisible();
   await expect(overlay(page)).toHaveCount(0);
 });
 

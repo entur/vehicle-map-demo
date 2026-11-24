@@ -10,6 +10,8 @@ import {
 import { MapViewOptions } from "../types.ts";
 import { AppMode } from "../domain/appMode.ts";
 import { ViewDimension } from "../domain/viewDimension.ts";
+import { RenderQuality } from "../domain/renderQuality.ts";
+import { RenderQualityControl } from "./RenderQualityControl.tsx";
 import { VehicleIconCanvas } from "./VehicleIconCanvas.tsx";
 import { VEHICLE_ICON_URLS } from "./vehicleIconImages.ts";
 import { SCHEDULE_GHOST_OPACITY } from "./mapStyle.ts";
@@ -35,6 +37,8 @@ type Props = {
   showWeather: boolean;
   setShowWeather: (show: boolean) => void;
   viewDimension: ViewDimension;
+  quality: RenderQuality;
+  setQuality: (quality: RenderQuality) => void;
 };
 
 export function MapLayers({
@@ -50,6 +54,8 @@ export function MapLayers({
   showWeather,
   setShowWeather,
   viewDimension,
+  quality,
+  setQuality,
 }: Props) {
   const { current: mapRef } = useMap();
 
@@ -280,6 +286,11 @@ export function MapLayers({
           }
         />
       </FormGroup>
+      <RenderQualityControl
+        quality={quality}
+        setQuality={setQuality}
+        note="Takes effect now and is saved in the page address."
+      />
     </Box>
   );
 }

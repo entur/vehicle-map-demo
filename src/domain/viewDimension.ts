@@ -30,6 +30,18 @@ export function parseViewDimension(
 export const VIEW_3D_LAYERS = ["hillshade-layer", "buildings-3d-layer"];
 
 /**
+ * The `VIEW_3D_LAYERS` shown: all of them in 3D, less the hillshade when the
+ * render quality leaves it out; none in 2D.
+ */
+export function visible3dLayers(
+  dimension: ViewDimension,
+  hillshade: boolean,
+): string[] {
+  if (dimension !== "3d") return [];
+  return VIEW_3D_LAYERS.filter((id) => hillshade || id !== "hillshade-layer");
+}
+
+/**
  * Derived, not listed: both base maps' layers, the 3D-only ones, and the
  * transit network drawn from the base map's tiles (see transitNetwork.ts).
  */

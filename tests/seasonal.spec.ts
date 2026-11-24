@@ -149,6 +149,22 @@ test("the lights hold steady with reduced motion", async ({ page }) => {
   expect((await seasonal(page))?.twinkling).toBe(false);
 });
 
+// Low render quality holds the lights still as reduced motion does, with no
+// media preference set, and lets them go again when the quality is raised.
+test("the lights hold steady at low render quality", async ({ page }) => {
+  await openAtMajorstuen(page, "?season=christmas&quality=low");
+  await expect
+    .poll(async () => (await seasonal(page))?.count ?? 0, { timeout: 30000 })
+    .toBeGreaterThan(0);
+  expect((await seasonal(page))?.twinkling).toBe(false);
+
+  await page.getByRole("button", { name: "Layers", exact: true }).click();
+  await page.getByRole("button", { name: "High", exact: true }).click();
+  await expect.poll(async () => (await seasonal(page))?.twinkling).toBe(true);
+  await page.getByRole("button", { name: "Low", exact: true }).click();
+  await expect.poll(async () => (await seasonal(page))?.twinkling).toBe(false);
+});
+
 // Tilted, the loaded tiles reach the horizon, where low-zoom tiles carry
 // lines degrees long; placing pumpkins against them once blanked the app.
 test("pumpkins survive a tilted 3D view", async ({ page }) => {

@@ -12,10 +12,10 @@ Playwright runs Chromium only; `ALL_BROWSERS=1 npx playwright test` adds Firefox
 
 The app does **not** use Vite env vars for endpoints. Instead, `src/main.tsx` fetches `/bootstrap.json` at startup and provides it via `ConfigContext`. All hooks read endpoints (`vehicle-positions-graphql-endpoint`, `vehicle-positions-subscriptions-endpoint`, `vehicle-positions-et-client-name`) from this context — see `src/config/ConfigContext.ts` and `src/hooks/useRequestHeaders.ts`.
 
-- Local dev: `public/bootstrap.json` is served as-is (currently points at `api.dev.entur.io`). Edit it to point at a different backend; do not commit personal client names.
+- Local dev: `public/bootstrap.json` is served as-is. It is gitignored, so a fresh checkout has none and the app fails to start with a JSON parse error; create it with `cp .github/environments/config-dev.json public/bootstrap.json` (pointing at `api.dev.entur.io`) and edit it locally to point at a different backend.
 - Deploys: `.github/workflows/deploy.yml` copies `.github/environments/config-{dev,staging,prod}.json` to `dist/bootstrap.json` before Firebase Hosting deploy. Add or change endpoints in those files, not in code.
 
-When introducing a new config key, update the `Config` interface in `ConfigContext.ts` and every `config-*.json` in `.github/environments/` plus `public/bootstrap.json`.
+When introducing a new config key, update the `Config` interface in `ConfigContext.ts` and every `config-*.json` in `.github/environments/`; a local `public/bootstrap.json` picks it up by being copied again.
 
 ## Data flow
 
@@ -85,6 +85,13 @@ Key invariants worth preserving:
 - The timetable scrolls its own list to the current stop by setting `scrollTop`, not with `scrollIntoView`, which also scrolls every scrollable ancestor and scrolled the sheet out from under its own header.
 - The map's **attribution** is one strip of 11px type flush in the bottom-right corner over 80% paper, on every screen, as other maps have it (`MapAttribution`; `<Map attributionControl={false}>`). It is never MapLibre's compact button. On a phone it wraps — the terrain and aerial imagery add credits — so `MapAttribution` reports its height and the sheet stands clear above it (`sheetBottom` in `bottomSheet.ts`) rather than covering it; the fully open sheet keeps its clearance from the top of the screen, so a raised sheet is shorter rather than taller. Its rule in `index.css` needs `.maplibregl-ctrl` in the selector: maplibre-gl.css is emitted later, and its equally specific rule otherwise wins — which left dark mode's grey text on MapLibre's translucent white. The chase HUD on a phone is as wide as the sheet.
 - `RightMenu` stays one z-index above the sheet, as above the card, so with the sheet `full` the toolbar overlaps its right edge. The chase HUD is above both it and MapLibre's control corners (`z-index: 4`): on a short phone in 3D the control stack and the toolbar reach down to it, and its Stop button must never be covered. The rotate buttons it can cover do nothing during a chase.
+
+## Render quality
+
+- Low, Medium and High (`RenderQualityControl`, in the Layers panel in both modes and in the Kiosk panel) trade picture for frame rate on weak machines such as a wall screen on an integrated GPU. App state mirrored into `?quality=`, so a kiosk link carries it; not part of `Filter` or `MapViewOptions`. Every level is one row of `QUALITY_SETTINGS` (`src/domain/renderQuality.ts`), whose field comments say what each knob does and why; `MapView` is its only reader, and the operator-facing captions beside it change with it.
+- `RenderResolution` is the only caller of `map.setPixelRatio`, and must tell deck.gl each new drawing-buffer size, or every model is drawn at the wrong size. It finds deck.gl's device through luma.gl, which an upgrade could move: `tests/renderQuality.spec.ts` fails if the sync stops working, but dependency bumps auto-merge without Playwright, so the component also warns in the console when deck.gl draws models and its device cannot be found. `LabelFade` writes `map._fadeDuration`, which has no setter.
+- The vehicles' ground layers (trace, ghost link, selection outline) stay in one unbroken run of line and fill layers after the route's, at every level: under terrain each run is a full terrain draw per frame, even when empty. `mapStyle.test.ts` checks it.
+- `ViewDimensionLayers` writes the hillshade's visibility and the buildings' opacity for the quality apart from its camera effect, so a quality change moves nothing; `BaseMapScheme` keeps the buildings' colour.
 
 ## Kiosk mode
 

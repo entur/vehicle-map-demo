@@ -100,6 +100,25 @@ export const BUILDINGS_3D_FILTER: ExpressionSpecification = [
 ];
 
 /**
+ * buildings-3d-layer's opacity, fading in over the zoom level above its
+ * floor. Translucent is the style's look; opaque is the render quality's
+ * cheaper one (`QualitySettings.translucentBuildings`), drawn in one pass.
+ */
+export function buildingsOpacity(
+  translucent: boolean,
+): ExpressionSpecification {
+  return [
+    "interpolate",
+    ["linear"],
+    ["zoom"],
+    BUILDINGS_3D_MIN_ZOOM,
+    0,
+    BUILDINGS_3D_MIN_ZOOM + 1,
+    translucent ? 0.85 : 1,
+  ];
+}
+
+/**
  * Zoom from which `vehicle-layer` draws line-code labels. Below it the text
  * field is empty rather than merely transparent, so the national view does not
  * shape and place thousands of labels nobody can see on every vehicle frame.
@@ -497,15 +516,7 @@ export function buildMapStyle(scheme: MapScheme): StyleSpecification {
             ["coalesce", ["get", "render_height"], 8],
           ],
           "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0],
-          "fill-extrusion-opacity": [
-            "interpolate",
-            ["linear"],
-            ["zoom"],
-            14,
-            0,
-            15,
-            0.85,
-          ],
+          "fill-extrusion-opacity": buildingsOpacity(true),
           "fill-extrusion-vertical-gradient": true,
         },
       },
@@ -549,6 +560,110 @@ export function buildMapStyle(scheme: MapScheme): StyleSpecification {
           "line-width": 4,
           "line-opacity": 1,
         },
+      },
+      // Every line and fill drawn on the ground for the vehicles follows the
+      // route's lines directly, with no circle or symbol layer between. Under
+      // terrain MapLibre drapes each unbroken run of such layers as one pass,
+      // a full terrain draw every frame, and a run costs that even with
+      // nothing in it. A chase drew four runs — the base map's, the route's
+      // and two empty ones — and now draws two, which took a software-
+      // rendered 3D view at Low from 3–4 to 8 frames a second. The price is
+      // that the journey's stop circles and names and the ghost's icon now
+      // draw over these layers rather than under. Keep new ground layers in
+      // this run; mapStyle.test.ts checks it.
+      {
+        id: "vehicle-trace-layer",
+        type: "line",
+        source: "vehicleTraces",
+        layout: {
+          "line-cap": "round",
+          "line-join": "miter",
+          visibility: "none",
+        },
+        paint: {
+          "line-color": TRACE,
+          "line-width": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            6,
+            3,
+            12,
+            7,
+            17,
+            20,
+          ],
+          "line-opacity": 0.6,
+          "line-blur": 0.5,
+        },
+      },
+      // The schedule ghost's link to the real vehicle, a two-tone edge
+      // (dataColours.ts): white under ink dashes, legible on both base maps
+      // without a colour of its own.
+      {
+        id: "schedule-ghost-link-casing-layer",
+        type: "line",
+        source: "scheduleGhost",
+        filter: ["==", ["geometry-type"], "LineString"],
+        layout: { "line-cap": "round" },
+        paint: { "line-color": EDGE_WHITE, "line-width": 4 },
+      },
+      {
+        id: "schedule-ghost-link-layer",
+        type: "line",
+        source: "scheduleGhost",
+        filter: ["==", ["geometry-type"], "LineString"],
+        paint: {
+          "line-color": EDGE_INK,
+          "line-width": 2,
+          "line-dasharray": [2, 2],
+        },
+      },
+      // The selection on a model: its footprint a metre larger, flat on the
+      // ground under it, turning with it and true to scale, where the screen-
+      // sized circle of vehicle-selected-halo-layer no longer fits. Fades in as
+      // that circle and the icons fade out. Filtered to the selection by
+      // SelectedVehicleHalo; declared before the models' beforeId, so it is
+      // drawn under them.
+      {
+        id: "vehicle-selected-outline-fill-layer",
+        type: "fill",
+        source: "vehicleOutlines",
+        minzoom: VEHICLE_MODEL_MIN_ZOOM,
+        paint: {
+          "fill-color": SELECTION_HALO,
+          "fill-opacity": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            VEHICLE_MODEL_MIN_ZOOM,
+            0,
+            VEHICLE_MODEL_MIN_ZOOM + 0.5,
+            0.25,
+          ],
+        },
+        filter: ["boolean", false],
+      },
+      {
+        id: "vehicle-selected-outline-layer",
+        type: "line",
+        source: "vehicleOutlines",
+        minzoom: VEHICLE_MODEL_MIN_ZOOM,
+        layout: { "line-join": "round" },
+        paint: {
+          "line-color": SELECTION_HALO,
+          "line-width": 3,
+          "line-opacity": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            VEHICLE_MODEL_MIN_ZOOM,
+            0,
+            VEHICLE_MODEL_MIN_ZOOM + 0.5,
+            1,
+          ],
+        },
+        filter: ["boolean", false],
       },
       // The selected journey's stops, drawn as the route is: ROUTE inside an
       // ink ring, inside a white one (the edge layer below), so they read as
@@ -730,56 +845,10 @@ export function buildMapStyle(scheme: MapScheme): StyleSpecification {
           "circle-stroke-color": EDGE_INK,
         },
       },
-      {
-        id: "vehicle-trace-layer",
-        type: "line",
-        source: "vehicleTraces",
-        layout: {
-          "line-cap": "round",
-          "line-join": "miter",
-          visibility: "none",
-        },
-        paint: {
-          "line-color": TRACE,
-          "line-width": [
-            "interpolate",
-            ["linear"],
-            ["zoom"],
-            6,
-            3,
-            12,
-            7,
-            17,
-            20,
-          ],
-          "line-opacity": 0.6,
-          "line-blur": 0.5,
-        },
-      },
       // The schedule ghost, under the vehicles so the real one is always on
-      // top. The link is a two-tone edge (dataColours.ts): white under ink
-      // dashes, legible on both base maps without a colour of its own.
-      {
-        id: "schedule-ghost-link-casing-layer",
-        type: "line",
-        source: "scheduleGhost",
-        filter: ["==", ["geometry-type"], "LineString"],
-        layout: { "line-cap": "round" },
-        paint: { "line-color": EDGE_WHITE, "line-width": 4 },
-      },
-      {
-        id: "schedule-ghost-link-layer",
-        type: "line",
-        source: "scheduleGhost",
-        filter: ["==", ["geometry-type"], "LineString"],
-        paint: {
-          "line-color": EDGE_INK,
-          "line-width": 2,
-          "line-dasharray": [2, 2],
-        },
-      },
-      // The vehicle's own icon, faded, and gone where the models take over —
-      // VehicleModels draws the ghost's model from there.
+      // top: the vehicle's own icon, faded, and gone where the models take
+      // over — VehicleModels draws the ghost's model from there. Its link to
+      // the real vehicle is declared with the route's lines.
       {
         id: "schedule-ghost-layer",
         type: "symbol",
@@ -802,52 +871,6 @@ export function buildMapStyle(scheme: MapScheme): StyleSpecification {
             0,
           ],
         },
-      },
-      // The selection on a model: its footprint a metre larger, flat on the
-      // ground under it, turning with it and true to scale, where the screen-
-      // sized circle of vehicle-selected-halo-layer no longer fits. Fades in as
-      // that circle and the icons fade out. Filtered to the selection by
-      // SelectedVehicleHalo; declared before the models' beforeId, so it is
-      // drawn under them.
-      {
-        id: "vehicle-selected-outline-fill-layer",
-        type: "fill",
-        source: "vehicleOutlines",
-        minzoom: VEHICLE_MODEL_MIN_ZOOM,
-        paint: {
-          "fill-color": SELECTION_HALO,
-          "fill-opacity": [
-            "interpolate",
-            ["linear"],
-            ["zoom"],
-            VEHICLE_MODEL_MIN_ZOOM,
-            0,
-            VEHICLE_MODEL_MIN_ZOOM + 0.5,
-            0.25,
-          ],
-        },
-        filter: ["boolean", false],
-      },
-      {
-        id: "vehicle-selected-outline-layer",
-        type: "line",
-        source: "vehicleOutlines",
-        minzoom: VEHICLE_MODEL_MIN_ZOOM,
-        layout: { "line-join": "round" },
-        paint: {
-          "line-color": SELECTION_HALO,
-          "line-width": 3,
-          "line-opacity": [
-            "interpolate",
-            ["linear"],
-            ["zoom"],
-            VEHICLE_MODEL_MIN_ZOOM,
-            0,
-            VEHICLE_MODEL_MIN_ZOOM + 0.5,
-            1,
-          ],
-        },
-        filter: ["boolean", false],
       },
       // Click target for the 3D vehicle models, which deck.gl draws (see
       // VehicleModels). Never visible: at opacity 0 MapLibre skips drawing it but
